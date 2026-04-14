@@ -5,138 +5,235 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') - Bimba Logistik</title>
 
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Alpine JS -->
+    <script src="//unpkg.com/alpinejs" defer></script>
 
     <style>
         body { background-color: #f8fafc; }
         .sidebar { background: linear-gradient(180deg, #1e40af 0%, #3b82f6 100%); }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .section {
+            margin-top: 16px;
+            padding: 0 16px;
+        }
+
+        .section p {
+            font-size: 11px;
+            color: #bfdbfe;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255,255,255,0.2);
+            margin-bottom: 8px;
+        }
+
+        .tooltip {
+            position: absolute;
+            left: 70px;
+            background: black;
+            color: white;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 
-<body class="flex h-screen overflow-hidden">
+<body x-data="sidebar()" x-init="init()" class="flex h-screen overflow-hidden">
 
-    <!-- Sidebar -->
-    <div class="w-64 sidebar text-white flex flex-col">
-        
-        <div class="p-6 border-b border-blue-700">
-            <h1 class="text-2xl font-bold tracking-tight">BIMBA LOGISTIK</h1>
-            <p class="text-blue-200 text-sm mt-1">Multi Warehouse System</p>
+<!-- SIDEBAR -->
+<div :class="open ? 'w-64' : 'w-20'" class="sidebar text-white flex flex-col transition-all duration-300">
+
+    <!-- LOGO -->
+    <div class="p-6 border-b border-blue-700 flex items-center justify-between">
+        <div x-show="open">
+            <h1 class="text-xl font-bold">BIMBA</h1>
+            <p class="text-blue-200 text-xs">Logistik</p>
         </div>
 
-        <div class="flex-1 px-3 py-6 overflow-y-auto">
-            <nav class="space-y-1">
-
-                <!-- Dashboard -->
-                <a href="{{ url('/') }}" 
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition">
-                    <i class="fas fa-tachometer-alt w-5"></i>
-                    <span>Dashboard</span>
-                </a>
-
-                <!-- Supplier -->
-
-                <a href="{{ route('suppliers.index') }}" 
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition {{ request()->routeIs('suppliers.*') ? 'bg-blue-700' : '' }}">
-                    <i class="fas fa-truck w-5"></i>
-                    <span>Supplier</span>
-                </a>
-
-
-                <!-- Produk Supplier-->
-                 <a href="{{ route('supplier-product.index') }}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition">
-                    <i class="fas fa-box w-5"></i>
-                    <span>Supplier Product</span>
-                </a>
-
-                <!-- Purchase Order -->
-                <a href="{{ route('po.index') }}" 
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition {{ request()->routeIs('po.*') ? 'bg-blue-700' : '' }}">
-                    <i class="fas fa-file-invoice w-5"></i>
-                    <span>Purchase Order</span>
-                </a>
-
-                <a href="{{ route('gr.index') }}" 
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition {{ request()->routeIs('gr.*') ? 'bg-blue-700' : '' }}">
-                    <i class="fas fa-box-open w-5"></i>
-                    <span>Stok Masuk</span>
-                </a>
-
-                <a href="{{ route('warehouses.index') }}" 
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition {{ request()->routeIs('po.*') ? 'bg-blue-700' : '' }}">
-                    <i class="fas fa-file-invoice w-5"></i>
-                    <span>Gudang</span>
-                </a>
-
-                <a href="{{ route('stock.index') }}" 
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition {{ request()->routeIs('stock.*') ? 'bg-blue-700' : '' }}">
-                    <i class="fas fa-boxes w-5"></i>
-                    <span>Stok Gudang</span>
-                </a>
-
-                <a href="{{ route('transfer.index') }}" 
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition">
-                    <i class="fas fa-exchange-alt w-5"></i>
-                    <span>Transfer Gudang</span>
-                </a>
-
-                <!-- Product -->
-                <a href="{{ route('products.index') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-700 transition">
-                    <i class="fas fa-box w-5"></i>
-                    <span>Master Produk</span>
-                </a>
-
-
-            </nav>
-        </div>
-
-        <!-- User -->
-        <div class="p-4 border-t border-blue-700">
-            <div class="flex items-center gap-3 px-3 py-2">
-                <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div>
-                    <p class="font-medium text-sm">
-                        {{ Auth::check() ? Auth::user()->name : 'Guest' }}
-                    </p>
-                    <p class="text-blue-200 text-xs">Administrator</p>
-                </div>
-            </div>
-
-            @auth
-            <form action="{{ route('logout') }}" method="POST" class="mt-4">
-                @csrf
-                <button type="submit" 
-                        class="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 py-3 rounded-2xl text-sm font-medium transition">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </button>
-            </form>
-            @endauth
-        </div>
+        <button @click="toggle()">
+            <i class="fas fa-bars"></i>
+        </button>
     </div>
 
-    <!-- Main -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- MENU -->
+    <div class="flex-1 px-2 py-4 overflow-y-auto">
 
-        <!-- Top Bar -->
-        <header class="bg-white border-b px-8 py-4 flex items-center justify-between">
-            <h2 class="text-2xl font-semibold text-gray-800">
-                @yield('title', 'Dashboard')
-            </h2>
-            <div class="text-sm text-gray-500">
-                {{ now()->format('d F Y') }}
-            </div>
-        </header>
+        <!-- DASHBOARD -->
+        <a href="{{ url('/') }}" class="menu-item" x-data="{t:false}" @mouseenter="t=true" @mouseleave="t=false">
+            <i class="fas fa-tachometer-alt"></i>
+            <span x-show="open">Dashboard</span>
+            <div x-show="!open && t" class="tooltip">Dashboard</div>
+        </a>
 
-        <!-- Content -->
-        <main class="flex-1 overflow-auto p-8">
-            @yield('content')
-        </main>
+        <!-- MASTER DATA -->
+        <div class="section">
+            <div class="divider"></div>
+            <p x-show="open">Master Data</p>
+        </div>
+
+        <a href="{{ route('warehouses.index') }}" class="menu-item" x-data="{t:false}" @mouseenter="t=true" @mouseleave="t=false">
+            <i class="fas fa-warehouse"></i>
+            <span x-show="open">Gudang</span>
+            <div x-show="!open && t" class="tooltip">Gudang</div>
+        </a>
+
+        <a href="{{ route('suppliers.index') }}" class="menu-item" x-data="{t:false}" @mouseenter="t=true" @mouseleave="t=false">
+            <i class="fas fa-truck"></i>
+            <span x-show="open">Supplier</span>
+            <div x-show="!open && t" class="tooltip">Supplier</div>
+        </a>
+
+        <a href="{{ route('products.index') }}" class="menu-item" x-data="{t:false}" @mouseenter="t=true" @mouseleave="t=false">
+            <i class="fas fa-box"></i>
+            <span x-show="open">Produk</span>
+            <div x-show="!open && t" class="tooltip">Produk</div>
+        </a>
+
+        <!-- TRANSAKSI -->
+        <div class="section">
+            <div class="divider"></div>
+            <p x-show="open">Transaksi</p>
+        </div>
+
+        <a href="{{ route('po.index') }}" class="menu-item" x-data="{t:false}">
+            <i class="fas fa-file-invoice"></i>
+            <span x-show="open">Purchase Order</span>
+        </a>
+
+        <a href="{{ route('gr.index') }}" class="menu-item" x-data="{t:false}">
+            <i class="fas fa-box-open"></i>
+            <span x-show="open">Stok Masuk</span>
+        </a>
+
+        <a href="{{ route('transfer.index') }}" class="menu-item" x-data="{t:false}">
+            <i class="fas fa-exchange-alt"></i>
+            <span x-show="open">Transfer</span>
+        </a>
+
+        <!-- INVENTORY -->
+        <div class="section">
+            <div class="divider"></div>
+            <p x-show="open">Inventory</p>
+        </div>
+
+        <a href="{{ route('stock.index') }}" class="menu-item">
+            <i class="fas fa-boxes"></i>
+            <span x-show="open">Stok</span>
+        </a>
+
+        <a href="{{ route('stock-card.index') }}" class="menu-item">
+            <i class="fas fa-book"></i>
+            <span x-show="open">Kartu Stok</span>
+        </a>
+
+        <a href="{{ route('stock-opname.index') }}" class="menu-item">
+            <i class="fas fa-clipboard-check"></i>
+            <span x-show="open">Stock Opname</span>
+        </a>
+
+        <a href="{{ route('reject.index') }}" class="menu-item">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span x-show="open">Reject</span>
+</a>
+
     </div>
+
+    <!-- USER -->
+    <div class="p-4 border-t border-blue-700">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+                <i class="fas fa-user"></i>
+            </div>
+
+            <div x-show="open">
+                <p class="text-sm">{{ Auth::user()->name ?? 'Guest' }}</p>
+                <p class="text-xs text-blue-200">Administrator</p>
+            </div>
+        </div>
+
+        @auth
+        <form action="{{ route('logout') }}" method="POST" class="mt-4">
+            @csrf
+            <button class="w-full bg-red-500 hover:bg-red-600 py-2 rounded-xl text-sm">
+                Logout
+            </button>
+        </form>
+        @endauth
+    </div>
+
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b px-6 py-4 flex items-center">
+        <button @click="toggle()" class="mr-4 text-gray-600">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+
+        <h2 class="text-2xl font-semibold">
+            @yield('title', 'Dashboard')
+        </h2>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="flex-1 overflow-auto p-6">
+        @yield('content')
+    </main>
+
+</div>
+
+<!-- SCRIPT -->
+<script>
+function sidebar() {
+    return {
+        open: true,
+
+        init() {
+            const saved = localStorage.getItem('sidebar');
+            this.open = saved !== null ? JSON.parse(saved) : true;
+        },
+
+        toggle() {
+            this.open = !this.open;
+            localStorage.setItem('sidebar', this.open);
+        }
+    }
+}
+</script>
 
 </body>
 </html>

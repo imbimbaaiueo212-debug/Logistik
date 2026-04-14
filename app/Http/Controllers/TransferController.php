@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
+use App\Services\StockService;
 use App\Models\Transfer;
 use App\Models\TransferItem;
 use App\Models\Warehouse;
 use App\Models\Stock;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 
 class TransferController extends Controller
@@ -38,46 +41,25 @@ class TransferController extends Controller
 
     // 🔥 SIMPAN TRANSFER
     public function store(Request $request)
-    {
-        if ($request->from_warehouse == $request->to_warehouse) {
-            return back()->with('error', 'Gudang tidak boleh sama!');
-        }
+{
+    if ($request->from_warehouse == $request->to_warehouse) {
+        return back()->with('error', 'Gudang tidak boleh sama!');
+    }
 
+    DB::beginTransaction();
+
+    try {
         $transfer = Transfer::create([
             'from_warehouse_id' => $request->from_warehouse,
             'to_warehouse_id'   => $request->to_warehouse,
-            'date'              => now()
+            'date'              => now(),
+            'status'            => 'pending'
         ]);
 
         foreach ($request->items as $item) {
 
             if (($item['qty'] ?? 0) <= 0) continue;
 
-            $stockFrom = Stock::where('product_id', $item['product_id'])
-                ->where('warehouse_id', $request->from_warehouse)
-                ->first();
-
-            if (!$stockFrom || $stockFrom->qty < $item['qty']) {
-                return back()->with('error', 'Stok tidak cukup!');
-            }
-
-            // 🔥 KURANGI
-            $stockFrom->qty -= $item['qty'];
-            $stockFrom->save();
-
-            // 🔥 TAMBAH
-            $stockTo = Stock::firstOrCreate(
-                [
-                    'product_id'   => $item['product_id'],
-                    'warehouse_id' => $request->to_warehouse
-                ],
-                ['qty' => 0]
-            );
-
-            $stockTo->qty += $item['qty'];
-            $stockTo->save();
-
-            // 🔥 SIMPAN ITEM
             TransferItem::create([
                 'transfer_id' => $transfer->id,
                 'product_id'  => $item['product_id'],
@@ -85,8 +67,16 @@ class TransferController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Transfer berhasil!');
+        DB::commit();
+
+        return redirect()->route('transfer.index')
+            ->with('success', 'Request transfer dibuat (Menunggu Approval)');
+
+    } catch (\Exception $e) {
+        DB::rollback();
+        return back()->with('error', $e->getMessage());
     }
+}
 
     public function edit($id)
 {
@@ -211,5 +201,69 @@ public function show($id)
     ])->findOrFail($id);
 
     return view('transfer.show', compact('transfer'));
+}
+
+public function approve($id, \App\Services\StockService $stockService)
+{
+    $transfer = Transfer::with('items')->findOrFail($id);
+
+    // ❌ jangan approve dua kali
+    if ($transfer->status != 'pending') {
+        return back()->with('error', 'Transfer sudah diproses');
+    }
+
+    DB::beginTransaction();
+
+    try {
+
+        foreach ($transfer->items as $item) {
+
+            // 🔥 VALIDASI STOK
+            $stock = \App\Models\Stock::where('product_id', $item->product_id)
+                ->where('warehouse_id', $transfer->from_warehouse_id)
+                ->first();
+
+            if (!$stock || $stock->qty < $item->qty) {
+                throw new \Exception("Stok tidak cukup untuk produk ID {$item->product_id}");
+            }
+
+            // 🔥 PINDAHKAN STOK
+            $stockService->transfer(
+                $item->product_id,
+                $transfer->from_warehouse_id,
+                $transfer->to_warehouse_id,
+                $item->qty,
+                $transfer->id
+            );
+        }
+
+        // 🔥 UPDATE STATUS
+        $transfer->update([
+            'status' => 'approved',
+            'approved_at' => now()
+        ]);
+
+        DB::commit();
+
+        return back()->with('success', 'Transfer berhasil di-approve');
+
+    } catch (\Exception $e) {
+        DB::rollback();
+        return back()->with('error', $e->getMessage());
+    }
+}
+public function reject($id)
+{
+    $transfer = Transfer::findOrFail($id);
+
+    if ($transfer->status != 'pending') {
+        return back()->with('error', 'Sudah diproses');
+    }
+
+    $transfer->update([
+        'status' => 'rejected'
+    ]);
+
+    return back()->with('success', 'Transfer ditolak');
 }
 }

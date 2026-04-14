@@ -6,7 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transfer extends Model
 {
-    protected $fillable = ['from_warehouse_id', 'to_warehouse_id', 'date'];
+    protected $fillable = [
+    'from_warehouse_id',
+    'to_warehouse_id',
+    'date',
+    'status',
+    'approved_at',
+    'note'
+];
 
     public function fromWarehouse()
     {

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\PurchaseOrder;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
-use App\Models\Stock;
 use App\Models\Warehouse;
+use App\Models\RejectItem;
 use Illuminate\Http\Request;
 
 class GoodsReceiptController extends Controller
@@ -14,16 +15,16 @@ class GoodsReceiptController extends Controller
     public function index()
     {
         $receipts = GoodsReceipt::with(['items.product', 'purchaseOrder'])->latest()->get();
-
         return view('gr.index', compact('receipts'));
     }
-    public function create()
-{
-    $pos = PurchaseOrder::all();
-    $warehouses = Warehouse::all(); // 🔥 tambah ini
 
-    return view('gr.create', compact('pos', 'warehouses'));
-}
+    public function create()
+    {
+        $pos = PurchaseOrder::all();
+        $warehouses = Warehouse::all();
+
+        return view('gr.create', compact('pos', 'warehouses'));
+    }
 
     public function getPO($id)
     {
@@ -31,6 +32,11 @@ class GoodsReceiptController extends Controller
         return response()->json($po);
     }
 
+    /*
+    |--------------------------------------------------
+    | STORE (TANPA STOCK!)
+    |--------------------------------------------------
+    */
     public function store(Request $request)
 {
     $request->validate([
@@ -38,124 +44,147 @@ class GoodsReceiptController extends Controller
         'warehouse_id' => 'required|exists:warehouses,id',
     ]);
 
-    $poId        = $request->po_id;
-    $warehouseId = $request->warehouse_id;
-    $allowOver   = $request->boolean('allow_over');   // Lebih bersih
-
-    // Ambil data PO Items
-    $poItems = \App\Models\PurchaseOrderItem::where('purchase_order_id', $poId)
-                ->pluck('qty', 'product_id');
-
-    // Hitung total yang sudah diterima sebelumnya
-    $currentReceived = GoodsReceiptItem::whereHas('receipt', function ($q) use ($poId) {
-            $q->where('purchase_order_id', $poId);
-        })
-        ->selectRaw('product_id, SUM(qty) as total')
-        ->groupBy('product_id')
-        ->pluck('total', 'product_id');
-
-    // === VALIDASI SEMUA ITEM DULU (PENTING!) ===
-    foreach ($request->items as $index => $item) {
-        if (empty($item['qty']) || ($item['qty'] ?? 0) <= 0) continue;
-
-        $productId = $item['product_id'];
-        $qtyInput  = (int) $item['qty'];
-
-        $qtyPO           = $poItems[$productId] ?? 0;
-        $alreadyReceived = $currentReceived[$productId] ?? 0;
-        $sisa            = $qtyPO - $alreadyReceived;
-
-        if ($qtyInput > $sisa && !$allowOver) {
-            return back()
-                ->withInput()                    // Penting: supaya form tetap terisi
-                ->with('error', "Qty untuk produk ID {$productId} melebihi sisa PO ({$sisa}). 
-                       Centang 'Izinkan kelebihan barang' jika ingin melanjutkan.");
-        }
-    }
-
-    // === BARU SIMPAN SETELAH SEMUA VALIDASI LOLOS ===
     $gr = GoodsReceipt::create([
-        'purchase_order_id' => $poId,
-        'date'              => now(),
-        'warehouse_id'      => $warehouseId,
+        'purchase_order_id' => $request->po_id,
+        'date' => now(),
+        'warehouse_id' => $request->warehouse_id,
     ]);
 
-    foreach ($request->items as $index => $item) {
-        if (($item['qty'] ?? 0) <= 0) continue;
+    foreach ($request->items as $item) {
+        $qty = (int) ($item['qty'] ?? 0);
 
-        $productId = $item['product_id'];
-        $qtyInput  = (int) $item['qty'];
+        if ($qty <= 0) continue;
 
         GoodsReceiptItem::create([
             'goods_receipt_id' => $gr->id,
-            'product_id'       => $productId,
-            'qty'              => $qtyInput,
+            'product_id'       => $item['product_id'],
+            'qty_received'     => $qty,                    // ← Gunakan ini
             'price'            => $item['price'] ?? 0,
+            'qty_ok'           => 0,
+            'qty_reject'       => 0,
+            'qc_status'        => 'pending',               // ← Sesuaikan
         ]);
-
-        // Update Stock
-        $stock = Stock::firstOrCreate(
-            ['product_id' => $productId, 'warehouse_id' => $warehouseId],
-            ['qty' => 0]
-        );
-        $stock->increment('qty', $qtyInput);
     }
 
     return redirect()->route('gr.index')
-        ->with('success', 'Goods Receipt berhasil disimpan & stok bertambah.');
+        ->with('success', 'GR dibuat. Lanjut QC.');
 }
 
+    /*
+    |--------------------------------------------------
+    | QC PAGE
+    |--------------------------------------------------
+    */
+    public function qcPage($id)
+    {
+        $gr = GoodsReceipt::with('items.product')->findOrFail($id);
+        return view('gr.qc', compact('gr'));
+    }
 
-    public function edit($id)
+    /*
+    |--------------------------------------------------
+    | QC PROCESS (INI INTI NYA)
+    |--------------------------------------------------
+    */
+    public function qc(Request $request, $id)
 {
-    $gr = GoodsReceipt::with('items.product')->findOrFail($id);
-    return view('gr.edit', compact('gr'));
-}
-public function update(Request $request, $id)
-{
-    $gr = GoodsReceipt::findOrFail($id);
+    $item = GoodsReceiptItem::with('receipt')->findOrFail($id);
 
-    foreach ($request->items as $item) {
+    $request->validate([
+        'qty_ok' => 'required|integer|min:0',
+        'qty_reject' => 'required|integer|min:0',
+    ]);
 
-        $grItem = GoodsReceiptItem::find($item['id']);
+    // ❌ jangan QC 2x
+    if ($item->qc_status === 'done') {
+        return response()->json(['error' => 'Sudah QC'], 400);
+    }
 
-        $diff = $item['qty'] - $grItem->qty;
+    // ❌ validasi jumlah
+    if (($request->qty_ok + $request->qty_reject) != $item->qty_received) {
+        return response()->json(['error' => 'Total tidak sesuai'], 400);
+    }
 
-        $stock = Stock::where('product_id', $grItem->product_id)
-            ->where('warehouse_id', $gr->warehouse_id) // 🔥 WAJIB
-            ->first();
+    DB::transaction(function () use ($item, $request) {
 
-        if ($stock) {
-            $stock->qty += $diff;
-            $stock->save();
-        }
-
-        $grItem->update([
-            'qty' => $item['qty']
+        // =========================
+        // 1. UPDATE QC
+        // =========================
+        $item->update([
+            'qty_ok' => $request->qty_ok,
+            'qty_reject' => $request->qty_reject,
+            'qc_status' => 'done',
         ]);
-    }
 
-    return redirect()->route('gr.index')->with('success', 'Data berhasil diupdate');
-}
-public function destroy($id)
-{
-    $gr = GoodsReceipt::with('items')->findOrFail($id);
+        // =========================
+        // 2. STOCK MASUK (OK)
+        // =========================
+        if ($request->qty_ok > 0) {
 
-    foreach ($gr->items as $item) {
-
-        $stock = Stock::where('product_id', $item->product_id)
-            ->where('warehouse_id', $gr->warehouse_id) // 🔥 WAJIB
-            ->first();
-
-        if ($stock) {
-            $stock->qty -= $item->qty;
-            $stock->save();
+            app(\App\Services\StockService::class)->stockIn(
+                $item->product_id,
+                $item->receipt->warehouse_id,
+                $request->qty_ok,
+                $item->receipt->id
+            );
         }
-    }
 
-    $gr->items()->delete();
-    $gr->delete();
+        // =========================
+        // 3. STOCK REJECT
+        // =========================
+        if ($request->qty_reject > 0) {
 
-    return redirect()->route('gr.index')->with('success', 'Data berhasil dihapus');
+            $rejectWarehouseId = 99; // 🔥 ganti sesuai gudang reject
+
+            // masuk ke gudang reject
+            \App\Models\Stock::updateOrCreate(
+                [
+                    'warehouse_id' => $rejectWarehouseId,
+                    'product_id' => $item->product_id
+                ],
+                [
+                    'qty' => DB::raw("qty + {$request->qty_reject}")
+                ]
+            );
+
+            // =========================
+            // 4. SIMPAN KE reject_items
+            // =========================
+            \App\Models\RejectItem::create([
+                'product_id' => $item->product_id,
+                'warehouse_id' => $item->receipt->warehouse_id,
+                'qty' => $request->qty_reject,
+                'reason' => $request->reason ?? null,
+                'status' => 'pending'
+            ]);
+        }
+    });
+
+    return response()->json([
+        'success' => true,
+        'redirect' => route('gr.index')
+    ]);
 }
+
+    /*
+    |--------------------------------------------------
+    | DELETE (HANYA YANG BELUM QC)
+    |--------------------------------------------------
+    */
+    public function destroy($id)
+    {
+        $gr = GoodsReceipt::with('items')->findOrFail($id);
+
+        foreach ($gr->items as $item) {
+            if ($item->is_qc_done) {
+                throw new \Exception('Tidak bisa hapus, sudah QC');
+            }
+        }
+
+        $gr->items()->delete();
+        $gr->delete();
+
+        return redirect()->route('gr.index')
+            ->with('success', 'Data berhasil dihapus');
+    }
 }

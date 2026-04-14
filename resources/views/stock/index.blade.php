@@ -38,7 +38,7 @@
         <tbody>
             @forelse($stocks as $s)
             <tr class="border-t text-center">
-                <td class="p-2">{{ $s->warehouse->name }}</td>
+                <td class="p-2">{{ $s->warehouse->name ?? '-' }}</td>
                 <td class="p-2">{{ $s->product->name }}</td>
                 <td class="p-2">{{ $s->product->sku ?? '-' }}</td>
                 <td class="p-2 font-bold">{{ $s->qty }}</td>

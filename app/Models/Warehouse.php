@@ -11,4 +11,9 @@ class Warehouse extends Model
         'code',
         'location'
     ];
+
+    public function isFrozen()
+{
+    return $this->is_freeze;
+}
 }
