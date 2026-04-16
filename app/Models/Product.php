@@ -26,9 +26,14 @@ class Product extends Model
     ];
 
     public function suppliers()
-    {
-        return $this->belongsToMany(Supplier::class)->withPivot('price');
-    }
+{
+    return $this->belongsToMany(
+        Supplier::class,
+        'product_supplier',
+        'product_id',
+        'supplier_id'
+    )->withPivot('price');
+}
 
     // ================== ACCESSORS (RUMUS OTOMATIS) ==================
 

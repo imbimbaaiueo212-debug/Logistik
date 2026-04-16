@@ -67,7 +67,7 @@ class StockService
                 'reference_type' => $refType,
                 'reference_id' => $refId,
                 'notes' => $notes,
-                'created_by' => auth()->id(),
+                'user_id' => auth()->id(),
             ]);
 
             return $after;

@@ -78,7 +78,7 @@
     <!-- LOGO -->
     <div class="p-6 border-b border-blue-700 flex items-center justify-between">
         <div x-show="open">
-            <h1 class="text-xl font-bold">BIMBA</h1>
+            <h1 class="text-xl font-bold">biMBA</h1>
             <p class="text-blue-200 text-xs">Logistik</p>
         </div>
 
@@ -117,15 +117,27 @@
 
         <a href="{{ route('products.index') }}" class="menu-item" x-data="{t:false}" @mouseenter="t=true" @mouseleave="t=false">
             <i class="fas fa-box"></i>
-            <span x-show="open">Produk</span>
+            <span x-show="open">Master Produk</span>
             <div x-show="!open && t" class="tooltip">Produk</div>
         </a>
+        
 
         <!-- TRANSAKSI -->
         <div class="section">
             <div class="divider"></div>
             <p x-show="open">Transaksi</p>
         </div>
+
+        <a href="{{ route('supplier-product.index') }}" class="menu-item" x-data="{t:false}" @mouseenter="t=true" @mouseleave="t=false">
+            <i class="fas fa-box"></i>
+            <span x-show="open">Produk Supplier</span>
+            <div x-show="!open && t" class="tooltip">Produk</div>
+        </a>
+
+        <a href="{{ route('quotation.index') }}" class="menu-item" x-data="{t:false}">
+            <i class="fas fa-file-alt"></i>
+            <span x-show="open">Quotation</span>
+        </a>
 
         <a href="{{ route('po.index') }}" class="menu-item" x-data="{t:false}">
             <i class="fas fa-file-invoice"></i>
@@ -140,6 +152,15 @@
         <a href="{{ route('transfer.index') }}" class="menu-item" x-data="{t:false}">
             <i class="fas fa-exchange-alt"></i>
             <span x-show="open">Transfer</span>
+        </a>
+
+        <a href="{{ route('distribution.index') }}" class="menu-item" x-data="{t:false}">
+            <i class="fas fa-shipping-fast"></i>
+            <span x-show="open">Distribusi</span>
+        </a>
+        <a href="{{ route('return-distribution.index') }}" class="menu-item" x-data="{t:false}">
+            <i class="fas fa-shipping-fast"></i>
+            <span x-show="open">Distribusi Retur</span>
         </a>
 
         <!-- INVENTORY -->

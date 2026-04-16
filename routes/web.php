@@ -15,6 +15,9 @@ use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StockCardController;
 use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\RejectController;
+use App\Http\Controllers\DistributionController;
+use App\Http\Controllers\ReturnDistributionController;
+use App\Http\Controllers\QuotationController;
 
 
     Route::get('/', function () {
@@ -121,6 +124,35 @@ use App\Http\Controllers\RejectController;
     Route::post('/reject/{id}/return', [RejectController::class, 'return'])->name('reject.return');
     Route::post('/reject/{id}/scrap', [RejectController::class, 'scrap'])->name('reject.scrap');
     Route::post('/reject/{id}/repair', [RejectController::class, 'repair'])->name('reject.repair');
+
+    //distribution
+    Route::resource('distribution', DistributionController::class);
+    Route::get('/distribution-stock/{id}', [DistributionController::class, 'getStock']);
+    Route::post('/distribution/{id}/approve', [DistributionController::class, 'approve'])->name('distribution.approve');
+    Route::post('/distribution/{id}/reject', [DistributionController::class, 'reject'])->name('distribution.reject');
+
+    //return distribution
+    Route::resource('return-distribution', ReturnDistributionController::class);
+
+    Route::get('/return-distribution-items/{id}', 
+        [ReturnDistributionController::class, 'getItems']);
+
+    Route::post('/return-distribution/{id}/approve', 
+        [ReturnDistributionController::class, 'approve'])
+        ->name('return-distribution.approve');
+
+    //quotation
+    Route::resource('quotation', QuotationController::class);
+    Route::post('quotation/{id}/convert/{supplier}', [QuotationController::class,'convertToPO']);
+    Route::get('/get-products/{supplier}', [QuotationController::class, 'getProductsBySupplier']);
+    Route::post('quotation/{id}/send', [QuotationController::class, 'send'])
+    ->name('quotation.send');
+    Route::resource('quotation', QuotationController::class)
+    ->except(['edit', 'update']);
+
+    Route::post('/quotation/{id}/approve', [QuotationController::class, 'approve'])->name('quotation.approve');
+    Route::post('/quotation/{id}/reject', [QuotationController::class, 'reject'])->name('quotation.reject');
+    Route::post('/quotation/{id}/send', [QuotationController::class, 'send'])->name('quotation.send');
 
     //midle
     Route::post('/stock-in', [StockController::class, 'store'])

@@ -187,4 +187,66 @@ class GoodsReceiptController extends Controller
         return redirect()->route('gr.index')
             ->with('success', 'Data berhasil dihapus');
     }
+
+    public function edit($id)
+{
+    $gr = GoodsReceipt::with('items.product')->findOrFail($id);
+
+    // ❌ CEK SUDAH QC
+    foreach ($gr->items as $item) {
+        if ($item->qc_status == 'done') {
+            return back()->with('error', 'Tidak bisa edit, sudah QC');
+        }
+    }
+
+    $pos = PurchaseOrder::all();
+    $warehouses = Warehouse::all();
+
+    return view('gr.edit', compact('gr', 'pos', 'warehouses'));
+}
+
+public function update(Request $request, $id)
+{
+    $gr = GoodsReceipt::with('items')->findOrFail($id);
+
+    // ❌ CEK SUDAH QC
+    foreach ($gr->items as $item) {
+        if ($item->qc_status == 'done') {
+            return back()->with('error', 'Tidak bisa update, sudah QC');
+        }
+    }
+
+    DB::transaction(function () use ($request, $gr) {
+
+        // 🔥 UPDATE HEADER
+        $gr->update([
+            'purchase_order_id' => $request->po_id,
+            'warehouse_id' => $request->warehouse_id,
+        ]);
+
+        // 🔥 HAPUS ITEM LAMA
+        $gr->items()->delete();
+
+        // 🔥 INSERT ULANG
+        foreach ($request->items as $item) {
+
+            $qty = (int) ($item['qty'] ?? 0);
+
+            if ($qty <= 0) continue;
+
+            GoodsReceiptItem::create([
+                'goods_receipt_id' => $gr->id,
+                'product_id'       => $item['product_id'],
+                'qty_received'     => $qty,
+                'price'            => $item['price'] ?? 0,
+                'qty_ok'           => 0,
+                'qty_reject'       => 0,
+                'qc_status'        => 'pending',
+            ]);
+        }
+    });
+
+    return redirect()->route('gr.index')
+        ->with('success', 'GR berhasil diupdate');
+}
 }

@@ -55,6 +55,7 @@
                         <th class="p-3 text-center">Produk</th>
                         <th class="p-3 text-center">Gudang</th>
                         <th class="p-3 text-center">Type</th>
+                        <th class="p-3 text-center">Keterangan</th>
                         <th class="p-3 text-center">Masuk</th>
                         <th class="p-3 text-center">Keluar</th>
                         <th class="p-3 text-center">Saldo</th>
@@ -79,6 +80,10 @@
 
                         <td class="p-3">
                             {{ \App\Enums\StockMovementType::label($m->type) }}
+                        </td>
+
+                        <td class="p-3">
+                            {{ $m->reference_type ?? '-' }}
                         </td>
 
                         {{-- MASUK --}}

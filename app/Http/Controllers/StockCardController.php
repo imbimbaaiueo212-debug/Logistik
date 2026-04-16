@@ -39,18 +39,16 @@ class StockCardController extends Controller
 
     foreach ($movements as $m) {
 
-        // MASUK / KELUAR dari qty
-        if ($m->qty > 0) {
-            $m->qty_masuk = $m->qty;
-            $m->qty_keluar = 0;
-        } else {
-            $m->qty_masuk = 0;
-            $m->qty_keluar = abs($m->qty);
-        }
-
-        // 🔥 PAKAI STOCK AFTER
-        $m->running_balance = $m->stock_after;
+    if (in_array($m->type, ['IN', 'TRANSFER_IN'])) {
+        $m->qty_masuk = abs($m->qty);
+        $m->qty_keluar = 0;
+    } else {
+        $m->qty_masuk = 0;
+        $m->qty_keluar = abs($m->qty);
     }
+
+    $m->running_balance = $m->stock_after;
+}
 
     return view('stock_card.index', compact(
         'movements',
