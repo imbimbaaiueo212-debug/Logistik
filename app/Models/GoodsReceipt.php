@@ -42,4 +42,5 @@ class GoodsReceipt extends Model
     {
         return $this->purchaseOrder();
     }
+    
 }

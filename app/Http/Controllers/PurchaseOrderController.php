@@ -127,4 +127,5 @@ class PurchaseOrderController extends Controller
 
     return view('po.show', compact('po'));
 }
+
 }

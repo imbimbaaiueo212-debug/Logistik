@@ -27,6 +27,8 @@
                 <th class="p-3">ID</th>
                 <th class="p-3">Supplier</th>
                 <th class="p-3">Tanggal</th>
+                <th class="p-3">Items</th>
+                <th class="p-3">Qty</th>
                 <th class="p-3">Total</th>
                 <th class="p-3">Status</th>
                 <th class="p-3">Aksi</th>
@@ -35,24 +37,30 @@
 
         <tbody>
             @forelse($pos as $po)
-            <tr class="border-t">
+            <tr class="border-t text-center">
                 <td class="p-3">#{{ $po->id }}</td>
                 <td class="p-3">{{ $po->supplier->name ?? '-' }}</td>
                 <td class="p-3">
-                    {{ $po->date ? \Carbon\Carbon::parse($po->date)->format('d/m/Y H:i') : '-' }}
+                   {{ $po->created_at?->format('d/m/Y') }}
+                </td>
+                <td class="p-3">
+                    {{ $po->items->pluck('product.name')->filter()->join(', ') }}
+                </td>
+                <td class="p-3">
+                    {{ $po->items->sum('qty') }}
                 </td>
                 <td class="p-3">Rp {{ number_format($po->total) }}</td>
                 <td>
-    <span class="
-    @if($po->status == 'Draft') bg-gray-400
-    @elseif($po->status == 'Partial') bg-yellow-500
-    @elseif($po->status == 'Completed') bg-green-500
-    @else bg-red-500
-    @endif
-    text-white px-3 py-1 rounded">
-    {{ $po->status }}
-</span>
-</td>
+                    <span class="
+                    @if($po->status == 'Draft') bg-gray-400
+                    @elseif($po->status == 'Partial') bg-yellow-500
+                    @elseif($po->status == 'Completed') bg-green-500
+                    @else bg-red-500
+                    @endif
+                    text-white px-3 py-1 rounded">
+                    {{ $po->status }}
+                </span>
+                </td>
                 <td class="p-3">
                     <a href="{{ route('po.edit', $po) }}" 
                        class="bg-yellow-500 text-white px-3 py-1 rounded text-sm">

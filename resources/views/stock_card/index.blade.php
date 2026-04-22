@@ -67,7 +67,7 @@
                     <tr class="border-t text-center">
 
                         <td class="p-3">
-                            {{ $m->created_at->format('d/m/Y H:i') }}
+                            {{ $m->created_at->format('d-m-Y') }}
                         </td>
 
                         <td class="p-3 font-semibold">

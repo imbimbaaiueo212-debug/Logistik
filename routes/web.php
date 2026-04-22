@@ -18,6 +18,7 @@ use App\Http\Controllers\RejectController;
 use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\ReturnDistributionController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\UserController;
 
 
     Route::get('/', function () {
@@ -28,16 +29,27 @@ use App\Http\Controllers\QuotationController;
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    //end login
 
     //registrasi
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
+    //end registrasi
+
+    //user
+    Route::resource('users', \App\Http\Controllers\UserController::class);
+
+    // tambahan reset password
+    Route::get('/users/{id}/reset-password', [UserController::class, 'resetForm'])->name('users.reset.form');
+    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset');
 
     //supplier
     Route::resource('suppliers', SupplierController::class);
+    //end supplier
 
     //produk
     Route::resource('products', ProductController::class);
+    //end produk
 
     //supplier-Produk
     Route::get('/supplier-product', [SupplierProductController::class, 'index'])->name('supplier-product.index');
@@ -45,6 +57,7 @@ use App\Http\Controllers\QuotationController;
     Route::get('/supplier-product/{supplierId}/{productId}/edit', [SupplierProductController::class, 'edit'])->name('supplier-product.edit');
     Route::put('/supplier-product/{supplierId}/{productId}', [SupplierProductController::class, 'update'])->name('supplier-product.update');
     Route::delete('/supplier-product/{supplierId}/{productId}', [SupplierProductController::class, 'destroy'])->name('supplier-product.destroy');
+    //end supplier-produk
 
     // Purchase Order Routes
     Route::get('/po', [PurchaseOrderController::class, 'index'])->name('po.index');
@@ -55,6 +68,7 @@ use App\Http\Controllers\QuotationController;
     Route::put('/po/{po}', [PurchaseOrderController::class, 'update'])->name('po.update');
     Route::delete('/po/{po}', [PurchaseOrderController::class, 'destroy'])->name('po.destroy');
     Route::get('/po/{id}', [PurchaseOrderController::class, 'show'])->name('po.show');
+    //end purchase order
 
     //good receipt
     Route::get('/gr', [GoodsReceiptController::class, 'index'])->name('gr.index');
@@ -66,6 +80,7 @@ use App\Http\Controllers\QuotationController;
     Route::delete('/gr/{id}', [GoodsReceiptController::class, 'destroy'])->name('gr.destroy');
     Route::get('/gr/{id}/qc', [GoodsReceiptController::class, 'qcPage'])->name('gr.qc.page');
     Route::post('/gr/qc/{id}', [GoodsReceiptController::class, 'qc'])->name('gr.qc');
+    //end good receipt
     
 
     //warehouse
@@ -75,9 +90,11 @@ use App\Http\Controllers\QuotationController;
     Route::get('/warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
     Route::put('/warehouses/{warehouse}', [WarehouseController::class, 'update'])->name('warehouses.update');
     Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->name('warehouses.destroy');
+    //end warehouse
 
     //stock
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+    //end stock
 
     //transfer
     Route::prefix('transfer')->group(function () {
@@ -97,39 +114,42 @@ use App\Http\Controllers\QuotationController;
     // AJAX
     Route::get('/stock/{id}', [TransferController::class, 'getStockByWarehouse']);
     });
+    //end transfer
 
     //stock movement
     Route::get('/stock-movements', [StockMovementController::class, 'index'])
     ->name('stock-movements.index');
-
     Route::get('/stock-movements/{id}', [StockMovementController::class, 'show'])
     ->name('stock-movements.show');
+    //end stock movement
 
     //stok card
     Route::get('/stock-card', [StockCardController::class, 'index'])->name('stock-card.index');
+    //end stock card
 
     // Stock Opname
     Route::resource('stock-opname', StockOpnameController::class);
     Route::post('/stock-opname/item/update', [StockOpnameController::class, 'ajaxUpdateItem'])
     ->name('stock-opname.item.update');
-
     Route::post('/stock-opname/{id}/submit', [StockOpnameController::class, 'submit'])
     ->name('stock-opname.submit');
     Route::post('/stock-opname/{id}/approve', [StockOpnameController::class, 'approve'])->name('stock-opname.approve');
     Route::post('/stock-opname/{id}/cancel', [StockOpnameController::class, 'cancel'])->name('stock-opname.cancel');
+    //end stock opname
 
     //reject
     Route::get('/reject', [RejectController::class, 'index'])->name('reject.index');
-
     Route::post('/reject/{id}/return', [RejectController::class, 'return'])->name('reject.return');
     Route::post('/reject/{id}/scrap', [RejectController::class, 'scrap'])->name('reject.scrap');
     Route::post('/reject/{id}/repair', [RejectController::class, 'repair'])->name('reject.repair');
+    //end reject
 
     //distribution
     Route::resource('distribution', DistributionController::class);
     Route::get('/distribution-stock/{id}', [DistributionController::class, 'getStock']);
     Route::post('/distribution/{id}/approve', [DistributionController::class, 'approve'])->name('distribution.approve');
     Route::post('/distribution/{id}/reject', [DistributionController::class, 'reject'])->name('distribution.reject');
+    //end distribution
 
     //return distribution
     Route::resource('return-distribution', ReturnDistributionController::class);
@@ -141,6 +161,8 @@ use App\Http\Controllers\QuotationController;
         [ReturnDistributionController::class, 'approve'])
         ->name('return-distribution.approve');
 
+    //end return distribution
+
     //quotation
     Route::resource('quotation', QuotationController::class);
     Route::post('quotation/{id}/convert/{supplier}', [QuotationController::class,'convertToPO']);
@@ -149,10 +171,13 @@ use App\Http\Controllers\QuotationController;
     ->name('quotation.send');
     Route::resource('quotation', QuotationController::class)
     ->except(['edit', 'update']);
-
     Route::post('/quotation/{id}/approve', [QuotationController::class, 'approve'])->name('quotation.approve');
     Route::post('/quotation/{id}/reject', [QuotationController::class, 'reject'])->name('quotation.reject');
     Route::post('/quotation/{id}/send', [QuotationController::class, 'send'])->name('quotation.send');
+    Route::post('/quotation/{id}/convert-po/{supplier}', 
+    [QuotationController::class, 'convertToPO'])
+    ->name('quotation.convert.po');
+    //end quotation
 
     //midle
     Route::post('/stock-in', [StockController::class, 'store'])
@@ -161,7 +186,7 @@ use App\Http\Controllers\QuotationController;
     ->middleware('freeze');
     Route::post('/stock-out', [StockController::class, 'out'])
     ->middleware('freeze');
-
+    //end midle
 
 
     //dashboard

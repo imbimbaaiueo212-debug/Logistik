@@ -22,6 +22,7 @@
                 <th class="p-2">Supplier</th>
                 <th class="p-2">Tanggal</th>
                 <th class="p-2">Items</th>
+                <th class="p-2">Qty</th>
                 <th class="p-2">Total</th>
                 <th class="p-2">Status</th>
                 <th class="p-2">Aksi</th>
@@ -39,22 +40,26 @@
                 <td>
                     {{ $q->items->pluck('product.name')->filter()->join(', ') }}
                 </td>
+                <td>{{ $q->items->sum('qty') }}</td>
                 <td>Rp {{ number_format($q->total, 0, ',', '.') }}</td>
                 <td>
                     <span class="px-2 py-1 rounded text-white
                         {{ $q->status == 'draft' ? 'bg-gray-500' : '' }}
                         {{ $q->status == 'sent' ? 'bg-blue-500' : '' }}
-                        {{ $q->status == 'approved' ? 'bg-green-500' : '' }}">
+                        {{ $q->status == 'approved' ? 'bg-green-500' : '' }}
+                         {{ $q->status == 'created PO' ? 'bg-red-500' : '' }}">
                         {{ $q->status }}
                     </span>
                 </td>
-                <td class="flex gap-2 justify-center">
+                <td class="flex gap-2 justify-center flex-wrap">
 
+    {{-- DETAIL --}}
     <a href="{{ route('quotation.show', $q->id) }}"
        class="bg-gray-500 text-white px-2 py-1 rounded text-sm">
         Detail
     </a>
 
+    {{-- EDIT --}}
     <a href="{{ route('quotation.edit', $q->id) }}"
        class="bg-blue-500 text-white px-2 py-1 rounded text-sm">
         Edit
@@ -83,6 +88,17 @@
             @csrf
             <button class="bg-red-500 text-white px-2 py-1 rounded text-sm">
                 Reject
+            </button>
+        </form>
+    @endif
+
+    {{-- APPROVED → CONVERT PO 🔥 --}}
+    @if($q->status == 'approved')
+        <form method="POST"
+              action="{{ route('quotation.convert.po', [$q->id, $q->suppliers->first()->supplier_id]) }}">
+            @csrf
+            <button class="bg-purple-600 text-white px-2 py-1 rounded text-sm">
+                Convert PO
             </button>
         </form>
     @endif

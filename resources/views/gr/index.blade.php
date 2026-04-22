@@ -39,7 +39,7 @@
                     <td class="p-3 text-center">#{{ $r->id }}</td>
                     <td class="p-3 text-center">PO #{{ $r->purchase_order_id }}</td>
                     <td class="p-3 text-center">{{ $r->warehouse->name ?? '-' }}</td>
-                    <td class="p-3 text-center">{{ $r->date->format('d M Y') }}</td>
+                    <td class="p-3 text-center">{{ $r->date->format('d-m-Y') }}</td>
 
                     {{-- PRODUK --}}
                     <td class="p-3 text-sm">

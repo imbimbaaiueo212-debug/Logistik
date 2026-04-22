@@ -30,6 +30,7 @@
                 <th class="p-2">Gudang</th>
                 <th class="p-2">Produk</th>
                 <th class="p-2">Kode</th>
+                <th class="p-2">Jenis</th>
                 <th class="p-2">Qty</th>
                 <th class="p-2">Label</th>
             </tr>
@@ -41,6 +42,7 @@
                 <td class="p-2">{{ $s->warehouse->name ?? '-' }}</td>
                 <td class="p-2">{{ $s->product->name }}</td>
                 <td class="p-2">{{ $s->product->sku ?? '-' }}</td>
+                <td class="p-2">{{ $s->product->jenis ?? '-' }}</td>
                 <td class="p-2 font-bold">{{ $s->qty }}</td>
                 <td class="p-2 text-blue-600 font-semibold">
                     {{ $s->label }}

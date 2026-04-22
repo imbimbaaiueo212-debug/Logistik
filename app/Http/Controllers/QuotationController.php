@@ -159,32 +159,69 @@ public function update(Request $request, $id)
 }
 
     // 🔥 CONVERT KE PO
-    public function convertToPO($id, $supplierId)
-    {
-        $q = Quotation::with('items')->findOrFail($id);
+   public function convertToPO($id, $supplierId)
+{
+    $quotation = Quotation::with([
+        'items',
+        'suppliers.items' // ambil harga supplier
+    ])->findOrFail($id);
 
-        DB::transaction(function () use ($q, $supplierId) {
-
-            $po = PurchaseOrder::create([
-                'supplier_id' => $supplierId,
-                'date' => now(),
-                'status' => 'pending'
-            ]);
-
-            foreach ($q->items as $item) {
-                PurchaseOrderItem::create([
-                    'purchase_order_id' => $po->id,
-                    'product_id' => $item->product_id,
-                    'qty' => $item->qty,
-                    'price' => 0
-                ]);
-            }
-
-            $q->update(['status' => 'approved']);
-        });
-
-        return back()->with('success', 'Berhasil convert ke PO');
+    // ❗ VALIDASI STATUS
+    if ($quotation->status !== 'approved') {
+        return back()->with('error', 'Quotation harus di-approve dulu');
     }
+
+    DB::transaction(function () use ($quotation, $supplierId) {
+
+    $po = PurchaseOrder::create([
+        'supplier_id' => $supplierId,
+        'date' => now(),
+        'status' => 'draft',
+        'total' => 0 // optional
+    ]);
+
+    $supplier = $quotation->suppliers
+        ->where('supplier_id', $supplierId)
+        ->first();
+
+    if (!$supplier) {
+        throw new \Exception('Supplier tidak ditemukan di quotation');
+    }
+
+    $total = 0;
+
+    foreach ($quotation->items as $item) {
+
+        $supplierItem = $supplier->items
+            ->where('product_id', $item->product_id)
+            ->first();
+
+        $price = $supplierItem->price ?? 0;
+        $subtotal = $item->qty * $price;
+
+        $total += $subtotal;
+
+        PurchaseOrderItem::create([
+            'purchase_order_id' => $po->id,
+            'product_id' => $item->product_id,
+            'qty' => $item->qty,
+            'price' => $price,
+            'subtotal' => $subtotal
+        ]);
+    }
+
+    // 🔥 FIX TOTAL DI SINI
+    $po->update([
+        'total' => $total
+    ]);
+
+    $quotation->update([
+        'status' => 'created PO'
+    ]);
+});
+
+    return back()->with('success', 'Berhasil convert ke Purchase Order');
+}
 
    public function getProductsBySupplier($supplierId)
 {

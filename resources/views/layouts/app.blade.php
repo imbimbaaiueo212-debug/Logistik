@@ -193,27 +193,48 @@
 
     <!-- USER -->
     <div class="p-4 border-t border-blue-700">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
-                <i class="fas fa-user"></i>
-            </div>
 
-            <div x-show="open">
-                <p class="text-sm">{{ Auth::user()->name ?? 'Guest' }}</p>
-                <p class="text-xs text-blue-200">Administrator</p>
-            </div>
-        </div>
+    <!-- USER INFO -->
+    <a href="{{ route('users.index') }}" 
+   class="flex items-center gap-3 hover:bg-white/10 p-2 rounded-xl transition">
 
-        @auth
-        <form action="{{ route('logout') }}" method="POST" class="mt-4">
+    <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+        <i class="fas fa-user"></i>
+    </div>
+
+    <div x-show="open">
+        <p class="text-sm font-medium">
+            {{ Auth::user()->name ?? 'Guest' }}
+        </p>
+
+        <p class="text-xs text-blue-200 capitalize">
+            {{ Auth::user()->role ?? 'guest' }}
+        </p>
+    </div>
+
+</a>
+
+    @auth
+    <div class="mt-4 space-y-2">
+
+        <!-- RESET PASSWORD (SELF) -->
+        <a href="{{ route('users.reset.form', Auth::id()) }}"
+           class="block w-full text-center bg-yellow-500 hover:bg-yellow-600 py-2 rounded-xl text-sm">
+            Reset Password
+        </a>
+
+        <!-- LOGOUT -->
+        <form action="{{ route('logout') }}" method="POST">
             @csrf
             <button class="w-full bg-red-500 hover:bg-red-600 py-2 rounded-xl text-sm">
                 Logout
             </button>
         </form>
-        @endauth
-    </div>
 
+    </div>
+    @endauth
+
+</div>
 </div>
 
 <!-- MAIN -->

@@ -54,14 +54,13 @@
 
         <!-- Tombol Aksi - Versi Kecil -->
         <div class="flex gap-3">
-            <a href="{{ route('gr.index') }}" 
-               class="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-xl transition flex-1 text-center">
-                Kembali
-            </a>
+            <a href="{{ route('gr.index') }}"
+                class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                ← Back
+            </a>    
             
-            <button type="submit" 
-                    class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition flex-1">
-                Simpan Stok
+            <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Simpan
             </button>
         </div>
 

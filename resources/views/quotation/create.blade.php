@@ -62,14 +62,15 @@
         <input type="hidden" name="total" id="total-input">
         
 
-        <div class="mt-6">
+        <div class="flex gap-1 mt-4">
+            <a href="{{ route('quotation.index') }}"
+                class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                ← Back
+            </a> 
+
             <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                 Simpan
             </button>
-            <a href="{{ route('quotation.index') }}"
-       class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-        ← Back
-    </a>    
         </div>
 
     </form>

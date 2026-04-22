@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\GoodsReceiptItem;
 
 class PurchaseOrder extends Model
 {
@@ -25,24 +26,22 @@ class PurchaseOrder extends Model
     {
         return $this->hasMany(PurchaseOrderItem::class);
     }
-public function getStatusAttribute()
-{
-    $total = 0;
-    $received = 0;
+    public function getStatusAttribute()
+    {
+        $totalOrdered = $this->items()->sum('qty');
 
-    foreach ($this->items as $item) {
-        $total += $item->qty;
-        $received += $item->received_qty;
-    }
+        $totalReceived = GoodsReceiptItem::whereHas('receipt', function ($q) {
+            $q->where('purchase_order_id', $this->id);
+        })->sum('qty_ok');
 
-    if ($received == 0) {
-        return 'Draft';
-    } elseif ($received < $total) {
-        return 'Partial';
-    } elseif ($received == $total) {
-        return 'Completed';
-    } else {
-        return 'Over Received'; // 🔥 ini hasil override
+        if ($totalReceived == 0) {
+            return 'Draft';
+        } elseif ($totalReceived < $totalOrdered) {
+            return 'Partial';
+        } elseif ($totalReceived == $totalOrdered) {
+            return 'Completed';
+        } else {
+            return 'Over';
+        }
     }
-}
 }

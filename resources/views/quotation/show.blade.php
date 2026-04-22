@@ -18,9 +18,9 @@
 </div>
 
     <div class="mb-4">
-        <p><strong>Customer:</strong> {{ $quotation->customer_name }}</p>
-        <p><strong>Tanggal:</strong> {{ $quotation->date }}</p>
-        <p><strong>Status:</strong> {{ $quotation->status }}</p>
+            <p><strong>Supplier:</strong> {{ $quotation->suppliers->pluck('supplier.name')->join(', ') }}</p>
+                <p><strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($quotation->date)->format('d-m-Y') }}</p>
+                    <p><strong>Status:</strong> {{ $quotation->status }}</p>
     </div>
 
     <table class="w-full border">

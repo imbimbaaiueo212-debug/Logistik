@@ -19,12 +19,17 @@ class GoodsReceiptController extends Controller
     }
 
     public function create()
-    {
-        $pos = PurchaseOrder::all();
-        $warehouses = Warehouse::all();
+{
+    $pos = PurchaseOrder::with('items')
+        ->get()
+        ->filter(function ($po) {
+            return $po->status !== 'Completed';
+        });
 
-        return view('gr.create', compact('pos', 'warehouses'));
-    }
+    $warehouses = Warehouse::all();
+
+    return view('gr.create', compact('pos', 'warehouses'));
+}
 
     public function getPO($id)
     {
