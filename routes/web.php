@@ -20,6 +20,8 @@ use App\Http\Controllers\ReturnDistributionController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ImportController;
 
 
     Route::get('/', function () {
@@ -199,9 +201,14 @@ use App\Http\Controllers\CategoryController;
     //end midle
 
 
-    //dashboard
+    // Home (Halaman utama setelah login - seperti di screenshot)
+    Route::get('/home', function () {
+        return view('home');
+    })->middleware('auth')->name('home');
+
+    // Dashboard (tetap ada, tapi sekarang bisa diakses dari menu)
     Route::get('/dashboard', function () {
-    return view('dashboard');
+        return view('dashboard');
     })->middleware('auth')->name('dashboard');
 
     //API
@@ -210,3 +217,21 @@ use App\Http\Controllers\CategoryController;
     return response()->json($supplier->products);
     });
 
+    // Order Management
+    Route::prefix('order')->name('order.')->middleware('auth')->group(function () {
+    Route::get('/', [OrderController::class, 'index'])->name('index');
+    // nanti bisa ditambah: create, store, dll
+    });
+
+    // Data Import
+    Route::prefix('import')->name('import.')->middleware('auth')->group(function () {
+    Route::get('/', [ImportController::class, 'index'])->name('index');
+    });
+// Import biMBA Shop
+Route::prefix('import')->name('import.')->middleware('auth')->group(function () {
+    Route::get('/', [ImportController::class, 'index'])->name('index');
+    
+    // Tambahkan dua route ini:
+    Route::get('/bimbashop', [ImportController::class, 'bimbashop'])->name('bimbashop');
+    Route::post('/bimbashop', [ImportController::class, 'bimbashopStore'])->name('bimbashop.store');
+});
