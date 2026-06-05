@@ -3,52 +3,51 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use App\Models\Category;
 
 class Product extends Model
 {
     protected $fillable = [
         'name',
         'sku',
-        'label',
         'satuan',
         'berat_satuan',
-        'berat_paket',
         'isi',
         'harga_beli',
         'harga_jual',
+        'berat_paket',
         'status',
         'role',
         'tanggal_rilis',
-        'jenis',     // ← baru
-        'hal',       // ← baru
-        'lembar',    // ← baru
-        'kertas',    // ← baru
+        'jenis',
+        'hal',
+        'lembar',
+        'kertas',
+        'kode',
+        'kategori_id'
+    ];
+
+    protected $appends = [
+        'harga_beli_per_satuan',
+        'harga_jual_per_satuan',
     ];
 
     public function suppliers()
-{
-    return $this->belongsToMany(
-        Supplier::class,
-        'product_supplier',
-        'product_id',
-        'supplier_id'
-    )->withPivot('price');
-}
-
-    // ================== ACCESSORS (RUMUS OTOMATIS) ==================
-
-    public function getBeratPaketAttribute()
     {
-        if ($this->berat_satuan && $this->isi) {
-            return round($this->berat_satuan * $this->isi, 3);
-        }
-
-        return $this->attributes['berat_paket'] ?? null;
+        return $this->belongsToMany(
+            Supplier::class,
+            'product_supplier',
+            'product_id',
+            'supplier_id'
+        )->withPivot('price');
     }
+
+    // ================= ACCESSORS =================
 
     public function getHargaBeliPerSatuanAttribute()
     {
-        if ($this->harga_beli && $this->isi && $this->isi > 0) {
+        if ($this->harga_beli !== null && $this->isi > 0) {
             return round($this->harga_beli / $this->isi, 2);
         }
         return null;
@@ -56,9 +55,41 @@ class Product extends Model
 
     public function getHargaJualPerSatuanAttribute()
     {
-        if ($this->harga_jual && $this->isi && $this->isi > 0) {
+        if ($this->harga_jual !== null && $this->isi > 0) {
             return round($this->harga_jual / $this->isi, 2);
         }
         return null;
     }
+
+    protected static function booted()
+    {
+        static::saving(function ($product) {
+
+            // ================= BERAT =================
+            if ($product->berat_satuan && $product->isi) {
+                $product->berat_paket = round($product->berat_satuan * $product->isi, 3);
+            } else {
+                $product->berat_paket = null;
+            }
+
+            // ================= HARGA =================
+            if ($product->harga_beli !== null && $product->isi > 0) {
+
+                $jenis = strtolower(trim($product->jenis ?? ''));
+
+                $multiplier = Str::contains($jenis, 'modul') ? 1.49 : 1.20;
+
+                $hargaDasar = $product->harga_beli * $multiplier;
+                $hargaJual  = $hargaDasar * $product->isi;
+
+                $product->harga_jual = ceil($hargaJual / 50) * 50;
+            } else {
+                $product->harga_jual = null;
+            }
+        });
+    }
+       public function category()
+{
+    return $this->belongsTo(Category::class, 'kategori_id');
+}
 }

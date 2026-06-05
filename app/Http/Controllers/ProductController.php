@@ -4,23 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\Category;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductsExport;
+use App\Imports\ProductsImport;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::latest()->get();
+        // ✅ FIX eager loading
+        $products = Product::with('category')->latest()->get();
         return view('products.index', compact('products'));
     }
 
     public function create()
     {
-        return view('products.create');
+        $categories = Category::all();
+        return view('products.create', compact('categories'));
     }
 
     public function edit(Product $product)
     {
-        return view('products.edit', compact('product'));
+        // ✅ FIX kirim categories ke edit
+        $categories = Category::all();
+        return view('products.edit', compact('product', 'categories'));
     }
 
     public function store(Request $request)
@@ -39,38 +47,22 @@ class ProductController extends Controller
             'hal'           => 'nullable|integer',
             'lembar'        => 'nullable|integer',
             'kertas'        => 'nullable|string',
+            'kode'          => 'nullable|string',
+
+            // ❌ HAPUS 'kategori'
+            // 'kategori' => 'nullable|string',
+
+            // ✅ WAJIB
+            'kategori_id'   => 'nullable|exists:categories,id',
         ]);
 
         $data = $request->all();
-
-        // Hapus 'label' karena sudah tidak dipakai
         unset($data['label']);
-
-        // ====================== HITUNG BERAT PAKET ======================
-        if (!empty($data['berat_satuan']) && !empty($data['isi'])) {
-            $data['berat_paket'] = round($data['berat_satuan'] * $data['isi'], 3);
-        }
-
-        // ================== RUMUS HARGA JUAL OTOMATIS ==================
-        if (!empty($data['harga_beli']) && !empty($data['isi']) && $data['isi'] > 0) {
-            
-            $hargaBeli = (float) $data['harga_beli'];
-            $isi       = (int) $data['isi'];
-            $jenis     = strtolower(trim($data['jenis'] ?? ''));
-
-            $multiplier = (strpos($jenis, 'modul') !== false) ? 1.49 : 1.20;
-
-            $hargaDasar = $hargaBeli * $multiplier;
-            $hargaJual  = $hargaDasar * $isi;
-
-            // Bulatkan ke atas ke kelipatan 50
-            $data['harga_jual'] = ceil($hargaJual / 50) * 50;
-        }
 
         Product::create($data);
 
         return redirect()->route('products.index')
-                         ->with('success', 'Product berhasil ditambahkan');
+            ->with('success', 'Product berhasil ditambahkan');
     }
 
     public function update(Request $request, Product $product)
@@ -89,43 +81,49 @@ class ProductController extends Controller
             'hal'           => 'nullable|integer',
             'lembar'        => 'nullable|integer',
             'kertas'        => 'nullable|string',
+            'kode'          => 'nullable|string',
+
+            // ❌ HAPUS
+            // 'kategori' => 'nullable|string',
+
+            // ✅ TAMBAHKAN INI
+            'kategori_id'   => 'nullable|exists:categories,id',
         ]);
 
         $data = $request->all();
-
-        // Hapus 'label' karena sudah tidak dipakai
         unset($data['label']);
-
-        // ====================== HITUNG BERAT PAKET ======================
-        if (!empty($data['berat_satuan']) && !empty($data['isi'])) {
-            $data['berat_paket'] = round($data['berat_satuan'] * $data['isi'], 3);
-        }
-
-        // ================== RUMUS HARGA JUAL OTOMATIS ==================
-        if (!empty($data['harga_beli']) && !empty($data['isi']) && $data['isi'] > 0) {
-            
-            $hargaBeli = (float) $data['harga_beli'];
-            $isi       = (int) $data['isi'];
-            $jenis     = strtolower(trim($data['jenis'] ?? ''));
-
-            $multiplier = (strpos($jenis, 'modul') !== false) ? 1.49 : 1.20;
-
-            $hargaDasar = $hargaBeli * $multiplier;
-            $hargaJual  = $hargaDasar * $isi;
-
-            $data['harga_jual'] = ceil($hargaJual / 50) * 50;
-        }
 
         $product->update($data);
 
         return redirect()->route('products.index')
-                         ->with('success', 'Product berhasil diupdate');
+            ->with('success', 'Product berhasil diupdate');
     }
 
     public function destroy(Product $product)
     {
         $product->delete();
         return redirect()->route('products.index')
-                         ->with('success', 'Product berhasil dihapus');
+            ->with('success', 'Product berhasil dihapus');
+    }
+
+    public function export()
+    {
+        return Excel::download(new ProductsExport, 'products.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv'
+        ]);
+
+        Excel::import(new ProductsImport, $request->file('file'));
+
+        return redirect()->back()->with('success', 'Import berhasil');
+    }
+
+    public function show(Product $product)
+    {
+        return view('products.show', compact('product'));
     }
 }

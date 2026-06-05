@@ -13,6 +13,16 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+            <div>
+                <label class="block text-sm font-medium mb-1">Kode</label>
+                <input type="text" name="kode" value="{{ old('kode', $product->kode) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Kategori</label>
+                <input type="text" name="kategori" value="{{ old('kategori', $product->kategori) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3">
+            </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-1">Nama Produk <span class="text-red-500">*</span></label>
                 <input type="text" name="name" value="{{ old('name', $product->name) }}" required
@@ -113,7 +123,7 @@
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-1">Tanggal Rilis</label>
                 <input type="date" name="tanggal_rilis" 
-                       value="{{ old('tanggal_rilis', $product->tanggal_rilis ? $product->tanggal_rilis->format('Y-m-d') : '') }}"
+                       value="{{ old('tanggal_rilis', $product->tanggal_rilis ? \Carbon\Carbon::parse($product->tanggal_rilis)->format('Y-m-d') : '') }}"
                        class="w-full border border-gray-300 rounded-lg px-4 py-3">
             </div>
 

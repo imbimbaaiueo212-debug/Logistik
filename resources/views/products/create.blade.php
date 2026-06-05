@@ -12,6 +12,24 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+            <div>
+                <label class="block text-sm font-medium mb-1">Kode</label>
+                <input type="text" name="kode" value="{{ old('kode') }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3">
+            </div>
+            <div>
+    <label class="block text-sm font-medium mb-1">Kategori</label>
+    <select name="kategori_id" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+        <option value="">-- Pilih Kategori --</option>
+
+        @foreach($categories as $cat)
+            <option value="{{ $cat->id }}"
+                {{ old('kategori_id') == $cat->id ? 'selected' : '' }}>
+                {{ $cat->nama }}
+            </option>
+        @endforeach
+    </select>
+</div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-1">Nama Produk <span class="text-red-500">*</span></label>
                 <input type="text" name="name" value="{{ old('name') }}" required

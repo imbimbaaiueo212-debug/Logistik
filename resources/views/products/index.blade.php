@@ -6,24 +6,61 @@
 
 <div class="bg-white rounded-2xl shadow p-6">
 
-    @if(session('success'))
-        <div class="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    <div class="flex justify-between mb-6">
-        <h3 class="text-xl font-semibold">Master Product</h3>
-        <a href="{{ route('products.create') }}" 
-           class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-            + Tambah Product
-        </a>
+@if(session('success'))
+    <div class="mb-4 p-3 bg-green-100 text-green-700 rounded">
+        {{ session('success') }}
     </div>
+@endif
+
+@if(session('error'))
+    <div class="mb-4 p-3 bg-red-100 text-red-700 rounded">
+        {{ session('error') }}
+    </div>
+@endif
+
+@if ($errors->any())
+    <div class="mb-4 p-3 bg-red-100 text-red-700 rounded">
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>- {{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+
+<div class="flex justify-between mb-6 items-center">
+    <h3 class="text-xl font-semibold">Master Product</h3>
+
+    <div class="flex gap-2">
+
+        <a href="{{ route('products.export') }}"
+           class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            Export
+        </a>
+
+        <form action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data" class="flex gap-2">
+            @csrf
+            <input type="file" name="file" class="border p-1 rounded">
+            <button class="bg-blue-500 text-white px-3 rounded">
+                Import
+            </button>
+        </form>
+
+        <a href="{{ route('products.create') }}"
+           class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            + Tambah
+        </a>
+
+    </div>
+</div>
 
     <div class="overflow-x-auto">
         <table class="w-full border border-gray-200 text-sm">
             <thead class="bg-gray-100">
                 <tr>
+                    <th class="p-3 text-left">Kode</th>
+                    <th class="p-3 text-left">Kategori</th>
                     <th class="p-3 text-left">Label / SKU</th>
                     <th class="p-3 text-left">Nama Produk</th>
                     <th class="p-3 text-center">Jenis</th>
@@ -43,6 +80,8 @@
             <tbody>
                 @forelse($products as $p)
                 <tr class="border-t hover:bg-gray-50">
+                    <td class="p-3 font-medium">{{ $p->kode ?? '-' }}</td>
+                    <td class="p-3">{{ $p->category?->nama ?? '-' }}</td>
                     <td class="p-3 font-medium">{{ $p->label ?? $p->sku ?? '-' }}</td>
                     <td class="p-3">{{ $p->name }}</td>
                     <td class="p-3 text-center">{{ $p->jenis ?? '-' }}</td>

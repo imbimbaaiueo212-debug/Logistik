@@ -19,6 +19,7 @@ use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\ReturnDistributionController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CategoryController;
 
 
     Route::get('/', function () {
@@ -48,8 +49,17 @@ use App\Http\Controllers\UserController;
     //end supplier
 
     //produk
-    Route::resource('products', ProductController::class);
+    Route::get('/products/export', [ProductController::class, 'export'])
+        ->name('products.export');
+
+    Route::post('/products/import', [ProductController::class, 'import'])
+        ->name('products.import');
+
+    Route::resource('products', ProductController::class)->except(['show']);
     //end produk
+
+    //kategori
+    Route::resource('categories', CategoryController::class);
 
     //supplier-Produk
     Route::get('/supplier-product', [SupplierProductController::class, 'index'])->name('supplier-product.index');
