@@ -3,21 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Bimba Logistik</title>
+    <title>Login - biMBA Logistik</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
         }
+        
+        /* Definisi Font Poppins */
+        .font-poppins {
+            font-family: 'Poppins', system-ui, sans-serif;
+        }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
         
         <!-- Header -->
         <div class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-blue-700 tracking-tight">Bimba Logistik</h1>
-            <p class="text-gray-600 mt-2 text-lg">Sistem Multi Warehouse & Inventory</p>
+            <h1 class="text-4xl font-bold tracking-[-0.04em] leading-none font-poppins">
+                <span style="color: #000e8e;">b</span>
+                <span style="color: #000e8e;">i</span>
+                <span style="color: #f44040;">M</span>
+                <span style="color: #000e8e;">B</span>
+                <span style="color: #000e8e;">A</span>
+                <span class="text-gray-800"> Logistik</span>
+            </h1>
         </div>
 
         <!-- Success Message -->
