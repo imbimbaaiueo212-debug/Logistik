@@ -2,31 +2,152 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\BimbashopImport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
+use App\Models\BimbashopOrder;
+use Illuminate\Support\Facades\Log;
 
 class ImportController extends Controller
 {
+    /**
+     * Halaman utama Data biMBA Shop
+     */
     public function index()
     {
-        return view('import.index');
+        return view('import.index');   // Halaman dengan kartu pilihan
     }
-    public function bimbashop()
+
+   public function bimbashop(Request $request)
 {
-    return view('import.bimbashop');
+    $query = BimbashopOrder::query();
+
+    // === Filter yang sudah ada ===
+    if ($request->filled('start_date')) {
+        $query->whereDate('order_date', '>=', $request->start_date);
+    }
+    if ($request->filled('end_date')) {
+        $query->whereDate('order_date', '<=', $request->end_date);
+    }
+    if ($request->filled('order_id')) {
+        $query->where('order_id', 'like', '%' . $request->order_id . '%');
+    }
+    if ($request->filled('item_sku')) {
+        $query->where('item_sku', 'like', '%' . $request->item_sku . '%');
+    }
+    if ($request->filled('item_name')) {
+        $query->where('item_name', 'like', '%' . $request->item_name . '%');
+    }
+    if ($request->filled('billing_name')) {
+        $query->where(function($q) use ($request) {
+            $q->where('billing_first_name', 'like', '%' . $request->billing_name . '%')
+              ->orWhere('billing_last_name', 'like', '%' . $request->billing_name . '%');
+        });
+    }
+    if ($request->filled('payment_method')) {
+        $query->where('payment_method', $request->payment_method);
+    }
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // === Per Page ===
+    $perPage = $request->get('per_page', 5);           // default 5
+    $perPage = in_array($perPage, [5, 10, 25, 50, 100, 200, 500]) ? $perPage : 5
+    ; // security
+
+    $bimbashopOrders = $query
+                        ->latest()
+                        ->paginate($perPage)
+                        ->appends($request->query());
+
+    return view('import.bimbashop', compact('bimbashopOrders'));
+}
+    /**
+     * Proses Import Data
+     */
+    public function bimbashopStore(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            $file = $request->file('import_file');
+            $originalName = $file->getClientOriginalName();
+
+            // Backup file
+            $filename = time() . '_' . $originalName;
+            $file->storeAs('imports/bimbashop', $filename, 'public');
+
+            // Import dengan logging
+            Log::info("Mulai import file: " . $originalName);
+
+            Excel::import(new BimbashopImport, $file);
+
+            Log::info("Import berhasil: " . $originalName);
+
+            return redirect()->route('import.bimbashop')
+                             ->with('success', '✅ Data biMBA Shop berhasil diimport! File: ' . $originalName);
+
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            // Error validasi Excel (heading, format, dll)
+            $failures = $e->failures();
+            $errorMsg = 'Validasi gagal: ';
+            foreach ($failures as $failure) {
+                $errorMsg .= "Baris {$failure->row()} kolom {$failure->attribute()} → {$failure->errors()[0]} | ";
+            }
+
+            Log::error("Import Validation Error: " . $errorMsg);
+            
+            return redirect()->route('import.index')
+                             ->with('error', '❌ ' . $errorMsg);
+
+        } catch (\Exception $e) {
+            Log::error("Import Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            
+            return redirect()->route('import.index')
+                             ->with('error', '❌ Gagal mengimport data: ' . $e->getMessage());
+        }
+    }
+
+    public function bimbashopEdit($id)
+{
+    $order = BimbashopOrder::findOrFail($id);
+    return view('import.bimbashop-edit', compact('order'));
 }
 
-public function bimbashopStore(Request $request)
+public function bimbashopUpdate(Request $request, $id)
 {
+    $order = BimbashopOrder::findOrFail($id);
+
     $request->validate([
-        'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        'order_id'       => 'required|string|max:100',
+        'order_date'     => 'required|date',
+        'item_sku'       => 'required|string|max:100',
+        'item_name'      => 'required|string|max:255',
+        'item_price'     => 'nullable|numeric|min:0',
+        'item_qty'       => 'nullable|integer|min:0',
+        'status'         => 'required|in:completed,processing,on-hold,pending',
+        'payment_method' => 'nullable|string',
+        'order_total'    => 'nullable|numeric',
+        // tambahkan field lain yang mau diedit
     ]);
 
-    $file = $request->file('import_file');
-    $filename = time() . '_' . $file->getClientOriginalName();
-    
-    // Simpan file
-    $path = $file->storeAs('imports/bimbashop', $filename, 'public');
+    $order->update($request->except(['_token', '_method']));
 
-    return back()->with('success', 'File berhasil diupload: ' . $filename . '. Sedang diproses...');
+    return redirect()
+        ->route('import.bimbashop')
+        ->with('success', '✅ Data Order #' . $order->order_id . ' berhasil diperbarui!');
 }
+
+public function bimbashopDestroy($id)
+{
+    $order = BimbashopOrder::findOrFail($id);
+    $order->delete();
+
+    return redirect()
+        ->route('import.bimbashop')
+        ->with('success', '✅ Data Order #' . $order->order_id . ' berhasil dihapus!');
 }
+}   
