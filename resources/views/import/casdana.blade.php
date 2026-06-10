@@ -106,6 +106,11 @@
                     <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                     <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                     <option value="500" {{ request('per_page') == 500 ? 'selected' : '' }}>500</option>
+                    <option value="1000" {{ request('per_page') == 1000 ? 'selected' : '' }}>1000</option>
+                    <option value="20000" {{ request('per_page') == 2000 ? 'selected' : '' }}>2000</option>
+                    <option value="30000" {{ request('per_page') == 3000 ? 'selected' : '' }}>3000</option>
+                    <option value="40000" {{ request('per_page') == 4000 ? 'selected' : '' }}>4000</option>
+                    <option value="50000" {{ request('per_page') == 5000 ? 'selected' : '' }}>5000</option>
                 </select>
             </div>
 
@@ -142,6 +147,8 @@
     </div>
 
     <!-- Tabel Casdana -->
+        <!-- Tabel Casdana -->
+        <!-- Tabel Casdana -->
     <div class="bg-white rounded-3xl shadow overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
@@ -165,7 +172,7 @@
                     <td>{{ $transaction->customer ?? '-' }}</td>
                     <td>
                         <span class="px-3 py-1 rounded-full text-xs 
-                            @if(strtoupper($transaction->status ?? '') == 'PAID') bg-green-100 text-green-700
+                            @if(in_array(strtoupper($transaction->status ?? ''), ['SETTLED','PAID'])) bg-green-100 text-green-700
                             @elseif(strtoupper($transaction->status ?? '') == 'PENDING') bg-yellow-100 text-yellow-700
                             @else bg-red-100 text-red-700 @endif">
                             {{ $transaction->status ?? '-' }}
@@ -180,20 +187,14 @@
                     <td class="text-center">
                         <div class="flex items-center justify-center gap-3">
                             <a href="{{ route('import.casdana.edit', $transaction->id) }}" 
-                               class="text-blue-600 hover:text-blue-700 transition-colors" 
-                               title="Edit">
-                                <span class="text-xl">✏️</span>
+                               class="text-blue-600 hover:text-blue-700 transition-colors" title="Edit">
+                                ✏️
                             </a>
-                            
-                            <button onclick="if(confirm('Yakin hapus transaksi ini?')) document.getElementById('delete-form-{{ $transaction->id }}').submit()" 
-                                    class="text-red-600 hover:text-red-700 transition-colors" 
-                                    title="Hapus">
-                                <span class="text-xl">🗑</span>
+                            <button onclick="if(confirm('Yakin hapus?')) document.getElementById('delete-form-{{ $transaction->id }}').submit()" 
+                                    class="text-red-600 hover:text-red-700 transition-colors" title="Hapus">
+                                🗑
                             </button>
-
-                            <form id="delete-form-{{ $transaction->id }}" 
-                                  action="{{ route('import.casdana.destroy', $transaction->id) }}" 
-                                  method="POST" class="hidden">
+                            <form id="delete-form-{{ $transaction->id }}" action="{{ route('import.casdana.destroy', $transaction->id) }}" method="POST" class="hidden">
                                 @csrf
                                 @method('DELETE')
                             </form>
@@ -208,6 +209,19 @@
                 </tr>
                 @endforelse
             </tbody>
+
+            <!-- TOTAL AMOUNT -->
+            @if($casdanaTransactions->count() > 0)
+            <tfoot>
+                <tr class="bg-gray-50 border-t-2 border-gray-300 font-semibold">
+                    <td colspan="7" class="text-right pr-4 py-3">Total Amount</td>
+                    <td class="text-right py-3 nominal text-lg">
+                        Rp {{ number_format($casdanaTransactions->sum('amount'), 0, ',', '.') }}
+                    </td>
+                    <td></td>
+                </tr>
+            </tfoot>
+            @endif
         </table>
     </div>
 

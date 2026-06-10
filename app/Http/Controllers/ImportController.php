@@ -180,7 +180,7 @@ public function casdana(Request $request)
     }
 
     $perPage = $request->get('per_page', 25);
-    $perPage = in_array($perPage, [25, 50, 100, 200, 500]) ? $perPage : 25;
+    $perPage = in_array($perPage, [25, 50, 100, 200, 500, 1000, 20000, 30000, 40000, 50000]) ? $perPage : 25;
 
     $casdanaTransactions = $query
                             ->latest()
