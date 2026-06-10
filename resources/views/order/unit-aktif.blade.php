@@ -30,33 +30,23 @@
         <!-- Main Content -->
         <div class="flex-1 overflow-auto">
             <div class="p-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-8">Realisasi Order</h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">Data Order Unit Stokis Aktif</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     
                     
                     <!-- Card 3 -->
-                    <a href="{{ route('order.unit-aktif') }}" class="group">
+                    <a href="#" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
                             <div class="text-5xl mb-4">🎯</div>
-                            <h3 class="text-2xl font-semibold mb-2">Data Order Unit Stokis Aktif</h3>
-                            <p class="text-gray-600"></p>
-                        </div>
-                    </a>
-
-                     <a href="{{ route('order.unit-pasif') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">🎯</div>
-                            <h3 class="text-2xl font-semibold mb-2">Data Order Unit Stokis Pasif</h3>
-                            <p class="text-gray-600"></p>
+                            <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
                         </div>
                     </a>
 
                     <a href="#" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
                             <div class="text-5xl mb-4">🎯</div>
-                            <h3 class="text-2xl font-semibold mb-2">Data Order Unit Distribution Point (Dropshipper)</h3>
-                            <p class="text-gray-600"></p>
+                            <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
                         </div>
                     </a>
 
@@ -64,7 +54,7 @@
 
                 <!-- Tombol Kembali -->
                 <div class="mt-10 flex justify-center">
-                    <a href="{{ route('home') }}" 
+                    <a href="{{ route('order.index') }}" 
                        class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 px-8 py-3 rounded-2xl font-medium transition-all">
                         ← Kembali ke Home
                     </a>

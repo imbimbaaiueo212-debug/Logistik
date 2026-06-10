@@ -67,15 +67,26 @@ Route::prefix('import')
         Route::put('/casdana/{id}', [ImportController::class, 'casdanaUpdate'])->name('casdana.update');
         Route::delete('/casdana/{id}', [ImportController::class, 'casdanaDestroy'])->name('casdana.destroy');
     });
-// ====================== ORDER MANAGEMENT ======================
+
+    
 Route::prefix('order')
     ->name('order.')
     ->middleware('auth')
     ->group(function () {
         Route::get('/', [OrderController::class, 'index'])->name('index');
-        // Tambahkan route lain nanti jika diperlukan
-    });
+        
+        Route::get('/unit-aktif', [OrderController::class, 'unitAktif'])->name('unit-aktif');
+        Route::get('/unit-pasif', [OrderController::class, 'unitPasif'])->name('unit-pasif');
 
+        // Jakarta Aktif
+        Route::get('/jakarta-aktif', [OrderController::class, 'jakartaAktif'])->name('jakarta-aktif');
+        Route::post('/jakarta-aktif/import', [OrderController::class, 'importJakartaAktif'])->name('jakarta-aktif.import');
+        Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])->name('jakarta-aktif.export');
+        
+        // Sync JKT (POST)
+        Route::post('/jakarta-aktif/sync-jkt', [OrderController::class, 'syncJktFromBimbashop'])
+             ->name('jakarta-aktif.sync-jkt');
+    });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
 
