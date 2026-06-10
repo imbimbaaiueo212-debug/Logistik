@@ -9,8 +9,6 @@
         body {
             background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
         }
-        
-        /* Definisi Font Poppins */
         .font-poppins {
             font-family: 'Poppins', system-ui, sans-serif;
         }
@@ -32,7 +30,6 @@
             </h1>
         </div>
 
-        <!-- Success Message -->
         @if (session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-2xl mb-6 text-sm">
                 {{ session('success') }}
@@ -56,14 +53,23 @@
                 @enderror
             </div>
 
-            <!-- Password -->
+            <!-- Password dengan Toggle -->
             <div class="mb-6">
                 <label class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
-                <input type="password" 
-                       name="password" 
-                       class="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all"
-                       placeholder="Masukkan password" 
-                       required>
+                <div class="relative">
+                    <input id="password" 
+                           type="password" 
+                           name="password" 
+                           class="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all pr-12"
+                           placeholder="Masukkan password" 
+                           required>
+                    
+                    <button type="button" 
+                            id="togglePassword"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none">
+                        👁️
+                    </button>
+                </div>
                 @error('password')
                     <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
                 @enderror
@@ -85,11 +91,24 @@
             </button>
         </form>
 
-        <!-- Informasi Registrasi -->
         <div class="text-center mt-8 text-gray-500 text-sm">
             Belum punya akun? <span class="font-medium text-gray-600">Hubungi Administrator</span>
         </div>
 
     </div>
+
+    <!-- Script untuk Toggle Password -->
+    <script>
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordField = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function () {
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+
+            // Ganti ikon
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    </script>
 </body>
 </html>
