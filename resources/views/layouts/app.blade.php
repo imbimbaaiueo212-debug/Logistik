@@ -217,21 +217,27 @@
     @auth
     <div class="mt-4 space-y-2">
 
-        <!-- RESET PASSWORD (SELF) -->
-        <a href="{{ route('users.reset.form', Auth::id()) }}"
-           class="block w-full text-center bg-yellow-500 hover:bg-yellow-600 py-2 rounded-xl text-sm">
-            Reset Password
-        </a>
+    <!-- TOMBOL BACK -->
+    <a href="{{ route('home') }}"
+       class="block w-full text-center bg-gray-500 hover:bg-gray-600 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+        Kembali
+    </a>
 
-        <!-- LOGOUT -->
-        <form action="{{ route('logout') }}" method="POST">
-            @csrf
-            <button class="w-full bg-red-500 hover:bg-red-600 py-2 rounded-xl text-sm">
-                Logout
-            </button>
-        </form>
+    <!-- RESET PASSWORD (SELF) -->
+    <a href="{{ route('users.reset.form', Auth::id()) }}"
+       class="block w-full text-center bg-yellow-500 hover:bg-yellow-600 py-2 rounded-xl text-sm font-medium">
+        Reset Password
+    </a>
 
-    </div>
+    <!-- LOGOUT -->
+    <form action="{{ route('logout') }}" method="POST">
+        @csrf
+        <button class="w-full bg-red-500 hover:bg-red-600 py-2 rounded-xl text-sm font-medium">
+            Logout
+        </button>
+    </form>
+
+</div>
     @endauth
 
 </div>

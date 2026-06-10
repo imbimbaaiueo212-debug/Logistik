@@ -51,19 +51,21 @@ Route::prefix('import')
     ->group(function () {
 
         Route::get('/', [ImportController::class, 'index'])->name('index');
+        
+        // Bimbashop
         Route::get('/bimbashop', [ImportController::class, 'bimbashop'])->name('bimbashop');
         Route::post('/bimbashop', [ImportController::class, 'bimbashopStore'])->name('bimbashop.store');
+        Route::get('/bimbashop/{id}/edit', [ImportController::class, 'bimbashopEdit'])->name('bimbashop.edit');
+        Route::put('/bimbashop/{id}', [ImportController::class, 'bimbashopUpdate'])->name('bimbashop.update');
+        Route::delete('/bimbashop/{id}', [ImportController::class, 'bimbashopDestroy'])->name('bimbashop.destroy');
 
-        // ✅ Perbaikan di sini
-        Route::get('/bimbashop/{id}/edit', [ImportController::class, 'bimbashopEdit'])
-             ->name('bimbashop.edit');
-
-        Route::put('/bimbashop/{id}', [ImportController::class, 'bimbashopUpdate'])
-             ->name('bimbashop.update');
-
-        // Route delete (opsional, kalau mau tambah)
-        Route::delete('/bimbashop/{id}', [ImportController::class, 'bimbashopDestroy'])
-        ->name('bimbashop.destroy');
+        // Casdana
+        Route::get('/casdana', [ImportController::class, 'casdana'])->name('casdana');
+        Route::post('/casdana', [ImportController::class, 'casdanaStore'])->name('casdana.store');
+        // Route edit & delete Casdana (bisa ditambahkan nanti)
+        Route::get('/casdana/{id}/edit', [ImportController::class, 'casdanaEdit'])->name('casdana.edit');
+        Route::put('/casdana/{id}', [ImportController::class, 'casdanaUpdate'])->name('casdana.update');
+        Route::delete('/casdana/{id}', [ImportController::class, 'casdanaDestroy'])->name('casdana.destroy');
     });
 // ====================== ORDER MANAGEMENT ======================
 Route::prefix('order')

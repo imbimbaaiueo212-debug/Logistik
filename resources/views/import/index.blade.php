@@ -19,27 +19,25 @@
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Data Import</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Bimba Shop -->
             <!-- biMBA Shop Card -->
-<a href="{{ route('import.bimbashop') }}" class="group">
-    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-        <div class="text-5xl mb-4">🏪</div>
-        <h3 class="text-2xl font-semibold mb-2">biMBA Shop</h3>
-        <p class="text-gray-600">Import data produk, stok, harga, dan kategori dari biMBA Shop.</p>
-    </div>
-</a>
+            <a href="{{ route('import.bimbashop') }}" class="group">
+                <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                    <div class="text-5xl mb-4">🏪</div>
+                    <h3 class="text-2xl font-semibold mb-2">biMBA Shop</h3>
+                    <p class="text-gray-600">Import data produk, stok, harga, dan kategori dari biMBA Shop.</p>
+                </div>
+            </a>
 
-            <!-- Kas Dana -->
-            <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                <div class="text-5xl mb-4">💰</div>
-                <h3 class="text-2xl font-semibold mb-2">Kasdana</h3>
-                <p class="text-gray-600">Import data transaksi kasdana, pemasukan, dan pengeluaran.</p>
-                <button onclick="alert('Fitur Import Kas Dana akan dibuat')" 
-                        class="mt-6 bg-emerald-600 text-white px-6 py-3 rounded-2xl hover:bg-emerald-700">
-                    Import Data Kas Dana
-                </button>
-            </div>
+            <!-- Kas Dana Card (sudah diperbaiki) -->
+            <a href="{{ route('import.casdana') }}" class="group">
+                <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                    <div class="text-5xl mb-4">💰</div>
+                    <h3 class="text-2xl font-semibold mb-2">Kasdana</h3>
+                    <p class="text-gray-600">Import data transaksi kasdana, pemasukan, dan pengeluaran.</p>
+                </div>
+            </a>
         </div>
+
         <div class="p-4 border-t bg-gray-50">
             <a href="{{ route('home') }}" 
                class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 py-3 rounded-2xl font-medium transition-all">
