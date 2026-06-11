@@ -21,6 +21,7 @@ class JakartaAktif extends Model
         // === SERVICE KURIR ===
         'service_pengiriman',      // Contoh: J&T REG, J&T YES, JNE REG, SICEPAT, dll
         'tracking_number',
+        'status_kirim',
                  // No Resi
         'billing_last_name',
         // === MANUAL DISTRIBUSI ===

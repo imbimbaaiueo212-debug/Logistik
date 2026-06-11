@@ -83,9 +83,16 @@ Route::prefix('order')
         Route::post('/jakarta-aktif/import', [OrderController::class, 'importJakartaAktif'])->name('jakarta-aktif.import');
         Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])->name('jakarta-aktif.export');
         
-        // Sync JKT (POST)
+        // Sync JKT
         Route::post('/jakarta-aktif/sync-jkt', [OrderController::class, 'syncJktFromBimbashop'])
              ->name('jakarta-aktif.sync-jkt');
+
+        // === EDIT JAKARTA AKTIF (BENAR) ===
+        Route::get('/jakarta-aktif/{id}/edit', [OrderController::class, 'editJakartaAktif'])
+             ->name('jakarta-aktif.edit');
+
+        Route::put('/jakarta-aktif/{id}', [OrderController::class, 'updateJakartaAktif'])
+             ->name('jakarta-aktif.update');
     });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);

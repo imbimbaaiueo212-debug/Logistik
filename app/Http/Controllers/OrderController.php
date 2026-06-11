@@ -78,11 +78,8 @@ public function jakartaAktif(Request $request)
         }
     }
 
-           /**
-     * Sync dari Bimbashop + Casdana 
-     * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
-     */
-     /**
+       
+/**
  * Sync dari Bimbashop + Casdana 
  * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
  */
@@ -119,7 +116,17 @@ public function syncJktFromBimbashop()
                     ->latest('id')
                     ->first();
 
-        // === NAMA UNIT (tetap gabungan first + last + company) ===
+        // === HANYA MASUK JIKA STATUS CASDANA SUCCESS ATAU SETTLED ===
+        if (!$casdana) {
+            continue; // Skip jika tidak ada data Casdana
+        }
+
+        $statusCasdana = strtoupper(trim($casdana->status ?? ''));
+        if (!in_array($statusCasdana, ['SUCCESS', 'SETTLED'])) {
+            continue; // Skip jika bukan SUCCESS atau SETTLED
+        }
+
+        // === NAMA UNIT ===
         $parts = [];
         if (!empty($bimba->billing_first_name)) $parts[] = $bimba->billing_first_name;
         if (!empty($bimba->billing_last_name))  $parts[] = $bimba->billing_last_name;
@@ -129,7 +136,7 @@ public function syncJktFromBimbashop()
             ? implode(' ', $parts) 
             : ($bimba->item_name ?? ($casdana->customer ?? '-'));
 
-        // === DATA KIRIM ===
+        // === ALAMAT KIRIM ===
         $kirim = trim(
             ($bimba->shipping_address_1 ?? '') .
             (!empty($bimba->shipping_address_2 ?? '') ? ', ' . $bimba->shipping_address_2 : '') .
@@ -140,13 +147,19 @@ public function syncJktFromBimbashop()
             $kirim = $bimba->item_name ?? $casdana->customer ?? '-';
         }
 
-        // === STATUS PEMBAYARAN ===
-        $statusPembayaran = null;
-        if ($casdana) {
-            $statusCasdana = strtoupper(trim($casdana->status ?? ''));
-            if (in_array($statusCasdana, ['SUCCESS', 'SETTLED'])) {
-                $statusPembayaran = $statusCasdana;
-            }
+        // === STATUS KIRIM ===
+        $ongkir = (int) ($bimba->ship_total ?? 0);
+        $statusKirim = ($ongkir > 0) ? 'Dikirim' : 'Diambil';
+
+        // === PESANAN DIAMBIL DARI item_sku + BERSIHKAN ===
+        $rawPesanan = trim($bimba->item_sku ?? $bimba->item_name ?? '');
+
+        $pesanan = str_ireplace(['JKT', 'JKT-', '-JKT'], '', $rawPesanan);
+        $pesanan = preg_replace('/\s+/', ' ', $pesanan);
+        $pesanan = trim($pesanan, ' -');
+
+        if (empty($pesanan)) {
+            $pesanan = 'STPB';
         }
 
         // === DATA UTAMA ===
@@ -160,10 +173,10 @@ public function syncJktFromBimbashop()
             'kab_kota_provinsi' => $bimba->shipping_city ?? null,
             
             'ekspedisi'         => null,
-            'ongkir'            => $bimba->ship_total ?? 0,
+            'ongkir'            => $ongkir,
             
             'nama_unit'         => $namaUnit,
-            'pesanan'           => $bimba->item_name ?? null,
+            'pesanan'           => $pesanan,
             
             'harga'             => $bimba->item_price ?? 0,
             'berat'             => $bimba->order_weight ?? 0,
@@ -171,23 +184,21 @@ public function syncJktFromBimbashop()
             
             'jenis_bank'        => $casdana->payment_channel ?? $bimba->payment_method,
             
-            'status_pembayaran' => $statusPembayaran,
+            'status_pembayaran' => $statusCasdana,   // SUCCESS atau SETTLED
             'status_pesan'      => $bimba->status,
             
             'id_pesan'          => $bimba->order_id,
             
-            'validasi'          => 'Pending',
+            'validasi'          => null,
             'status'            => 'aktif',
             
             'payment_date'      => $casdana->payment_date ?? null,
             'amount'            => $casdana->amount ?? 0,
 
-            // === CABANG DIAMBIL LANGSUNG DARI billing_last_name ===
             'billing_last_name' => $bimba->billing_last_name ?? null,
+            'status_kirim'      => $statusKirim,
 
-            'catatan'           => $casdana 
-                ? "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}"
-                : "From Bimbashop | Status: {$bimba->status}",
+            'catatan'           => "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}",
         ];
 
         JakartaAktif::create($data);
@@ -200,4 +211,42 @@ public function syncJktFromBimbashop()
 
     public function unitAktif() { return view('order.unit-aktif'); }
     public function unitPasif() { return view('order.unit-pasif'); }
+
+        // ====================== EDIT JAKARTA AKTIF ======================
+    public function editJakartaAktif($id)
+{
+    $item = JakartaAktif::findOrFail($id);
+    return view('order.jakarta-aktif-edit', compact('item'));
+}
+
+public function updateJakartaAktif(Request $request, $id)
+{
+    $item = JakartaAktif::findOrFail($id);
+
+    $request->validate([
+        'nama_unit'         => 'nullable|string|max:255',
+        'billing_last_name' => 'nullable|string|max:100',
+        'pesanan'           => 'nullable|string|max:255',
+        'ekspedisi'         => 'nullable|string|max:100',           // ← Tambahan
+        'status_kirim'      => 'nullable|in:Dikirim,Belum Dikirim',
+        'status_pembayaran' => 'nullable|string|max:50',
+        'validasi'          => 'nullable|string|max:50',
+    ]);
+
+    $item->update([
+        'nama_unit'         => $request->nama_unit,
+        'billing_last_name' => $request->billing_last_name,
+        'pesanan'           => $request->pesanan,
+        'ekspedisi'         => $request->ekspedisi,                 // ← Tambahan
+        'status_kirim'      => $request->status_kirim,
+        'status_pembayaran' => $request->status_pembayaran,
+        'validasi'          => $request->validasi,
+        'catatan'           => ($item->catatan ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'),
+    ]);
+
+    return redirect()->route('order.jakarta-aktif')
+                     ->with('success', '✅ Data berhasil diupdate!');
+}
+
+
 }

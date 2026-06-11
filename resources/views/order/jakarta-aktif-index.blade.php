@@ -9,18 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     
-    <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-
     <style>
         body { font-family: 'Poppins', sans-serif; }
         table { border-collapse: collapse; }
         th, td { padding: 12px 8px; font-size: 0.85rem; }
         th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         tr:hover { background-color: #f8fafc; }
-        .truncate { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nominal { font-variant-numeric: tabular-nums; }
         
         .status-success { 
             background-color: #d1fae5; 
@@ -30,6 +24,11 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
+
+        .badge-green { background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+        .badge-yellow { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+        .badge-red { background-color: #ff0000; color: rgb(255, 255, 255); padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+        .badge-black { background-color: #1f2937; color: #f3f4f6; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -46,25 +45,21 @@
                 <p class="text-gray-600">Import & Kelola Data Order Jakarta Aktif</p>
             </div>
             <div class="flex gap-3">
-                <a href="{{ route('order.unit-pasif') }}" 
-                   class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700 flex items-center gap-2">
+                <a href="{{ route('order.unit-pasif') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700 flex items-center gap-2">
                     ← Kembali ke Dashboard
                 </a>
-                <button onclick="document.getElementById('importForm').classList.toggle('hidden')"
+                <button onclick="document.getElementById('importForm').classList.toggle('hidden')" 
                         class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex items-center gap-2">
                     📤 Import Data Baru
                 </button>
-                <a href="{{ route('order.jakarta-aktif.export') }}" 
-                   class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 flex items-center gap-2">
+                <a href="{{ route('order.jakarta-aktif.export') }}" class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 flex items-center gap-2">
                     📥 Export Excel
                 </a>
 
-                <!-- Tombol Sync JKT -->
                 <form action="{{ route('order.jakarta-aktif.sync-jkt') }}" method="POST" style="display: inline;" 
                     onsubmit="return confirm('Yakin ingin sync semua data JKT dari Bimbashop & Casdana?')">
                     @csrf
-                    <button type="submit"
-                            class="bg-purple-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-purple-700 flex items-center gap-2">
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-purple-700 flex items-center gap-2">
                         🔄 Sync JKT + Casdana
                     </button>
                 </form>
@@ -161,15 +156,22 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
+                        <th class="text-center px-3 py-3 w-10">
+                            <input type="checkbox" id="selectAll" class="w-4 h-4">
+                        </th>
                         <th class="text-left px-4 py-3">ID Pesan</th>
                         <th class="text-left px-4 py-3">Nama Unit</th>
                         <th class="text-left px-4 py-3">Cabang</th>
                         <th class="text-left px-4 py-3">Alamat Kirim</th>
                         <th class="text-left px-4 py-3">Kab/Kota</th>
                         <th class="text-left px-4 py-3">Pesanan</th>
-                        <th class="text-left px-4 py-4">Order Date</th>
+                        <th class="text-left px-4 py-3">Order Date</th>
                         <th class="text-left px-4 py-3">Payment Date</th>
+                        <th class="text-left px-4 py-3">Estimasi Print PL (1x24)</th>
+                        <th class="text-left px-4 py-3">Estimasi Persiapan (3x24)</th>
                         <th class="text-left px-4 py-3">Jasa Kurir</th>
+                        <th class="text-left py-4 py-3">Service Kurir</th>
+                        <th class="text-left px-4 py-3">Kirim</th>
                         <th class="text-right px-4 py-3">Ship Total</th>
                         <th class="text-right px-4 py-3">Berat</th>
                         <th class="text-right px-4 py-3">Item Price</th>
@@ -181,113 +183,141 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($data as $item)
+                        @php
+                            $now = \Carbon\Carbon::now();
+                            $paymentDate = $item->payment_date ? \Carbon\Carbon::parse($item->payment_date) : null;
+
+                            // Estimasi Print PL = +24 jam dari Payment Date
+                            $estimasiPrint = $paymentDate ? $paymentDate->copy()->addHours(24) : null;
+                            $jamPrint = $paymentDate ? $paymentDate->diffInHours($now) : 999;
+
+                            // Estimasi Persiapan = +72 jam (3x24) dari Payment Date
+                            $estimasiPersiapan = $paymentDate ? $paymentDate->copy()->addHours(72) : null;
+                            $jamPersiapan = $paymentDate ? $paymentDate->diffInHours($now) : 999;
+                        @endphp
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
-                        <td class="px-4 py-3">
-                            @if($item->nama_unit)
-                                <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                    {{ $item->nama_unit }}
-                                </span>
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
+                        <!-- Checkbox -->
+                        <td class="text-center px-3 py-3">
+                            <input type="checkbox" name="selected[]" value="{{ $item->id }}" class="w-4 h-4 row-checkbox">
                         </td>
-                        <td class="px-4 py-3">{{ $item->billing_last_name}}</td>
+
+                        <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $item->billing_last_name ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kab_kota_provinsi ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->pesanan ?? '-' }}</td>
-                        <!-- Tanggal Pesan (Full Date + Time) -->
+
+                        <!-- Order Date -->
                         <td class="px-4 py-3 whitespace-nowrap">
                             @if($item->tgl_pesan)
-                                <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-medium">
+                                <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm">
                                     {{ \Carbon\Carbon::parse($item->tgl_pesan)->format('d/m/Y H:i') }}
                                 </span>
                             @else
-                                <span class="text-gray-400">-</span>
+                                -
                             @endif
                         </td>
-                       <!-- DEBUG VERSION -->
+
+                        
+
                         <td class="px-4 py-3 whitespace-nowrap">
                             @if($item->payment_date)
-                                <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-medium">
-                                    {{ \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') }}
-                                </span>
+                                {{ \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') }}
                             @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        
-                        
-                        <td class="px-4 py-3">{{ $item->ekspedisi ?? '-' }}</td>
-                       <!-- Ship Total -->
-                        <td class="text-right px-4 py-3">Rp {{ number_format($item->ongkir ?? 0, 0, ',', '.') }}</td>
-
-                        <!-- Berat -->
-                        <td class="text-right px-4 py-3">{{ number_format($item->berat ?? 0, 0, ',', '.') }} gr</td>
-
-                        <!-- Item Price -->
-                        <td class="text-right px-4 py-3">Rp {{ number_format($item->harga ?? 0, 0, ',', '.') }}</td>
-
-                        <!-- Total -->
-                        <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}</td>
-                        
-                        <td class="px-4 py-3">
-                            @if($item->status_pembayaran)
-                                <span class="status-success">
-                                    {{ $item->status_pembayaran }}
-                                </span>
-                            @else
-                                <span class="text-gray-400 text-sm italic">— Belum Sync Casdana —</span>
+                                -
                             @endif
                         </td>
 
-                                                <!-- Status Pesan dengan Badge -->
-                        <td class="px-4 py-3">
-                            @php
-                                $statusPesan = $item->status_pesan ?? null;
-                            @endphp
-                            @if($statusPesan)
-                                @if(in_array(strtolower($statusPesan), ['completed', 'success', 'paid', 'settled']))
-                                    <span class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
+                        <!-- ESTIMASI PRINT PL (1x24 jam) -->
+                        <td class="px-4 py-3 font-medium">
+                            @if($estimasiPrint)
+                                @if($jamPrint <= 24)
+                                    <span class="badge-green px-3 py-1 rounded-xl text-xs font-semibold">
+                                        {{ $estimasiPrint->format('d/m/Y H:i') }}
                                     </span>
-                                @elseif(in_array(strtolower($statusPesan), ['processing']))
-                                    <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
+                                @elseif($jamPrint <= 48)   <!-- Lewat 1 hari -->
+                                    <span class="badge-red px-3 py-1 rounded-xl text-xs font-semibold">
+                                        {{ $estimasiPrint->format('d/m/Y H:i') }}
                                     </span>
-                                @elseif(in_array(strtolower($statusPesan), ['success']))
-                                    <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
-                                    </span>
-                                @elseif(in_array(strtolower($statusPesan), ['completed']))
-                                    <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
-                                    </span>
-                                @elseif(in_array(strtolower($statusPesan), ['on-hold']))
-                                    <span class="inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
-                                    </span>   
-                                @elseif(in_array(strtolower($statusPesan), ['cancelled', 'failed']))
-                                    <span class="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
-                                    </span>
-                                @else
-                                    <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-semibold">
-                                        {{ $statusPesan }}
+                                @else                      <!-- Sudah sangat lewat -->
+                                    <span class="badge-black px-3 py-1 rounded-xl text-xs font-semibold">
+                                        {{ $estimasiPrint->format('d/m/Y H:i') }}
                                     </span>
                                 @endif
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        
+
+                        <!-- ESTIMASI PERSIAPAN (3x24 jam) -->
+                        <td class="px-4 py-3 font-medium">
+                            @if($estimasiPersiapan)
+                                @if($jamPersiapan <= 72)
+                                    <span class="badge-green px-3 py-1 rounded-xl text-xs font-semibold">
+                                        {{ $estimasiPersiapan->format('d/m/Y H:i') }}
+                                    </span>
+                                @elseif($jamPersiapan <= 96)   <!-- Lewat 1 hari setelah 72 jam -->
+                                    <span class="badge-red px-3 py-1 rounded-xl text-xs font-semibold">
+                                        {{ $estimasiPersiapan->format('d/m/Y H:i') }}
+                                    </span>
+                                @else                          <!-- Sudah sangat lewat -->
+                                    <span class="badge-black px-3 py-1 rounded-xl text-xs font-semibold">
+                                        {{ $estimasiPersiapan->format('d/m/Y H:i') }}
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+
+                        <td class="px-4 py-3">{{ $item->ekspedisi ?? '-' }}</td>
+
+                        <td class="px-4 py-3">{{ $item->service_pengiriman ?? '-'}}</td>
+
+                        <td class="px-4 py-3">
+                            @if($item->status_kirim === 'Dikirim')
+                                <span class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm font-semibold">Dikirim</span>
+                            @else
+                                <span class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-xl text-sm font-semibold">Diambil</span>
+                            @endif
+                        </td>
+
+                        <td class="text-right px-4 py-3">Rp {{ number_format($item->ongkir ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right px-4 py-3">{{ number_format($item->berat ?? 0, 0, ',', '.') }} gr</td>
+                        <td class="text-right px-4 py-3">Rp {{ number_format($item->harga ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}</td>
+
+                        <td class="px-4 py-3">
+                            @if($item->status_pembayaran)
+                                <span class="status-success">{{ $item->status_pembayaran }}</span>
+                            @else
+                                <span class="text-gray-400 text-sm italic">— Belum Sync —</span>
+                            @endif
+                        </td>
+
+                        <td class="px-4 py-3">
+                            @php $statusPesan = $item->status_pesan ?? null; @endphp
+                            @if($statusPesan)
+                                @if(in_array(strtolower($statusPesan), ['completed','success','paid','settled']))
+                                    <span class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm font-semibold">{{ $statusPesan }}</span>
+                                @elseif(in_array(strtolower($statusPesan), ['cancelled','failed']))
+                                    <span class="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-xl text-sm font-semibold">{{ $statusPesan }}</span>
+                                @else
+                                    <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-semibold">{{ $statusPesan }}</span>
+                                @endif
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+
                         <td class="text-center px-4 py-3">
-                            <a href="#" class="text-blue-600 hover:text-blue-700 text-lg">✏️</a>
+                            <a href="{{ route('order.jakarta-aktif.edit', $item->id) }}" class="text-blue-600 hover:text-blue-700 text-lg">✏️</a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center py-16 text-gray-500">
+                        <td colspan="20" class="text-center py-16 text-gray-500">
                             Belum ada data Jakarta Aktif.<br>
                             Silakan klik tombol <strong>Sync JKT + Casdana</strong> di atas.
                         </td>
@@ -309,24 +339,11 @@
 
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            $('.validasi-select').select2({
-                theme: 'bootstrap-5',
-                placeholder: "Semua Validasi",
-                allowClear: true,
-                width: '100%'
-            });
-
-            $('.status-select').select2({
-                theme: 'bootstrap-5',
-                placeholder: "Semua Status Pembayaran",
-                allowClear: true,
-                width: '100%'
+            $('#selectAll').on('change', function() {
+                $('.row-checkbox').prop('checked', this.checked);
             });
         });
     </script>
