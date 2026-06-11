@@ -82,7 +82,11 @@ public function jakartaAktif(Request $request)
      * Sync dari Bimbashop + Casdana 
      * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
      */
-     public function syncJktFromBimbashop()
+     /**
+ * Sync dari Bimbashop + Casdana 
+ * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
+ */
+public function syncJktFromBimbashop()
 {
     $count = 0;
 
@@ -115,7 +119,7 @@ public function jakartaAktif(Request $request)
                     ->latest('id')
                     ->first();
 
-        // === NAMA UNIT ===
+        // === NAMA UNIT (tetap gabungan first + last + company) ===
         $parts = [];
         if (!empty($bimba->billing_first_name)) $parts[] = $bimba->billing_first_name;
         if (!empty($bimba->billing_last_name))  $parts[] = $bimba->billing_last_name;
@@ -125,7 +129,7 @@ public function jakartaAktif(Request $request)
             ? implode(' ', $parts) 
             : ($bimba->item_name ?? ($casdana->customer ?? '-'));
 
-        // === DATA KIRIM (Hanya Alamat) ===
+        // === DATA KIRIM ===
         $kirim = trim(
             ($bimba->shipping_address_1 ?? '') .
             (!empty($bimba->shipping_address_2 ?? '') ? ', ' . $bimba->shipping_address_2 : '') .
@@ -136,9 +140,8 @@ public function jakartaAktif(Request $request)
             $kirim = $bimba->item_name ?? $casdana->customer ?? '-';
         }
 
-        // === STATUS PEMBAYARAN (Hanya dari Casdana) ===
+        // === STATUS PEMBAYARAN ===
         $statusPembayaran = null;
-
         if ($casdana) {
             $statusCasdana = strtoupper(trim($casdana->status ?? ''));
             if (in_array($statusCasdana, ['SUCCESS', 'SETTLED'])) {
@@ -166,8 +169,7 @@ public function jakartaAktif(Request $request)
             'berat'             => $bimba->order_weight ?? 0,
             'total'             => $casdana->amount ?? $bimba->order_total ?? 0,
             
-            // === PERUBAHAN DISINI ===
-            'jenis_bank'        => $casdana->payment_channel ?? $bimba->payment_method,   // ← Dari payment_channel Casdana
+            'jenis_bank'        => $casdana->payment_channel ?? $bimba->payment_method,
             
             'status_pembayaran' => $statusPembayaran,
             'status_pesan'      => $bimba->status,
@@ -179,6 +181,10 @@ public function jakartaAktif(Request $request)
             
             'payment_date'      => $casdana->payment_date ?? null,
             'amount'            => $casdana->amount ?? 0,
+
+            // === CABANG DIAMBIL LANGSUNG DARI billing_last_name ===
+            'billing_last_name' => $bimba->billing_last_name ?? null,
+
             'catatan'           => $casdana 
                 ? "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}"
                 : "From Bimbashop | Status: {$bimba->status}",

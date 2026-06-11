@@ -163,6 +163,7 @@
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
                         <th class="text-left px-4 py-3">ID Pesan</th>
                         <th class="text-left px-4 py-3">Nama Unit</th>
+                        <th class="text-left px-4 py-3">Cabang</th>
                         <th class="text-left px-4 py-3">Alamat Kirim</th>
                         <th class="text-left px-4 py-3">Kab/Kota</th>
                         <th class="text-left px-4 py-3">Pesanan</th>
@@ -191,6 +192,7 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
+                        <td class="px-4 py-3">{{ $item->billing_last_name}}</td>
                         <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kab_kota_provinsi ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->pesanan ?? '-' }}</td>

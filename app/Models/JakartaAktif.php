@@ -20,8 +20,9 @@ class JakartaAktif extends Model
         
         // === SERVICE KURIR ===
         'service_pengiriman',      // Contoh: J&T REG, J&T YES, JNE REG, SICEPAT, dll
-        'tracking_number',         // No Resi
-        
+        'tracking_number',
+                 // No Resi
+        'billing_last_name',
         // === MANUAL DISTRIBUSI ===
         'distribusi_manual',       // Yes / No
         'nama_distributor',        // Nama orang / vendor yang mendistribusikan manual
