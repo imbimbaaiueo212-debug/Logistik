@@ -157,7 +157,7 @@
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
                         <th class="text-center px-3 py-3 w-10">
-                            <input type="checkbox" id="selectAll" class="w-4 h-4">
+                            
                         </th>
                         <th class="text-left px-4 py-3">ID Pesan</th>
                         <th class="text-left px-4 py-3">Nama Unit</th>
