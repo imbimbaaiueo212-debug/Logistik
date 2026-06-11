@@ -21,6 +21,15 @@
         tr:hover { background-color: #f8fafc; }
         .truncate { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .nominal { font-variant-numeric: tabular-nums; }
+        
+        .status-success { 
+            background-color: #d1fae5; 
+            color: #065f46; 
+            padding: 4px 12px; 
+            border-radius: 9999px; 
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -88,24 +97,6 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Validasi</label>
-                    <select name="validasi" class="validasi-select w-full">
-                        <option value="">Semua</option>
-                        <option value="Valid" {{ request('validasi') == 'Valid' ? 'selected' : '' }}>Valid</option>
-                        <option value="Pending" {{ request('validasi') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
-                    <select name="status_pembayaran" class="status-select w-full">
-                        <option value="">Semua</option>
-                        <option value="Lunas" {{ request('status_pembayaran') == 'Lunas' ? 'selected' : '' }}>Lunas</option>
-                        <option value="Pending" {{ request('status_pembayaran') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                    </select>
-                </div>
-
-                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
                     <input type="date" name="start_date" value="{{ request('start_date') }}" 
                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
@@ -121,10 +112,15 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
                     <select name="per_page" onchange="this.form.submit()" 
                             class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500">
+                        <option value="5" {{ request('per_page') == 5 ? 'selected' : '' }}>5</option>    
                         <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
                         <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
                         <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                         <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                        <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
+                        <option value="300" {{ request('per_page') == 300 ? 'selected' : '' }}>300</option>
+                        <option value="500" {{ request('per_page') == 500 ? 'selected' : '' }}>500</option>
+                        <option value="1000" {{ request('per_page') == 1000 ? 'selected' : '' }}>1000</option>
                     </select>
                 </div>
 
@@ -161,56 +157,143 @@
         </div>
 
         <!-- Tabel Data -->
-        <!-- Tabel Data -->
-<div class="bg-white rounded-3xl shadow overflow-x-auto">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="bg-gray-100 border-b-2 border-gray-300">
-                <th class="text-left px-4 py-3">ID Pesan</th>
-                <th class="text-left px-4 py-3">Kirim</th>
-                <th class="text-left px-4 py-3">Nama Unit</th>
-                <th class="text-left px-4 py-3">Jasa Kurir</th>
-                <th class="text-right px-4 py-3">Ship Total</th>
-                <th class="text-right px-4 py-3">Berat</th>
-                <th class="text-right px-4 py-3">Item Price</th>
-                <th class="text-right px-4 py-3">Total</th>
-                <th class="text-left px-4 py-3">Status Bayar</th>
-                <th class="text-center px-4 py-3">Aksi</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-            @forelse($data as $item)
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
-                <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
-                <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
-                
-                <td class="px-4 py-3">{{ $item->ekspedisi ?? '-' }}</td>
-                <td class="text-right px-4 py-3">Rp {{ number_format($item->ongkir ?? 0) }}</td>
-                <td class="text-right px-4 py-3">{{ $item->berat ?? 0 }} kg</td>
-                <td class="text-right px-4 py-3">Rp {{ number_format($item->harga ?? 0) }}</td>
-                <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0) }}</td>
-                <td class="px-4 py-3">
-                    <span class="px-3 py-1 rounded-full text-xs 
-                        @if($item->status_pembayaran == 'Lunas') bg-emerald-100 text-emerald-700 @else bg-orange-100 text-orange-700 @endif">
-                        {{ $item->status_pembayaran ?? 'Pending' }}
-                    </span>
-                </td>
-                <td class="text-center px-4 py-3">
-                    <a href="#" class="text-blue-600 hover:text-blue-700 text-lg">✏️</a>
-                </td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="13" class="text-center py-16 text-gray-500">
-                    Belum ada data Jakarta Aktif.<br>
-                    Silakan klik tombol <strong>Sync JKT + Casdana</strong> atau Import Excel.
-                </td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
+        <div class="bg-white rounded-3xl shadow overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-100 border-b-2 border-gray-300">
+                        <th class="text-left px-4 py-3">ID Pesan</th>
+                        <th class="text-left px-4 py-3">Nama Unit</th>
+                        <th class="text-left px-4 py-3">Alamat Kirim</th>
+                        <th class="text-left px-4 py-3">Kab/Kota</th>
+                        <th class="text-left px-4 py-3">Pesanan</th>
+                        <th class="text-left px-4 py-4">Order Date</th>
+                        <th class="text-left px-4 py-3">Payment Date</th>
+                        <th class="text-left px-4 py-3">Jasa Kurir</th>
+                        <th class="text-right px-4 py-3">Ship Total</th>
+                        <th class="text-right px-4 py-3">Berat</th>
+                        <th class="text-right px-4 py-3">Item Price</th>
+                        <th class="text-right px-4 py-3">Total</th>
+                        <th class="text-left px-4 py-3">Status Bayar</th>
+                        <th class="text-left px-4 py-3">Status biMBAShop</th>
+                        <th class="text-center px-4 py-3">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @forelse($data as $item)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
+                        <td class="px-4 py-3">
+                            @if($item->nama_unit)
+                                <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                    {{ $item->nama_unit }}
+                                </span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $item->kab_kota_provinsi ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $item->pesanan ?? '-' }}</td>
+                        <!-- Tanggal Pesan (Full Date + Time) -->
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            @if($item->tgl_pesan)
+                                <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-medium">
+                                    {{ \Carbon\Carbon::parse($item->tgl_pesan)->format('d/m/Y H:i') }}
+                                </span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+                       <!-- DEBUG VERSION -->
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            @if($item->payment_date)
+                                <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-medium">
+                                    {{ \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') }}
+                                </span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+                        
+                        
+                        <td class="px-4 py-3">{{ $item->ekspedisi ?? '-' }}</td>
+                       <!-- Ship Total -->
+                        <td class="text-right px-4 py-3">Rp {{ number_format($item->ongkir ?? 0, 0, ',', '.') }}</td>
+
+                        <!-- Berat -->
+                        <td class="text-right px-4 py-3">{{ number_format($item->berat ?? 0, 0, ',', '.') }} gr</td>
+
+                        <!-- Item Price -->
+                        <td class="text-right px-4 py-3">Rp {{ number_format($item->harga ?? 0, 0, ',', '.') }}</td>
+
+                        <!-- Total -->
+                        <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}</td>
+                        
+                        <td class="px-4 py-3">
+                            @if($item->status_pembayaran)
+                                <span class="status-success">
+                                    {{ $item->status_pembayaran }}
+                                </span>
+                            @else
+                                <span class="text-gray-400 text-sm italic">— Belum Sync Casdana —</span>
+                            @endif
+                        </td>
+
+                                                <!-- Status Pesan dengan Badge -->
+                        <td class="px-4 py-3">
+                            @php
+                                $statusPesan = $item->status_pesan ?? null;
+                            @endphp
+                            @if($statusPesan)
+                                @if(in_array(strtolower($statusPesan), ['completed', 'success', 'paid', 'settled']))
+                                    <span class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>
+                                @elseif(in_array(strtolower($statusPesan), ['processing']))
+                                    <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>
+                                @elseif(in_array(strtolower($statusPesan), ['success']))
+                                    <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>
+                                @elseif(in_array(strtolower($statusPesan), ['completed']))
+                                    <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>
+                                @elseif(in_array(strtolower($statusPesan), ['on-hold']))
+                                    <span class="inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>   
+                                @elseif(in_array(strtolower($statusPesan), ['cancelled', 'failed']))
+                                    <span class="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>
+                                @else
+                                    <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-semibold">
+                                        {{ $statusPesan }}
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+                        
+                        <td class="text-center px-4 py-3">
+                            <a href="#" class="text-blue-600 hover:text-blue-700 text-lg">✏️</a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="10" class="text-center py-16 text-gray-500">
+                            Belum ada data Jakarta Aktif.<br>
+                            Silakan klik tombol <strong>Sync JKT + Casdana</strong> di atas.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         @if($data->count() > 0)
         <div class="mt-6 text-sm text-gray-600 flex justify-between items-center">

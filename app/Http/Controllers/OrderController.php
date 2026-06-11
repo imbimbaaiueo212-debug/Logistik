@@ -16,24 +16,50 @@ class OrderController extends Controller
         return view('order.index');
     }
 
-    public function jakartaAktif(Request $request)
-    {
-        $query = JakartaAktif::query();
+public function jakartaAktif(Request $request)
+{
+    $query = JakartaAktif::query();
 
-        if ($request->filled('id_pesan')) {
-            $query->where('id_pesan', 'like', '%' . $request->id_pesan . '%');
-        }
-        if ($request->filled('kirim')) {
-            $query->where('kirim', 'like', '%' . $request->kirim . '%');
-        }
-        if ($request->filled('nama_unit')) {
-            $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
-        }
-
-        $data = $query->latest()->paginate(20)->appends($request->query());
-
-        return view('order.jakarta-aktif-index', compact('data'));
+    // === FILTER ===
+    if ($request->filled('id_pesan')) {
+        $query->where('id_pesan', 'like', '%' . $request->id_pesan . '%');
     }
+    if ($request->filled('kirim')) {
+        $query->where('kirim', 'like', '%' . $request->kirim . '%');
+    }
+    if ($request->filled('nama_unit')) {
+        $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
+    }
+    if ($request->filled('status_pembayaran')) {
+        $query->where('status_pembayaran', $request->status_pembayaran);
+    }
+    if ($request->filled('status_pesan')) {
+        $query->where('status_pesan', $request->status_pesan);
+    }
+    if ($request->filled('validasi')) {
+        $query->where('validasi', $request->validasi);
+    }
+    if ($request->filled('start_date')) {
+        $query->whereDate('tgl_pesan', '>=', $request->start_date);
+    }
+    if ($request->filled('end_date')) {
+        $query->whereDate('tgl_pesan', '<=', $request->end_date);
+    }
+
+    // === PAGINATION ===
+    $perPage = $request->get('per_page', 5);
+    $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 5;
+
+    $data = $query
+    ->with(['casdana' => function ($q) {
+        $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
+    }])
+    ->latest('tgl_pesan')
+    ->paginate($perPage)
+    ->appends($request->query());
+
+    return view('order.jakarta-aktif-index', compact('data'));
+}
 
     // Import Manual
     public function importJakartaAktif(Request $request)
@@ -56,11 +82,11 @@ class OrderController extends Controller
      * Sync dari Bimbashop + Casdana 
      * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
      */
-    public function syncJktFromBimbashop()
+     public function syncJktFromBimbashop()
 {
     $count = 0;
 
-    // Daftar SKU yang TIDAK boleh masuk ke Jakarta Aktif
+    // Daftar SKU yang TIDAK boleh masuk
     $excludedSkus = [
         'JKTP', 'PUA1', 'PUA2', 'PUA3', 'DPK1', 'SRG1', 'KWG1', 'BKS1', 
         'BGR1', 'TNG1', 'SNG', 'BGRT', 'PWK', 'TNG2', 'KNG', 'IDM', 
@@ -79,55 +105,84 @@ class OrderController extends Controller
                         ->get();
 
     foreach ($bimbashopOrders as $bimba) {
-        // Skip jika sudah ada
         if (JakartaAktif::where('id_pesan', $bimba->order_id)->exists()) {
             continue;
         }
 
+        // === CARI DATA CASDANA ===
+        $casdana = CasdanaTransaction::where('invoice_number', $bimba->order_id)
+                    ->orWhere('invoice_number', 'like', '%' . $bimba->order_id . '%')
+                    ->latest('id')
+                    ->first();
+
+        // === NAMA UNIT ===
+        $parts = [];
+        if (!empty($bimba->billing_first_name)) $parts[] = $bimba->billing_first_name;
+        if (!empty($bimba->billing_last_name))  $parts[] = $bimba->billing_last_name;
+        if (!empty($bimba->billing_company))    $parts[] = $bimba->billing_company;
+
+        $namaUnit = !empty($parts) 
+            ? implode(' ', $parts) 
+            : ($bimba->item_name ?? ($casdana->customer ?? '-'));
+
+        // === DATA KIRIM (Hanya Alamat) ===
+        $kirim = trim(
+            ($bimba->shipping_address_1 ?? '') .
+            (!empty($bimba->shipping_address_2 ?? '') ? ', ' . $bimba->shipping_address_2 : '') .
+            (!empty($bimba->shipping_city ?? '') ? ', ' . $bimba->shipping_city : '')
+        );
+
+        if (empty($kirim)) {
+            $kirim = $bimba->item_name ?? $casdana->customer ?? '-';
+        }
+
+        // === STATUS PEMBAYARAN (Hanya dari Casdana) ===
+        $statusPembayaran = null;
+
+        if ($casdana) {
+            $statusCasdana = strtoupper(trim($casdana->status ?? ''));
+            if (in_array($statusCasdana, ['SUCCESS', 'SETTLED'])) {
+                $statusPembayaran = $statusCasdana;
+            }
+        }
+
+        // === DATA UTAMA ===
         $data = [
             'tgl_input'         => now()->format('Y-m-d'),
             'tgl_pesan'         => $bimba->order_date,
             
-            // Data Penerima / Kirim
-            'kirim'             => trim(($bimba->shipping_first_name ?? '') . ' ' . ($bimba->shipping_last_name ?? '')),
+            'kirim'             => $kirim,
             'no_telpon'         => $bimba->shipping_phone ?? null,
-            'alamat_kirim'      => $bimba->shipping_address_1,
-            'kab_kota_provinsi' => $bimba->shipping_city,
+            'alamat_kirim'      => $bimba->shipping_address_1 ?? null,
+            'kab_kota_provinsi' => $bimba->shipping_city ?? null,
             
-            // Ekspedisi & Ongkir
-            'ekspedisi'         => 'J&T',
+            'ekspedisi'         => null,
             'ongkir'            => $bimba->ship_total ?? 0,
             
-            // Unit / Produk
-            'nama_unit'         => $bimba->item_name,           // ← Ini yang kamu maksud
-            'pesanan'           => $bimba->item_name,
+            'nama_unit'         => $namaUnit,
+            'pesanan'           => $bimba->item_name ?? null,
             
-            // Harga & Total
             'harga'             => $bimba->item_price ?? 0,
             'berat'             => $bimba->order_weight ?? 0,
-            'total'             => $bimba->order_total ?? 0,
+            'total'             => $casdana->amount ?? $bimba->order_total ?? 0,
             
-            // Pembayaran
-            'jenis_bank'        => $bimba->payment_method,
-            'status_pembayaran' => $bimba->status == 'completed' ? 'Lunas' : 'Pending',
+            // === PERUBAHAN DISINI ===
+            'jenis_bank'        => $casdana->payment_channel ?? $bimba->payment_method,   // ← Dari payment_channel Casdana
+            
+            'status_pembayaran' => $statusPembayaran,
+            'status_pesan'      => $bimba->status,
+            
             'id_pesan'          => $bimba->order_id,
             
             'validasi'          => 'Pending',
             'status'            => 'aktif',
+            
+            'payment_date'      => $casdana->payment_date ?? null,
+            'amount'            => $casdana->amount ?? 0,
+            'catatan'           => $casdana 
+                ? "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}"
+                : "From Bimbashop | Status: {$bimba->status}",
         ];
-
-        // Ambil data tambahan dari Casdana
-        $casdana = CasdanaTransaction::where('invoice_number', $bimba->order_id)
-                    ->orWhere('invoice_number', 'like', '%' . $bimba->order_id . '%')
-                    ->first();
-
-        if ($casdana) {
-            $data['status_pembayaran'] = $casdana->status == 'success' ? 'Lunas' : 'Pending';
-            $data['jenis_bank']        = $casdana->merchant ?? $data['jenis_bank'];
-            $data['payment_date']      = $casdana->payment_date ?? null;   // ← Ditambahkan
-            $data['amount']            = $casdana->amount ?? 0;           // ← Ditambahkan
-            $data['catatan']           = "Synced from Casdana: " . ($casdana->customer ?? '');
-        }
 
         JakartaAktif::create($data);
         $count++;
