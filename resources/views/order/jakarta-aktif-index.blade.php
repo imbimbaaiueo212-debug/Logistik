@@ -318,11 +318,12 @@
             <table class="w-full text-sm border border-gray-200" id="modalTable">
                 <thead class="bg-gray-50 sticky top-0">
                     <tr>
-                        <th class="px-4 py-3 text-left">ID Pesan</th>
-                        <th class="px-4 py-3 text-left">Nama Unit</th>
-                        <th class="px-4 py-3 text-left">Penerima</th>
-                        <th class="px-4 py-3 text-left">Status Kirim</th>
-                        <th class="px-4 py-3 text-left">Jasa Kurir</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Invoice</th>
+                        <th class="px-4 py-3 text-left">To Customer</th>
+                        <th class="px-4 py-3 text-left">Payment Date</th>
+                        <th class="px-4 py-3 text-left">Status Kirim <span class="text-red-500">*</span></th></th>
+                        <th class="px-4 py-3 text-left">Jasa Kurir <span class="text-red-500">*</span></th></th>
                         <th class="px-4 py-3 text-left">Service</th>
                         <th class="px-4 py-3 text-left">Catatan</th>
                     </tr>
@@ -369,82 +370,131 @@
     });
 
     function showBulkModal() {
-        if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0) return;
 
-        let html = '';
-        $('.row-checkbox:checked').each(function() {
-            const row = $(this).closest('tr');
-            const id = $(this).val();
-            
-            html += `
-                <tr data-id="${id}">
-                    <td class="px-4 py-3">${row.find('td:eq(1)').text().trim()}</td>
-                    <td class="px-4 py-3">${row.find('td:eq(2)').text().trim()}</td>
-                    <td class="px-4 py-3">${row.find('td:eq(4)').text().trim()}</td>
-                    
-                    <td class="px-4 py-3">
-                        <select class="status-kirim w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
-                            <option value="Diambil">Diambil</option>
-                            <option value="Dikirim">Dikirim</option>
-                        </select>
-                    </td>
-                    <td class="px-4 py-3">
-                        <select class="jasa-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
-                            <option value="">Pilih Jasa</option>
-                            <option value="Ambil Sendiri">Ambil Sendiri</option>
-                            <option value="Driver">Driver</option>
-                            <option value="JNE">JNE</option>
-                            <option value="Lion Parcel">Lion Parcel</option>
-                            <option value="TIKI">TIKI</option>
-                        </select>
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="text" class="service-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
-                               placeholder="REG, YES, dll">
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="text" class="catatan w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
-                               placeholder="Catatan...">
-                    </td>
-                </tr>`;
-        });
+    let html = '';
+    $('.row-checkbox:checked').each(function() {
+        const row = $(this).closest('tr');
+        const id = $(this).val();
+        
+        html += `
+            <tr data-id="${id}">
+                <td class="px-4 py-3">${row.find('td:eq(18)').text().trim()}</td>
+                <td class="px-4 py-3">${row.find('td:eq(1)').text().trim()}</td>
+                <td class="px-4 py-3">${row.find('td:eq(2)').text().trim()}</td>
+                <td class="px-4 py-3">${row.find('td:eq(8)').text().trim()}</td>
+                
+                <td class="px-4 py-3">
+                    <select class="status-kirim w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                        <option value="">Pilih Status Kirim</option>
+                        <option value="Diambil">Diambil</option>
+                        <option value="Dikirim">Dikirim</option>
+                    </select>
+                </td>
+                <td class="px-4 py-3">
+                    <select class="jasa-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                        <option value="">Pilih Jasa</option>
+                        <option value="Ambil Sendiri">Ambil Sendiri</option>
+                        <option value="Driver">Driver</option>
+                        <option value="JNE">JNE</option>
+                        <option value="Lion Parcel">Lion Parcel</option>
+                        <option value="TIKI">TIKI</option>
+                    </select>
+                </td>
+                <td class="px-4 py-3">
+                    <input type="text" class="service-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
+                           placeholder="REG, YES, dll">
+                </td>
+                <td class="px-4 py-3">
+                    <input type="text" class="catatan w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
+                           placeholder="Catatan...">
+                </td>
+            </tr>`;
+    });
 
-        $('#modalTableBody').html(html);
-        $('#modalCount').text(`${selectedIds.length} data dipilih`);
-        $('#bulkModal').removeClass('hidden');
-    }
+    $('#modalTableBody').html(html);
+    $('#modalCount').text(`${selectedIds.length} data dipilih`);
+    $('#bulkModal').removeClass('hidden');
+
+    // ==================== LOGIKA YANG DITAMBAHKAN ====================
+    $('.status-kirim').on('change', function() {
+        const status = $(this).val();
+        const jasaSelect = $(this).closest('tr').find('.jasa-kurir');
+
+        if (status === 'Diambil') {
+            // Hanya boleh Ambil Sendiri
+            jasaSelect.val('Ambil Sendiri');
+            jasaSelect.find('option').prop('disabled', true);
+            jasaSelect.find('option[value="Ambil Sendiri"]').prop('disabled', false);
+        } 
+        else if (status === 'Dikirim') {
+            // Boleh semua kecuali Ambil Sendiri
+            jasaSelect.find('option').prop('disabled', false);
+            jasaSelect.find('option[value="Ambil Sendiri"]').prop('disabled', true);
+            if (jasaSelect.val() === 'Ambil Sendiri') {
+                jasaSelect.val('JNE'); // default saat Dikirim
+            }
+        } else {
+            jasaSelect.find('option').prop('disabled', false);
+        }
+    });
+}
 
     function hideBulkModal() {
         $('#bulkModal').addClass('hidden');
     }
 
     function executeBulkAction() {
-        if (!confirm(`Yakin ingin menyimpan & mengunci ${selectedIds.length} data?`)) return;
+    // === VALIDASI REQUIRED ===
+    let isValid = true;
+    let errorMessage = '';
 
-        const updates = [];
+    $('#modalTableBody tr').each(function(index) {
+        const statusKirim = $(this).find('.status-kirim').val();
+        const jasaKurir   = $(this).find('.jasa-kurir').val();
 
-        $('#modalTableBody tr').each(function() {
-            const id = $(this).data('id');
-            updates.push({
-                id: id,
-                status_kirim: $(this).find('.status-kirim').val(),
-                jasa_kurir: $(this).find('.jasa-kurir').val(),
-                service_kurir: $(this).find('.service-kurir').val(),
-                catatan: $(this).find('.catatan').val()
-            });
-        });
+        if (!statusKirim) {
+            isValid = false;
+            errorMessage = 'Status Kirim harus diisi pada semua baris!';
+        }
+        if (!jasaKurir) {
+            isValid = false;
+            errorMessage = 'Jasa Kurir harus diisi pada semua baris!';
+        }
+    });
 
-        const form = $('<form>', {
-            action: '{{ route("order.jakarta-aktif.bulk-action") }}',
-            method: 'POST'
-        });
-
-        $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
-        $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
-        $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
-
-        form.appendTo('body').submit();
+    if (!isValid) {
+        alert(errorMessage);
+        return;
     }
+
+    // Lanjutkan jika valid
+    if (!confirm(`Yakin ingin menyimpan & mengunci ${selectedIds.length} data?`)) return;
+
+    const updates = [];
+
+    $('#modalTableBody tr').each(function() {
+        const id = $(this).data('id');
+        updates.push({
+            id: id,
+            status_kirim: $(this).find('.status-kirim').val(),
+            jasa_kurir: $(this).find('.jasa-kurir').val(),
+            service_kurir: $(this).find('.service-kurir').val(),
+            catatan: $(this).find('.catatan').val()
+        });
+    });
+
+    const form = $('<form>', {
+        action: '{{ route("order.jakarta-aktif.bulk-action") }}',
+        method: 'POST'
+    });
+
+    $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
+    $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
+    $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
+
+    form.appendTo('body').submit();
+}
 
     // Clear Selection
     function clearSelection() {

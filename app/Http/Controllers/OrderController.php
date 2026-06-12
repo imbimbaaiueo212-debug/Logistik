@@ -259,73 +259,72 @@ public function updateJakartaAktif(Request $request, $id)
 
 
 /**
- * Bulk Action untuk Jakarta Aktif
+ * Bulk Action untuk Jakarta Aktif (Per Item)
  */
 public function bulkActionJakartaAktif(Request $request)
 {
-    $selectedIds     = $request->input('selected', []);
-    $action          = $request->input('action');
-    $statusKirim     = $request->input('status_kirim');
-    $jasaKurir       = $request->input('jasa_kurir');       // ekspedisi
-    $serviceKurir    = $request->input('service_kurir');    // service_pengiriman
-    $catatan         = $request->input('catatan');
+    $action = $request->input('action');
+    $perItem = $request->input('per_item');
 
-    if (empty($selectedIds)) {
+    if ($action !== 'processed' || empty($perItem)) {
+        return redirect()->back()->with('error', 'Data tidak valid.');
+    }
+
+    $updates = json_decode($perItem, true);
+    if (empty($updates)) {
         return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
-    if ($action === 'processed') {
-        $now = \Carbon\Carbon::now('Asia/Jakarta');
+    $now = \Carbon\Carbon::now('Asia/Jakarta');
+    $successCount = 0;
 
-        if ($catatan || $statusKirim || $jasaKurir || $serviceKurir) {
+    foreach ($updates as $item) {
+        $id = $item['id'] ?? null;
+        if (!$id) continue;
 
-            $setClauses = [];
-            $bindings   = [];
+        $statusKirim  = $item['status_kirim'] ?? null;
+        $jasaKurir    = $item['jasa_kurir'] ?? null;
+        $serviceKurir = $item['service_kurir'] ?? null;
+        $catatan      = $item['catatan'] ?? null;
 
-            // Field yang selalu diupdate
-            $setClauses[] = "is_processed = 1";
-            $setClauses[] = "processed_at = ?";
-            $setClauses[] = "updated_at = ?";
-            $bindings[] = $now;
-            $bindings[] = $now;
+        $setClauses = [];
+        $bindings   = [];
 
-            // Status Kirim
-            if ($statusKirim) {
-                $setClauses[] = "status_kirim = ?";
-                $bindings[] = $statusKirim;
-            }
+        $setClauses[] = "is_processed = 1";
+        $setClauses[] = "processed_at = ?";
+        $setClauses[] = "updated_at = ?";
+        $bindings[] = $now;
+        $bindings[] = $now;
 
-            // Jasa Kurir (ekspedisi)
-            if ($jasaKurir) {
-                $setClauses[] = "ekspedisi = ?";
-                $bindings[] = $jasaKurir;
-            }
-
-            // Service Kurir
-            if ($serviceKurir) {
-                $setClauses[] = "service_pengiriman = ?";
-                $bindings[] = $serviceKurir;
-            }
-
-            // Catatan
-            if ($catatan) {
-                $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i:s') . ": " . trim($catatan);
-                $setClauses[] = "catatan = CONCAT(COALESCE(catatan, ''), ?)";
-                $bindings[] = $newNote;
-            }
-
-            $sql = "UPDATE jakarta_aktif 
-                    SET " . implode(', ', $setClauses) . "
-                    WHERE id IN (" . str_repeat('?,', count($selectedIds) - 1) . "?)";
-
-            $updated = DB::update($sql, array_merge($bindings, $selectedIds));
-
-            return redirect()->route('order.jakarta-aktif')
-                             ->with('success', "$updated data berhasil diproses dan dikunci.");
+        if ($statusKirim) {
+            $setClauses[] = "status_kirim = ?";
+            $bindings[] = $statusKirim;
         }
+        if ($jasaKurir) {
+            $setClauses[] = "ekspedisi = ?";
+            $bindings[] = $jasaKurir;
+        }
+        if ($serviceKurir) {
+            $setClauses[] = "service_pengiriman = ?";
+            $bindings[] = $serviceKurir;
+        }
+        if ($catatan) {
+            $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i:s') . ": " . trim($catatan);
+            $setClauses[] = "catatan = CONCAT(COALESCE(catatan, ''), ?)";
+            $bindings[] = $newNote;
+        }
+
+        $sql = "UPDATE jakarta_aktif 
+                SET " . implode(', ', $setClauses) . "
+                WHERE id = ?";
+
+        $updated = DB::update($sql, array_merge($bindings, [$id]));
+
+        if ($updated) $successCount++;
     }
 
-    return redirect()->back()->with('error', 'Aksi tidak dikenali.');
+    return redirect()->route('order.jakarta-aktif')
+                     ->with('success', "$successCount data berhasil diproses dan dikunci.");
 }
 
 
