@@ -8,6 +8,7 @@ use App\Models\CasdanaTransaction;
 use App\Imports\JakartaAktifImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -83,11 +84,14 @@ public function jakartaAktif(Request $request)
  * Sync dari Bimbashop + Casdana 
  * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
  */
+/**
+ * Sync dari Bimbashop + Casdana 
+ * Hanya JKT murni
+ */
 public function syncJktFromBimbashop()
 {
     $count = 0;
 
-    // Daftar SKU yang TIDAK boleh masuk
     $excludedSkus = [
         'JKTP', 'PUA1', 'PUA2', 'PUA3', 'DPK1', 'SRG1', 'KWG1', 'BKS1', 
         'BGR1', 'TNG1', 'SNG', 'BGRT', 'PWK', 'TNG2', 'KNG', 'IDM', 
@@ -110,20 +114,27 @@ public function syncJktFromBimbashop()
             continue;
         }
 
-        // === CARI DATA CASDANA ===
         $casdana = CasdanaTransaction::where('invoice_number', $bimba->order_id)
                     ->orWhere('invoice_number', 'like', '%' . $bimba->order_id . '%')
                     ->latest('id')
                     ->first();
 
-        // === HANYA MASUK JIKA STATUS CASDANA SUCCESS ATAU SETTLED ===
-        if (!$casdana) {
-            continue; // Skip jika tidak ada data Casdana
-        }
+        if (!$casdana) continue;
 
         $statusCasdana = strtoupper(trim($casdana->status ?? ''));
         if (!in_array($statusCasdana, ['SUCCESS', 'SETTLED'])) {
-            continue; // Skip jika bukan SUCCESS atau SETTLED
+            continue;
+        }
+
+        // === HITUNG ESTIMASI ===
+        $paymentDate = $casdana->payment_date;
+        $estimasiPrintPl = null;
+        $estimasiPersiapan = null;
+
+        if ($paymentDate) {
+            $payment = \Carbon\Carbon::parse($paymentDate);
+            $estimasiPrintPl   = $payment->copy()->addHours(24);
+            $estimasiPersiapan = $payment->copy()->addHours(72);
         }
 
         // === NAMA UNIT ===
@@ -147,58 +158,56 @@ public function syncJktFromBimbashop()
             $kirim = $bimba->item_name ?? $casdana->customer ?? '-';
         }
 
-        // === STATUS KIRIM ===
         $ongkir = (int) ($bimba->ship_total ?? 0);
         $statusKirim = ($ongkir > 0) ? 'Dikirim' : 'Diambil';
 
-        // === PESANAN DIAMBIL DARI item_sku + BERSIHKAN ===
         $rawPesanan = trim($bimba->item_sku ?? $bimba->item_name ?? '');
-
         $pesanan = str_ireplace(['JKT', 'JKT-', '-JKT'], '', $rawPesanan);
         $pesanan = preg_replace('/\s+/', ' ', $pesanan);
         $pesanan = trim($pesanan, ' -');
-
-        if (empty($pesanan)) {
-            $pesanan = 'STPB';
-        }
+        if (empty($pesanan)) $pesanan = 'STPB';
 
         // === DATA UTAMA ===
         $data = [
-            'tgl_input'         => now()->format('Y-m-d'),
-            'tgl_pesan'         => $bimba->order_date,
+            'tgl_input'          => now()->format('Y-m-d'),
+            'tgl_pesan'          => $bimba->order_date,
             
-            'kirim'             => $kirim,
-            'no_telpon'         => $bimba->shipping_phone ?? null,
-            'alamat_kirim'      => $bimba->shipping_address_1 ?? null,
-            'kab_kota_provinsi' => $bimba->shipping_city ?? null,
+            'kirim'              => $kirim,
+            'no_telpon'          => $bimba->shipping_phone ?? null,
+            'alamat_kirim'       => $bimba->shipping_address_1 ?? null,
+            'kab_kota_provinsi'  => $bimba->shipping_city ?? null,
             
-            'ekspedisi'         => null,
-            'ongkir'            => $ongkir,
+            'ekspedisi'          => null,
+            'ongkir'             => $ongkir,
             
-            'nama_unit'         => $namaUnit,
-            'pesanan'           => $pesanan,
+            'nama_unit'          => $namaUnit,
+            'pesanan'            => $pesanan,
             
-            'harga'             => $bimba->item_price ?? 0,
-            'berat'             => $bimba->order_weight ?? 0,
-            'total'             => $casdana->amount ?? $bimba->order_total ?? 0,
+            'harga'              => $bimba->item_price ?? 0,
+            'berat'              => $bimba->order_weight ?? 0,
+            'total'              => $casdana->amount ?? $bimba->order_total ?? 0,
             
-            'jenis_bank'        => $casdana->payment_channel ?? $bimba->payment_method,
+            'jenis_bank'         => $casdana->payment_channel ?? $bimba->payment_method,
             
-            'status_pembayaran' => $statusCasdana,   // SUCCESS atau SETTLED
-            'status_pesan'      => $bimba->status,
+            'status_pembayaran'  => $statusCasdana,
+            'status_pesan'       => $bimba->status,
             
-            'id_pesan'          => $bimba->order_id,
+            'id_pesan'           => $bimba->order_id,
             
-            'validasi'          => null,
-            'status'            => 'aktif',
+            'validasi'           => null,
+            'status'             => 'aktif',
             
-            'payment_date'      => $casdana->payment_date ?? null,
-            'amount'            => $casdana->amount ?? 0,
+            'payment_date'       => $paymentDate,
+            'amount'             => $casdana->amount ?? 0,
 
-            'billing_last_name' => $bimba->billing_last_name ?? null,
-            'status_kirim'      => $statusKirim,
+            'billing_last_name'  => $bimba->billing_last_name ?? null,
+            'status_kirim'       => $statusKirim,
 
-            'catatan'           => "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}",
+            // === ESTIMASI BARU ===
+            'estimasi_print_pl'  => $estimasiPrintPl,
+            'estimasi_persiapan' => $estimasiPersiapan,
+
+            'catatan'            => "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}",
         ];
 
         JakartaAktif::create($data);
@@ -246,6 +255,77 @@ public function updateJakartaAktif(Request $request, $id)
 
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', '✅ Data berhasil diupdate!');
+}
+
+
+/**
+ * Bulk Action untuk Jakarta Aktif
+ */
+public function bulkActionJakartaAktif(Request $request)
+{
+    $selectedIds     = $request->input('selected', []);
+    $action          = $request->input('action');
+    $statusKirim     = $request->input('status_kirim');
+    $jasaKurir       = $request->input('jasa_kurir');       // ekspedisi
+    $serviceKurir    = $request->input('service_kurir');    // service_pengiriman
+    $catatan         = $request->input('catatan');
+
+    if (empty($selectedIds)) {
+        return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    if ($action === 'processed') {
+        $now = \Carbon\Carbon::now('Asia/Jakarta');
+
+        if ($catatan || $statusKirim || $jasaKurir || $serviceKurir) {
+
+            $setClauses = [];
+            $bindings   = [];
+
+            // Field yang selalu diupdate
+            $setClauses[] = "is_processed = 1";
+            $setClauses[] = "processed_at = ?";
+            $setClauses[] = "updated_at = ?";
+            $bindings[] = $now;
+            $bindings[] = $now;
+
+            // Status Kirim
+            if ($statusKirim) {
+                $setClauses[] = "status_kirim = ?";
+                $bindings[] = $statusKirim;
+            }
+
+            // Jasa Kurir (ekspedisi)
+            if ($jasaKurir) {
+                $setClauses[] = "ekspedisi = ?";
+                $bindings[] = $jasaKurir;
+            }
+
+            // Service Kurir
+            if ($serviceKurir) {
+                $setClauses[] = "service_pengiriman = ?";
+                $bindings[] = $serviceKurir;
+            }
+
+            // Catatan
+            if ($catatan) {
+                $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i:s') . ": " . trim($catatan);
+                $setClauses[] = "catatan = CONCAT(COALESCE(catatan, ''), ?)";
+                $bindings[] = $newNote;
+            }
+
+            $sql = "UPDATE jakarta_aktif 
+                    SET " . implode(', ', $setClauses) . "
+                    WHERE id IN (" . str_repeat('?,', count($selectedIds) - 1) . "?)";
+
+            $updated = DB::update($sql, array_merge($bindings, $selectedIds));
+
+            return redirect()->route('order.jakarta-aktif')
+                             ->with('success', "$updated data berhasil diproses dan dikunci.");
+        }
+    }
+
+    return redirect()->back()->with('error', 'Aksi tidak dikenali.');
 }
 
 

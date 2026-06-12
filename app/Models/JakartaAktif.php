@@ -22,6 +22,8 @@ class JakartaAktif extends Model
         'service_pengiriman',      // Contoh: J&T REG, J&T YES, JNE REG, SICEPAT, dll
         'tracking_number',
         'status_kirim',
+        'estimasi_print_pl',
+        'estimasi_persiapan',
                  // No Resi
         'billing_last_name',
         // === MANUAL DISTRIBUSI ===
@@ -80,6 +82,72 @@ public function getPaymentDateAttribute()
             ->first();
 
     return $cas?->payment_date;
+}
+
+
+// In JakartaAktif model
+public static function appendBulkNote($ids, $note)
+{
+    $newNote = "\n\nDi proses bulk pada " . now()->format('d/m/Y H:i') . ": " . $note;
+
+    return static::whereIn('id', $ids)
+        ->update([
+            'catatan' => DB::raw("CONCAT(COALESCE(`catatan`, ''), ?)")
+        ], [$newNote]);
+}
+
+/**
+ * Bulk Action untuk Jakarta Aktif
+ */
+public function bulkActionJakartaAktif(Request $request)
+{
+    $selectedIds = $request->input('selected', []);
+    $action      = $request->input('action');
+    $statusKirim = $request->input('status_kirim');
+    $catatan     = $request->input('catatan');
+
+    if (empty($selectedIds)) {
+        return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    if ($action === 'processed') {
+        // Paksa timezone WIB dengan Carbon
+        $now = \Carbon\Carbon::now('Asia/Jakarta');
+
+        if ($catatan) {
+            $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i') . ": " . trim($catatan);
+
+            $updated = DB::update("
+                UPDATE jakarta_aktif 
+                SET is_processed = 1,
+                    processed_at = ?,
+                    updated_at = ?,
+                    status_kirim = ?,
+                    catatan = CONCAT(COALESCE(catatan, ''), ?)
+                WHERE id IN (" . str_repeat('?,', count($selectedIds) - 1) . "?)
+            ", array_merge(
+                [$now, $now, $statusKirim, $newNote],
+                $selectedIds
+            ));
+        } else {
+            $updated = DB::update("
+                UPDATE jakarta_aktif 
+                SET is_processed = 1,
+                    processed_at = ?,
+                    updated_at = ?,
+                    status_kirim = ?
+                WHERE id IN (" . str_repeat('?,', count($selectedIds) - 1) . "?)
+            ", array_merge(
+                [$now, $now, $statusKirim],
+                $selectedIds
+            ));
+        }
+
+        return redirect()->route('order.jakarta-aktif')
+                         ->with('success', "$updated data berhasil diproses dan dikunci.");
+    }
+
+    return redirect()->back()->with('error', 'Aksi tidak dikenali.');
 }
 
 }
