@@ -162,11 +162,12 @@
                         <th class="text-left px-4 py-3">Estimasi Persiapan</th>
                         <th class="text-left px-4 py-3">Jasa Kurir</th>
                         <th class="text-left px-4 py-3">Service Kurir</th>
-                        <th class="text-left px-4 py-3">Kirim</th>
+                        <th class="text-left px-4 py-3">Distribusi</th>
                         <th class="text-right px-4 py-3">Ship Total</th>
                         <th class="text-right px-4 py-3">Berat</th>
                         <th class="text-right px-4 py-3">Item Price</th>
                         <th class="text-right px-4 py-3">Total</th>
+                        <th class="text-rigt px-4 py-3">Payment Channel</th>
                         <th class="text-left px-4 py-3">Status Bayar</th>
                         <th class="text-left px-4 py-3">Status biMBAShop</th>
                         <th class="text-center px-4 py-3">Tanggal Proses</th>
@@ -240,6 +241,7 @@
                         <td class="text-right px-4 py-3">{{ number_format($item->berat ?? 0, 0, ',', '.') }} gr</td>
                         <td class="text-right px-4 py-3">Rp {{ number_format($item->harga ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right px-4 py-3">{{ $item->jenis_bank}}</td>
                         <td class="px-4 py-3">
                             @if($item->status_pembayaran)
                                 <span class="status-success">{{ $item->status_pembayaran }}</span>
@@ -314,7 +316,7 @@
         </div>
 
         <!-- Tabel Editable -->
-        <div class="flex-1 overflow-auto p-6">
+       <div class="flex-1 overflow-auto p-6">
             <table class="w-full text-sm border border-gray-200" id="modalTable">
                 <thead class="bg-gray-50 sticky top-0">
                     <tr>
@@ -322,8 +324,9 @@
                         <th class="px-4 py-3 text-left">Invoice</th>
                         <th class="px-4 py-3 text-left">To Customer</th>
                         <th class="px-4 py-3 text-left">Payment Date</th>
-                        <th class="px-4 py-3 text-left">Status Kirim <span class="text-red-500">*</span></th></th>
-                        <th class="px-4 py-3 text-left">Jasa Kurir <span class="text-red-500">*</span></th></th>
+                        <th class="px-4 py-3 text-left">Payment Channel</th>
+                        <th class="px-4 py-3 text-left">Distribusi <span class="text-red-500">*</span></th>
+                        <th class="px-4 py-3 text-left">Jasa Kurir <span class="text-red-500">*</span></th>
                         <th class="px-4 py-3 text-left">Service</th>
                         <th class="px-4 py-3 text-left">Catatan</th>
                     </tr>
@@ -370,133 +373,155 @@
     });
 
     function showBulkModal() {
-    if (selectedIds.length === 0) return;
+        if (selectedIds.length === 0) return;
 
-    let html = '';
-    $('.row-checkbox:checked').each(function() {
-        const row = $(this).closest('tr');
-        const id = $(this).val();
-        
-        html += `
-            <tr data-id="${id}">
-                <td class="px-4 py-3">${row.find('td:eq(18)').text().trim()}</td>
-                <td class="px-4 py-3">${row.find('td:eq(1)').text().trim()}</td>
-                <td class="px-4 py-3">${row.find('td:eq(2)').text().trim()}</td>
-                <td class="px-4 py-3">${row.find('td:eq(8)').text().trim()}</td>
-                
-                <td class="px-4 py-3">
-                    <select class="status-kirim w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
-                        <option value="">Pilih Status Kirim</option>
-                        <option value="Diambil">Diambil</option>
-                        <option value="Dikirim">Dikirim</option>
-                    </select>
-                </td>
-                <td class="px-4 py-3">
-                    <select class="jasa-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
-                        <option value="">Pilih Jasa</option>
-                        <option value="Ambil Sendiri">Ambil Sendiri</option>
-                        <option value="Driver">Driver</option>
-                        <option value="JNE">JNE</option>
-                        <option value="Lion Parcel">Lion Parcel</option>
-                        <option value="TIKI">TIKI</option>
-                    </select>
-                </td>
-                <td class="px-4 py-3">
-                    <input type="text" class="service-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
-                           placeholder="REG, YES, dll">
-                </td>
-                <td class="px-4 py-3">
-                    <input type="text" class="catatan w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
-                           placeholder="Catatan...">
-                </td>
-            </tr>`;
-    });
+        let html = '';
+        $('.row-checkbox:checked').each(function() {
+            const row = $(this).closest('tr');
+            const id = $(this).val();
+            
+            let currentDistribusi = row.find('td:eq(13)').text().trim().includes('Diambil') ? 'Diambil' : 'Dikirim';
 
-    $('#modalTableBody').html(html);
-    $('#modalCount').text(`${selectedIds.length} data dipilih`);
-    $('#bulkModal').removeClass('hidden');
+            let jenisBank = '-';
+            row.find('td').each(function() {
+                const text = $(this).text().trim();
+                if (text.includes('Bank Syariah') || text.includes('Bank Mandiri') || 
+                    text.includes('Bank') || text.match(/BCA|BRI|BNI|Mandiri|Syariah/i)) {
+                    jenisBank = text;
+                    return false;
+                }
+            });
 
-    // ==================== LOGIKA YANG DITAMBAHKAN ====================
-    $('.status-kirim').on('change', function() {
-        const status = $(this).val();
-        const jasaSelect = $(this).closest('tr').find('.jasa-kurir');
+            html += `
+                <tr data-id="${id}">
+                    <td class="px-4 py-3">${row.find('td:eq(18)').text().trim()}</td>
+                    <td class="px-4 py-3">${row.find('td:eq(1)').text().trim()}</td>
+                    <td class="px-4 py-3">${row.find('td:eq(2)').text().trim()}</td>
+                    <td class="px-4 py-3">${row.find('td:eq(8)').text().trim()}</td>
+                    
+                    <td class="px-4 py-3 font-medium text-blue-700">
+                        ${jenisBank}
+                    </td>
+                    
+                    <td class="px-4 py-3">
+                        <select class="distribusi w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                            <option value="Diambil" ${currentDistribusi === 'Diambil' ? 'selected' : ''}>Diambil</option>
+                            <option value="Dikirim" ${currentDistribusi === 'Dikirim' ? 'selected' : ''}>Dikirim</option>
+                        </select>
+                    </td>
+                    
+                    <td class="px-4 py-3">
+                        <select class="jasa-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                            <option value="">Pilih Jasa Kurir</option>
+                            <option value="Driver">Driver</option>
+                            <option value="JNE">JNE</option>
+                            <option value="Lion Parcel">Lion Parcel</option>
+                            <option value="TIKI">TIKI</option>
+                        </select>
+                    </td>
+                    
+                    <td class="px-4 py-3">
+                        <input type="text" class="service-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
+                               placeholder="REG, YES, CTC, dll">
+                    </td>
+                    
+                    <td class="px-4 py-3">
+                        <input type="text" class="catatan w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
+                               placeholder="Catatan tambahan...">
+                    </td>
+                </tr>`;
+        });
 
-        if (status === 'Diambil') {
-            // Hanya boleh Ambil Sendiri
-            jasaSelect.val('Ambil Sendiri');
-            jasaSelect.find('option').prop('disabled', true);
-            jasaSelect.find('option[value="Ambil Sendiri"]').prop('disabled', false);
-        } 
-        else if (status === 'Dikirim') {
-            // Boleh semua kecuali Ambil Sendiri
-            jasaSelect.find('option').prop('disabled', false);
-            jasaSelect.find('option[value="Ambil Sendiri"]').prop('disabled', true);
-            if (jasaSelect.val() === 'Ambil Sendiri') {
-                jasaSelect.val('JNE'); // default saat Dikirim
+        $('#modalTableBody').html(html);
+        $('#modalCount').text(`${selectedIds.length} data dipilih`);
+        $('#bulkModal').removeClass('hidden');
+
+        // Logika Kunci
+        $('.distribusi').on('change', function() {
+            const status = $(this).val();
+            const row = $(this).closest('tr');
+            const jasaSelect = row.find('.jasa-kurir');
+            const serviceInput = row.find('.service-kurir');
+
+            $(this).prop('disabled', true);
+
+            if (status === 'Diambil') {
+                jasaSelect.html('<option value="Ambil Sendiri">Ambil Sendiri</option>');
+                jasaSelect.prop('disabled', true);
+                serviceInput.prop('disabled', true);
+                serviceInput.val('');
+            } else {
+                jasaSelect.html(`
+                    <option value="">Pilih Jasa Kurir</option>
+                    <option value="Driver">Driver</option>
+                    <option value="JNE">JNE</option>
+                    <option value="Lion Parcel">Lion Parcel</option>
+                    <option value="TIKI">TIKI</option>
+                `);
+                jasaSelect.prop('disabled', false);
+                serviceInput.prop('disabled', false);
             }
-        } else {
-            jasaSelect.find('option').prop('disabled', false);
-        }
-    });
-}
+        });
+
+        $('.distribusi').trigger('change');
+    }
 
     function hideBulkModal() {
         $('#bulkModal').addClass('hidden');
     }
 
+    // ==================== VALIDASI SEBELUM SAVE ====================
     function executeBulkAction() {
-    // === VALIDASI REQUIRED ===
-    let isValid = true;
-    let errorMessage = '';
+        let isValid = true;
+        let errorMsg = '';
 
-    $('#modalTableBody tr').each(function(index) {
-        const statusKirim = $(this).find('.status-kirim').val();
-        const jasaKurir   = $(this).find('.jasa-kurir').val();
+        $('#modalTableBody tr').each(function() {
+            const distribusi = $(this).find('.distribusi').val();
+            const jasaKurir  = $(this).find('.jasa-kurir').val();
 
-        if (!statusKirim) {
-            isValid = false;
-            errorMessage = 'Status Kirim harus diisi pada semua baris!';
+            if (!distribusi) {
+                isValid = false;
+                errorMsg = 'Distribusi harus diisi!';
+            }
+
+            if (distribusi === 'Dikirim' && (!jasaKurir || jasaKurir === '')) {
+                isValid = false;
+                errorMsg = 'Jasa Kurir harus dipilih jika Distribusi = Dikirim!';
+            }
+        });
+
+        if (!isValid) {
+            alert(errorMsg);
+            return;
         }
-        if (!jasaKurir) {
-            isValid = false;
-            errorMessage = 'Jasa Kurir harus diisi pada semua baris!';
-        }
-    });
 
-    if (!isValid) {
-        alert(errorMessage);
-        return;
+        if (!confirm(`Yakin ingin menyimpan & mengunci ${selectedIds.length} data?`)) return;
+
+        const updates = [];
+
+        $('#modalTableBody tr').each(function() {
+            const id = $(this).data('id');
+            updates.push({
+                id: id,
+                status_kirim: $(this).find('.distribusi').val(),
+                jasa_kurir: $(this).find('.jasa-kurir').val(),
+                service_kurir: $(this).find('.service-kurir').val(),
+                catatan: $(this).find('.catatan').val()
+            });
+        });
+
+        const form = $('<form>', {
+            action: '{{ route("order.jakarta-aktif.bulk-action") }}',
+            method: 'POST'
+        });
+
+        $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
+        $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
+        $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
+
+        form.appendTo('body').submit();
     }
 
-    // Lanjutkan jika valid
-    if (!confirm(`Yakin ingin menyimpan & mengunci ${selectedIds.length} data?`)) return;
-
-    const updates = [];
-
-    $('#modalTableBody tr').each(function() {
-        const id = $(this).data('id');
-        updates.push({
-            id: id,
-            status_kirim: $(this).find('.status-kirim').val(),
-            jasa_kurir: $(this).find('.jasa-kurir').val(),
-            service_kurir: $(this).find('.service-kurir').val(),
-            catatan: $(this).find('.catatan').val()
-        });
-    });
-
-    const form = $('<form>', {
-        action: '{{ route("order.jakarta-aktif.bulk-action") }}',
-        method: 'POST'
-    });
-
-    $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
-    $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
-    $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
-
-    form.appendTo('body').submit();
-}
-
-    // Clear Selection
     function clearSelection() {
         $('.row-checkbox').prop('checked', false);
         $('#selectAll').prop('checked', false);

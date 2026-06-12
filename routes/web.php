@@ -91,12 +91,16 @@ Route::post('/jakarta-aktif/sync-jkt', [OrderController::class, 'syncJktFromBimb
 Route::post('/jakarta-aktif/bulk-action', [OrderController::class, 'bulkActionJakartaAktif'])
      ->name('jakarta-aktif.bulk-action');
 
+Route::post('/jakarta-aktif/get-bulk-data', [OrderController::class, 'getBulkData'])
+     ->name('jakarta-aktif.get-bulk-data');
+
 // Edit & Update
 Route::get('/jakarta-aktif/{id}/edit', [OrderController::class, 'editJakartaAktif'])
      ->name('jakarta-aktif.edit');
 
 Route::put('/jakarta-aktif/{id}', [OrderController::class, 'updateJakartaAktif'])
      ->name('jakarta-aktif.update');
+     
     });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
