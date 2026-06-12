@@ -436,7 +436,7 @@
         $('#modalCount').text(`${selectedIds.length} data dipilih`);
         $('#bulkModal').removeClass('hidden');
 
-        // Logika Kunci
+        // ==================== LOGIKA KUNCI ====================
         $('.distribusi').on('change', function() {
             const status = $(this).val();
             const row = $(this).closest('tr');
@@ -463,6 +463,22 @@
             }
         });
 
+        // ==================== LOGIKA BARU: Jika Driver maka Service terkunci ====================
+        $(document).on('change', '.jasa-kurir', function() {
+            const jasa = $(this).val();
+            const row = $(this).closest('tr');
+            const serviceInput = row.find('.service-kurir');
+
+            if (jasa === 'Driver') {
+                serviceInput.val('');
+                serviceInput.prop('disabled', true);
+                serviceInput.attr('placeholder', 'Tidak perlu diisi untuk Driver');
+            } else {
+                serviceInput.prop('disabled', false);
+                serviceInput.attr('placeholder', 'REG, YES, CTC, dll');
+            }
+        });
+
         $('.distribusi').trigger('change');
     }
 
@@ -470,7 +486,6 @@
         $('#bulkModal').addClass('hidden');
     }
 
-    // ==================== VALIDASI SEBELUM SAVE ====================
     function executeBulkAction() {
         let isValid = true;
         let errorMsg = '';
