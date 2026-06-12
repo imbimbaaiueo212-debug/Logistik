@@ -301,81 +301,43 @@
         @endif
     </div>
 
-    <!-- ==================== MODAL EDIT BULK (TAMPILAN MIRIP INDEX) ==================== -->
-    <div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-6xl mx-4 max-h-[92vh] flex flex-col">
-            
-            <div class="p-6 border-b flex justify-between items-center">
-                <div>
-                    <h3 class="text-2xl font-semibold">Edit & Proses Data Terpilih</h3>
-                    <p class="text-gray-600" id="modalCount">0 data dipilih</p>
-                </div>
-                <button onclick="hideBulkModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-            </div>
-
-            <!-- Tabel Preview -->
-            <div class="flex-1 overflow-auto p-6">
-                <table class="w-full text-sm border border-gray-200" id="modalTable">
-                    <thead class="bg-gray-50 sticky top-0">
-                        <tr>
-                            <th class="px-4 py-3 text-left">ID Pesan</th>
-                            <th class="px-4 py-3 text-left">Nama Unit</th>
-                            <th class="px-4 py-3 text-left">Penerima</th>
-                            <th class="px-4 py-3 text-left">Total</th>
-                            <th class="px-4 py-3 text-left">Payment Date</th>
-                            <th class="px-4 py-3 text-left">Status Saat Ini</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-
-            <!-- Form Edit Massal -->
-            <div class="p-6 border-t bg-gray-50">
-    <h4 class="font-semibold mb-4 text-lg">Terapkan Perubahan untuk Semua Data Terpilih</h4>
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+    <!-- ==================== ADVANCED BULK MODAL ==================== -->
+<div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-7xl mx-4 max-h-[92vh] flex flex-col">
         
-        <!-- Status Kirim -->
-        <div>
-            <label class="block text-sm font-medium mb-2">Status Kirim</label>
-            <select id="bulkStatusKirim" class="w-full border border-gray-300 rounded-xl px-4 py-3">
-                <option value="">Pilih Status Kirim</option>
-                <option value="Diambil">Diambil</option>
-                <option value="Dikirim">Dikirim</option>
-            </select>
+        <div class="p-6 border-b flex justify-between items-center">
+            <div>
+                <h3 class="text-2xl font-semibold">Edit & Proses Data Terpilih</h3>
+                <p class="text-gray-600" id="modalCount">0 data dipilih</p>
+            </div>
+            <button onclick="hideBulkModal()" class="text-gray-500 hover:text-gray-700 text-3xl">✕</button>
         </div>
 
-        <!-- Jasa Kurir (Ekspedisi) -->
-        <div>
-            <label class="block text-sm font-medium mb-2">Jasa Kurir</label>
-            <select id="bulkJasaKurir" class="w-full border border-gray-300 rounded-xl px-4 py-3">
-                <option value="">Pilih Jasa Kurir</option>
-                <option value="Ambil Sendiri">Ambil Sendiri</option>
-                <option value="Driver">Driver</option>
-                <option value="JNE">JNE</option>
-                <option value="Lion Parcel">Lion Parcel</option>
-                <option value="TIKI">TIKI</option>
-            </select>
+        <!-- Tabel Editable -->
+        <div class="flex-1 overflow-auto p-6">
+            <table class="w-full text-sm border border-gray-200" id="modalTable">
+                <thead class="bg-gray-50 sticky top-0">
+                    <tr>
+                        <th class="px-4 py-3 text-left">ID Pesan</th>
+                        <th class="px-4 py-3 text-left">Nama Unit</th>
+                        <th class="px-4 py-3 text-left">Penerima</th>
+                        <th class="px-4 py-3 text-left">Status Kirim</th>
+                        <th class="px-4 py-3 text-left">Jasa Kurir</th>
+                        <th class="px-4 py-3 text-left">Service</th>
+                        <th class="px-4 py-3 text-left">Catatan</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
+            </table>
         </div>
 
-        <!-- Service Kurir -->
-        <div>
-            <label class="block text-sm font-medium mb-2">Service / Tipe Pengiriman</label>
-            <input type="text" id="bulkServiceKurir" placeholder="Contoh: REG, YES, JTR, Cargo" 
-                   class="w-full border border-gray-300 rounded-xl px-4 py-3">
-        </div>
-
-        <!-- Catatan -->
-        <div>
-            <label class="block text-sm font-medium mb-2">Catatan</label>
-            <input type="text" id="bulkCatatan" placeholder="Contoh: Sudah dicek gudang" 
-                   class="w-full border border-gray-300 rounded-xl px-4 py-3">
-        </div>
-
-        <!-- Tombol -->
-        <div class="flex items-end">
+        <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
+            <button onclick="hideBulkModal()" 
+                    class="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">
+                Batal
+            </button>
             <button onclick="executeBulkAction()" 
-                    class="w-full bg-indigo-600 text-white py-3 rounded-2xl font-semibold hover:bg-indigo-700">
+                    class="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-indigo-700 flex items-center gap-2">
                 💾 Simpan & Kunci Semua Data
             </button>
         </div>
@@ -385,60 +347,93 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script>
-        let selectedIds = [];
+<script>
+    let selectedIds = [];
 
-        function updateBulkBar() {
-            selectedIds = $('.row-checkbox:checked').map(function(){ return this.value; }).get();
-            if (selectedIds.length > 0) {
-                $('#bulkActionBar').removeClass('hidden');
-                $('#selectedCount').text(`${selectedIds.length} data dipilih`);
-            } else {
-                $('#bulkActionBar').addClass('hidden');
-            }
+    function updateBulkBar() {
+        selectedIds = $('.row-checkbox:checked').map(function(){ return this.value; }).get();
+        if (selectedIds.length > 0) {
+            $('#bulkActionBar').removeClass('hidden');
+            $('#selectedCount').text(`${selectedIds.length} data dipilih`);
+        } else {
+            $('#bulkActionBar').addClass('hidden');
         }
+    }
 
-        $(document).ready(function() {
-            $('#selectAll').on('change', function() {
-                $('.row-checkbox').prop('checked', this.checked);
-                updateBulkBar();
-            });
-            $('.row-checkbox').on('change', updateBulkBar);
+    $(document).ready(function() {
+        $('#selectAll').on('change', function() {
+            $('.row-checkbox').prop('checked', this.checked);
+            updateBulkBar();
+        });
+        $('.row-checkbox').on('change', updateBulkBar);
+    });
+
+    function showBulkModal() {
+        if (selectedIds.length === 0) return;
+
+        let html = '';
+        $('.row-checkbox:checked').each(function() {
+            const row = $(this).closest('tr');
+            const id = $(this).val();
+            
+            html += `
+                <tr data-id="${id}">
+                    <td class="px-4 py-3">${row.find('td:eq(1)').text().trim()}</td>
+                    <td class="px-4 py-3">${row.find('td:eq(2)').text().trim()}</td>
+                    <td class="px-4 py-3">${row.find('td:eq(4)').text().trim()}</td>
+                    
+                    <td class="px-4 py-3">
+                        <select class="status-kirim w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                            <option value="Diambil">Diambil</option>
+                            <option value="Dikirim">Dikirim</option>
+                        </select>
+                    </td>
+                    <td class="px-4 py-3">
+                        <select class="jasa-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                            <option value="">Pilih Jasa</option>
+                            <option value="Ambil Sendiri">Ambil Sendiri</option>
+                            <option value="Driver">Driver</option>
+                            <option value="JNE">JNE</option>
+                            <option value="Lion Parcel">Lion Parcel</option>
+                            <option value="TIKI">TIKI</option>
+                        </select>
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="text" class="service-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
+                               placeholder="REG, YES, dll">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="text" class="catatan w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" 
+                               placeholder="Catatan...">
+                    </td>
+                </tr>`;
         });
 
-        function showBulkModal() {
-            if (selectedIds.length === 0) return;
+        $('#modalTableBody').html(html);
+        $('#modalCount').text(`${selectedIds.length} data dipilih`);
+        $('#bulkModal').removeClass('hidden');
+    }
 
-            let html = '';
-            $('.row-checkbox:checked').each(function() {
-                const row = $(this).closest('tr');
-                html += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3">${row.find('td:eq(1)').text().trim()}</td>
-                        <td class="px-4 py-3">${row.find('td:eq(2)').text().trim()}</td>
-                        <td class="px-4 py-3">${row.find('td:eq(4)').text().trim()}</td>
-                        <td class="px-4 py-3">${row.find('td:eq(17)').text().trim()}</td>
-                        <td class="px-4 py-3">${row.find('td:eq(8)').text().trim()}</td>
-                        <td class="px-4 py-3 text-emerald-600 font-medium">Akan diproses</td>
-                    </tr>`;
+    function hideBulkModal() {
+        $('#bulkModal').addClass('hidden');
+    }
+
+    function executeBulkAction() {
+        if (!confirm(`Yakin ingin menyimpan & mengunci ${selectedIds.length} data?`)) return;
+
+        const updates = [];
+
+        $('#modalTableBody tr').each(function() {
+            const id = $(this).data('id');
+            updates.push({
+                id: id,
+                status_kirim: $(this).find('.status-kirim').val(),
+                jasa_kurir: $(this).find('.jasa-kurir').val(),
+                service_kurir: $(this).find('.service-kurir').val(),
+                catatan: $(this).find('.catatan').val()
             });
+        });
 
-            $('#modalTableBody').html(html);
-            $('#modalCount').text(`${selectedIds.length} data dipilih`);
-            $('#bulkModal').removeClass('hidden');
-        }
-
-        function hideBulkModal() {
-            $('#bulkModal').addClass('hidden');
-        }
-
-        function executeBulkAction() {
-    const statusKirim   = $('#bulkStatusKirim').val();
-    const jasaKurir     = $('#bulkJasaKurir').val();
-    const serviceKurir  = $('#bulkServiceKurir').val();
-    const catatan       = $('#bulkCatatan').val() || '';
-
-    if (confirm(`Yakin ingin menyimpan perubahan dan mengunci ${selectedIds.length} data?`)) {
         const form = $('<form>', {
             action: '{{ route("order.jakarta-aktif.bulk-action") }}',
             method: 'POST'
@@ -446,28 +441,17 @@
 
         $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
         $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
-        
-        // Kirim field-field yang diisi
-        if (statusKirim) {
-            $('<input>').attr({type:'hidden', name:'status_kirim', value:statusKirim}).appendTo(form);
-        }
-        if (jasaKurir) {
-            $('<input>').attr({type:'hidden', name:'jasa_kurir', value:jasaKurir}).appendTo(form);
-        }
-        if (serviceKurir) {
-            $('<input>').attr({type:'hidden', name:'service_kurir', value:serviceKurir}).appendTo(form);
-        }
-        if (catatan) {
-            $('<input>').attr({type:'hidden', name:'catatan', value:catatan}).appendTo(form);
-        }
-
-        selectedIds.forEach(id => {
-            $('<input>').attr({type:'hidden', name:'selected[]', value:id}).appendTo(form);
-        });
+        $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
 
         form.appendTo('body').submit();
     }
-}
-    </script>
+
+    // Clear Selection
+    function clearSelection() {
+        $('.row-checkbox').prop('checked', false);
+        $('#selectAll').prop('checked', false);
+        $('#bulkActionBar').addClass('hidden');
+    }
+</script>
 </body>
 </html>
