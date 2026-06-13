@@ -14,6 +14,9 @@
         .form-input {
             @apply w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500;
         }
+        .form-textarea {
+            @apply w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 min-h-[100px] resize-y;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -58,6 +61,26 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">Pesanan</label>
                             <input type="text" name="pesanan" value="{{ old('pesanan', $item->pesanan) }}" 
                                    class="form-input">
+                        </div>
+
+                        <!-- ALAMAT PENGIRIMAN -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Pengiriman</label>
+                            <textarea name="alamat_pengiriman" 
+                                    class="form-textarea"
+                                    placeholder="Masukkan alamat lengkap pengiriman..."
+                                    rows="4">{{ old('alamat_pengiriman', $item->kirim ?? '') }}</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Alamat lengkap termasuk RT/RW, kelurahan, kecamatan, kota, dan kode pos.</p>
+                        </div>
+
+                        <!-- SERVICE PENGIRIMAN (BARU) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Service Pengiriman</label>
+                            <input type="text" name="service_pengiriman" 
+                                   value="{{ old('service_pengiriman', $item->service_pengiriman ?? '') }}" 
+                                   class="form-input"
+                                   placeholder="Contoh: YES, REG, OKE, CTC, etc">
+                            <p class="text-xs text-gray-500 mt-1">Jenis layanan kurir (contoh: YES, REG, OKE, Same Day, dll)</p>
                         </div>
 
                         <!-- EKSPEDISI DROPDOWN -->

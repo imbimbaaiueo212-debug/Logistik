@@ -233,25 +233,30 @@ public function updateJakartaAktif(Request $request, $id)
     $item = JakartaAktif::findOrFail($id);
 
     $request->validate([
-        'nama_unit'         => 'nullable|string|max:255',
-        'billing_last_name' => 'nullable|string|max:100',
-        'pesanan'           => 'nullable|string|max:255',
-        'ekspedisi'         => 'nullable|string|max:100',           // ← Tambahan
-        'status_kirim'      => 'nullable|in:Dikirim,Belum Dikirim',
-        'status_pembayaran' => 'nullable|string|max:50',
-        'validasi'          => 'nullable|string|max:50',
-    ]);
+    'nama_unit'          => 'nullable|string|max:255',
+    'billing_last_name'  => 'nullable|string|max:100',
+    'pesanan'            => 'nullable|string|max:255',
+    'alamat_pengiriman'  => 'nullable|string',
+    'service_pengiriman' => 'nullable|string|max:100',     // ← BARU
+    'ekspedisi'          => 'nullable|string|max:100',
+    'status_kirim'       => 'nullable|in:Dikirim,Belum Dikirim',
+    'status_pembayaran'  => 'nullable|string|max:50',
+    'validasi'           => 'nullable|string|max:50',
+]);
 
-    $item->update([
-        'nama_unit'         => $request->nama_unit,
-        'billing_last_name' => $request->billing_last_name,
-        'pesanan'           => $request->pesanan,
-        'ekspedisi'         => $request->ekspedisi,                 // ← Tambahan
-        'status_kirim'      => $request->status_kirim,
-        'status_pembayaran' => $request->status_pembayaran,
-        'validasi'          => $request->validasi,
-        'catatan'           => ($item->catatan ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'),
-    ]);
+$item->update([
+    'nama_unit'          => $request->nama_unit,
+    'billing_last_name'  => $request->billing_last_name,
+    'pesanan'            => $request->pesanan,
+    'alamat_pengiriman'  => $request->alamat_pengiriman,
+    'kirim'              => $request->alamat_pengiriman,
+    'service_pengiriman' => $request->service_pengiriman,   // ← BARU
+    'ekspedisi'          => $request->ekspedisi,
+    'status_kirim'       => $request->status_kirim,
+    'status_pembayaran'  => $request->status_pembayaran,
+    'validasi'           => $request->validasi,
+    'catatan'            => ($item->catatan ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'),
+]);
 
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', '✅ Data berhasil diupdate!');
