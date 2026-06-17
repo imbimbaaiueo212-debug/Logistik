@@ -13,8 +13,31 @@ class RealisasiAktif extends Model
     protected $table = 'realisasi_aktif';
 
     protected $fillable = [
-        'no_pl', 'tgl_turun_pl', 'nama_unit', 'pengiriman', 'nama_barang',
-        'tgl_bayar', 'jumlah_bayar', 'nama_stokis', 'tgl_estimasi',
-        'estimasi_hari', 'penyebut', 'pengambil', 'ket', 'jakarta_aktif_id'
+        'no_pl', 
+        'tgl_turun_pl', 
+        'nama_unit', 
+        'pengiriman', 
+        'nama_barang',
+        'tgl_bayar', 
+        'jumlah_bayar', 
+        'nama_stokis', 
+        'tgl_estimasi',
+        'estimasi_hari', 
+        'penyebut', 
+        'pengambil', 
+        'ket', 
+        'jakarta_aktif_id'
+    ];
+
+    /**
+     * Casting tipe data
+     */
+    protected $casts = [
+        'tgl_turun_pl' => 'datetime',
+        'tgl_bayar'    => 'datetime',     // ← INI YANG PENTING
+        'tgl_estimasi' => 'datetime',
+        'deleted_at'   => 'datetime',
+        'created_at'   => 'datetime',
+        'updated_at'   => 'datetime',
     ];
 }
