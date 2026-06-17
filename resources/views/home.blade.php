@@ -9,30 +9,7 @@
 </head>
 <body class="bg-blue-100 font-poppins">
 
-    <div class="min-h-screen">
-        <!-- Top Bar -->
-        <nav class="bg-white text-white py-4 px-6 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div>
-                <h1 class="text-3xl font-bold tracking-[-0.04em] leading-none" style="font-family: 'Fredoka', sans-serif;">
-                    <span style="color: #000e8e;">b</span>
-                    <span style="color: #000e8e;">i</span>
-                    <span style="color: #f44040;">M</span>
-                    <span style="color: #000e8e;">B</span>
-                    <span style="color: #000e8e;">A</span>
-                    <span style="color: #1e40af;">-AIUEO</span>
-                </h1>
-            </div>
-            </div>
-            <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-800">Halo, {{ Auth::user()->name ?? 'Admin' }}</span>
-                <a href="{{ route('logout') }}" 
-                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                   class="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-xl text-sm font-medium">
-                    LOGOUT
-                </a>
-            </div>
-        </nav>
+    @include('partials.top-nav')
 
         <div class="p-8">
             <h1 class="text-3xl font-bold text-gray-800 mb-8">Menu Utama</h1>

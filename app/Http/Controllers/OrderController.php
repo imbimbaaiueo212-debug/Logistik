@@ -332,5 +332,36 @@ public function bulkActionJakartaAktif(Request $request)
                      ->with('success', "$successCount data berhasil diproses dan dikunci.");
 }
 
+// ====================== MENU PRINT (Sudah Diproses) ======================
+public function jakartaPrinted(Request $request)
+{
+    $query = JakartaAktif::query()->where('is_processed', 1);
 
+    // Filter
+    if ($request->filled('id_pesan')) {
+        $query->where('id_pesan', 'like', '%' . $request->id_pesan . '%');
+    }
+    if ($request->filled('nama_unit')) {
+        $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
+    }
+    if ($request->filled('start_date')) {
+        $query->whereDate('tgl_pesan', '>=', $request->start_date);
+    }
+    if ($request->filled('end_date')) {
+        $query->whereDate('tgl_pesan', '<=', $request->end_date);
+    }
+
+    $perPage = $request->get('per_page', 20);
+    $perPage = in_array($perPage, [10, 20, 50, 100, 200]) ? $perPage : 20;
+
+    $data = $query
+        ->with(['casdana' => function ($q) {
+            $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel');
+        }])
+        ->latest('processed_at')
+        ->paginate($perPage)
+        ->appends($request->query());
+
+    return view('order.jakarta-printed', compact('data'));
+}
 }
