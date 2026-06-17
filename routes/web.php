@@ -93,6 +93,8 @@ Route::prefix('order')
 
     Route::post('/jakarta-aktif/get-bulk-data', [OrderController::class, 'getBulkData'])
         ->name('jakarta-aktif.get-bulk-data');
+        Route::post('/jakarta-aktif/bulk', [OrderController::class, 'bulkActionJakartaAktif'])
+     ->name('jakarta-aktif.bulk');
 
     // Edit & Update
     Route::get('/jakarta-aktif/{id}/edit', [OrderController::class, 'editJakartaAktif'])
@@ -103,6 +105,8 @@ Route::prefix('order')
 
      Route::get('/jakarta-printed', [OrderController::class, 'jakartaPrinted'])
      ->name('jakarta-printed');
+     Route::delete('/realisasi/{id}', [OrderController::class, 'deleteRealisasi'])
+             ->name('realisasi.delete');
      
     });
 // ====================== SUPPLIERS ======================

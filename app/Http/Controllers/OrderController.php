@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JakartaAktif;
 use App\Models\BimbashopOrder;
 use App\Models\CasdanaTransaction;
+use App\Models\RealisasiAktif;
 use App\Imports\JakartaAktifImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -277,7 +278,7 @@ public function bulkActionJakartaAktif(Request $request)
 
     $updates = json_decode($perItem, true);
     if (empty($updates)) {
-        return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+        return redirect()->back()->with('error', 'Tidak ada data.');
     }
 
     $now = \Carbon\Carbon::now('Asia/Jakarta');
@@ -287,81 +288,87 @@ public function bulkActionJakartaAktif(Request $request)
         $id = $item['id'] ?? null;
         if (!$id) continue;
 
-        $statusKirim  = $item['status_kirim'] ?? null;
-        $jasaKurir    = $item['jasa_kurir'] ?? null;
-        $serviceKurir = $item['service_kurir'] ?? null;
-        $catatan      = $item['catatan'] ?? null;
+        $jakarta = JakartaAktif::find($id);
+        if (!$jakarta) continue;
 
-        $setClauses = [];
-        $bindings   = [];
+        // Update dulu field dari modal
+        $jakarta->update([
+            'status_kirim'       => $item['status_kirim'] ?? $jakarta->status_kirim,
+            'ekspedisi'          => $item['ekspedisi'] ?? $jakarta->ekspedisi,
+            'service_pengiriman' => $item['service_pengiriman'] ?? $jakarta->service_pengiriman,
+            'catatan'            => ($jakarta->catatan ?? '') . ($item['catatan'] ? "\n" . $item['catatan'] : ''),
+        ]);
 
-        $setClauses[] = "is_processed = 1";
-        $setClauses[] = "processed_at = ?";
-        $setClauses[] = "updated_at = ?";
-        $bindings[] = $now;
-        $bindings[] = $now;
-
-        if ($statusKirim) {
-            $setClauses[] = "status_kirim = ?";
-            $bindings[] = $statusKirim;
-        }
-        if ($jasaKurir) {
-            $setClauses[] = "ekspedisi = ?";
-            $bindings[] = $jasaKurir;
-        }
-        if ($serviceKurir) {
-            $setClauses[] = "service_pengiriman = ?";
-            $bindings[] = $serviceKurir;
-        }
-        if ($catatan) {
-            $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i:s') . ": " . trim($catatan);
-            $setClauses[] = "catatan = CONCAT(COALESCE(catatan, ''), ?)";
-            $bindings[] = $newNote;
+        // Cek duplikat
+        if (RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
+            continue;
         }
 
-        $sql = "UPDATE jakarta_aktif 
-                SET " . implode(', ', $setClauses) . "
-                WHERE id = ?";
+        // Pindah ke Realisasi Aktif
+        RealisasiAktif::create([
+            'jakarta_aktif_id' => $jakarta->id,
+            'no_pl'            => $jakarta->id_pesan,
+            'tgl_turun_pl'     => $jakarta->tgl_pesan,
+            'nama_unit'        => $jakarta->nama_unit,
+            'pengiriman'       => $jakarta->kirim,
+            'nama_barang'      => $jakarta->pesanan,
+            'tgl_bayar'        => $jakarta->payment_date,
+            'jumlah_bayar'     => $jakarta->total ?? 0,
+            'nama_stokis'      => $jakarta->billing_last_name,
+            'tgl_estimasi'     => $jakarta->estimasi_persiapan,
+            'estimasi_hari'    => $jakarta->estimasi_persiapan ? $now->diffInDays($jakarta->estimasi_persiapan) : null,
+            'penyebut'         => $jakarta->nama_unit,
+            'pengambil'        => $jakarta->status_kirim === 'Diambil' ? 'Ambil Sendiri' : null,
+            'ket'              => $jakarta->catatan,
+        ]);
 
-        $updated = DB::update($sql, array_merge($bindings, [$id]));
-
-        if ($updated) $successCount++;
+        $jakarta->update(['is_processed' => 1, 'processed_at' => $now]);
+        $successCount++;
     }
 
     return redirect()->route('order.jakarta-aktif')
-                     ->with('success', "$successCount data berhasil diproses dan dikunci.");
+                     ->with('success', "$successCount data berhasil diproses ke Realisasi Aktif!");
 }
 
 // ====================== MENU PRINT (Sudah Diproses) ======================
 public function jakartaPrinted(Request $request)
 {
-    $query = JakartaAktif::query()->where('is_processed', 1);
+    $query = RealisasiAktif::query();   // ← Ganti ke RealisasiAktif
 
     // Filter
     if ($request->filled('id_pesan')) {
-        $query->where('id_pesan', 'like', '%' . $request->id_pesan . '%');
+        $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
     }
     if ($request->filled('nama_unit')) {
         $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
     }
     if ($request->filled('start_date')) {
-        $query->whereDate('tgl_pesan', '>=', $request->start_date);
+        $query->whereDate('tgl_turun_pl', '>=', $request->start_date);
     }
     if ($request->filled('end_date')) {
-        $query->whereDate('tgl_pesan', '<=', $request->end_date);
+        $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
     }
 
     $perPage = $request->get('per_page', 20);
     $perPage = in_array($perPage, [10, 20, 50, 100, 200]) ? $perPage : 20;
 
     $data = $query
-        ->with(['casdana' => function ($q) {
-            $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel');
-        }])
-        ->latest('processed_at')
+        ->latest('created_at')           // atau created_at / tgl_turun_pl
         ->paginate($perPage)
         ->appends($request->query());
 
     return view('order.jakarta-printed', compact('data'));
+}
+/**
+ * Hapus data dari Realisasi Aktif (Jakarta Printed)
+ */
+public function deleteRealisasi($id)
+{
+    $item = RealisasiAktif::findOrFail($id);   // ← Ganti ke RealisasiAktif
+
+    $item->delete();
+
+    return redirect()->route('order.jakarta-printed')
+                     ->with('success', '✅ Data berhasil dihapus dari Realisasi Aktif!');
 }
 }

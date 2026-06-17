@@ -150,4 +150,9 @@ public function bulkActionJakartaAktif(Request $request)
     return redirect()->back()->with('error', 'Aksi tidak dikenali.');
 }
 
+public function realisasi()
+{
+    return $this->hasOne(RealisasiAktif::class, 'jakarta_aktif_id');
+}
+
 }

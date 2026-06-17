@@ -62,9 +62,9 @@
                 </a>
 
                 <a href="{{ route('order.jakarta-printed') }}" 
-                    class="px-6 py-3 rounded-xl font-semibold transition-all
-                    {{ request()->routeIs('order.jakarta-printed') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-100' }}">
-                        ✅ Printed PL
+                    class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all
+                    {{ request()->routeIs('order.jakarta-printed') ? 'bg-blue-600 text-dark shadow' : 'text-gray-600 hover:bg-blue-600 text-dark' }}">
+                        Realisasi Aktif
                 </a>
 
                 <form action="{{ route('order.jakarta-aktif.sync-jkt') }}" method="POST" style="display: inline;" 
