@@ -26,7 +26,10 @@ class RealisasiAktif extends Model
         'penyebut', 
         'pengambil', 
         'ket', 
-        'jakarta_aktif_id'
+        'jakarta_aktif_id',
+        'is_processed',     // ← tambahkan
+        'processed_at',
+        'printed_at',           // ← TAMBAHKAN INI      // ← tambahkan
     ];
 
     /**
@@ -39,5 +42,8 @@ class RealisasiAktif extends Model
         'deleted_at'   => 'datetime',
         'created_at'   => 'datetime',
         'updated_at'   => 'datetime',
+        'is_processed' => 'boolean',
+        'processed_at' => 'datetime',
+        'printed_at'   => 'datetime',
     ];
 }

@@ -68,7 +68,7 @@ Route::prefix('import')
         Route::delete('/casdana/{id}', [ImportController::class, 'casdanaDestroy'])->name('casdana.destroy');
     });
 
-    //ini adalah order realisasi data
+   // ini adalah order realisasi data
 Route::prefix('order')
     ->name('order.')
     ->middleware('auth')
@@ -101,13 +101,21 @@ Route::prefix('order')
         Route::delete('/realisasi/{id}', [OrderController::class, 'deleteRealisasi'])
             ->name('realisasi.delete');
 
-        // ← PRINT PDF (INI YANG BARU DAN BENAR)
+        // PRINT PDF
         Route::get('/realisasi/print-pdf', [OrderController::class, 'printRealisasiPdf'])
             ->name('realisasi.print-pdf');
+
+        // ← PRINT SINGLE (BARU)
+        Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])
+            ->name('realisasi.print-single');
+
         Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])
             ->name('jakarta-aktif.filtered-ids');
-            Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])
+            
+        Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])
             ->name('jakarta-aktif.get-modal-data');
+        Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])
+            ->name('realisasi.mark-printed-all');
     });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);

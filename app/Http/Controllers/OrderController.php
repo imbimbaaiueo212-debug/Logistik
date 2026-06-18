@@ -534,7 +534,7 @@ public function printRealisasiPdf(Request $request)
 {
     $query = RealisasiAktif::query();
 
-    // Filter sama seperti halaman index
+    // Filter
     if ($request->filled('id_pesan')) {
         $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
     }
@@ -550,8 +550,18 @@ public function printRealisasiPdf(Request $request)
 
     $data = $query->latest('tgl_turun_pl')->get();
 
+    // === HANYA update printed_at jika benar-benar mau print ===
+    if ($request->has('mark_printed') && $request->mark_printed == 'true') {
+        $ids = $data->pluck('id')->filter();
+        if ($ids->isNotEmpty()) {
+            RealisasiAktif::whereIn('id', $ids)
+                ->whereNull('printed_at')
+                ->update(['printed_at' => now()]);
+        }
+    }
+
     $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data'))
-               ->setPaper('A5', 'landscape')           // ← DIUBAH KE A5
+               ->setPaper('A5', 'landscape')
                ->setOptions([
                    'defaultFont' => 'sans-serif',
                    'isHtml5ParserEnabled' => true,
@@ -562,8 +572,28 @@ public function printRealisasiPdf(Request $request)
                    'margin-left'   => 10,
                ]);
 
-    // Stream ke browser (bisa langsung di-print)
     return $pdf->stream('Realisasi-Aktif-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+public function printSingleRealisasi($id)
+{
+    $item = RealisasiAktif::findOrFail($id);
+
+    if (!$item->printed_at) {
+        $item->update(['printed_at' => now()]);
+    }
+
+    $data = collect([$item]); // agar view PDF tetap bisa pakai @foreach
+
+    $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data'))
+               ->setPaper('A5', 'landscape')
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+                   'isRemoteEnabled' => true,
+               ]);
+
+    return $pdf->stream('Realisasi-' . $item->no_pl . '.pdf');
 }
 
 // === TAMBAHKAN METHOD INI DI DALAM CLASS OrderController ===
@@ -593,6 +623,20 @@ public function getFilteredIds(Request $request)
     return response()->json([
         'ids' => $ids,
         'count' => $ids->count()
+    ]);
+}
+/**
+ * Tandai SEMUA data sebagai sudah dicetak (dipanggil via AJAX)
+ */
+public function markAllAsPrinted(Request $request)
+{
+    $updated = RealisasiAktif::whereNull('printed_at')
+                ->update(['printed_at' => now()]);
+
+    return response()->json([
+        'success' => true,
+        'message' => "$updated data berhasil ditandai sebagai sudah dicetak.",
+        'count'   => $updated
     ]);
 }
 }

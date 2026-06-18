@@ -32,6 +32,21 @@
     .processed-row td {
         color: #64748b;
     }
+
+    /* Pagination Styling */
+.pagination {
+    display: flex;
+    gap: 6px;
+}
+.pagination li a, .pagination li span {
+    padding: 8px 14px;
+    border-radius: 9999px;
+    font-size: 0.9rem;
+}
+.pagination .active span {
+    background-color: #4f46e5;
+    color: white;
+}
 </style>
 </head>
 <body class="bg-gray-50">
@@ -49,7 +64,8 @@
             
             <div class="flex gap-3">
                 <a href="{{ route('order.unit-pasif') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali ke Dashboard</a>
-                <a href="{{ route('order.jakarta-printed') }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">Realisasi Aktif</a>
+                <a href="{{ route('order.jakarta-printed') }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">
+Rekap Aktual</a>
                 
                 <form action="{{ route('order.jakarta-aktif.sync-jkt') }}" method="POST" style="display: inline;" onsubmit="return confirm('Yakin ingin sync?')">
                     @csrf
@@ -102,7 +118,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
                     <select name="per_page" onchange="this.form.submit()" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
                         <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
                         <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                         <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                     </select>
@@ -255,6 +271,18 @@
             @endforelse
         </tbody>
     </table>
+
+    <div class="px-6 py-4 bg-white border-t flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+            Menampilkan <span class="font-medium">{{ $data->firstItem() }}</span> 
+            sampai <span class="font-medium">{{ $data->lastItem() }}</span> 
+            dari total <span class="font-medium">{{ $data->total() }}</span> data
+        </div>
+        
+        <div>
+            {{ $data->appends(request()->query())->links() }}
+        </div>
+    </div>
 </div>
         </div>
 
