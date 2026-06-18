@@ -292,12 +292,13 @@ public function bulkActionJakartaAktif(Request $request)
         $jakarta = JakartaAktif::find($id);
         if (!$jakarta) continue;
 
-        $statusKirim  = $item['status_kirim'] ?? $jakarta->status_kirim;
-        $jasaKurir    = $item['jasa_kurir'] ?? $jakarta->ekspedisi;
-        $serviceKurir = $item['service_kurir'] ?? $jakarta->service_pengiriman;
-        $catatan      = $item['catatan'] ?? null;
+        $statusKirim      = $item['status_kirim'] ?? $jakarta->status_kirim;
+        $jasaKurir        = $item['jasa_kurir'] ?? $jakarta->ekspedisi;
+        $serviceKurir     = $item['service_kurir'] ?? $jakarta->service_pengiriman;
+        $alamatPengiriman = $item['alamat_pengiriman'] ?? $jakarta->kirim;   // ← BARU
+        $catatan          = $item['catatan'] ?? null;
 
-        // === 2. KUNCI DULU PAKAI RAW SQL (yang sudah terbukti aman) ===
+        // === 2. KUNCI DULU PAKAI RAW SQL ===
         $setClauses = [];
         $bindings   = [];
 
@@ -319,6 +320,12 @@ public function bulkActionJakartaAktif(Request $request)
             $setClauses[] = "service_pengiriman = ?";
             $bindings[] = $serviceKurir;
         }
+        if ($alamatPengiriman) {
+            $setClauses[] = "kirim = ?";
+            $setClauses[] = "alamat_pengiriman = ?";   // ← BARU
+            $bindings[] = $alamatPengiriman;
+            $bindings[] = $alamatPengiriman;
+        }
         if ($catatan) {
             $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i') . ": " . trim($catatan);
             $setClauses[] = "catatan = CONCAT(COALESCE(catatan, ''), ?)";
@@ -332,45 +339,37 @@ public function bulkActionJakartaAktif(Request $request)
         $updated = DB::update($sql, array_merge($bindings, [$id]));
 
         if ($updated) {
-          // === 3. MASUKKAN KE REALISASI AKTIF ===
-if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
+            // === 3. MASUKKAN KE REALISASI AKTIF ===
+            if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
 
-    $estimasiHari = null;
-    if ($jakarta->payment_date && $jakarta->estimasi_persiapan) {
-        $payment = \Carbon\Carbon::parse($jakarta->payment_date);
-        $persiapan = \Carbon\Carbon::parse($jakarta->estimasi_persiapan);
-        $estimasiHari = $payment->diffInDays($persiapan);
-    }
+                $estimasiHari = null;
+                if ($jakarta->payment_date && $jakarta->estimasi_persiapan) {
+                    $payment = \Carbon\Carbon::parse($jakarta->payment_date);
+                    $persiapan = \Carbon\Carbon::parse($jakarta->estimasi_persiapan);
+                    $estimasiHari = $payment->diffInDays($persiapan);
+                }
 
-    // === AMBIL NAMA STOKIS DARI SKU ===
-    $namaStokis = $this->extractVendorFromSku($jakarta->pesanan ?? '');
+                $namaStokis = $this->extractVendorFromSku($jakarta->pesanan ?? '');
 
-    // === PENGIRIMAN DIAMBIL DARI JASA KURIR ===
-    $pengiriman = $jasaKurir ?: ($jakarta->ekspedisi ?? ($statusKirim === 'Diambil' ? 'Ambil Sendiri' : '-'));
+                $pengiriman = $jasaKurir ?: ($jakarta->ekspedisi ?? ($statusKirim === 'Diambil' ? 'Ambil Sendiri' : '-'));
 
-    RealisasiAktif::create([
-        'jakarta_aktif_id' => $jakarta->id,
-        'no_pl'            => $jakarta->id_pesan,
-        'tgl_turun_pl'     => $jakarta->tgl_pesan,
-        'nama_unit'        => $jakarta->nama_unit,
-        
-        'pengiriman'       => $pengiriman,
-        
-        'nama_barang'      => $jakarta->pesanan,
-        
-        // === DIUBAH: Ambil dari tgl_pesan (yang punya jam) ===
-        'tgl_bayar'        => $jakarta->tgl_pesan,   
-        
-        'jumlah_bayar'     => $jakarta->total ?? 0,
-        'nama_stokis'      => $namaStokis,
-        
-        'tgl_estimasi'     => $jakarta->estimasi_persiapan,
-        'estimasi_hari'    => $estimasiHari,
-        'penyebut'         => $jakarta->nama_unit,
-        'pengambil'        => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
-        'ket'              => $jakarta->catatan,
-    ]);
-}
+                RealisasiAktif::create([
+                    'jakarta_aktif_id' => $jakarta->id,
+                    'no_pl'            => $jakarta->id_pesan,
+                    'tgl_turun_pl'     => $jakarta->tgl_pesan,
+                    'nama_unit'        => $jakarta->nama_unit,
+                    'pengiriman'       => $pengiriman,
+                    'nama_barang'      => $jakarta->pesanan,
+                    'tgl_bayar'        => $jakarta->tgl_pesan,   
+                    'jumlah_bayar'     => $jakarta->total ?? 0,
+                    'nama_stokis'      => $namaStokis,
+                    'tgl_estimasi'     => $jakarta->estimasi_persiapan,
+                    'estimasi_hari'    => $estimasiHari,
+                    'penyebut'         => $jakarta->nama_unit,
+                    'pengambil'        => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
+                    'ket'              => $jakarta->catatan,
+                ]);
+            }
             $successCount++;
         }
     }
@@ -434,13 +433,14 @@ public function getModalData(Request $request)
             'id', 
             'id_pesan', 
             'nama_unit', 
+            'kirim',                    // ← TAMBAHKAN INI
             'status_pembayaran', 
             'jenis_bank', 
             'pesanan',
             'status_kirim',
             'payment_date',
-            'is_processed',      // ← TAMBAHKAN
-            'processed_at'       // ← TAMBAHKAN (opsional)
+            'is_processed',
+            'processed_at'
         ])
         ->get()
         ->map(function ($item) {
@@ -450,6 +450,7 @@ public function getModalData(Request $request)
                 'id'                  => $item->id,
                 'invoice'             => $item->id_pesan ?? '-',
                 'to_customer'         => $item->nama_unit ?? '-',
+                'kirim'               => $item->kirim ?? '-',           // ← TAMBAHKAN INI
                 'payment_date'        => $item->payment_date 
                                         ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
                                         : '-',
@@ -457,7 +458,7 @@ public function getModalData(Request $request)
                 'status_pembayaran'   => $item->status_pembayaran ?? '-',
                 'status_kirim'        => $item->status_kirim ?? 'Dikirim',
                 'vendor'              => $vendor,
-                'is_processed'        => (bool) $item->is_processed,   // ← TAMBAHKAN
+                'is_processed'        => (bool) $item->is_processed,
                 'processed_at'        => $item->processed_at 
                                         ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i') 
                                         : null,

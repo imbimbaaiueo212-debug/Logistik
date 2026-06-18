@@ -45,6 +45,37 @@
         background-color: #4f46e5;
         color: white;
     }
+
+    /* Tambahkan di dalam tag <style> */
+#modalTable td, #modalTable th {
+    vertical-align: middle;
+}
+
+#modalTable .alamat {
+    min-width: 280px;
+}
+
+#modalTable .jasa-kurir {
+    min-width: 140px;
+}
+
+#modalTable .service-kurir {
+    min-width: 140px;
+}
+
+#modalTable .catatan {
+    min-width: 280px;
+}
+
+#modalTable td:nth-child(4) {  /* Kolom Alamat */
+    max-width: 350px;
+    white-space: normal;
+    word-break: break-word;
+}
+
+#modalTable input, #modalTable select {
+    min-height: 42px;
+}
     </style>
 </head>
 <body class="bg-gray-50">
@@ -274,40 +305,44 @@
         </div>
 
         <!-- Modal tetap sama -->
-        <div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-7xl mx-4 max-h-[92vh] flex flex-col">
-                <div class="p-6 border-b flex justify-between items-center">
-                    <div>
-                        <h3 class="text-2xl font-semibold">Edit & Proses Data Terpilih</h3>
-                        <p class="text-gray-600" id="modalCount">0 data dipilih</p>
-                    </div>
-                    <button onclick="hideBulkModal()" class="text-3xl text-gray-500 hover:text-gray-700">✕</button>
-                </div>
-                <div class="flex-1 overflow-auto p-6">
-                    <table class="w-full text-sm border border-gray-200" id="modalTable">
-                        <thead class="bg-gray-50 sticky top-0">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Status</th>
-                                <th class="px-4 py-3 text-left">Invoice</th>
-                                <th class="px-4 py-3 text-left">To Customer</th>
-                                <th class="px-4 py-3 text-left">Payment Date</th>
-                                <th class="px-4 py-3 text-left">Payment Channel</th>
-                                <th class="px-4 py-3 text-left">Distribusi <span class="text-red-500">*</span></th>
-                                <th class="px-4 py-3 text-left">Jasa Kurir <span class="text-red-500">*</span></th>
-                                <th class="px-4 py-3 text-left">Service</th>
-                                <th class="px-4 py-3 text-left">Vendor</th>
-                                <th class="px-4 py-3 text-left">Catatan</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
-                    <button onclick="hideBulkModal()" class="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Batal</button>
-                    <button onclick="executeBulkAction()" class="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-indigo-700">💾 Simpan & Kunci Semua Data</button>
-                </div>
+       <!-- Modal -->
+<div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-7xl mx-4 max-h-[92vh] flex flex-col" style="width: 95%; max-width: 1400px;">
+        <div class="p-6 border-b flex justify-between items-center">
+            <div>
+                <h3 class="text-2xl font-semibold">Edit & Proses Data Terpilih</h3>
+                <p class="text-gray-600" id="modalCount">0 data dipilih</p>
             </div>
+            <button onclick="hideBulkModal()" class="text-3xl text-gray-500 hover:text-gray-700">✕</button>
         </div>
+        
+        <div class="flex-1 overflow-auto p-6">
+            <table class="w-full text-sm border border-gray-200 min-w-full" id="modalTable">
+                <thead class="bg-gray-50 sticky top-0">
+                    <tr>
+                        <th class="px-4 py-3 text-left w-20">Status</th>
+                        <th class="px-4 py-3 text-left w-28">Invoice</th>
+                        <th class="px-4 py-3 text-left w-48">To Customer</th>
+                        <th class="px-4 py-3 text-left">Alamat</th>                    <!-- Lebih lebar -->
+                        <th class="px-4 py-3 text-left w-36">Payment Date</th>
+                        <th class="px-4 py-3 text-left w-40">Payment Channel</th>
+                        <th class="px-4 py-3 text-left w-32">Distribusi <span class="text-red-500">*</span></th>
+                        <th class="px-4 py-3 text-left w-36">Jasa Kurir <span class="text-red-500">*</span></th>
+                        <th class="px-4 py-3 text-left w-32">Service</th>
+                        <th class="px-4 py-3 text-left w-36">Vendor</th>
+                        <th class="px-4 py-3 text-left w-52">Catatan</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+
+        <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
+            <button onclick="hideBulkModal()" class="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Batal</button>
+            <button onclick="executeBulkAction()" class="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-indigo-700">💾 Simpan & Kunci Semua Data</button>
+        </div>
+    </div>
+</div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
@@ -393,65 +428,70 @@
     }
 
     function loadModalData() {
-        $.ajax({
-            url: '{{ route("order.jakarta-aktif.get-modal-data") }}',
-            method: 'POST',
-            data: {
-                ids: selectedIds,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(items) {
-                let html = '';
-                
-                items.forEach(item => {
-                    const isLocked = Boolean(item.is_processed);
-                    const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
+    $.ajax({
+        url: '{{ route("order.jakarta-aktif.get-modal-data") }}',
+        method: 'POST',
+        data: {
+            ids: selectedIds,
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(items) {
+            let html = '';
+            
+            items.forEach(item => {
+                const isLocked = Boolean(item.is_processed);
+                const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
 
-                    let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
+                let distribusiHtml, jasaKurirHtml, serviceKurirHtml, alamatHtml, catatanHtml;
 
-                    if (isLocked) {
-                        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
-                        jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                        serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                        catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}</span>`;
-                    } else {
-                        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
+                if (isLocked) {
+                    distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
+                    jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
+                    serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
+                    alamatHtml = `<span class="text-sm text-gray-600">${item.kirim || '-'}</span>`;
+                    catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}</span>`;
+                } else {
+                    distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
 
-                        jasaKurirHtml = `<select class="jasa-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500"><option value="">Pilih Jasa Kurir</option></select>`;
+                    jasaKurirHtml = `<select class="jasa-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500"><option value="">Pilih Jasa Kurir</option></select>`;
 
-                        serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">`;
+                    serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">`;
 
-                        catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
-                    }
+                    // ALAMAT BISA DIEDIT
+                    alamatHtml = `<input type="text" class="alamat w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" value="${item.kirim || ''}" placeholder="Masukkan alamat lengkap...">`;
 
-                    html += `
-                        <tr data-id="${item.id}" data-distribusi="${currentDistribusi}" 
-                            class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
-                            <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
-                            <td class="px-4 py-3 font-medium">${item.invoice}</td>
-                            <td class="px-4 py-3">${item.to_customer}</td>
-                            <td class="px-4 py-3">${item.payment_date}</td>
-                            <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
-                            <td class="px-4 py-3">${distribusiHtml}</td>
-                            <td class="px-4 py-3">${jasaKurirHtml}</td>
-                            <td class="px-4 py-3">${serviceKurirHtml}</td>
-                            <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
-                            <td class="px-4 py-3">${catatanHtml}</td>
-                        </tr>`;
-                });
+                    catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
+                }
 
-                $('#modalTableBody').html(html);
-                $('#modalCount').text(`${items.length} data dipilih`);
-                $('#bulkModal').removeClass('hidden');
-                
-                initModalLogic();
-            },
-            error: function(xhr) {
-                console.error(xhr.responseText);
-                alert('Gagal memuat data ke modal.');
-            }
-        });
-    }
+                html += `
+                    <tr data-id="${item.id}" data-distribusi="${currentDistribusi}" 
+                        class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
+                        <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
+                        <td class="px-4 py-3 font-medium">${item.invoice}</td>
+                        <td class="px-4 py-3">${item.to_customer}</td>
+                        <td class="px-4 py-3">${alamatHtml}</td>
+                        <td class="px-4 py-3">${item.payment_date}</td>
+                        <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
+                        <td class="px-4 py-3">${distribusiHtml}</td>
+                        <td class="px-4 py-3">${jasaKurirHtml}</td>
+                        <td class="px-4 py-3">${serviceKurirHtml}</td>
+                        <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
+                        <td class="px-4 py-3">${catatanHtml}</td>
+                    </tr>`;
+            });
+
+            $('#modalTableBody').html(html);
+            $('#modalCount').text(`${items.length} data dipilih`);
+            $('#bulkModal').removeClass('hidden');
+            
+            initModalLogic();
+        },
+        error: function(xhr) {
+            console.error(xhr.responseText);
+            alert('Gagal memuat data ke modal.');
+        }
+    });
+}
 
     function initModalLogic() {
         // Setup berdasarkan Distribusi
@@ -529,37 +569,38 @@
     }
 
     function executeBulkAction() {
-        if ($('.bg-indigo-600').prop('disabled')) {
-            alert('❌ Harap isi Jasa Kurir dan Service untuk semua data yang belum terkunci!');
-            return;
-        }
-
-        if (!confirm(`Yakin ingin memproses ${selectedIds.length} data?`)) return;
-
-        const updates = [];
-        $('#modalTableBody tr').each(function() {
-            const distribusiText = $(this).find('td:nth-child(6) span').text().trim();
-
-            updates.push({
-                id: $(this).data('id'),
-                status_kirim: distribusiText,
-                jasa_kurir: $(this).find('.jasa-kurir').val() || '',
-                service_kurir: $(this).find('.service-kurir').val() || '',
-                catatan: $(this).find('.catatan').val() || ''
-            });
-        });
-
-        const form = $('<form>', {
-            action: '{{ route("order.jakarta-aktif.bulk-action") }}',
-            method: 'POST'
-        });
-
-        $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
-        $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
-        $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
-
-        form.appendTo('body').submit();
+    if ($('.bg-indigo-600').prop('disabled')) {
+        alert('❌ Harap isi Jasa Kurir dan Service untuk semua data yang belum terkunci!');
+        return;
     }
+
+    if (!confirm(`Yakin ingin memproses ${selectedIds.length} data?`)) return;
+
+    const updates = [];
+    $('#modalTableBody tr').each(function() {
+        const distribusiText = $(this).find('td:nth-child(7) span').text().trim(); // sesuaikan urutan jika perlu
+
+        updates.push({
+            id: $(this).data('id'),
+            status_kirim: distribusiText,
+            jasa_kurir: $(this).find('.jasa-kurir').val() || '',
+            service_kurir: $(this).find('.service-kurir').val() || '',
+            alamat_pengiriman: $(this).find('.alamat').val() || '',   // ← TAMBAHKAN INI
+            catatan: $(this).find('.catatan').val() || ''
+        });
+    });
+
+    const form = $('<form>', {
+        action: '{{ route("order.jakarta-aktif.bulk-action") }}',
+        method: 'POST'
+    });
+
+    $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
+    $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
+    $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
+
+    form.appendTo('body').submit();
+}
 
     function clearSelection() {
         selectedIds = [];
