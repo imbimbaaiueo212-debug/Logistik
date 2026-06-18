@@ -23,7 +23,7 @@ public function jakartaAktif(Request $request)
 {
     $query = JakartaAktif::query();
 
-    // === FILTER ===
+    // === FILTER (sama seperti sebelumnya) ===
     if ($request->filled('id_pesan')) {
         $query->where('id_pesan', 'like', '%' . $request->id_pesan . '%');
     }
@@ -49,17 +49,17 @@ public function jakartaAktif(Request $request)
         $query->whereDate('tgl_pesan', '<=', $request->end_date);
     }
 
-    // === PAGINATION ===
     $perPage = $request->get('per_page', 5);
     $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 5;
 
     $data = $query
-    ->with(['casdana' => function ($q) {
-        $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
-    }])
-    ->latest('tgl_pesan')
-    ->paginate($perPage)
-    ->appends($request->query());
+        ->with(['casdana' => function ($q) {
+            $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
+        }])
+        ->selectRaw('*, payment_date')           // Pastikan kolom ikut ter-load
+        ->latest('tgl_pesan')
+        ->paginate($perPage)
+        ->appends($request->query());
 
     return view('order.jakarta-aktif-index', compact('data'));
 }
@@ -334,7 +334,7 @@ public function bulkActionJakartaAktif(Request $request)
         if ($updated) {
           // === 3. MASUKKAN KE REALISASI AKTIF ===
 if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
-    
+
     $estimasiHari = null;
     if ($jakarta->payment_date && $jakarta->estimasi_persiapan) {
         $payment = \Carbon\Carbon::parse($jakarta->payment_date);
@@ -437,7 +437,10 @@ public function getModalData(Request $request)
             'status_pembayaran', 
             'jenis_bank', 
             'pesanan',
-            'status_kirim'           // untuk distribusi otomatis
+            'status_kirim',
+            'payment_date',
+            'is_processed',      // ← TAMBAHKAN
+            'processed_at'       // ← TAMBAHKAN (opsional)
         ])
         ->get()
         ->map(function ($item) {
@@ -447,11 +450,17 @@ public function getModalData(Request $request)
                 'id'                  => $item->id,
                 'invoice'             => $item->id_pesan ?? '-',
                 'to_customer'         => $item->nama_unit ?? '-',
-                'payment_date'        => '-',                    // di-hardcode karena kolom tidak ada
+                'payment_date'        => $item->payment_date 
+                                        ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
+                                        : '-',
                 'payment_channel'     => $item->jenis_bank ?? '-',
                 'status_pembayaran'   => $item->status_pembayaran ?? '-',
-                'status_kirim'        => $item->status_kirim ?? 'Dikirim',   // otomatis
+                'status_kirim'        => $item->status_kirim ?? 'Dikirim',
                 'vendor'              => $vendor,
+                'is_processed'        => (bool) $item->is_processed,   // ← TAMBAHKAN
+                'processed_at'        => $item->processed_at 
+                                        ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i') 
+                                        : null,
             ];
         });
 

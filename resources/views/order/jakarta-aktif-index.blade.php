@@ -340,76 +340,99 @@
     }
 
     function loadModalData() {
-    $.ajax({
-        url: '{{ route("order.jakarta-aktif.get-modal-data") }}',
-        method: 'POST',
-        data: {
-            ids: selectedIds,
-            _token: '{{ csrf_token() }}'
-        },
-        success: function(items) {
-            let html = '';
-            items.forEach(item => {
-                const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
+        $.ajax({
+            url: '{{ route("order.jakarta-aktif.get-modal-data") }}',
+            method: 'POST',
+            data: {
+                ids: selectedIds,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(items) {
+                let html = '';
+                
+                items.forEach(item => {
+                    const isLocked = Boolean(item.is_processed);
+                    const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
 
-                html += `
-                    <tr data-id="${item.id}">
-                        <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
-                        <td class="px-4 py-3">${item.invoice}</td>
-                        <td class="px-4 py-3">${item.to_customer}</td>
-                        <td class="px-4 py-3">${item.payment_date}</td>
-                        <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
-                        <td class="px-4 py-3">
-                            <select class="distribusi w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
-                                <option value="Diambil" ${currentDistribusi === 'Diambil' ? 'selected' : ''}>Diambil</option>
-                                <option value="Dikirim" ${currentDistribusi === 'Dikirim' ? 'selected' : ''}>Dikirim</option>
-                            </select>
-                        </td>
-                        <td class="px-4 py-3">
-                            <select class="jasa-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                    let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
+
+                    if (isLocked) {
+                        // MODE TERKUNCI
+                        distribusiHtml = `
+                            <span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">
+                                ${currentDistribusi}
+                            </span>`;
+
+                        jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
+                        serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
+                        catatanHtml = `
+                            <span class="text-xs text-gray-500 italic">
+                                Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}
+                            </span>`;
+                    } else {
+                        // MODE EDIT - Distribusi dikunci
+                        distribusiHtml = `
+                            <span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">
+                                ${currentDistribusi}
+                            </span>`;
+
+                        // Jasa Kurir & Service akan diatur di initModalLogic berdasarkan distribusi
+                        jasaKurirHtml = `
+                            <select class="jasa-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
                                 <option value="">Pilih Jasa Kurir</option>
-                                <option value="Driver">Driver</option>
-                                <option value="JNE">JNE</option>
-                                <option value="Lion Parcel">Lion Parcel</option>
-                                <option value="TIKI">TIKI</option>
-                            </select>
-                        </td>
-                        <td class="px-4 py-3">
-                            <input type="text" class="service-kurir w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" placeholder="REG, YES, CTC, dll">
-                        </td>
-                        <td class="px-4 py-3 font-medium text-indigo-700 bg-indigo-50">${item.vendor}</td>
-                        <td class="px-4 py-3">
-                            <input type="text" class="catatan w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" placeholder="Catatan tambahan...">
-                        </td>
-                    </tr>`;
-            });
+                            </select>`;
 
-            $('#modalTableBody').html(html);
-            $('#modalCount').text(`${items.length} data dipilih`);
-            $('#bulkModal').removeClass('hidden');
-            initModalLogic();
-        },
-        error: function(xhr) {
-            console.error(xhr.responseText);
-            alert('Gagal memuat data ke modal.');
-        }
-    });
-}
+                        serviceKurirHtml = `
+                            <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">`;
+
+                        catatanHtml = `
+                            <input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
+                    }
+
+                    html += `
+                        <tr data-id="${item.id}" data-distribusi="${currentDistribusi}" class="${isLocked ? 'bg-gray-50 opacity-90' : 'hover:bg-gray-50'}">
+                            <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
+                            <td class="px-4 py-3 font-medium">${item.invoice}</td>
+                            <td class="px-4 py-3">${item.to_customer}</td>
+                            <td class="px-4 py-3">${item.payment_date}</td>
+                            <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
+                            <td class="px-4 py-3">${distribusiHtml}</td>
+                            <td class="px-4 py-3">${jasaKurirHtml}</td>
+                            <td class="px-4 py-3">${serviceKurirHtml}</td>
+                            <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
+                            <td class="px-4 py-3">${catatanHtml}</td>
+                        </tr>`;
+                });
+
+                $('#modalTableBody').html(html);
+                $('#modalCount').text(`${items.length} data dipilih`);
+                $('#bulkModal').removeClass('hidden');
+                
+                initModalLogic();
+            },
+            error: function(xhr) {
+                console.error(xhr.responseText);
+                alert('Gagal memuat data ke modal.');
+            }
+        });
+    }
 
     function initModalLogic() {
-        $('.distribusi').off('change').on('change', function() {
-            const status = $(this).val();
-            const row = $(this).closest('tr');
+        // Logic berdasarkan Distribusi
+        $('#modalTableBody tr:not(.bg-gray-50)').each(function() {
+            const row = $(this);
+            const distribusi = row.data('distribusi');
             const jasaSelect = row.find('.jasa-kurir');
             const serviceInput = row.find('.service-kurir');
 
-            if (status === 'Diambil') {
-                jasaSelect.html('<option value="Ambil Sendiri">Ambil Sendiri</option>').prop('disabled', true);
+            if (distribusi === 'Diambil') {
+                // Diambil → kunci semua
+                jasaSelect.html('<option value="Ambil Sendiri" selected>Ambil Sendiri</option>').prop('disabled', true);
                 serviceInput.prop('disabled', true).val('');
             } else {
+                // Dikirim → bisa edit, tanpa opsi Driver
                 jasaSelect.html(`
                     <option value="">Pilih Jasa Kurir</option>
-                    <option value="Driver">Driver</option>
                     <option value="JNE">JNE</option>
                     <option value="Lion Parcel">Lion Parcel</option>
                     <option value="TIKI">TIKI</option>
@@ -418,17 +441,17 @@
             }
         });
 
+        // Logic Jasa Kurir → Service (hanya berlaku jika Dikirim)
         $(document).off('change', '.jasa-kurir').on('change', '.jasa-kurir', function() {
             const jasa = $(this).val();
             const service = $(this).closest('tr').find('.service-kurir');
+            
             if (jasa === 'Driver') {
                 service.val('').prop('disabled', true).attr('placeholder', 'Tidak perlu diisi');
             } else {
                 service.prop('disabled', false).attr('placeholder', 'REG, YES, CTC, dll');
             }
         });
-
-        $('.distribusi').trigger('change');
     }
 
     function hideBulkModal() {
@@ -438,13 +461,12 @@
     function executeBulkAction() {
         let isValid = true;
         $('#modalTableBody tr').each(function() {
-            const distribusi = $(this).find('.distribusi').val();
             const jasaKurir = $(this).find('.jasa-kurir').val();
-            if (!distribusi || (distribusi === 'Dikirim' && !jasaKurir)) isValid = false;
+            if (!jasaKurir) isValid = false;
         });
 
         if (!isValid) {
-            alert('Distribusi dan Jasa Kurir wajib diisi!');
+            alert('Jasa Kurir wajib diisi!');
             return;
         }
 
@@ -452,9 +474,11 @@
 
         const updates = [];
         $('#modalTableBody tr').each(function() {
+            const distribusiText = $(this).find('td:nth-child(6) span').text().trim();
+
             updates.push({
                 id: $(this).data('id'),
-                status_kirim: $(this).find('.distribusi').val(),
+                status_kirim: distribusiText,
                 jasa_kurir: $(this).find('.jasa-kurir').val(),
                 service_kurir: $(this).find('.service-kurir').val(),
                 catatan: $(this).find('.catatan').val()

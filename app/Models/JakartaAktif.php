@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class JakartaAktif extends Model
 {
@@ -17,21 +18,16 @@ class JakartaAktif extends Model
         'kab_kota_provinsi', 
         'ekspedisi', 
         'ongkir', 
-        
-        // === SERVICE KURIR ===
-        'service_pengiriman',      // Contoh: J&T REG, J&T YES, JNE REG, SICEPAT, dll
+        'service_pengiriman',
         'tracking_number',
         'status_kirim',
         'estimasi_print_pl',
         'estimasi_persiapan',
-                 // No Resi
         'billing_last_name',
-        // === MANUAL DISTRIBUSI ===
-        'distribusi_manual',       // Yes / No
-        'nama_distributor',        // Nama orang / vendor yang mendistribusikan manual
-        'tgl_distribusi',          // Tanggal distribusi manual
-        'status_distribusi',       // Sudah Didistribusikan / Belum / Gagal
-        
+        'distribusi_manual',
+        'nama_distributor',
+        'tgl_distribusi',
+        'status_distribusi',
         'validasi', 
         'jenis_bank', 
         'status_pembayaran',
@@ -48,13 +44,15 @@ class JakartaAktif extends Model
         'total', 
         'status', 
         'sales', 
-        'catatan'
+        'catatan',
+        'payment_date',           // ← TAMBAHKAN INI
     ];
 
     protected $casts = [
         'tgl_input'      => 'date',
         'tgl_pesan'      => 'datetime',
-        'tgl_distribusi' => 'date',        // Tambahan cast
+        'tgl_distribusi' => 'date',
+        'payment_date'   => 'datetime',     // ← TAMBAHKAN INI
         'berat'          => 'decimal:2',
         'harga'          => 'decimal:2',
         'diskon'         => 'decimal:2',
@@ -63,19 +61,33 @@ class JakartaAktif extends Model
         'ongkir'         => 'decimal:2',
     ];
 
+    // Relasi tetap dipertahankan
     public function casdana()
-{
-    return $this->hasOne(CasdanaTransaction::class, 'invoice_number', 'id_pesan');
-}
+    {
+        return $this->hasOne(CasdanaTransaction::class, 'invoice_number', 'id_pesan');
+    }
 
-public function getPaymentDateAttribute()
+    public function realisasi()
+    {
+        return $this->hasOne(RealisasiAktif::class, 'jakarta_aktif_id');
+    }
+
+    /**
+     * Accessor payment_date (prioritas ke data lokal dulu)
+     */
+    public function getPaymentDateAttribute($value)
 {
-    // Coba ambil dari relasi dulu
+    // Jika ada di kolom lokal → pakai itu (prioritas utama)
+    if ($value !== null) {
+        return $value;
+    }
+
+    // Fallback ke relasi Casdana
     if ($this->relationLoaded('casdana') && $this->casdana?->payment_date) {
         return $this->casdana->payment_date;
     }
 
-    // Fallback query langsung (paling reliable)
+    // Query langsung
     $cas = CasdanaTransaction::where('invoice_number', $this->id_pesan)
             ->orWhere('invoice_number', 'IDB' . $this->id_pesan)
             ->orWhere('invoice_number', 'like', "%{$this->id_pesan}%")
@@ -84,75 +96,12 @@ public function getPaymentDateAttribute()
     return $cas?->payment_date;
 }
 
-
-// In JakartaAktif model
-public static function appendBulkNote($ids, $note)
-{
-    $newNote = "\n\nDi proses bulk pada " . now()->format('d/m/Y H:i') . ": " . $note;
-
-    return static::whereIn('id', $ids)
-        ->update([
-            'catatan' => DB::raw("CONCAT(COALESCE(`catatan`, ''), ?)")
-        ], [$newNote]);
-}
-
-/**
- * Bulk Action untuk Jakarta Aktif
- */
-public function bulkActionJakartaAktif(Request $request)
-{
-    $selectedIds = $request->input('selected', []);
-    $action      = $request->input('action');
-    $statusKirim = $request->input('status_kirim');
-    $catatan     = $request->input('catatan');
-
-    if (empty($selectedIds)) {
-        return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+    /**
+     * Optional: Mutator untuk otomatis sync dari Casdana
+     */
+    public function setPaymentDateAttribute($value)
+    {
+        $this->attributes['payment_date'] = $value;
     }
-
-    if ($action === 'processed') {
-        // Paksa timezone WIB dengan Carbon
-        $now = \Carbon\Carbon::now('Asia/Jakarta');
-
-        if ($catatan) {
-            $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i') . ": " . trim($catatan);
-
-            $updated = DB::update("
-                UPDATE jakarta_aktif 
-                SET is_processed = 1,
-                    processed_at = ?,
-                    updated_at = ?,
-                    status_kirim = ?,
-                    catatan = CONCAT(COALESCE(catatan, ''), ?)
-                WHERE id IN (" . str_repeat('?,', count($selectedIds) - 1) . "?)
-            ", array_merge(
-                [$now, $now, $statusKirim, $newNote],
-                $selectedIds
-            ));
-        } else {
-            $updated = DB::update("
-                UPDATE jakarta_aktif 
-                SET is_processed = 1,
-                    processed_at = ?,
-                    updated_at = ?,
-                    status_kirim = ?
-                WHERE id IN (" . str_repeat('?,', count($selectedIds) - 1) . "?)
-            ", array_merge(
-                [$now, $now, $statusKirim],
-                $selectedIds
-            ));
-        }
-
-        return redirect()->route('order.jakarta-aktif')
-                         ->with('success', "$updated data berhasil diproses dan dikunci.");
-    }
-
-    return redirect()->back()->with('error', 'Aksi tidak dikenali.');
-}
-
-public function realisasi()
-{
-    return $this->hasOne(RealisasiAktif::class, 'jakarta_aktif_id');
-}
-
+    
 }
