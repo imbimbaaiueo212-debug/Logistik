@@ -357,40 +357,23 @@
                     let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
 
                     if (isLocked) {
-                        // MODE TERKUNCI
-                        distribusiHtml = `
-                            <span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">
-                                ${currentDistribusi}
-                            </span>`;
-
+                        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
                         jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
                         serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                        catatanHtml = `
-                            <span class="text-xs text-gray-500 italic">
-                                Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}
-                            </span>`;
+                        catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}</span>`;
                     } else {
-                        // MODE EDIT - Distribusi dikunci
-                        distribusiHtml = `
-                            <span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">
-                                ${currentDistribusi}
-                            </span>`;
+                        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
 
-                        // Jasa Kurir & Service akan diatur di initModalLogic berdasarkan distribusi
-                        jasaKurirHtml = `
-                            <select class="jasa-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                                <option value="">Pilih Jasa Kurir</option>
-                            </select>`;
+                        jasaKurirHtml = `<select class="jasa-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500"><option value="">Pilih Jasa Kurir</option></select>`;
 
-                        serviceKurirHtml = `
-                            <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">`;
+                        serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">`;
 
-                        catatanHtml = `
-                            <input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
+                        catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
                     }
 
                     html += `
-                        <tr data-id="${item.id}" data-distribusi="${currentDistribusi}" class="${isLocked ? 'bg-gray-50 opacity-90' : 'hover:bg-gray-50'}">
+                        <tr data-id="${item.id}" data-distribusi="${currentDistribusi}" 
+                            class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
                             <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
                             <td class="px-4 py-3 font-medium">${item.invoice}</td>
                             <td class="px-4 py-3">${item.to_customer}</td>
@@ -418,19 +401,17 @@
     }
 
     function initModalLogic() {
-        // Logic berdasarkan Distribusi
-        $('#modalTableBody tr:not(.bg-gray-50)').each(function() {
+        // Setup berdasarkan Distribusi
+        $('#modalTableBody tr:not(.processed-row)').each(function() {
             const row = $(this);
             const distribusi = row.data('distribusi');
             const jasaSelect = row.find('.jasa-kurir');
             const serviceInput = row.find('.service-kurir');
 
             if (distribusi === 'Diambil') {
-                // Diambil → kunci semua
                 jasaSelect.html('<option value="Ambil Sendiri" selected>Ambil Sendiri</option>').prop('disabled', true);
                 serviceInput.prop('disabled', true).val('');
             } else {
-                // Dikirim → bisa edit, tanpa opsi Driver
                 jasaSelect.html(`
                     <option value="">Pilih Jasa Kurir</option>
                     <option value="JNE">JNE</option>
@@ -441,7 +422,7 @@
             }
         });
 
-        // Logic Jasa Kurir → Service (hanya berlaku jika Dikirim)
+        // Event listener
         $(document).off('change', '.jasa-kurir').on('change', '.jasa-kurir', function() {
             const jasa = $(this).val();
             const service = $(this).closest('tr').find('.service-kurir');
@@ -451,7 +432,43 @@
             } else {
                 service.prop('disabled', false).attr('placeholder', 'REG, YES, CTC, dll');
             }
+            checkSaveButtonState();
         });
+
+        // Cek saat service diubah juga
+        $(document).off('input change', '.service-kurir').on('input change', '.service-kurir', checkSaveButtonState);
+
+        // Cek pertama kali
+        setTimeout(checkSaveButtonState, 300);
+    }
+
+    // Validasi lengkap: Jasa Kurir & Service harus diisi
+    function checkSaveButtonState() {
+        let isValid = true;
+
+        $('#modalTableBody tr:not(.processed-row)').each(function() {
+            const distribusi = $(this).data('distribusi');
+            const jasaKurir = $(this).find('.jasa-kurir').val();
+            const service = $(this).find('.service-kurir').val().trim();
+
+            if (!jasaKurir) {
+                isValid = false;
+                return false;
+            }
+
+            // Untuk Dikirim, Service juga harus diisi
+            if (distribusi === 'Dikirim' && !service) {
+                isValid = false;
+                return false;
+            }
+        });
+
+        const saveButton = $('.bg-indigo-600');
+        if (isValid) {
+            saveButton.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
+        } else {
+            saveButton.prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+        }
     }
 
     function hideBulkModal() {
@@ -459,14 +476,8 @@
     }
 
     function executeBulkAction() {
-        let isValid = true;
-        $('#modalTableBody tr').each(function() {
-            const jasaKurir = $(this).find('.jasa-kurir').val();
-            if (!jasaKurir) isValid = false;
-        });
-
-        if (!isValid) {
-            alert('Jasa Kurir wajib diisi!');
+        if ($('.bg-indigo-600').prop('disabled')) {
+            alert('❌ Harap isi Jasa Kurir dan Service untuk semua data yang belum terkunci!');
             return;
         }
 
@@ -479,9 +490,9 @@
             updates.push({
                 id: $(this).data('id'),
                 status_kirim: distribusiText,
-                jasa_kurir: $(this).find('.jasa-kurir').val(),
-                service_kurir: $(this).find('.service-kurir').val(),
-                catatan: $(this).find('.catatan').val()
+                jasa_kurir: $(this).find('.jasa-kurir').val() || '',
+                service_kurir: $(this).find('.service-kurir').val() || '',
+                catatan: $(this).find('.catatan').val() || ''
             });
         });
 
