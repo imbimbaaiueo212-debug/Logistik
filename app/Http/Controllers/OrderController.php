@@ -561,7 +561,7 @@ public function printRealisasiPdf(Request $request)
     }
 
     $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data'))
-               ->setPaper('A5', 'landscape')
+               ->setPaper('A4', 'landscape')
                ->setOptions([
                    'defaultFont' => 'sans-serif',
                    'isHtml5ParserEnabled' => true,

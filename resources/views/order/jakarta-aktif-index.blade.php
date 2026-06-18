@@ -462,7 +462,7 @@
             const serviceInput = row.find('.service-kurir');
 
             if (distribusi === 'Diambil') {
-                jasaSelect.html('<option value="Ambil Sendiri" selected>Ambil Sendiri</option>').prop('disabled', true);
+                jasaSelect.html('<option value="Diambil" selected>Diambil</option>').prop('disabled', true);
                 serviceInput.prop('disabled', true).val('');
             } else {
                 jasaSelect.html(`
