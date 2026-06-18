@@ -577,16 +577,17 @@
     if (!confirm(`Yakin ingin memproses ${selectedIds.length} data?`)) return;
 
     const updates = [];
+    
     $('#modalTableBody tr').each(function() {
-        const distribusiText = $(this).find('td:nth-child(7) span').text().trim(); // sesuaikan urutan jika perlu
-
+        const $row = $(this);
+        
         updates.push({
-            id: $(this).data('id'),
-            status_kirim: distribusiText,
-            jasa_kurir: $(this).find('.jasa-kurir').val() || '',
-            service_kurir: $(this).find('.service-kurir').val() || '',
-            alamat_pengiriman: $(this).find('.alamat').val() || '',   // ← TAMBAHKAN INI
-            catatan: $(this).find('.catatan').val() || ''
+            id: $row.data('id'),
+            status_kirim: $row.data('distribusi') || 'Diambil',
+            ekspedisi: $row.find('.jasa-kurir').val() || '',
+            service_pengiriman: $row.find('.service-kurir').val() || '',
+            kirim: $row.find('.alamat').val() || '',           // ← Gunakan kolom 'kirim'
+            catatan: $row.find('.catatan').val() || ''
         });
     });
 

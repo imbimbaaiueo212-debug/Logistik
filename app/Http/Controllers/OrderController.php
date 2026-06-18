@@ -235,30 +235,29 @@ public function updateJakartaAktif(Request $request, $id)
     $item = JakartaAktif::findOrFail($id);
 
     $request->validate([
-    'nama_unit'          => 'nullable|string|max:255',
-    'billing_last_name'  => 'nullable|string|max:100',
-    'pesanan'            => 'nullable|string|max:255',
-    'alamat_pengiriman'  => 'nullable|string',
-    'service_pengiriman' => 'nullable|string|max:100',     // ← BARU
-    'ekspedisi'          => 'nullable|string|max:100',
-    'status_kirim'       => 'nullable|in:Dikirim,Belum Dikirim',
-    'status_pembayaran'  => 'nullable|string|max:50',
-    'validasi'           => 'nullable|string|max:50',
-]);
+        'nama_unit'          => 'nullable|string|max:255',
+        'billing_last_name'  => 'nullable|string|max:100',
+        'pesanan'            => 'nullable|string|max:255',
+        'alamat_pengiriman'  => 'nullable|string',           // ini input dari form
+        'service_pengiriman' => 'nullable|string|max:100',
+        'ekspedisi'          => 'nullable|string|max:100',
+        'status_kirim'       => 'nullable|in:Dikirim,Diambil',
+        'status_pembayaran'  => 'nullable|string|max:50',
+        'validasi'           => 'nullable|string|max:50',
+    ]);
 
-$item->update([
-    'nama_unit'          => $request->nama_unit,
-    'billing_last_name'  => $request->billing_last_name,
-    'pesanan'            => $request->pesanan,
-    'alamat_pengiriman'  => $request->alamat_pengiriman,
-    'kirim'              => $request->alamat_pengiriman,
-    'service_pengiriman' => $request->service_pengiriman,   // ← BARU
-    'ekspedisi'          => $request->ekspedisi,
-    'status_kirim'       => $request->status_kirim,
-    'status_pembayaran'  => $request->status_pembayaran,
-    'validasi'           => $request->validasi,
-    'catatan'            => ($item->catatan ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'),
-]);
+    $item->update([
+        'nama_unit'          => $request->nama_unit,
+        'billing_last_name'  => $request->billing_last_name,
+        'pesanan'            => $request->pesanan,
+        'kirim'              => $request->alamat_pengiriman ?? $item->kirim,   // ← Update kolom yang ada
+        'service_pengiriman' => $request->service_pengiriman,
+        'ekspedisi'          => $request->ekspedisi,
+        'status_kirim'       => $request->status_kirim,
+        'status_pembayaran'  => $request->status_pembayaran,
+        'validasi'           => $request->validasi,
+        'catatan'            => ($item->catatan ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'),
+    ]);
 
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', '✅ Data berhasil diupdate!');
@@ -288,17 +287,16 @@ public function bulkActionJakartaAktif(Request $request)
         $id = $item['id'] ?? null;
         if (!$id) continue;
 
-        // === 1. AMBIL DATA ===
         $jakarta = JakartaAktif::find($id);
         if (!$jakarta) continue;
 
-        $statusKirim      = $item['status_kirim'] ?? $jakarta->status_kirim;
-        $jasaKurir        = $item['jasa_kurir'] ?? $jakarta->ekspedisi;
-        $serviceKurir     = $item['service_kurir'] ?? $jakarta->service_pengiriman;
-        $alamatPengiriman = $item['alamat_pengiriman'] ?? $jakarta->kirim;   // ← BARU
-        $catatan          = $item['catatan'] ?? null;
+        $statusKirim  = $item['status_kirim'] ?? $jakarta->status_kirim;
+        $jasaKurir    = $item['jasa_kurir'] ?? $jakarta->ekspedisi;
+        $serviceKurir = $item['service_kurir'] ?? $jakarta->service_pengiriman;
+        $alamatBaru   = $item['kirim'] ?? $jakarta->kirim;           // ← Pakai kolom 'kirim'
+        $catatan      = $item['catatan'] ?? null;
 
-        // === 2. KUNCI DULU PAKAI RAW SQL ===
+        // === UPDATE PAKAI RAW SQL (Aman & Cepat) ===
         $setClauses = [];
         $bindings   = [];
 
@@ -320,11 +318,9 @@ public function bulkActionJakartaAktif(Request $request)
             $setClauses[] = "service_pengiriman = ?";
             $bindings[] = $serviceKurir;
         }
-        if ($alamatPengiriman) {
-            $setClauses[] = "kirim = ?";
-            $setClauses[] = "alamat_pengiriman = ?";   // ← BARU
-            $bindings[] = $alamatPengiriman;
-            $bindings[] = $alamatPengiriman;
+        if ($alamatBaru) {
+            $setClauses[] = "kirim = ?";           // ← Hanya kolom yang ada
+            $bindings[] = $alamatBaru;
         }
         if ($catatan) {
             $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i') . ": " . trim($catatan);
@@ -338,8 +334,8 @@ public function bulkActionJakartaAktif(Request $request)
 
         $updated = DB::update($sql, array_merge($bindings, [$id]));
 
-        if ($updated) {
-            // === 3. MASUKKAN KE REALISASI AKTIF ===
+        if ($updated > 0) {
+            // === MASUKKAN KE REALISASI AKTIF ===
             if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
 
                 $estimasiHari = null;
@@ -360,7 +356,7 @@ public function bulkActionJakartaAktif(Request $request)
                     'nama_unit'        => $jakarta->nama_unit,
                     'pengiriman'       => $pengiriman,
                     'nama_barang'      => $jakarta->pesanan,
-                    'tgl_bayar'        => $jakarta->tgl_pesan,   
+                    'tgl_bayar'        => $jakarta->tgl_pesan,
                     'jumlah_bayar'     => $jakarta->total ?? 0,
                     'nama_stokis'      => $namaStokis,
                     'tgl_estimasi'     => $jakarta->estimasi_persiapan,
