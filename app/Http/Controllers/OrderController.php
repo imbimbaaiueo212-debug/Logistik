@@ -332,7 +332,7 @@ public function bulkActionJakartaAktif(Request $request)
         $updated = DB::update($sql, array_merge($bindings, [$id]));
 
         if ($updated) {
-          // === 3. MASUKKAN KE REALISASI AKTIF ===
+          // === MASUKKAN KE REALISASI AKTIF ===
 if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
 
     $estimasiHari = null;
@@ -342,33 +342,32 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
         $estimasiHari = $payment->diffInDays($persiapan);
     }
 
-    // === AMBIL NAMA STOKIS DARI SKU ===
     $namaStokis = $this->extractVendorFromSku($jakarta->pesanan ?? '');
 
-    // === PENGIRIMAN DIAMBIL DARI JASA KURIR ===
-    $pengiriman = $jasaKurir ?: ($jakarta->ekspedisi ?? ($statusKirim === 'Diambil' ? 'Ambil Sendiri' : '-'));
+    $pengiriman   = $jasaKurir ?: ($jakarta->ekspedisi ?? ($statusKirim === 'Diambil' ? 'Diambil' : '-'));
+    
+    // === LOGIKA BARU: Isi service_pengiriman otomatis ===
+    $servicePengiriman = $serviceKurir;
+    if (empty($servicePengiriman) && in_array(strtolower($statusKirim), ['diambil', 'diambil'])) {
+        $servicePengiriman = 'Diambil';
+    }
 
     RealisasiAktif::create([
-        'jakarta_aktif_id' => $jakarta->id,
-        'no_pl'            => $jakarta->id_pesan,
-        'tgl_turun_pl'     => $jakarta->tgl_pesan,
-        'nama_unit'        => $jakarta->nama_unit,
-        
-        'pengiriman'       => $pengiriman,
-        
-        'nama_barang'      => $jakarta->pesanan,
-        
-        // === DIUBAH: Ambil dari tgl_pesan (yang punya jam) ===
-        'tgl_bayar'        => $jakarta->tgl_pesan,   
-        
-        'jumlah_bayar'     => $jakarta->total ?? 0,
-        'nama_stokis'      => $namaStokis,
-        
-        'tgl_estimasi'     => $jakarta->estimasi_persiapan,
-        'estimasi_hari'    => $estimasiHari,
-        'penyebut'         => $jakarta->nama_unit,
-        'pengambil'        => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
-        'ket'              => $jakarta->catatan,
+        'jakarta_aktif_id'   => $jakarta->id,
+        'no_pl'              => $jakarta->id_pesan,
+        'tgl_turun_pl'       => $jakarta->tgl_pesan,
+        'nama_unit'          => $jakarta->nama_unit,
+        'pengiriman'         => $pengiriman,
+        'service_pengiriman' => $servicePengiriman,           // ← Diisi otomatis
+        'nama_barang'        => $jakarta->pesanan,
+        'tgl_bayar'          => $jakarta->tgl_pesan,
+        'jumlah_bayar'       => $jakarta->total ?? 0,
+        'nama_stokis'        => $namaStokis,
+        'tgl_estimasi'       => $jakarta->estimasi_persiapan,
+        'estimasi_hari'      => $estimasiHari,
+        'penyebut'           => $jakarta->nama_unit,
+        'pengambil'          => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
+        'ket'                => $jakarta->catatan,
     ]);
 }
             $successCount++;

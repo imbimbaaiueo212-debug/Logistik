@@ -74,7 +74,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th colspan="12" class="main-title py-3 text-left pl-4">
+                        <th colspan="14" class="main-title py-3 text-left pl-4">
                             Rekap Aktual
                         </th>
                     </tr>
@@ -82,7 +82,7 @@
                     <!-- Header Level 1 & 2 tetap sama -->
                     <tr class="header1">
                         <th colspan="2">TANGGAL</th>
-                        <th colspan="3">PENGIRIMAN & BARANG</th>
+                        <th colspan="4">PENGIRIMAN & BARANG</th>
                         <th colspan="2">Pembayaran</th>
                         <th>STOKIS</th>
                         <th colspan="2">ESTIMASI PERSIAPAN</th>
@@ -94,6 +94,7 @@
                         <th>TGL TURUN PL</th>
                         <th>NAMA UNIT</th>
                         <th>PENGIRIMAN</th>
+                        <th>SERVICE</th>
                         <th>NAMA BARANG</th>
                         <th>TGL BAYAR</th>
                         <th>JUMLAH BAYAR</th>
@@ -109,9 +110,10 @@
                     @forelse($data as $item)
                     <tr class="hover:bg-blue-50">
                         <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
-                        <td>{{ $item->tgl_turun_pl ? \Carbon\Carbon::parse($item->tgl_turun_pl)->format('d/m/Y') : '-' }}</td>
+                        <td>{{ $item->tgl_turun_pl ? \Carbon\Carbon::parse($item->tgl_turun_pl)->format('d/m/Y H:i') : '-' }}</td>
                         <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
                         <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
+                        <td class="text-left">{{ $item->service_pengiriman}}</td>
                         <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
                         <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
                         <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>

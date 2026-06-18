@@ -46,6 +46,7 @@
         .tgl-pl       { width: 7%; }
         .nama-unit    { width: 10%; }
         .pengiriman   { width: 9%; }
+        .service-pengiriman { width: 7%; }
         .nama-barang  { width: 8%; }     /* ← Dikecilkan dari 18% */
         .tgl-bayar    { width: 8%; }
         .jumlah-bayar { width: 9%; }
@@ -79,6 +80,7 @@
                 <th class="tgl-pl">Tgl Turun PL</th>
                 <th class="nama-unit text-left">Nama Unit</th>
                 <th class="pengiriman text-left">Pengiriman</th>
+                <th class="service-pengiriman text-left">Service</th>
                 <th class="nama-barang text-left">Nama Barang</th>
                 <th class="tgl-bayar">Tgl Bayar</th>
                 <th class="jumlah-bayar text-right">Jumlah Bayar</th>
@@ -92,11 +94,13 @@
             @foreach($data as $item)
             <tr>
                 <td>{{ $item->no_pl ?? '-' }}</td>
-                <td>{{ $item->tgl_turun_pl ? \Carbon\Carbon::parse($item->tgl_turun_pl)->format('d/m/Y') : '-' }}</td>
+                <td>{{ $item->tgl_turun_pl ? \Carbon\Carbon::parse($item->tgl_turun_pl)->format('d/m/Y H:i') : '-' }}</td>
                 
                 <td class="text-left wrap-text">{{ $item->nama_unit ?? '-' }}</td>
                 
                 <td class="text-left wrap-text">{{ $item->pengiriman ?? '-' }}</td>
+
+                <td class="text-left wrap-text">{{ $item->service_pengiriman ?? '-'}}</td>
                 
                 <td class="text-left wrap-text nama-barang">{{ $item->nama_barang ?? '-' }}</td>
                 
