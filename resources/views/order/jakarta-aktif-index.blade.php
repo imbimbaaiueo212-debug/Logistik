@@ -10,20 +10,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Poppins', sans-serif; }
-        table { border-collapse: collapse; }
-        th, td { padding: 12px 8px; font-size: 0.85rem; }
-        th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
-        tr:hover { background-color: #f8fafc; }
-        
-        .status-success { background-color: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
-        .badge-green { background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-        .badge-yellow { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-        .badge-red { background-color: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-        .badge-black { background-color: #1f2937; color: #f3f4f6; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    body { font-family: 'Poppins', sans-serif; }
+    table { border-collapse: collapse; }
+    th, td { padding: 12px 8px; font-size: 0.85rem; }
+    th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
+    tr:hover { background-color: #f8fafc; }
+    
+    .status-success { background-color: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+    .badge-green { background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    .badge-yellow { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    .badge-red { background-color: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    .badge-black { background-color: #1f2937; color: #f3f4f6; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
 
-        .processed-row { opacity: 0.75; background-color: #f9fafb; }
-    </style>
+    /* PERBAIKAN: Baris yang sudah diproses lebih abu-abu */
+    .processed-row {
+        opacity: 0.65;
+        background-color: #f1f5f9 !important;
+        color: #64748b;
+    }
+    
+    .processed-row td {
+        color: #64748b;
+    }
+</style>
 </head>
 <body class="bg-gray-50">
 
