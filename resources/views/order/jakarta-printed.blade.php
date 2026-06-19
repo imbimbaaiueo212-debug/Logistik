@@ -96,7 +96,7 @@
 
                     <tr class="header2">
                         <th>No PL</th>
-                        <th>TGL TURUN PL</th>
+                        <th>Waktu Serah Terima</th>
                         <th>NAMA UNIT</th>
                         <th>PENGIRIMAN</th>
                         <th>SERVICE</th>

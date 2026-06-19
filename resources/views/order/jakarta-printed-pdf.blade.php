@@ -89,7 +89,7 @@
         <thead>
             <tr>
                 <th class="no-pl">No PL</th>
-                <th class="tgl-pl">Tgl Turun PL</th>
+                <th class="tgl-pl">Waktu Serah Terima</th>
                 <th class="nama-unit text-left">Nama Unit</th>
                 <th class="pengiriman text-left">Pengiriman</th>
                 <th class="service-pengiriman text-left">Service</th>
