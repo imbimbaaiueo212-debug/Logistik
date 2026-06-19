@@ -116,6 +116,8 @@ Route::prefix('order')
             ->name('jakarta-aktif.get-modal-data');
         Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])
             ->name('realisasi.mark-printed-all');
+            Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
+     ->name('jakarta-aktif.export');
     });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);

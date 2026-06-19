@@ -63,6 +63,14 @@
             <div class="flex gap-3">
                 <a href="{{ route('order.unit-pasif') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali ke Dashboard</a>
                 <a href="{{ route('order.jakarta-printed') }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">Rekap Aktual</a>
+                @php
+    $queryString = http_build_query(request()->all());
+@endphp
+
+<a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}" 
+   class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 flex items-center gap-2">
+    📥 Export Excel
+</a>
                 
                 <form action="{{ route('order.jakarta-aktif.sync-jkt') }}" method="POST" style="display: inline;" onsubmit="return confirm('Yakin ingin sync?')">
                     @csrf

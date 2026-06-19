@@ -674,4 +674,14 @@ public function markAllAsPrinted(Request $request)
         'count' => $updated
     ]);
 }
+
+public function exportJakartaAktif(Request $request)
+{
+    $filename = 'Jakarta_Aktif_' . now()->format('Ymd_His') . '.xlsx';
+
+    return Excel::download(
+        new \App\Exports\JakartaAktifExport($request), 
+        $filename
+    );
+}
 }
