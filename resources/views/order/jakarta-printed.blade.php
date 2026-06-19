@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekap Aktual</title>
+    <title>Rekap Aktual Detail</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
@@ -74,9 +74,14 @@
             <table>
                 <thead>
                     <tr>
-                        <th colspan="14" class="main-title py-3 text-left pl-4">
-                            Rekap Aktual
-                        </th>
+                        <tr>
+                            <th colspan="15" class="main-title py-3 text-left pl-4 text-center">
+                                Rekap Aktual Detail - {{ $data->first()?->nama_stokis ?? 'STOKIS JAKARTA' }} 
+                                <span class="text-indigo-600">
+                                    {{ $data->first()?->rekap_number ?? '#0001' }}
+                                </span>
+                            </th>
+                        </tr>
                     </tr>
 
                     <!-- Header Level 1 & 2 tetap sama -->
@@ -117,7 +122,7 @@
                         <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
                         <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
                         <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-                        <td class="text-left nama-stokis">{{ $item->nama_stokis ?? 'JAKARTA' }}</td>
+                        <td class="text-left nama-stokis">{{ $item->nama_stokis }}</td>
                         <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
                         <td class="font-medium estimasi-hari">{{ $item->estimasi_hari ?? '-' }} Hari</td>
                         <td class="text-left text-xs">{{ $item->ket ?? '-' }}</td>

@@ -13,6 +13,7 @@ class RealisasiAktif extends Model
     protected $table = 'realisasi_aktif';
 
     protected $fillable = [
+        'rekap_number',   // ← TAMBAHKAN
         'no_pl', 
         'tgl_turun_pl', 
         'nama_unit', 

@@ -380,9 +380,9 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
 // ====================== MENU PRINT (Sudah Diproses) ======================
 public function jakartaPrinted(Request $request)
 {
-    $query = RealisasiAktif::query();   // ← Ganti ke RealisasiAktif
+    $query = RealisasiAktif::query();
 
-    // Filter
+    // Filter tetap sama...
     if ($request->filled('id_pesan')) {
         $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
     }
@@ -400,11 +400,27 @@ public function jakartaPrinted(Request $request)
     $perPage = in_array($perPage, [10, 20, 50, 100, 200]) ? $perPage : 20;
 
     $data = $query
-        ->latest('created_at')           // atau created_at / tgl_turun_pl
+        ->latest('created_at')
         ->paginate($perPage)
         ->appends($request->query());
 
-    return view('order.jakarta-printed', compact('data'));
+    // Generate nomor SEKALI dan simpan
+    $docNumber = $this->generateRekapNumber();
+
+    // Simpan ke data yang belum punya nomor
+    if ($data->isNotEmpty()) {
+        $idsToUpdate = $data->pluck('id')->toArray();
+        
+        DB::table('realisasi_aktif')
+            ->whereIn('id', $idsToUpdate)
+            ->whereNull('rekap_number')
+            ->update([
+                'rekap_number' => $docNumber,
+                'updated_at'   => now()
+            ]);
+    }
+
+    return view('order.jakarta-printed', compact('data', 'docNumber'));
 }
 /**
  * Hapus data dari Realisasi Aktif (Jakarta Printed)
@@ -549,29 +565,51 @@ public function printRealisasiPdf(Request $request)
 
     $data = $query->latest('tgl_turun_pl')->get();
 
-    // === HANYA update printed_at jika benar-benar mau print ===
-    if ($request->has('mark_printed') && $request->mark_printed == 'true') {
-        $ids = $data->pluck('id')->filter();
-        if ($ids->isNotEmpty()) {
-            RealisasiAktif::whereIn('id', $ids)
-                ->whereNull('printed_at')
-                ->update(['printed_at' => now()]);
-        }
+    // Generate nomor sekali
+    $docNumber = $this->generateRekapNumber();
+
+    // === SIMPAN REKAP NUMBER DENGAN RAW QUERY (Paling Aman) ===
+    if ($data->isNotEmpty()) {
+        $ids = $data->pluck('id');
+        
+        DB::table('realisasi_aktif')
+            ->whereIn('id', $ids)
+            ->whereNull('rekap_number')
+            ->update([
+                'rekap_number' => $docNumber,
+                'updated_at'   => now()
+            ]);
     }
 
-    $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data'))
+    // Mark as printed
+    if ($request->has('mark_printed') && $request->mark_printed == 'true') {
+        $ids = $data->pluck('id');
+        RealisasiAktif::whereIn('id', $ids)
+            ->whereNull('printed_at')
+            ->update(['printed_at' => now()]);
+    }
+
+    $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data', 'docNumber'))
                ->setPaper('A4', 'landscape')
                ->setOptions([
                    'defaultFont' => 'sans-serif',
                    'isHtml5ParserEnabled' => true,
-                   'isRemoteEnabled' => true,
-                   'margin-top'    => 10,
-                   'margin-right'  => 10,
-                   'margin-bottom' => 10,
-                   'margin-left'   => 10,
                ]);
 
     return $pdf->stream('Realisasi-Aktif-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+
+private function generateRekapNumber()
+{
+    // Ambil nomor tertinggi yang pernah ada (bukan hanya hari ini)
+    $lastNumber = DB::table('realisasi_aktif')
+                    ->whereNotNull('rekap_number')
+                    ->max(DB::raw('CAST(SUBSTRING(rekap_number, 2) AS UNSIGNED)'));
+
+    $next = ($lastNumber ?? 0) + 1;
+
+    return '#' . str_pad($next, 4, '0', STR_PAD_LEFT);
 }
 
 public function printSingleRealisasi($id)

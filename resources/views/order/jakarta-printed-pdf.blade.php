@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Rekap Aktual</title>
+    <title>Rekap Aktual Detail</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -68,10 +68,22 @@
     </style>
 </head>
 <body>
-    <h1>REKAP AKTUAL - {{ now()->locale('id')->format('F Y') }}</h1>
+    @php
+        $firstItem = $data->first();
+        $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA';
+        $rekapNo    = $firstItem?->rekap_number ?? '#0001';
+    @endphp
+
+    <h1 style="text-align: center; margin-bottom: 12px; font-size: 15px;">
+        REKAP AKTUAL DETAIL - {{ $stokisName }} 
+        <span style="color: #4f46e5;">{{ $rekapNo }}</span>
+    </h1>
+
     <p style="text-align:left; margin-bottom:10px; font-size:10px;">
         Dicetak pada: {{ now()->format('d M Y H:i') }}
     </p>
+    
+    <!-- Table tetap sama seperti sebelumnya -->
     
     <table>
         <thead>
@@ -83,8 +95,6 @@
                 <th class="service-pengiriman text-left">Service</th>
                 <th class="nama-barang text-left">Nama Barang</th>
                 <th class="tgl-bayar">Tgl Bayar</th>
-                <th class="jumlah-bayar text-right">Jumlah Bayar</th>
-                <th class="nama-stokis text-left">Nama Stokis</th>
                 <th class="tgl-est">Tgl Estimasi</th>
                 <th class="est-hari">Est. Hari</th>
                 <th class="ket text-left">Ket</th>
@@ -105,10 +115,6 @@
                 <td class="text-left wrap-text nama-barang">{{ $item->nama_barang ?? '-' }}</td>
                 
                 <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
-                
-                <td class="text-right">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-                
-                <td class="text-left wrap-text">{{ $item->nama_stokis ?? 'Stokis Jakarta' }}</td>
                 
                 <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
                 
