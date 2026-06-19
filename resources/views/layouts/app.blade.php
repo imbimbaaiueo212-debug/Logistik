@@ -220,7 +220,7 @@
     <!-- TOMBOL BACK -->
     <a href="{{ route('home') }}"
        class="block w-full text-center bg-gray-500 hover:bg-gray-600 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-        Kembali
+        Home
     </a>
 
     <!-- RESET PASSWORD (SELF) -->
