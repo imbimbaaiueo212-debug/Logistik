@@ -26,6 +26,7 @@ use App\Http\Controllers\ReturnDistributionController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\UnitKemitraanController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -68,11 +69,12 @@ Route::prefix('import')
         Route::delete('/casdana/{id}', [ImportController::class, 'casdanaDestroy'])->name('casdana.destroy');
     });
 
-   // ini adalah order realisasi data
+// === ORDER ROUTES ===
 Route::prefix('order')
     ->name('order.')
     ->middleware('auth')
     ->group(function () {
+
         Route::get('/', [OrderController::class, 'index'])->name('index');
         
         Route::get('/unit-aktif', [OrderController::class, 'unitAktif'])->name('unit-aktif');
@@ -94,7 +96,7 @@ Route::prefix('order')
         Route::put('/jakarta-aktif/{id}', [OrderController::class, 'updateJakartaAktif'])
             ->name('jakarta-aktif.update');
 
-        // Realisasi Aktif
+        // Realisasi Aktif (Printed)
         Route::get('/jakarta-printed', [OrderController::class, 'jakartaPrinted'])
             ->name('jakarta-printed');
         
@@ -105,19 +107,34 @@ Route::prefix('order')
         Route::get('/realisasi/print-pdf', [OrderController::class, 'printRealisasiPdf'])
             ->name('realisasi.print-pdf');
 
-        // ← PRINT SINGLE (BARU)
         Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])
             ->name('realisasi.print-single');
 
+        // PICKING LIST (BARU)
+        Route::get('/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
+            ->name('realisasi.picking-list');
+
+        // Lainnya
         Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])
             ->name('jakarta-aktif.filtered-ids');
             
         Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])
             ->name('jakarta-aktif.get-modal-data');
+
         Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])
             ->name('realisasi.mark-printed-all');
-            Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
-     ->name('jakarta-aktif.export');
+
+        Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
+            ->name('jakarta-aktif.export');
+            // Print & Mark Printed untuk Jakarta Aktif
+        Route::get('/order/jakarta/print-single/{id}', [OrderController::class, 'printSingleJakarta'])
+            ->name('order.jakarta.print-single');
+
+        Route::post('/order/jakarta/mark-printed/{id}', [OrderController::class, 'markPrintedJakarta'])
+            ->name('order.jakarta.mark-printed');
+            Route::get('/order/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
+     ->name('order.realisasi.picking-list');
+     Route::post('/order/realisasi/mark-printed/{id}', [OrderController::class, 'markPickingPrinted']);
     });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
@@ -226,3 +243,12 @@ Route::get('/get-products/{supplier}', function ($supplierId) {
     $supplier = \App\Models\Supplier::with('products')->find($supplierId);
     return response()->json($supplier?->products ?? []);
 })->name('get-products');
+
+
+//=========user kemitraan
+Route::resource('unit-kemitraan', UnitKemitraanController::class);
+
+Route::get('/unit-kemitraan/import', [UnitKemitraanController::class, 'importForm'])->name('unit-kemitraan.import');
+Route::post('/unit-kemitraan/import', [UnitKemitraanController::class, 'importStore'])->name('unit-kemitraan.import.store');
+
+//============= REALISASI ORDER

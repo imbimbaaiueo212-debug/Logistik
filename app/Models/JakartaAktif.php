@@ -46,6 +46,7 @@ class JakartaAktif extends Model
         'sales', 
         'catatan',
         'payment_date',           // ← TAMBAHKAN INI
+        'printed_at',
     ];
 
     protected $casts = [

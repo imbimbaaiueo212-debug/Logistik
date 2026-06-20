@@ -143,24 +143,23 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
-                        <th class="text-left px-4 py-3">Waktu import</th>
+                       
                         <th class="text-left px-4 py-3">ID Pesan</th>
                         <th class="text-left px-4 py-3">Nama Unit</th>
                         <th class="text-left px-4 py-3">Cabang</th>
                         <th class="text-left px-4 py-3">Alamat Kirim</th>
                         <th class="text-left px-4 py-3">Kab/Kota</th>
-                        <th class="text-left px-4 py-3">Pesanan</th>
+                        <th class="text-left px-4 py-3">Kategori Pesanan</th>
                         <th class="text-left px-4 py-3">Order Date</th>
                         <th class="text-left px-4 py-3">Payment Date</th>
-                        <th class="text-left px-4 py-3">Estimasi Print PL</th>
+                        <th class="text-left px-4 py-3">Estimasi Print PL | PS</th>
                         <th class="text-left px-4 py-3">Estimasi Persiapan</th>
                         <th class="text-left px-4 py-3">Jasa Kurir</th>
                         <th class="text-left px-4 py-3">Service Kurir</th>
                         <th class="text-left px-4 py-3">Distribusi</th>
                         <th class="text-right px-4 py-3">Ship Total</th>
-                        <th class="text-right px-4 py-3">Berat</th>
-                        <th class="text-right px-4 py-3">Item Price</th>
-                        <th class="text-right px-4 py-3">Total</th>
+                        <th class="text-right px-4 py-3">Berat (gr)</th>
+                        <th class="text-right px-4 py-3">Order Total</th>
                         <th class="text-right px-4 py-3">Payment Channel</th>
                         <th class="text-left px-4 py-3">Status Bayar</th>
                         <th class="text-left px-4 py-3">Status biMBAShop</th>
@@ -179,7 +178,6 @@
                             $jamPersiapan = $paymentDate ? $paymentDate->diffInHours(\Carbon\Carbon::now()) : 999;
                         @endphp
                     <tr class="{{ $isProcessed ? 'processed-row' : '' }} hover:bg-gray-50">
-                        <td class="px-4 py-3 font-medium">{{ $item->created_at ?? '-' }}</td>
                         <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->billing_last_name ?? '-' }}</td>
@@ -221,7 +219,7 @@
                         </td>
                         <td class="text-right px-4 py-3">Rp {{ number_format($item->ongkir ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right px-4 py-3">{{ number_format($item->berat ?? 0, 0, ',', '.') }} gr</td>
-                        <td class="text-right px-4 py-3">Rp {{ number_format($item->harga ?? 0, 0, ',', '.') }}</td>
+                        
                         <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right px-4 py-3">{{ $item->jenis_bank ?? '-' }}</td>
                         <td class="px-4 py-3">

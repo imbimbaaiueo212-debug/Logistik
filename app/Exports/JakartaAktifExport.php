@@ -62,12 +62,15 @@ class JakartaAktifExport implements FromQuery, WithHeadings, WithMapping
             'Payment Channel',
             'Status Bayar',
             'Status biMBAShop',
-            'Tanggal Proses',           // ← BARU
+            'Tanggal Proses',
+            'Status Proses',           // ← BARU
         ];
     }
 
     public function map($item): array
     {
+        $isProcessed = $item->is_processed ?? false;
+
         return [
             $item->id_pesan,
             $item->nama_unit,
@@ -89,7 +92,8 @@ class JakartaAktifExport implements FromQuery, WithHeadings, WithMapping
             $item->jenis_bank,
             $item->status_pembayaran,
             $item->status_pesan,
-            $item->processed_at ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i') : 'Belum Diproses',  // ← BARU
+            $item->processed_at ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i') : 'Belum Diproses',
+            $isProcessed ? 'Diproses' : '',           // ← Sesuai permintaan
         ];
     }
 }

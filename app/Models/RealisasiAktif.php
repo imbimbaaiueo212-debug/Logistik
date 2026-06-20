@@ -13,11 +13,12 @@ class RealisasiAktif extends Model
     protected $table = 'realisasi_aktif';
 
     protected $fillable = [
-        'rekap_number',   // ← TAMBAHKAN
+        'rekap_number',
         'no_pl', 
         'tgl_turun_pl', 
         'nama_unit', 
         'pengiriman', 
+        'service_pengiriman',
         'nama_barang',
         'tgl_bayar', 
         'jumlah_bayar', 
@@ -28,27 +29,34 @@ class RealisasiAktif extends Model
         'pengambil', 
         'ket', 
         'jakarta_aktif_id',
-        
-        // Kolom baru yang ditambahkan
-        'service_pengiriman',   // ← TAMBAHKAN INI
         'is_processed',
         'processed_at',
-        'printed_at',
+        
+        // Kolom baru untuk Picking List
+        'picking_printed_at',
+        
+        // Kolom Berat (baru)
+        'order_weight',     // atau 'berat' jika Anda lebih suka
+        'berat',            // alternatif nama
     ];
 
     protected $casts = [
-        'tgl_turun_pl'   => 'datetime',
-        'tgl_bayar'      => 'datetime',
-        'tgl_estimasi'   => 'datetime',
-        'deleted_at'     => 'datetime',
-        'created_at'     => 'datetime',
-        'updated_at'     => 'datetime',
-        'is_processed'   => 'boolean',
-        'processed_at'   => 'datetime',
-        'printed_at'     => 'datetime',
+        'tgl_turun_pl'      => 'datetime',
+        'tgl_bayar'         => 'datetime',
+        'tgl_estimasi'      => 'datetime',
+        'deleted_at'        => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
+        'is_processed'      => 'boolean',
+        'processed_at'      => 'datetime',
+        'printed_at'        => 'datetime',
+        'picking_printed_at'=> 'datetime',
+        
+        // Cast berat sebagai decimal / float
+        'order_weight'      => 'decimal:2',
+        'berat'             => 'decimal:2',
     ];
 
-    // Opsional: Relasi ke JakartaAktif
     public function jakartaAktif()
     {
         return $this->belongsTo(JakartaAktif::class, 'jakarta_aktif_id');

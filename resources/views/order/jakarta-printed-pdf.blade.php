@@ -70,7 +70,7 @@
 <body>
     @php
         $firstItem = $data->first();
-        $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA';
+        $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
         $rekapNo    = $firstItem?->rekap_number ?? '#0001';
     @endphp
 
@@ -94,6 +94,8 @@
                 <th class="pengiriman text-left">Pengiriman</th>
                 <th class="service-pengiriman text-left">Service</th>
                 <th class="nama-barang text-left">Nama Barang</th>
+                <th>Berat biMBA Shop</th>
+                <th>Berat Aktual</th>
                 <th class="tgl-bayar">Tgl Bayar</th>
                 <th class="tgl-est">Tgl Estimasi</th>
                 <th class="est-hari">Est. Hari</th>
@@ -113,6 +115,14 @@
                 <td class="text-left wrap-text">{{ $item->service_pengiriman ?? '-'}}</td>
                 
                 <td class="text-left wrap-text nama-barang">{{ $item->nama_barang ?? '-' }}</td>
+
+                <td>
+    {{ $item->order_weight ? number_format($item->order_weight, 0, ',', '.') . ' gr' : '-' }}
+</td>
+
+<td style="height:35px;">
+    &nbsp;
+</td>
                 
                 <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
                 

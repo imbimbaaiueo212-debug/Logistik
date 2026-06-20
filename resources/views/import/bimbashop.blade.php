@@ -33,7 +33,7 @@
 
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">Data biMBA Shop</h1>
+                <h1 class="text-3xl font-bold text-gray-800">Data Order (biMBA Shop)</h1>
                 <p class="text-gray-600">Import & Kelola Data Order dari biMBA Shop</p>
             </div>
             <div class="flex gap-3">
@@ -163,6 +163,7 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
+                        <th class="text-left">Waktu Import</th>
                         <th class="text-left">Order ID</th>
                         <th class="text-left">Order Date</th>
                         <th class="text-left">Item SKU</th>
@@ -186,6 +187,7 @@
                 <tbody class="divide-y divide-gray-200">
                     @forelse($bimbashopOrders as $order)
                     <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium">{{ $order->created_at ?? '-' }}</td>
                         <td class="font-medium">{{ $order->order_id }}</td>
                         <td>{{ $order->order_date ? $order->order_date->format('d/m/Y H:i') : '-' }}</td>
                         <td>{{ $order->item_sku ?? '-' }}</td>

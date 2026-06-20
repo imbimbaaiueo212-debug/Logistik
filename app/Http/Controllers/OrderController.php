@@ -368,6 +368,7 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
         'penyebut'           => $jakarta->nama_unit,
         'pengambil'          => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
         'ket'                => $jakarta->catatan,
+        'order_weight' => $jakarta->berat ?? $bimbashop->order_weight ?? 0,  // sesuaikan
     ]);
 }
             $successCount++;
@@ -485,12 +486,12 @@ public function getModalData(Request $request)
 private function extractVendorFromSku($skuOrPesanan)
 {
     if (empty($skuOrPesanan)) {
-        return 'Stokis Jakarta';
+        return 'Stokis Jakarta Aktif';
     }
 
     // Mapping lengkap dari data yang kamu berikan
     $vendorMap = [
-        'JKT'    => 'Stokis Jakarta',
+        'JKT'    => 'Stokis Jakarta Aktif',
         'JKTP'   => 'Stokis Jakarta Pasif',
         'LG'     => 'Stokis Logistik',
         '-LG'    => 'Stokis Logistik',
@@ -663,15 +664,16 @@ public function getFilteredIds(Request $request)
     ]);
 }
 // Tambahkan method ini
-public function markAllAsPrinted(Request $request)
+public function markPickingPrinted($id)
 {
-    $updated = RealisasiAktif::whereNull('printed_at')
-                ->update(['printed_at' => now()]);
+    $item = RealisasiAktif::findOrFail($id);
+
+    $item->update([
+        'picking_printed_at' => now()
+    ]);
 
     return response()->json([
-        'success' => true,
-        'message' => "$updated data ditandai sebagai sudah dicetak.",
-        'count' => $updated
+        'success' => true
     ]);
 }
 
@@ -684,4 +686,41 @@ public function exportJakartaAktif(Request $request)
         $filename
     );
 }
+/**
+ * Print Picking List - Multi Item dari BimbashopOrder
+ */
+public function printPickingList($id)
+{
+    $main = RealisasiAktif::findOrFail($id);
+
+    if (!$main->picking_printed_at) {
+        $main->update([
+            'picking_printed_at' => now()
+        ]);
+    }
+
+    $items = BimbashopOrder::where('order_id', $main->no_pl)
+                ->orderBy('item_sku')
+                ->get();
+
+    if ($items->isEmpty()) {
+        $items = collect([
+            (object)[
+                'item_name' => $main->nama_barang ?? '-',
+                'item_sku'  => '-',
+                'item_qty'  => 1,
+            ]
+        ]);
+    }
+
+    return view('order.picking-list', [
+        'item'      => $main,
+        'data'      => $items,
+        'no_pl'     => $main->no_pl,
+        'tgl_order' => $main->tgl_turun_pl,
+    ]);
+}
+
+
+
 }
