@@ -210,7 +210,7 @@ public function syncJktFromBimbashop()
             'estimasi_print_pl'  => $estimasiPrintPl,
             'estimasi_persiapan' => $estimasiPersiapan,
 
-            'catatan'            => "Synced from Casdana | Status: {$casdana->status} | Channel: {$casdana->payment_channel}",
+            'catatan'            => null,
         ];
 
         JakartaAktif::create($data);
@@ -547,7 +547,7 @@ private function extractVendorFromSku($skuOrPesanan)
     }
 
     // Jika tidak ada kode yang cocok → default JKT
-    return 'Stokis Jakarta';
+    return 'Stokis Jakarta Aktif';
 }
 
 public function printRealisasiPdf(Request $request)

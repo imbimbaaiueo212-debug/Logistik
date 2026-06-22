@@ -19,7 +19,7 @@
         }
         
         th, td {
-            border: 1px solid #374151;
+            border: 1px solid #37415134;
             padding: 8px 6px;
             text-align: center;
             vertical-align: middle;
@@ -67,42 +67,40 @@
             </a>
         </div>
 
-        <div class="flex items-center gap-3" id="print-all-container">
+                <div class="flex items-center gap-3" id="print-all-container">
+            @php
+                $allPrinted = $data->every(fn($item) => !is_null($item->printed_at));
+                $allPickingPrinted = $data->every(fn($item) => !is_null($item->picking_printed_at));
+            @endphp
 
-    @php
-        $allPrinted = $data->every(fn($item) => !is_null($item->printed_at));
-        $allPickingPrinted = $data->every(fn($item) => !is_null($item->picking_printed_at));
-    @endphp
+            <!-- Tombol Cetak PDF Semua - Muncul HANYA jika SEMUA picking sudah di-print -->
+            @if($allPickingPrinted && !$allPrinted)
+                <button onclick="printAllAndMarkPrinted()" 
+                        id="btnPrintAll"
+                        class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
+                    <i class="fa-solid fa-file-pdf"></i> 
+                    Cetak PDF Semua
+                </button>
+            @endif
 
-    <!-- Tombol Cetak PDF Semua - Hanya muncul jika belum semua di-print -->
-    @if(!$allPrinted)
-        <button onclick="printAllAndMarkPrinted()" 
-                id="btnPrintAll"
-                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
-            <i class="fa-solid fa-file-pdf"></i> 
-            Cetak PDF Semua
-        </button>
-    @endif
-
-    <!-- 3 Tombol Advanced - Muncul hanya jika SEMUA sudah picking -->
-    @if($allPickingPrinted)
-        <div id="advanced-print-buttons" class="flex gap-2">
-            <button onclick="printQC()" 
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                <i class="fa-solid fa-clipboard-check"></i> Print QC
-            </button>
-            <button onclick="printPemesanan()" 
-                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                <i class="fa-solid fa-list-check"></i> Print Pemesanan
-            </button>
-            <button onclick="printEkspedisi()" 
-                    class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                <i class="fa-solid fa-truck"></i> Print Ekspedisi
-            </button>
+            <!-- 3 Tombol Advanced - Muncul HANYA jika SEMUA picking sudah di-print -->
+            @if($allPickingPrinted)
+                <div id="advanced-print-buttons" class="flex gap-2">
+                    <button onclick="printQC()" 
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-clipboard-check"></i> Print QC
+                    </button>
+                    <button onclick="printPemesanan()" 
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-list-check"></i> Print Pemesanan
+                    </button>
+                    <button onclick="printEkspedisi()" 
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-truck"></i> Print Ekspedisi
+                    </button>
+                </div>
+            @endif
         </div>
-    @endif
-
-</div>
     </div>      
 
         <!-- TABEL -->
@@ -116,85 +114,107 @@
                     </tr>
 
                     <tr class="header1">
-                        <th colspan="2">TANGGAL</th>
-                        <th colspan="4">PENGIRIMAN & BARANG</th>
+                        <th colspan="2"></th>
+                        <th colspan="3">DETAIL ORDER</th>
+                        <th colspan="2">PENGIRIMAN & BARANG</th>
                         <th colspan="2">PEMBAYARAN</th>
-                        <th>STOKIS</th>
+                       
                         <th colspan="2">ESTIMASI PERSIAPAN</th>
-                        <th colspan="2">BERAT biMBA SHOP | BERAT AKTUAL</th>
+                        
                         <th colspan="1">KETERANGAN</th>
                         <th colspan="2">STATUS PRINT</th>
                     </tr>
 
                     <tr class="header2">
-                        <th>No PL</th>
-                        <th>Waktu Serah Terima</th>
+                        <th class="bg-white-100">NO</th>                    <!-- ← Tambahkan ini -->
+                        <th>WAKTU SERAH TERIMA</th>
+                        <th>ID ORDER</th>
+                        
                         <th>NAMA UNIT</th>
+                        <th>KATEGORI</th>
                         <th>PENGIRIMAN</th>
                         <th>SERVICE</th>
-                        <th>KATEGORI</th>
+                        
                         <th>TGL BAYAR</th>
                         <th>JUMLAH BAYAR</th>
-                        <th>NAMA STOKIS</th>
+                        
                         <th>TGL ESTIMASI</th>
                         <th>ESTIMASI HARI</th>
-                        <th>BERAT biMBA SHOP</th>
-                        <th>BERAT AKTUAL</th>
-                        <th>KET</th>
+                        
+                        <th>CATATAN</th>
                         <th class="bg-white-100">REKAP AKTUAL</th>
                         <th class="bg-white-100">PICKING LIST</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($data as $item)
-                    <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
-                        <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
-                        <td>{{ $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i:d') : '-' }}</td>
-                        <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                        <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
-                        <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
-                        <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
-                        <td>
-                            {{ $item->payment_date 
-                                ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
-                                : ($item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-') }}
-                        </td>
-                        <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-                        
-                        <td class="text-left">{{ $item->nama_stokis ?? '-' }}</td>
-                        <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
-                        <td class="font-medium">{{ $item->estimasi_hari ?? '-' }} Hari</td>
-                        <td class="text-right font-semibold">{{ number_format($item->order_weight ?? 0, 0, ',', '.') }} gr</td>
-                        <td class="text-right font-semibold">{{ null }}</td>
-                        <td class="text-left text-xs">{{ $item->ket ?? '-' }}</td>
-                        
-                        <td class="printed-status text-center">
-                            @if($item->printed_at)
-                                <span class="text-green-600 text-3xl"><i class="fa-solid fa-circle"></i></span>
-                            @else
-                                <span class="text-red-500 text-3xl"><i class="fa-solid fa-circle"></i></span>
-                            @endif
-                        </td>
-                        
-                        <td class="text-center action-cell">
-                            <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-                                    class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
-                                @if($item->picking_printed_at)
-                                    <i class="fa-solid fa-file-pdf"></i>
-                                @else
-                                    <i class="fa-solid fa-print"></i>
-                                @endif
-                            </button>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="16" class="text-center py-20 text-gray-500">
-                            Belum ada data Realisasi Aktif untuk {{ now()->format('F Y') }}
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
+    @forelse($data as $item)
+    <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
+        
+        <!-- KOLOM NOMOR BARU -->
+        <td class="font-medium text-center">{{ $loop->iteration }}</td>
+        <td>{{ $item->printed_at ? \Carbon\Carbon::parse($item->printed_at)->format('d/m/Y H:i') : '-' }}</td>
+        <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
+        
+        <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
+        <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
+        <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
+        <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
+        
+        <td>
+            {{ $item->payment_date 
+                ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
+                : ($item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-') }}
+        </td>
+        <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
+        
+       
+        <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
+        <td class="font-medium">{{ $item->estimasi_hari ?? '-' }} Hari</td>
+        
+        <td class="text-left text-xs whitespace-pre-wrap">
+    @php
+        $catatan = $item->jakartaAktif?->catatan ?? $item->ket ?? '';
+        $lines = array_filter(explode("\n", trim($catatan)));
+        $lastLine = !empty($lines) ? trim(end($lines)) : '';
+        $display = preg_replace('/^Di proses bulk pada .*?: /i', '', $lastLine);
+    @endphp
+    
+    @if($display)
+        <span class="font-bold text-orange-700">
+            {{ $display }}
+        </span>
+    @else
+        <span class="text-gray-400">-</span>
+    @endif
+</td>
+        
+        <td class="printed-status text-center">
+            @if($item->printed_at)
+                <span class="text-green-600 text-3xl"><i class="fa-solid fa-circle"></i></span>
+            @else
+                <span class="text-red-500 text-3xl"><i class="fa-solid fa-circle"></i></span>
+            @endif
+        </td>
+        
+        <td class="text-center action-cell">
+            <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                    class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
+                @if($item->picking_printed_at)
+                    <i class="fa-solid fa-file-pdf"></i>
+                @else
+                    <i class="fa-solid fa-print"></i>
+                @endif
+            </button>
+        </td>
+    </tr>
+    @empty
+    <tr>
+        <td colspan="16" class="text-center py-20 text-gray-500">
+            Belum ada data Realisasi Aktif untuk {{ now()->format('F Y') }}
+        </td>
+    </tr>
+    @endforelse
+</tbody>
             </table>
         </div>
 
@@ -226,120 +246,203 @@
 <script>
 let currentButton = null;
 
-// Cek apakah semua sudah dicetak picking list
+// ==================== CEK SEMUA PICKING ====================
 function checkAllPickingPrinted() {
+
     const rows = document.querySelectorAll('tbody tr[data-id]');
+
     const allPrinted = Array.from(rows).every(row => {
+
         const btn = row.querySelector('.action-btn');
-        return btn && btn.classList.contains('text-purple-600');
+
+        return btn &&
+            btn.classList.contains('text-purple-600');
+
     });
 
-    const advancedButtons = document.getElementById('advanced-print-buttons');
+    const advancedButtons =
+        document.getElementById('advanced-print-buttons');
+
     if (advancedButtons) {
-        advancedButtons.classList.toggle('hidden', !allPrinted);
+        advancedButtons.classList.toggle(
+            'hidden',
+            !allPrinted
+        );
     }
 }
 
-// ==================== 3 PRINT BARU ====================
+// ==================== PRINT QC ====================
 function printQC() {
-    window.open("{{ route('order.realisasi.print-qc') }}?ids={{ $data->pluck('id')->join(',') }}", '_blank');
+    window.open(
+        "{{ route('order.realisasi.print-qc') }}?ids={{ $data->pluck('id')->join(',') }}",
+        '_blank'
+    );
 }
 
+// ==================== PRINT PEMESANAN ====================
 function printPemesanan() {
-    window.open("{{ route('order.realisasi.print-pemesanan') }}?ids={{ $data->pluck('id')->join(',') }}", '_blank');
+    window.open(
+        "{{ route('order.realisasi.print-pemesanan') }}?ids={{ $data->pluck('id')->join(',') }}",
+        '_blank'
+    );
 }
 
+// ==================== PRINT EKSPEDISI ====================
 function printEkspedisi() {
-    window.open("{{ route('order.realisasi.print-ekspedisi') }}?ids={{ $data->pluck('id')->join(',') }}", '_blank');
+    window.open(
+        "{{ route('order.realisasi.print-ekspedisi') }}?ids={{ $data->pluck('id')->join(',') }}",
+        '_blank'
+    );
 }
 
-// ==================== PICKING LIST ====================
+// ==================== BUKA MODAL ====================
 function printPickingList(btn, id, noPL) {
+
     currentButton = btn;
-    const modal = document.getElementById('pickingModal');
-    document.getElementById('modalMessage').innerHTML = `Cetak Picking List untuk No. PL <strong>${noPL}</strong>?`;
-    modal.classList.remove('hidden');
+
+    document.getElementById('modalMessage').innerHTML =
+        `Cetak Picking List untuk No. PL <strong>${noPL}</strong>?`;
+
+    document.getElementById('pickingModal')
+        .classList.remove('hidden');
 }
 
+// ==================== TUTUP MODAL ====================
 function closeModal() {
-    document.getElementById('pickingModal').classList.add('hidden');
+
+    document.getElementById('pickingModal')
+        .classList.add('hidden');
 }
 
-function confirmPrintPicking() {
+// ==================== KONFIRMASI PRINT PICKING ====================
+async function confirmPrintPicking() {
+
     if (!currentButton) return;
 
     const row = currentButton.closest('tr');
     const id = row.dataset.id;
 
-    window.open(`/order/realisasi/picking-list/${id}`, '_blank');
-
-    currentButton.innerHTML = `<i class="fa-solid fa-file-pdf"></i>`;
-    currentButton.classList.add('text-purple-600');
-
-    // Cek ulang setelah print
-    setTimeout(checkAllPickingPrinted, 800);
-
-    closeModal();
-}
-
-// ==================== CETAK PDF SEMUA ====================
-async function printAllAndMarkPrinted() {
-
-    if (!confirm('Cetak SEMUA data dan tandai sebagai sudah dicetak?')) {
-        return;
-    }
-
-    const printUrl =
-        "{{ route('order.realisasi.print-pdf') }}?mark_printed=true";
-
-    // buka PDF
-    window.open(printUrl, '_blank');
-
-    // update tampilan
-    updateStatusOnly();
-
-    // sembunyikan tombol
-    hidePrintAllButton();
-
     try {
 
-        const csrf = document.querySelector(
-            'meta[name="csrf-token"]'
+        // buka PDF
+        window.open(
+            `/order/realisasi/picking-list/${id}`,
+            '_blank'
         );
 
+        // ambil csrf
+        const csrf =
+            document.querySelector(
+                'meta[name="csrf-token"]'
+            );
+
+        // update picking_printed_at
         await fetch(
-            "{{ route('order.realisasi.mark-printed-all') }}",
+            `/order/realisasi/${id}/mark-picking-printed`,
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf
+                    'Content-Type':
+                        'application/json',
+                    'X-CSRF-TOKEN':
+                        csrf
                         ? csrf.getAttribute('content')
                         : ''
                 }
             }
         );
 
+        // ubah icon langsung
+        currentButton.innerHTML =
+            '<i class="fa-solid fa-file-pdf"></i>';
+
+        currentButton.classList.remove(
+            'text-blue-600'
+        );
+
+        currentButton.classList.add(
+            'text-purple-600'
+        );
+
+        closeModal();
+
+        // refresh otomatis
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+
     } catch (error) {
 
         console.error(
-            'Gagal update printed status:',
+            'Gagal update picking_printed_at:',
+            error
+        );
+
+        alert(
+            'Gagal memperbarui status Picking List'
+        );
+    }
+}
+
+// ==================== CETAK PDF SEMUA ====================
+async function printAllAndMarkPrinted() {
+
+    if (!confirm(
+        'Cetak SEMUA data dan tandai sebagai sudah dicetak?'
+    )) {
+        return;
+    }
+
+    try {
+
+        window.open(
+            "{{ route('order.realisasi.print-pdf') }}?mark_printed=true",
+            '_blank'
+        );
+
+        const csrf =
+            document.querySelector(
+                'meta[name="csrf-token"]'
+            );
+
+        await fetch(
+            "{{ route('order.realisasi.mark-printed-all') }}",
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type':
+                        'application/json',
+                    'X-CSRF-TOKEN':
+                        csrf
+                        ? csrf.getAttribute('content')
+                        : ''
+                }
+            }
+        );
+
+        updateStatusOnly();
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+
+    } catch (error) {
+
+        console.error(
+            'Gagal update printed_at:',
             error
         );
     }
 }
 
-// ==================== UPDATE STATUS PRINT ====================
+// ==================== UPDATE STATUS ====================
 function updateStatusOnly() {
 
-    document.querySelectorAll('tbody tr').forEach(row => {
+    document.querySelectorAll(
+        '.printed-status'
+    ).forEach(cell => {
 
-        const statusCell =
-            row.querySelector('.printed-status');
-
-        if (!statusCell) return;
-
-        statusCell.innerHTML = `
+        cell.innerHTML = `
             <span class="text-green-600 text-3xl">
                 <i class="fa-solid fa-circle"></i>
             </span>
@@ -347,24 +450,18 @@ function updateStatusOnly() {
     });
 }
 
-// ==================== HIDE BUTTON ====================
-function hidePrintAllButton() {
+// ==================== LOAD ====================
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-    const printContainer =
-        document.getElementById('print-all-container');
+        checkAllPickingPrinted();
 
-    if (printContainer) {
-        printContainer.style.display = 'none';
+        setInterval(() => {
+            checkAllPickingPrinted();
+        }, 3000);
     }
-}
-
-// Jalankan pengecekan saat halaman load
-document.addEventListener('DOMContentLoaded', function() {
-    checkAllPickingPrinted();
-    
-    // Cek ulang jika ada perubahan
-    setTimeout(checkAllPickingPrinted, 1000);
-});
+);
 </script>
 </body>
 </html>
