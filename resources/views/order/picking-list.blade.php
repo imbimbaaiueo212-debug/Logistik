@@ -95,7 +95,8 @@
         <tr>
             <td>
                 <strong>Nama Unit</strong> : {{ $item->nama_unit ?? '-' }}<br>
-                <strong>No. Telepon</strong> : {{ $item->no_telpon ?? '-' }}
+                <strong>CAB</strong> : {{ $billing_last_name ?? $item->billing_last_name ?? '-' }}<br>
+                <strong>NIM</strong> : {{ $billing_company ?? $item->billing_company ?? '-' }}<br>
             </td>
             <td class="right">
                 <strong>No. Order</strong> : {{ $no_pl ?? $item->no_pl }}<br>

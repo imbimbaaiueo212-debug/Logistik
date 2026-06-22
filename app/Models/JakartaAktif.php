@@ -24,6 +24,7 @@ class JakartaAktif extends Model
         'estimasi_print_pl',
         'estimasi_persiapan',
         'billing_last_name',
+        'billing_company',
         'distribusi_manual',
         'nama_distributor',
         'tgl_distribusi',

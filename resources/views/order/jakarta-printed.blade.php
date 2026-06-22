@@ -90,9 +90,10 @@
                         <th colspan="2">TANGGAL</th>
                         <th colspan="4">PENGIRIMAN & BARANG</th>
                         <th colspan="2">PEMBAYARAN</th>
-                        <th colspan="2">BERAT biMBA SHOP | BERAT AKTUAL</th>
+                        
                         <th>STOKIS</th>
                         <th colspan="2">ESTIMASI PERSIAPAN</th>
+                        <th colspan="2">BERAT biMBA SHOP | BERAT AKTUAL</th>
                         <th colspan="1">KETERANGAN</th>
                         <th colspan="2">STATUS PRINT</th>
                     </tr>
@@ -106,11 +107,12 @@
                         <th>KATEGORI</th>
                         <th>TGL BAYAR</th>
                         <th>JUMLAH BAYAR</th>
-                        <th>BERAT biMBA SHOP</th>
-                        <th>BERAT AKTUAL</th>
+                        
                         <th>NAMA STOKIS</th>
                         <th>TGL ESTIMASI</th>
                         <th>ESTIMASI HARI</th>
+                        <th>BERAT biMBA SHOP</th>
+                        <th>BERAT AKTUAL</th>
                         <th>KET</th>
                         <th class="bg-white-100">REKAP AKTUAL</th>
                         <th class="bg-white-100">PICKING LIST</th>
@@ -127,11 +129,12 @@
                         <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
                         <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
                         <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-                        <td class="text-right font-semibold">{{ number_format($item->order_weight ?? 0, 0, ',', '.') }} gr</td>
-                        <td class="text-right font-semibold">{{ null }}</td>
+                        
                         <td class="text-left">{{ $item->nama_stokis ?? '-' }}</td>
                         <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
                         <td class="font-medium">{{ $item->estimasi_hari ?? '-' }} Hari</td>
+                        <td class="text-right font-semibold">{{ number_format($item->order_weight ?? 0, 0, ',', '.') }} gr</td>
+                        <td class="text-right font-semibold">{{ null }}</td>
                         <td class="text-left text-xs">{{ $item->ket ?? '-' }}</td>
                         
                         <!-- STATUS PRINT - Hanya Lingkaran -->

@@ -203,6 +203,7 @@ public function syncJktFromBimbashop()
             'amount'             => $casdana->amount ?? 0,
 
             'billing_last_name'  => $bimba->billing_last_name ?? null,
+            'billing_company'    => $bimba->billing_company ?? null,     // ← TAMBAHKAN INI
             'status_kirim'       => $statusKirim,
 
             // === ESTIMASI BARU ===
@@ -369,6 +370,9 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
         'pengambil'          => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
         'ket'                => $jakarta->catatan,
         'order_weight' => $jakarta->berat ?? $bimbashop->order_weight ?? 0,  // sesuaikan
+        // === TAMBAHKAN DUA BARIS INI ===
+        'billing_last_name'  => $jakarta->billing_last_name ?? null,
+        'billing_company'    => $jakarta->billing_company ?? null,
     ]);
 }
             $successCount++;
@@ -714,10 +718,12 @@ public function printPickingList($id)
     }
 
     return view('order.picking-list', [
-        'item'      => $main,
-        'data'      => $items,
-        'no_pl'     => $main->no_pl,
-        'tgl_order' => $main->tgl_turun_pl,
+        'item'              => $main,                    // RealisasiAktif
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name, // ← TAMBAHKAN INI
+        'billing_company'    => $main->billing_company,   // ← tambahkan
     ]);
 }
 

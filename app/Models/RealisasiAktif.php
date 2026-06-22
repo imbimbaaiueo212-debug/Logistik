@@ -38,6 +38,8 @@ class RealisasiAktif extends Model
         // Kolom Berat (baru)
         'order_weight',     // atau 'berat' jika Anda lebih suka
         'berat',            // alternatif nama
+        'billing_last_name',
+        'billing_company',
     ];
 
     protected $casts = [
