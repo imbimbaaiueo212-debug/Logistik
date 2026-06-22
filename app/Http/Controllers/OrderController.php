@@ -361,7 +361,7 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
         'pengiriman'         => $pengiriman,
         'service_pengiriman' => $servicePengiriman,           // ← Diisi otomatis
         'nama_barang'        => $jakarta->pesanan,
-        'tgl_bayar'          => $jakarta->tgl_pesan,
+        'tgl_bayar'          => $jakarta->payment_date,
         'jumlah_bayar'       => $jakarta->total ?? 0,
         'nama_stokis'        => $namaStokis,
         'tgl_estimasi'       => $jakarta->estimasi_persiapan,
@@ -725,6 +725,75 @@ public function printPickingList($id)
         'billing_last_name' => $main->billing_last_name, // ← TAMBAHKAN INI
         'billing_company'    => $main->billing_company,   // ← tambahkan
     ]);
+}
+
+/**
+ * Print QC
+ */
+public function printQC(Request $request)
+{
+    $ids = explode(',', $request->get('ids', ''));
+    
+    $data = RealisasiAktif::whereIn('id', $ids)
+                ->orderBy('no_pl')
+                ->get();
+
+    $docNumber = $this->generateRekapNumber();
+
+    $pdf = PDF::loadView('order.print-qc', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Pemesanan
+ */
+public function printPemesanan(Request $request)
+{
+    $ids = explode(',', $request->get('ids', ''));
+
+    $data = RealisasiAktif::whereIn('id', $ids)
+                ->orderBy('no_pl')
+                ->get();
+
+    $docNumber = $this->generateRekapNumber();
+
+    $pdf = PDF::loadView('order.print-pemesanan', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')   // Ubah ke landscape jika terlalu lebar
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('Pemesanan-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Ekspedisi
+ */
+public function printEkspedisi(Request $request)
+{
+    $ids = explode(',', $request->get('ids', ''));
+    
+    $data = RealisasiAktif::whereIn('id', $ids)
+                ->orderBy('no_pl')
+                ->get();
+
+    $docNumber = $this->generateRekapNumber();
+
+    $pdf = PDF::loadView('order.print-ekspedisi', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 

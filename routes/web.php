@@ -110,9 +110,17 @@ Route::prefix('order')
         Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])
             ->name('realisasi.print-single');
 
-        // PICKING LIST (BARU)
+        // PICKING LIST
         Route::get('/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
             ->name('realisasi.picking-list');
+
+        // PRINT QC, PEMESANAN, EKSPEDISI
+        Route::get('/realisasi/print-qc', [OrderController::class, 'printQC'])
+            ->name('realisasi.print-qc');
+        Route::get('/realisasi/print-pemesanan', [OrderController::class, 'printPemesanan'])
+            ->name('realisasi.print-pemesanan');
+        Route::get('/realisasi/print-ekspedisi', [OrderController::class, 'printEkspedisi'])
+            ->name('realisasi.print-ekspedisi');
 
         // Lainnya
         Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])
@@ -126,15 +134,6 @@ Route::prefix('order')
 
         Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
             ->name('jakarta-aktif.export');
-            // Print & Mark Printed untuk Jakarta Aktif
-        Route::get('/order/jakarta/print-single/{id}', [OrderController::class, 'printSingleJakarta'])
-            ->name('order.jakarta.print-single');
-
-        Route::post('/order/jakarta/mark-printed/{id}', [OrderController::class, 'markPrintedJakarta'])
-            ->name('order.jakarta.mark-printed');
-            Route::get('/order/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
-     ->name('order.realisasi.picking-list');
-     Route::post('/order/realisasi/mark-printed/{id}', [OrderController::class, 'markPickingPrinted']);
     });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);

@@ -135,7 +135,11 @@
             <td class="right"><strong>TOTAL QTY</strong> : {{ $data->sum('item_qty') ?? $data->sum('qty') ?? $data->count() }}</td>
         </tr>
     </table>
-    Total Berat {{ number_format($row->order_weight ?? 0, 2) }}
+    <table style="border: none; margin-top: 5px;">
+        <tr>
+    <td>Total Berat : {{ number_format($row->order_weight ?? 0, 2) }} gr</td>
+        </tr>
+    </table>
 
     <div style="margin-top: 35px; display: flex; gap: 60px; font-size: 13px;">
         <div>

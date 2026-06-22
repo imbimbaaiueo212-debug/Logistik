@@ -67,13 +67,42 @@
             </a>
         </div>
 
-        <div id="print-all-container" class="flex items-center gap-3">
-            <button onclick="printAllAndMarkPrinted()" 
-                    class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
-                <i class="fa-solid fa-file-pdf"></i> 
-                Cetak PDF Semua
+        <div class="flex items-center gap-3" id="print-all-container">
+
+    @php
+        $allPrinted = $data->every(fn($item) => !is_null($item->printed_at));
+        $allPickingPrinted = $data->every(fn($item) => !is_null($item->picking_printed_at));
+    @endphp
+
+    <!-- Tombol Cetak PDF Semua - Hanya muncul jika belum semua di-print -->
+    @if(!$allPrinted)
+        <button onclick="printAllAndMarkPrinted()" 
+                id="btnPrintAll"
+                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
+            <i class="fa-solid fa-file-pdf"></i> 
+            Cetak PDF Semua
+        </button>
+    @endif
+
+    <!-- 3 Tombol Advanced - Muncul hanya jika SEMUA sudah picking -->
+    @if($allPickingPrinted)
+        <div id="advanced-print-buttons" class="flex gap-2">
+            <button onclick="printQC()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                <i class="fa-solid fa-clipboard-check"></i> Print QC
+            </button>
+            <button onclick="printPemesanan()" 
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                <i class="fa-solid fa-list-check"></i> Print Pemesanan
+            </button>
+            <button onclick="printEkspedisi()" 
+                    class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                <i class="fa-solid fa-truck"></i> Print Ekspedisi
             </button>
         </div>
+    @endif
+
+</div>
     </div>      
 
         <!-- TABEL -->
@@ -81,7 +110,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th colspan="14" class="main-title py-3 text-center">
+                        <th colspan="16" class="main-title py-3 text-center">
                             Rekap Aktual Detail - {{ $data->first()?->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
                         </th>
                     </tr>
@@ -90,7 +119,6 @@
                         <th colspan="2">TANGGAL</th>
                         <th colspan="4">PENGIRIMAN & BARANG</th>
                         <th colspan="2">PEMBAYARAN</th>
-                        
                         <th>STOKIS</th>
                         <th colspan="2">ESTIMASI PERSIAPAN</th>
                         <th colspan="2">BERAT biMBA SHOP | BERAT AKTUAL</th>
@@ -107,7 +135,6 @@
                         <th>KATEGORI</th>
                         <th>TGL BAYAR</th>
                         <th>JUMLAH BAYAR</th>
-                        
                         <th>NAMA STOKIS</th>
                         <th>TGL ESTIMASI</th>
                         <th>ESTIMASI HARI</th>
@@ -122,12 +149,16 @@
                     @forelse($data as $item)
                     <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
                         <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
-                        <td>{{ $item->tgl_turun_pl ? \Carbon\Carbon::parse($item->tgl_turun_pl)->format('d/m/Y H:i') : '-' }}</td>
+                        <td>{{ $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i:d') : '-' }}</td>
                         <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
                         <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
                         <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
                         <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
-                        <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
+                        <td>
+                            {{ $item->payment_date 
+                                ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
+                                : ($item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-') }}
+                        </td>
                         <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
                         
                         <td class="text-left">{{ $item->nama_stokis ?? '-' }}</td>
@@ -137,39 +168,28 @@
                         <td class="text-right font-semibold">{{ null }}</td>
                         <td class="text-left text-xs">{{ $item->ket ?? '-' }}</td>
                         
-                        <!-- STATUS PRINT - Hanya Lingkaran -->
                         <td class="printed-status text-center">
                             @if($item->printed_at)
-                                <span class="text-green-600 text-3xl">
-                                    <i class="fa-solid fa-circle"></i>
-                                </span>
+                                <span class="text-green-600 text-3xl"><i class="fa-solid fa-circle"></i></span>
                             @else
-                                <span class="text-red-500 text-3xl">
-                                    <i class="fa-solid fa-circle"></i>
-                                </span>
+                                <span class="text-red-500 text-3xl"><i class="fa-solid fa-circle"></i></span>
                             @endif
                         </td>
                         
-                        <!-- AKSI PICKING LIST -->
                         <td class="text-center action-cell">
                             <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-                                    class="action-btn
-                                    {{ $item->picking_printed_at
-                                        ? 'text-purple-600'
-                                        : 'text-blue-600 hover:text-blue-700' }}">
-
+                                    class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
                                 @if($item->picking_printed_at)
                                     <i class="fa-solid fa-file-pdf"></i>
                                 @else
                                     <i class="fa-solid fa-print"></i>
                                 @endif
-
                             </button>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="14" class="text-center py-20 text-gray-500">
+                        <td colspan="16" class="text-center py-20 text-gray-500">
                             Belum ada data Realisasi Aktif untuk {{ now()->format('F Y') }}
                         </td>
                     </tr>
@@ -193,12 +213,10 @@
             <p class="text-gray-600 mb-6" id="modalMessage"></p>
             
             <div class="flex gap-3">
-                <button onclick="closeModal()" 
-                        class="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 font-medium">
+                <button onclick="closeModal()" class="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 font-medium">
                     Batal
                 </button>
-                <button onclick="confirmPrintPicking()" 
-                        class="flex-1 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium flex items-center justify-center gap-2">
+                <button onclick="confirmPrintPicking()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium flex items-center justify-center gap-2">
                     <i class="fa-solid fa-print"></i> Cetak Sekarang
                 </button>
             </div>
@@ -208,15 +226,38 @@
 <script>
 let currentButton = null;
 
+// Cek apakah semua sudah dicetak picking list
+function checkAllPickingPrinted() {
+    const rows = document.querySelectorAll('tbody tr[data-id]');
+    const allPrinted = Array.from(rows).every(row => {
+        const btn = row.querySelector('.action-btn');
+        return btn && btn.classList.contains('text-purple-600');
+    });
+
+    const advancedButtons = document.getElementById('advanced-print-buttons');
+    if (advancedButtons) {
+        advancedButtons.classList.toggle('hidden', !allPrinted);
+    }
+}
+
+// ==================== 3 PRINT BARU ====================
+function printQC() {
+    window.open("{{ route('order.realisasi.print-qc') }}?ids={{ $data->pluck('id')->join(',') }}", '_blank');
+}
+
+function printPemesanan() {
+    window.open("{{ route('order.realisasi.print-pemesanan') }}?ids={{ $data->pluck('id')->join(',') }}", '_blank');
+}
+
+function printEkspedisi() {
+    window.open("{{ route('order.realisasi.print-ekspedisi') }}?ids={{ $data->pluck('id')->join(',') }}", '_blank');
+}
+
 // ==================== PICKING LIST ====================
 function printPickingList(btn, id, noPL) {
     currentButton = btn;
-
     const modal = document.getElementById('pickingModal');
-
-    document.getElementById('modalMessage').innerHTML =
-        `Cetak Picking List untuk No. PL <strong>${noPL}</strong>?`;
-
+    document.getElementById('modalMessage').innerHTML = `Cetak Picking List untuk No. PL <strong>${noPL}</strong>?`;
     modal.classList.remove('hidden');
 }
 
@@ -225,30 +266,18 @@ function closeModal() {
 }
 
 function confirmPrintPicking() {
-
     if (!currentButton) return;
 
     const row = currentButton.closest('tr');
     const id = row.dataset.id;
 
-    // buka halaman picking list
     window.open(`/order/realisasi/picking-list/${id}`, '_blank');
 
-    // ubah icon menjadi PDF
-    currentButton.innerHTML =
-        `<i class="fa-solid fa-file-pdf"></i>`;
+    currentButton.innerHTML = `<i class="fa-solid fa-file-pdf"></i>`;
+    currentButton.classList.add('text-purple-600');
 
-    currentButton.classList.remove(
-        'text-blue-600',
-        'hover:text-blue-700'
-    );
-
-    currentButton.classList.add(
-        'text-purple-600'
-    );
-
-    // tandai sudah print
-    row.dataset.pickingPrinted = "1";
+    // Cek ulang setelah print
+    setTimeout(checkAllPickingPrinted, 800);
 
     closeModal();
 }
@@ -329,52 +358,12 @@ function hidePrintAllButton() {
     }
 }
 
-// ==================== PAGE LOAD ====================
+// Jalankan pengecekan saat halaman load
 document.addEventListener('DOMContentLoaded', function() {
-
-    const rows =
-        document.querySelectorAll('tbody tr');
-
-    let allPrinted = true;
-
-    rows.forEach(row => {
-
-        const statusCell =
-            row.querySelector('.printed-status');
-
-        if (
-            statusCell &&
-            statusCell.querySelector('.text-red-500')
-        ) {
-            allPrinted = false;
-        }
-    });
-
-    if (allPrinted && rows.length > 0) {
-        hidePrintAllButton();
-    }
-});
-
-// ==================== CLOSE MODAL OUTSIDE CLICK ====================
-document.addEventListener('click', function(e) {
-
-    const modal =
-        document.getElementById('pickingModal');
-
-    if (
-        modal &&
-        e.target === modal
-    ) {
-        closeModal();
-    }
-});
-
-// ==================== ESC KEY CLOSE ====================
-document.addEventListener('keydown', function(e) {
-
-    if (e.key === 'Escape') {
-        closeModal();
-    }
+    checkAllPickingPrinted();
+    
+    // Cek ulang jika ada perubahan
+    setTimeout(checkAllPickingPrinted, 1000);
 });
 </script>
 </body>
