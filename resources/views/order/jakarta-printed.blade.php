@@ -171,18 +171,29 @@
         <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
         <td class="font-medium">{{ $item->estimasi_hari ?? '-' }} Hari</td>
         
-        <td class="text-left text-xs whitespace-pre-wrap">
+        <td class="text-center text-xs py-3">
     @php
         $catatan = $item->jakartaAktif?->catatan ?? $item->ket ?? '';
         $lines = array_filter(explode("\n", trim($catatan)));
         $lastLine = !empty($lines) ? trim(end($lines)) : '';
         $display = preg_replace('/^Di proses bulk pada .*?: /i', '', $lastLine);
+        $statusLower = strtolower($display);
     @endphp
     
     @if($display)
-        <span class="font-bold text-orange-700">
-            {{ $display }}
-        </span>
+        @if(str_contains($statusLower, 'hold'))
+            <span class="inline-block font-bold text-red-600 bg-red-100 px-3 py-1 rounded-md">
+                {{ strtoupper($display) }}
+            </span>
+        @elseif(str_contains($statusLower, 'proces') || str_contains($statusLower, 'processing'))
+            <span class="inline-block font-bold text-green-600 bg-green-100 px-3 py-1 rounded-md">
+                {{ strtoupper($display) }}
+            </span>
+        @else
+            <span class="inline-block font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-md">
+                {{ strtoupper($display) }}
+            </span>
+        @endif
     @else
         <span class="text-gray-400">-</span>
     @endif
