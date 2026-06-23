@@ -10,47 +10,80 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <style>
-        body { font-family: 'Poppins', sans-serif; }
-        
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            font-size: 0.85rem;
-        }
-        
-        th, td {
-            border: 1px solid #37415134;
-            padding: 8px 6px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        
-        .main-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            background-color: #ffffff;
-        }
-        
-        .header1 { background-color: #ffffff; font-weight: 700; }
-        .header2 { background-color: #ffffff; font-weight: 600; }
+    body { font-family: 'Poppins', sans-serif; }
+    
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.85rem;
+        border: 3px solid #374151;
+    }
+    
+    th, td {
+        border: 1px solid #37415171;
+        padding: 10px 8px;
+        text-align: center;
+        vertical-align: middle;
+    }
 
-        tr:hover { background-color: #f8fafc; }
-        
-        .text-left { text-align: left; }
-        .text-right { text-align: right; }
-        
-        .printed-status { font-size: 0.8rem; }
-        .action-btn { 
-            font-size: 1.5rem; 
-            transition: all 0.2s; 
-            padding: 6px 10px;
-            border-radius: 8px;
-        }
-        .action-btn:hover { 
-            transform: scale(1.2); 
-            background-color: #f1f5f9;
-        }
-    </style>
+    /* ================== HEADER GROUP & BORDER TEBAL ================== */
+    .header1 th, 
+    .header2 th {
+        background-color: #f1f5f9;
+        border-bottom: 3px solid #374151;
+        font-weight: 600;
+    }
+
+    /* Border luar tabel */
+    th:first-child, td:first-child { border-left: 3px solid #374151; }
+    th:last-child,  td:last-child  { border-right: 3px solid #374151; }
+
+    /* ================== GARIS TEBAL PEMBATAS GROUP ================== */
+    
+    /* Setelah NO */
+    th:nth-child(1),
+    td:nth-child(1) { border-right: 3px solid #374151; }
+
+    /* Setelah WAKTU PRINT RA */
+    th:nth-child(2),
+    td:nth-child(2) { border-right: 3px solid #374151; }
+
+    /* Setelah DETAIL ORDER (setelah KATEGORI) */
+    th:nth-child(3),
+    td:nth-child(5) { border-right: 3px solid #374151; }
+
+    /* Setelah PENGIRIMAN & SERVICE (setelah SERVICE) */
+    th:nth-child(5),
+    th:nth-child(4),
+    td:nth-child(7) { border-right: 3px solid #374151; }
+
+    /* Setelah PEMBAYARAN (setelah JUMLAH BAYAR) */
+    th:nth-child(9),
+    th:nth-child(7),
+    td:nth-child(9) { border-right: 3px solid #374151; }
+
+    /* Setelah ESTIMASI PERSIAPAN (setelah HARI) */
+    th:nth-child(6),
+    td:nth-child(11) { border-right: 3px solid #374151; }
+
+    /* Setelah CATATAN */
+    th:nth-child(12),
+    td:nth-child(12) { border-right: 3px solid #374151; }
+
+    .main-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        background-color: #ffffff;
+        border-bottom: 3px solid #374151;
+    }
+    
+    tr:hover { 
+        background-color: #f8fafc; 
+    }
+    
+    .text-left { text-align: left; }
+    .text-right { text-align: right; }
+</style>
 </head>
 <body class="bg-gray-50">
 
@@ -87,16 +120,20 @@
             @if($allPickingPrinted)
                 <div id="advanced-print-buttons" class="flex gap-2">
                     <button onclick="printQC()" 
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-clipboard-check"></i> Print QC
+                            class="bg-emerald-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-clipboard-check"></i> Print RA QC
                     </button>
                     <button onclick="printPemesanan()" 
                             class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-list-check"></i> Print Pemesanan
+                        <i class="fa-solid fa-list-check"></i> Print RA PICKING
+                    </button>
+                    <button onclick="printPacking()"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                            <i class="fas fa-box mr-1"></i> Print RA Packing
                     </button>
                     <button onclick="printEkspedisi()" 
-                            class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-truck"></i> Print Ekspedisi
+                            class="bg-emerald-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-truck"></i> Print RA DISTRIBUSI
                     </button>
                 </div>
             @endif
@@ -104,130 +141,141 @@
     </div>      
 
         <!-- TABEL -->
-        <div class="bg-white shadow-lg border-2 border-gray-800 overflow-x-auto">
-            <table>
-                <thead>
-                    <tr>
-                        <th colspan="16" class="main-title py-3 text-center">
-                            Rekap Aktual Detail - {{ $data->first()?->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
-                        </th>
-                    </tr>
+        <!-- TABEL -->
+<div class="bg-white shadow-lg border-2 border-gray-800 overflow-x-auto">
+    <table>
+        <thead>
+            <!-- BARIS JUDUL UTAMA -->
+            <tr>
+                <th colspan="14" class="main-title py-4 text-center">
+                    <div class="flex justify-between items-center px-6">
+                        <div class="flex-1 text-center">
+                            Rekap Aktual Detail - 
+                            {{ $data->first()?->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
+                            <span class="text-indigo-600 font-semibold">
+                                {{ $data->first()?->rekap_number ?? '#0001' }}
+                            </span>
+                        </div>
 
-                    <tr class="header1">
-                        <th colspan="2"></th>
-                        <th colspan="3">DETAIL ORDER</th>
-                        <th colspan="2">PENGIRIMAN & BARANG</th>
-                        <th colspan="2">PEMBAYARAN</th>
-                       
-                        <th colspan="2">ESTIMASI PERSIAPAN</th>
-                        
-                        <th colspan="1">KETERANGAN</th>
-                        <th colspan="2">STATUS PRINT</th>
-                    </tr>
+                        @php
+                            $firstDate = $data->min('created_at');
+                        @endphp
+                        @if($firstDate)
+                            <div class="text-right flex-shrink-0">
+                                <div class="text-gray-600 text-sm font-medium leading-tight">
+                                    Waktu Serah Terima
+                                </div>
+                                <div class="text-gray-700 text-base font-semibold leading-tight">
+                                    {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </th>
+            </tr>
 
-                    <tr class="header2">
-                        <th class="bg-white-100">NO</th>                    <!-- ← Tambahkan ini -->
-                        <th>WAKTU SERAH TERIMA</th>
-                        <th>ID ORDER</th>
-                        
-                        <th>NAMA UNIT</th>
-                        <th>KATEGORI</th>
-                        <th>PENGIRIMAN</th>
-                        <th>SERVICE</th>
-                        
-                        <th>TGL BAYAR</th>
-                        <th>JUMLAH BAYAR</th>
-                        
-                        <th>TGL ESTIMASI</th>
-                        <th>ESTIMASI HARI</th>
-                        
-                        <th>CATATAN</th>
-                        <th class="bg-white-100">REKAP AKTUAL</th>
-                        <th class="bg-white-100">PICKING LIST</th>
-                    </tr>
-                </thead>
-                <tbody>
-    @forelse($data as $item)
-    <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
-        
-        <!-- KOLOM NOMOR BARU -->
-        <td class="font-medium text-center">{{ $loop->iteration }}</td>
-        <td>{{ $item->printed_at ? \Carbon\Carbon::parse($item->printed_at)->format('d/m/Y H:i') : '-' }}</td>
-        <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
-        
-        <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-        <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
-        <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
-        <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
-        
-        <td>
-            {{ $item->payment_date 
-                ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
-                : ($item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-') }}
-        </td>
-        <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-        
-       
-        <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
-        <td class="font-medium">{{ $item->estimasi_hari ?? '-' }} Hari</td>
-        
-        <td class="text-center text-xs py-3">
-    @php
-        $catatan = $item->jakartaAktif?->catatan ?? $item->ket ?? '';
-        $lines = array_filter(explode("\n", trim($catatan)));
-        $lastLine = !empty($lines) ? trim(end($lines)) : '';
-        $display = preg_replace('/^Di proses bulk pada .*?: /i', '', $lastLine);
-        $statusLower = strtolower($display);
-    @endphp
-    
-    @if($display)
-        @if(str_contains($statusLower, 'hold'))
-            <span class="inline-block font-bold text-red-600 bg-red-100 px-3 py-1 rounded-md">
-                {{ strtoupper($display) }}
-            </span>
-        @elseif(str_contains($statusLower, 'proces') || str_contains($statusLower, 'processing'))
-            <span class="inline-block font-bold text-green-600 bg-green-100 px-3 py-1 rounded-md">
-                {{ strtoupper($display) }}
-            </span>
-        @else
-            <span class="inline-block font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-md">
-                {{ strtoupper($display) }}
-            </span>
-        @endif
-    @else
-        <span class="text-gray-400">-</span>
-    @endif
-</td>
-        
-        <td class="printed-status text-center">
-            @if($item->printed_at)
-                <span class="text-green-600 text-3xl"><i class="fa-solid fa-circle"></i></span>
-            @else
-                <span class="text-red-500 text-3xl"><i class="fa-solid fa-circle"></i></span>
-            @endif
-        </td>
-        
-        <td class="text-center action-cell">
-            <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-                    class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
-                @if($item->picking_printed_at)
-                    <i class="fa-solid fa-file-pdf"></i>
+            <!-- HEADER GROUP (BARIS KE-2) -->
+            <tr class="header1">
+                <th rowspan="2" class="bg-white-100">NO</th>                    <!-- ← Merge dengan baris di bawahnya -->
+                <th rowspan="2" class="bg-white-100">WAKTU PRINT RA</th>  
+                <th colspan="3">DETAIL ORDER</th>
+                <th colspan="2">PENGIRIMAN & SERVICE</th>
+                <th colspan="2">PEMBAYARAN</th>
+                <th colspan="2">ESTIMASI PERSIAPAN</th>
+                <th rowspan="2" class="bg-white-100">CATATAN</th>
+                <th colspan="2" class="bg-white-100">STATUS PRINT</th>
+            </tr>
+
+            <!-- HEADER KOLOM DETAIL (BARIS KE-3) -->
+            <tr class="header2">
+                
+                <th>ID ORDER</th>
+                <th>NAMA UNIT</th>
+                <th>KATEGORI</th>
+                <th>PENGIRIMAN</th>
+                <th>SERVICE</th>
+                <th>TGL BAYAR</th>
+                <th>JUMLAH BAYAR</th>
+                <th>TGL ESTIMASI</th>
+                <th>HARI</th>
+                <!-- CATATAN sudah di-merged di atas -->
+                <th class="bg-white-100">REKAP AKTUAL</th>
+                <th class="bg-white-100">PICKING LIST</th>
+            </tr>
+        </thead>
+        <tbody>
+        @forelse($data as $item)
+        <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
+            
+            <!-- Kolom NO -->
+            <td class="font-medium text-center">{{ $loop->iteration }}</td>
+            
+            <td>{{ $item->printed_at ? \Carbon\Carbon::parse($item->printed_at)->format('d/m/Y H:i:s') : '-' }}</td>
+            <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
+            
+            <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
+            <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
+            <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
+            <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
+            
+            <td>
+                {{ $item->payment_date 
+                    ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
+                    : ($item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-') }}
+            </td>
+            <td class="text-right font-semibold">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
+            
+            <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
+            <td class="font-medium">{{ $item->estimasi_hari ?? '-' }} Hari</td>
+            
+            <!-- CATATAN -->
+            <td class="text-center text-xs py-3">
+                @php
+                    $catatan = $item->jakartaAktif?->catatan ?? $item->ket ?? '';
+                    $lines = array_filter(explode("\n", trim($catatan)));
+                    $lastLine = !empty($lines) ? trim(end($lines)) : '';
+                    $display = preg_replace('/^Di proses bulk pada .*?: /i', '', $lastLine);
+                @endphp
+                
+                @if($display)
+                    <span class="inline-block font-bold text-gray-900 bg-gray-100 px-3 py-1 rounded-md">
+                        {{ strtoupper($display) }}
+                    </span>
                 @else
-                    <i class="fa-solid fa-print"></i>
+                    <span class="text-gray-400">-</span>
                 @endif
-            </button>
-        </td>
-    </tr>
-    @empty
-    <tr>
-        <td colspan="16" class="text-center py-20 text-gray-500">
-            Belum ada data Realisasi Aktif untuk {{ now()->format('F Y') }}
-        </td>
-    </tr>
-    @endforelse
-</tbody>
-            </table>
-        </div>
+            </td>
+            
+            <!-- STATUS PRINT -->
+            <td class="printed-status text-center">
+                @if($item->printed_at)
+                    <span class="text-green-600 text-3xl"><i class="fa-solid fa-circle"></i></span>
+                @else
+                    <span class="text-red-500 text-3xl"><i class="fa-solid fa-circle"></i></span>
+                @endif
+            </td>
+            
+            <td class="text-center action-cell">
+                <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                        class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
+                    @if($item->picking_printed_at)
+                        <i class="fa-solid fa-file-pdf"></i>
+                    @else
+                        <i class="fa-solid fa-print"></i>
+                    @endif
+                </button>
+            </td>
+        </tr>
+        @empty
+        <tr>
+            <td colspan="14" class="text-center py-20 text-gray-500">
+                Belum ada data Realisasi Aktif untuk {{ now()->format('F Y') }}
+            </td>
+        </tr>
+        @endforelse
+        </tbody>
+    </table>
+</div>
 
         @if($data->count() > 0)
         <div class="mt-6 text-sm text-gray-600 flex justify-between items-center">
@@ -302,6 +350,14 @@ function printPemesanan() {
 function printEkspedisi() {
     window.open(
         "{{ route('order.realisasi.print-ekspedisi') }}?ids={{ $data->pluck('id')->join(',') }}",
+        '_blank'
+    );
+}
+
+// ==================== PRINT PACKING ====================
+function printPacking() {
+    window.open(
+        "{{ route('order.realisasi.print-packing') }}?ids={{ $data->pluck('id')->join(',') }}",
         '_blank'
     );
 }

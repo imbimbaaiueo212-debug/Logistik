@@ -726,76 +726,89 @@ public function printPickingList($id)
         'billing_company'    => $main->billing_company,   // ← tambahkan
     ]);
 }
-
 /**
  * Print QC
  */
 public function printQC(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
-    
+
+    // Update status printed
+    RealisasiAktif::whereIn('id', $ids)
+        ->whereNull('qc_printed_at')
+        ->update(['qc_printed_at' => now()]);
+
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    $pdf = PDF::loadView('order.print-qc', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
-
-    return $pdf->stream('QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return view('order.print-qc', compact('data', 'docNumber'));
 }
 
 /**
- * Print Pemesanan
+ * Print Pemesanan (RA Picking)
  */
 public function printPemesanan(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
 
+    // Update status printed
+    RealisasiAktif::whereIn('id', $ids)
+        ->whereNull('ra_picking_printed_at')
+        ->update(['ra_picking_printed_at' => now()]);
+
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    $pdf = PDF::loadView('order.print-pemesanan', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')   // Ubah ke landscape jika terlalu lebar
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
-
-    return $pdf->stream('Pemesanan-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return view('order.print-pemesanan', compact('data', 'docNumber'));
 }
 
 /**
- * Print Ekspedisi
+ * Print Packing
+ */
+public function printPacking(Request $request)
+{
+    $ids = explode(',', $request->get('ids', ''));
+
+    // Update status printed
+    RealisasiAktif::whereIn('id', $ids)
+        ->whereNull('packing_printed_at')
+        ->update(['packing_printed_at' => now()]);
+
+    $data = RealisasiAktif::whereIn('id', $ids)
+                ->orderBy('no_pl')
+                ->get();
+
+    $docNumber = $this->generateRekapNumber();
+
+    return view('order.print-packing', compact('data', 'docNumber'));
+}
+
+/**
+ * Print Distribusi / Ekspedisi
  */
 public function printEkspedisi(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
-    
+
+    // Update status printed
+    RealisasiAktif::whereIn('id', $ids)
+        ->whereNull('distribusi_printed_at')
+        ->update(['distribusi_printed_at' => now()]);
+
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    $pdf = PDF::loadView('order.print-ekspedisi', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
-
-    return $pdf->stream('Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return view('order.print-ekspedisi', compact('data', 'docNumber'));
 }
-
 
 
 }

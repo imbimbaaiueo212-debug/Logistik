@@ -121,6 +121,8 @@ Route::prefix('order')
             ->name('realisasi.print-pemesanan');
         Route::get('/realisasi/print-ekspedisi', [OrderController::class, 'printEkspedisi'])
             ->name('realisasi.print-ekspedisi');
+            Route::get('/realisasi/print-packing', [OrderController::class, 'printPacking'])
+    ->name('realisasi.print-packing');
 
         // Lainnya
         Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])

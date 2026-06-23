@@ -32,35 +32,50 @@ class RealisasiAktif extends Model
         'is_processed',
         'processed_at',
         
-        // Kolom baru untuk Picking List
+        // Kolom Print Status
+        'printed_at',
         'picking_printed_at',
-        
-        // Kolom Berat (baru)
-        'order_weight',     // atau 'berat' jika Anda lebih suka
-        'berat',            // alternatif nama
+        'qc_printed_at',
+        'ra_picking_printed_at',
+        'packing_printed_at',
+        'distribusi_printed_at',
+
+        // Kolom Berat
+        'order_weight',
+        'berat',
         'billing_last_name',
         'billing_company',
     ];
 
     protected $casts = [
-        'tgl_turun_pl'      => 'datetime',
-        'tgl_bayar'         => 'datetime',
-        'tgl_estimasi'      => 'datetime',
-        'deleted_at'        => 'datetime',
-        'created_at'        => 'datetime',
-        'updated_at'        => 'datetime',
-        'is_processed'      => 'boolean',
-        'processed_at'      => 'datetime',
-        'printed_at'        => 'datetime',
-        'picking_printed_at'=> 'datetime',
+        'tgl_turun_pl'       => 'datetime',
+        'tgl_bayar'          => 'datetime',
+        'tgl_estimasi'       => 'datetime',
+        'deleted_at'         => 'datetime',
+        'created_at'         => 'datetime',
+        'updated_at'         => 'datetime',
+        'is_processed'       => 'boolean',
+        'processed_at'       => 'datetime',
         
-        // Cast berat sebagai decimal / float
-        'order_weight'      => 'decimal:2',
-        'berat'             => 'decimal:2',
+        // Print timestamps
+        'printed_at'         => 'datetime',
+        'picking_printed_at' => 'datetime',
+        'qc_printed_at'      => 'datetime',
+        'ra_picking_printed_at' => 'datetime',
+        'packing_printed_at' => 'datetime',
+        'distribusi_printed_at' => 'datetime',
+
+        // Berat
+        'order_weight'       => 'decimal:2',
+        'berat'              => 'decimal:2',
     ];
 
     public function jakartaAktif()
     {
         return $this->belongsTo(JakartaAktif::class, 'jakarta_aktif_id');
     }
+    public function bimbashopOrders()
+{
+    return $this->hasMany(BimbashopOrder::class, 'order_id', 'no_pl');
+}
 }

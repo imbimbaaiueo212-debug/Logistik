@@ -2,11 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QC Report - {{ $docNumber ?? 'QC-' . now()->format('Ymd') }}</title>
 
     <style>
         @page {
             margin: 10px;
+            size: landscape;
         }
 
         body {
@@ -40,8 +42,7 @@
             table-layout: fixed;
         }
 
-        th,
-        td {
+        th, td {
             border: 1px solid #444;
             padding: 4px;
             vertical-align: middle;
@@ -62,80 +63,24 @@
             padding: 8px;
         }
 
-        .text-left {
-            text-align: left;
-        }
+        .text-left { text-align: left; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
 
-        .text-center {
-            text-align: center;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        /* =========================
-           LEBAR KOLOM
-        ========================== */
-
-        .col-nopl {
-            width: 55px;
-        }
-
-        .col-serah {
-            width: 85px;
-        }
-
-        .col-unit {
-            width: 220px;
-            overflow: hidden;
-        }
-
-        .col-pengiriman {
-            width: 65px;
-        }
-
-        .col-service {
-            width: 60px;
-        }
-
-        .col-kategori {
-            width: 75px;
-        }
-
-        .col-tglbayar {
-            width: 80px;
-        }
-
-        .col-bayar {
-            width: 90px;
-        }
-
-        .col-stokis {
-            width: 100px;
-        }
-
-        .col-estimasi {
-            width: 70px;
-        }
-
-        .col-hari {
-            width: 60px;
-        }
-
-        .col-berat {
-            width: 75px;
-        }
-
-        .col-qc {
-            width: 60px;
-        }
-
-        .col-ket {
-            width: 280px;
-            font-size: 12px;
-            line-height: 1.2;
-        }
+        /* Lebar Kolom */
+        .col-nopl      { width: 55px; }
+        .col-serah     { width: 85px; }
+        .col-unit      { width: 220px; overflow: hidden; }
+        .col-pengiriman{ width: 65px; }
+        .col-service   { width: 60px; }
+        .col-kategori  { width: 75px; }
+        .col-tglbayar  { width: 80px; }
+        .col-bayar     { width: 90px; }
+        .col-stokis    { width: 100px; }
+        .col-estimasi  { width: 70px; }
+        .col-hari      { width: 60px; }
+        .col-qc        { width: 60px; }
+        .col-ket       { width: 280px; font-size: 12px; line-height: 1.2; }
 
         .footer {
             margin-top: 20px;
@@ -147,10 +92,43 @@
         tbody tr:nth-child(even) {
             background: #fafafa;
         }
+
+        /* Tombol Print */
+        .print-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 10px;
+            text-align: right;
+            border-bottom: 2px solid #374151;
+            margin-bottom: 10px;
+            z-index: 100;
+        }
+
+        .btn-print {
+            background: #1e40af;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-print:hover {
+            background: #1e3a8a;
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Tombol Print -->
+    <div class="print-header">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fa-solid fa-print"></i> CETAK / SIMPAN PDF
+        </button>
+    </div>
 
     <div class="header">
         <h2>REKAP AKTUAL - QC OUTGOING</h2>
@@ -162,12 +140,10 @@
     </div>
 
     <table>
-
         <thead>
-
             <tr>
                 <th colspan="13" class="main-title">
-                    REKAP AKTUAL - QC OUTGOING
+                    REKAP AKTUAL - QC OUTGOING 
                     {{ $data->first()?->nama_stokis ?? 'STOKIS JAKARTA' }}
                 </th>
             </tr>
@@ -183,147 +159,66 @@
             </tr>
 
             <tr>
-
-                <th class="col-nopl">
-                    No PL
-                </th>
-
-                <th class="col-serah">
-                    Waktu Serah Terima
-                </th>
-
-                <th class="col-unit">
-                    Nama Unit
-                </th>
-
-                <th class="col-pengiriman">
-                    Pengiriman
-                </th>
-
-                <th class="col-service">
-                    Service
-                </th>
-
-                <th class="col-kategori">
-                    Kategori
-                </th>
-
-                <th class="col-tglbayar">
-                    Tgl Bayar
-                </th>
-
-                <th class="col-bayar">
-                    Jumlah Bayar
-                </th>
-
-                <th class="col-stokis">
-                    Nama Stokis
-                </th>
-
-                <th class="col-estimasi">
-                    Tgl Estimasi
-                </th>
-
-                <th class="col-hari">
-                    Estimasi Hari
-                </th>
-
-                <th class="col-qc">
-                    Kode QC
-                </th>
-
-                <th class="col-ket">
-                    Ket
-                </th>
-
+                <th class="col-nopl">No PL</th>
+                <th class="col-serah">Waktu Serah Terima</th>
+                <th class="col-unit">Nama Unit</th>
+                <th class="col-pengiriman">Pengiriman</th>
+                <th class="col-service">Service</th>
+                <th class="col-kategori">Kategori</th>
+                <th class="col-tglbayar">Tgl Bayar</th>
+                <th class="col-bayar">Jumlah Bayar</th>
+                <th class="col-stokis">Nama Stokis</th>
+                <th class="col-estimasi">Tgl Estimasi</th>
+                <th class="col-hari">Estimasi Hari</th>
+                <th class="col-qc">Kode QC</th>
+                <th class="col-ket">Ket</th>
             </tr>
-
         </thead>
 
         <tbody>
-
             @forelse($data as $item)
-
                 <tr>
-
+                    <td class="text-center">{{ $item->no_pl ?? '-' }}</td>
                     <td class="text-center">
-                        {{ $item->no_pl ?? '-' }}
+                        {{ $item->printed_at 
+                            ? \Carbon\Carbon::parse($item->printed_at)->format('d/m/Y H:i') 
+                            : ($item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') : '-') }}
                     </td>
-
+                    <td class="text-left col-unit">{{ $item->nama_unit ?? '-' }}</td>
+                    <td class="text-center">{{ $item->pengiriman ?? '-' }}</td>
+                    <td class="text-center">{{ $item->service_pengiriman ?? '-' }}</td>
+                    <td class="text-center">{{ $item->nama_barang ?? '-' }}</td>
                     <td class="text-center">
-                        {{ $item->created_at
-                            ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i')
-                            : '-' }}
+                        {{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y') : '-' }}
                     </td>
-
-                    <td class="text-center col-unit">
-                        {{ $item->nama_unit ?? '-' }}
-                    </td>
-
+                    <td class="text-right">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-center">{{ $item->nama_stokis ?? '-' }}</td>
                     <td class="text-center">
-                        {{ $item->pengiriman ?? '-' }}
+                        {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
                     </td>
-
-                    <td class="text-center">
-                        {{ $item->service_pengiriman ?? '-' }}
-                    </td>
-
-                    <td class="text-center">
-                        {{ $item->nama_barang ?? '-' }}
-                    </td>
-
-                    <td class="text-center">
-                        {{ $item->tgl_bayar
-                            ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y')
-                            : '-' }}
-                    </td>
-
-                    <td class="text-right">
-                        Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}
-                    </td>
-
-                    <td class="text-center">
-                        {{ $item->nama_stokis ?? '-' }}
-                    </td>
-
-                    <td class="text-center">
-                        {{ $item->tgl_estimasi
-                            ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
-                            : '-' }}
-                    </td>
-
-                    <td class="text-center">
-                        {{ $item->estimasi_hari ?? '-' }} Hari
-                    </td>
-
-                    <td class="text-right font-semibold">{{ null }}</td>
-
-                    <td class="text-left col-ket">
-                        {{ null }}
-                    </td>
-
+                    <td class="text-center">{{ $item->estimasi_hari ?? '-' }} Hari</td>
+                    <td class="text-center">-</td>
+                    <td class="text-left col-ket">{{ $item->ket ?? '-' }}</td>
                 </tr>
-
             @empty
-
                 <tr>
-                    <td colspan="13"
-                        style="text-align:center;padding:20px;">
+                    <td colspan="13" style="text-align:center;padding:30px;">
                         Belum ada data QC Report
                     </td>
                 </tr>
-
             @endforelse
-
         </tbody>
-
     </table>
 
     <div class="footer">
-        Dicetak pada :
-        {{ now()->format('d/m/Y H:i:s') }}
+        Dicetak pada : {{ now()->format('d/m/Y H:i:s') }} 
         | Quality Control Report
     </div>
+
+    <script>
+        // Auto print setelah halaman selesai load (opsional)
+        // window.onload = function() { window.print(); };
+    </script>
 
 </body>
 </html>
