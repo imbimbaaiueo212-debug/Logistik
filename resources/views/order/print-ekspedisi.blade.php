@@ -93,12 +93,11 @@
         .col-catatan {
             width: 200px;
         }
-        .col-pengirim {
-            width: 40px;
+
+        .col-distribusi {
+            width: 25px;
         }
-        .col-service {
-            width: 45px;
-        }
+        
         .col-cek {
             width: 50px;
         }
@@ -150,7 +149,7 @@
 
         <!-- JUDUL -->
         <tr>
-            <th colspan="10" class="main-title">
+            <th colspan="9" class="main-title">
 
                 <table style="width:100%; border:none; border-collapse:collapse;">
                     <tr>
@@ -211,8 +210,8 @@
                 DETAIL ORDER
             </th>
 
-            <th rowspan="2" class="col-pengirim">PENGIRIMAN</th> 
-            <th rowspan="2" class="col-service">SERVICE</th>
+            <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
+
 
             <th colspan="2">
                 ESTIMASI (WAKTU)
@@ -275,8 +274,11 @@
                 {{ $item->nama_barang ?? '-' }}
             </td>
 
-            <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
-            <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
+            <td class="text-center" style="padding: 6px 4px; line-height: 1.35;">
+                    <div>{{ $item->pengiriman ?? '-' }}</div>
+                    <div style="border-top: 1px solid #64748b; margin: 5px 0;"></div>
+                    <div>{{ $item->service_pengiriman ?? '-' }}</div>
+                </td>
 
 
             <td>

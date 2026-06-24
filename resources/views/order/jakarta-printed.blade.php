@@ -52,7 +52,7 @@
     }
 
     /* Lebar Kolom yang dioptimalkan */
-    .col-no       { width: 35px; }
+    .col-no       { width: 5px; }
     .col-id       { width: 85px; }
     .col-unit     { width: 220px; }
     .col-kategori { width: 85px; }
@@ -91,6 +91,9 @@
 
             @if($allPickingPrinted)
                 <div id="advanced-print-buttons" class="flex gap-2">
+                    <button onclick="printAllAndMarkPrinted()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
+                    <i class="fa-solid fa-file-pdf"></i> Cetak PDF Semua
+                </button>
                     <button onclick="printQC()" class="bg-emerald-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
                         <i class="fa-solid fa-clipboard-check"></i> Print RA QC
                     </button>

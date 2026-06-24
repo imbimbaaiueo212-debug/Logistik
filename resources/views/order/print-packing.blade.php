@@ -21,7 +21,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid #374151;
+            border: 1px solid #374151;
         }
 
         th,
@@ -93,12 +93,9 @@
         .col-catatan {
             width: 200px;
         }
-        .col-pengirim {
-            width: 50px;
-        }
-        .col-service {
-            width: 50px;
-        }
+       .col-distribusi {
+            width: 25px;
+       }
         .col-berat {
             width: 50px;
         }
@@ -123,21 +120,21 @@
         /* Border luar lebih tebal */
 
         tr:first-child th {
-            border-top: 2px solid #374151;
+            border-top: 1px solid #374151;
         }
 
         tr:last-child td {
-            border-bottom: 2px solid #374151;
+            border-bottom: 1px solid #374151;
         }
 
         th:first-child,
         td:first-child {
-            border-left: 2px solid #374151;
+            border-left: 1px solid #374151;
         }
 
         th:last-child,
         td:last-child {
-            border-right: 2px solid #374151;
+            border-right: 1px solid #374151;
         }
     </style>
 </head>
@@ -160,7 +157,7 @@
 
         <!-- JUDUL -->
         <tr>
-            <th colspan="13" class="main-title">
+            <th colspan="12" class="main-title">
 
                 <table style="width:100%; border:none; border-collapse:collapse;">
                     <tr>
@@ -225,8 +222,7 @@
                 ESTIMASI (WAKTU)
             </th>
 
-            <th rowspan="2" class="col-pengirim">PENGIRIMAN</th> 
-            <th rowspan="2" class="col-service">SERVICE</th>
+             <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
 
             <th rowspan="2" class="col-berat">BERAT biMBA SHOP</th>
             <th rowspan="2" class="col-berat1">BERAT AKTUAL</th>
@@ -298,8 +294,11 @@
                 {{ $item->estimasi_hari ?? '-' }} Hari
             </td>
 
-            <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
-            <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
+            <td class="text-center" style="padding: 6px 4px; line-height: 1.35;">
+                    <div>{{ $item->pengiriman ?? '-' }}</div>
+                    <div style="border-top: 1px solid #64748b; margin: 5px 0;"></div>
+                    <div>{{ $item->service_pengiriman ?? '-' }}</div>
+                </td>
 
             <td class="text-left">{{ $item->order_weight ?? '-' }} gr</td>
             <td class="manual-area">

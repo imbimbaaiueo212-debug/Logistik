@@ -21,105 +21,66 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid #374151;
+            border: 1px solid #374151;
         }
 
-        th,
-        td {
+        th, td {
             border: 1px solid #374151;
             padding: 6px 4px;
             text-align: center;
             vertical-align: middle;
         }
 
-        /* ================= HEADER ================= */
-
-        .header1 th,
-        .header2 th {
+        .header1 th, .header2 th {
             background: #f1f5f9;
             font-weight: bold;
             font-size: 9px;
         }
 
-        .main-title {
-            background: #f8fafc;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 0;
+        .text-left { text-align: left; }
+        .font-bold { font-weight: bold; }
+
+        /* TANDA TANGAN */
+        .signature td {
+            border: none;
+            padding: 6px 4px;
+            vertical-align: top;
+            text-align: center;
+            font-size: 8.8px;
         }
-
-        .text-left {
-            text-align: left;
-        }
-
-        .font-bold {
-            font-weight: bold;
-        }
-
-        /* ================= KOLOM ================= */
-
         .col-no {
-            width: 25px;
+            width: 5px;
         }
 
         .col-id {
-            width: 70px;
+            width: 50px;
         }
 
         .col-unit {
-            width: 150px;
+            width: 200px;
         }
 
         .col-kategori {
-            width: 70px;
+            width: 150px;
         }
 
         .col-tanggal {
-            width: 75px;
+            width: 50px;
         }
 
         .col-hari {
             width: 50px;
         }
-
         .col-kode {
-            width: 50px;
+            width: 35px;
         }
 
         .col-hasilcek {
-            width: 75px;
+            width: 50px;
         }
 
-        .col-catatan {
-            width: 100px;
-        }
-
-        /* ================= AREA MANUAL ================= */
-
-        .manual-area {
-            height: 9px;
-            vertical-align: top;
-            padding-top: 8px;
-        }
-
-        /* Border luar lebih tebal */
-
-        tr:first-child th {
-            border-top: 2px solid #374151;
-        }
-
-        tr:last-child td {
-            border-bottom: 2px solid #374151;
-        }
-
-        th:first-child,
-        td:first-child {
-            border-left: 2px solid #374151;
-        }
-
-        th:last-child,
-        td:last-child {
-            border-right: 2px solid #374151;
+        .col-ceklist {
+            width: 10px;
         }
     </style>
 </head>
@@ -128,26 +89,34 @@
 
 @php
     $firstItem = $data->first();
-
     $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
-
     $rekapNo = $firstItem?->rekap_number ?? '#0001';
-
     $firstDate = $data->min('created_at') ?? $data->min('tgl_turun_pl');
 @endphp
 
-<table>
+<!-- HEADER UTAMA: TANDA TANGAN + JUDUL + WAKTU -->
+<table style="width:100%; margin-bottom: 2px; border: 1px solid #374151;">
+    <tr>
+        <!-- KOLOM TANDA TANGAN (KIRI) - DIBUAT LEBIH KECIL -->
+        <td style="width: 18%; padding: 6px 4px; border-right: 1px solid #374151; vertical-align: top;">
+            <div style="height:68px; position:relative;">
+                
+                <!-- Tulisan Serah Terima & Packing -->
+                <div style="padding-top:6px; font-weight:bold; font-size:8.8px; text-align:center; line-height:1.05;">
+                    Serah Terima<br>Packing
+                </div>
+                
+                <!-- Garis + Nama/Tgl di bawah -->
+                <div style="position:absolute; bottom:0px; left:0; right:0; text-align:center; font-size:8.3px;">
+                    ____________________<br>
+                    <strong>Nama/Tgl</strong>
+                </div>
+                
+            </div>
+        </td>
 
-    <thead>
-
-        <!-- JUDUL -->
-        <tr>
-            <th colspan="9" class="main-title">
-
-                <table style="width:100%; border:none; border-collapse:collapse;">
-                    <tr>
-
-                        <td style="
+        <!-- JUDUL + WAKTU (KANAN) -->
+        <td style="
                             width:75%;
                             border:none;
                             text-align:center;
@@ -185,126 +154,59 @@
                             @endif
 
                         </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+        </td>
+    </tr>
+</table>
 
-                    </tr>
-                </table>
-
-            </th>
-        </tr>
-
-        <!-- HEADER GROUP -->
+<!-- TABEL UTAMA -->
+<table>
+    <thead>
         <tr class="header1">
-
-            <th rowspan="2" class="col-no">
-                NO
-            </th>
-
-            <th colspan="3">
-                DETAIL ORDER
-            </th>
-
-            <th colspan="2">
-                ESTIMASI (WAKTU)
-            </th>
-
+            <th rowspan="2" class="col-no">NO</th>
+            <th colspan="3">DETAIL ORDER</th>
+            <th colspan="2">ESTIMASI (WAKTU)</th>
             <th colspan="2">PIC QC OUTGOING</th>
-
-            <th rowspan="2" class="col-catatan">
-                CATATAN
-            </th>
-
+            <th rowspan="2" class="col-ceklist">CEKLIST</th>
+            <th rowspan="2" class="col-catatan">CATATAN</th>
         </tr>
 
         <tr class="header2">
-
-            <th class="col-id">
-                ID ORDER
-            </th>
-
-            <th class="col-unit">
-                NAMA UNIT
-            </th>
-
-            <th class="col-kategori">
-                KATEGORI
-            </th>
-
-            <th class="col-tanggal">
-                TANGGAL
-            </th>
-
-            <th class="col-hari">
-                HARI
-            </th>
-
+            <th class="col-id">ID ORDER</th>
+            <th class="col-unit">NAMA UNIT</th>
+            <th class="col-kategori">KATEGORI</th>
+            <th class="col-tanggal">TANGGAL</th>
+            <th class="col-hari">HARI</th>
             <th class="col-kode">KODE</th>
             <th class="col-hasilcek">HASIL CEK</th>
-
-
         </tr>
-
     </thead>
 
     <tbody>
-
         @foreach($data as $item)
-
         <tr>
-
-            <td class="font-bold">
-                {{ $loop->iteration }}
-            </td>
-
-            <td>
-                {{ $item->no_pl ?? '-' }}
-            </td>
-
-            <td class="text-left">
-                {{ $item->nama_unit ?? '-' }}
-            </td>
-
-            <td class="text-left">
-                {{ $item->nama_barang ?? '-' }}
-            </td>
-
-
-            <td>
-                {{ $item->tgl_estimasi
-                    ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
-                    : '-' }}
-            </td>
-
-            <td>
-                {{ $item->estimasi_hari ?? '-' }} Hari
-            </td>
-
-            <!-- KODE -->
-            <td class="manual-area">
-            </td>
-
-            <!-- Hasil CEK -->
-            <td class="manual-area">
-            </td>
-
-            <!-- CATATAN -->
+            <td class="font-bold">{{ $loop->iteration }}</td>
+            <td>{{ $item->no_pl ?? '-' }}</td>
+            <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
+            <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
+            <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
+            <td>{{ $item->estimasi_hari ?? '-' }} Hari</td>
+            <td class="manual-area"></td>
+            <td class="manual-area"></td>
+            <td class="manual-area"></td>
             <td class="manual-area text-left" style="font-size:8px;">
-
                 @php
-                    $catatan = $item->ket
-                        ?? $item->jakartaAktif?->catatan
-                        ?? '';
+                    $catatan = $item->ket ?? $item->jakartaAktif?->catatan ?? '';
                 @endphp
-
                 {{ Str::limit(trim($catatan), 80) }}
-
             </td>
-
         </tr>
-
         @endforeach
-
     </tbody>
-
 </table>
 
 </body>
