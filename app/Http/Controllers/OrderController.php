@@ -732,19 +732,21 @@ public function printPickingList($id)
 public function printQC(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
-
-    // Update status printed
-    RealisasiAktif::whereIn('id', $ids)
-        ->whereNull('qc_printed_at')
-        ->update(['qc_printed_at' => now()]);
-
+    
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    return view('order.print-qc', compact('data', 'docNumber'));
+    $pdf = PDF::loadView('order.print-qc', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 /**
@@ -754,18 +756,20 @@ public function printPemesanan(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
 
-    // Update status printed
-    RealisasiAktif::whereIn('id', $ids)
-        ->whereNull('ra_picking_printed_at')
-        ->update(['ra_picking_printed_at' => now()]);
-
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    return view('order.print-pemesanan', compact('data', 'docNumber'));
+    $pdf = PDF::loadView('order.print-pemesanan', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')   // Ubah ke landscape jika terlalu lebar
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('Pemesanan-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 /**
@@ -775,18 +779,20 @@ public function printPacking(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
 
-    // Update status printed
-    RealisasiAktif::whereIn('id', $ids)
-        ->whereNull('packing_printed_at')
-        ->update(['packing_printed_at' => now()]);
-
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    return view('order.print-packing', compact('data', 'docNumber'));
+    $pdf = PDF::loadView('order.print-packing', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 /**
@@ -795,19 +801,21 @@ public function printPacking(Request $request)
 public function printEkspedisi(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
-
-    // Update status printed
-    RealisasiAktif::whereIn('id', $ids)
-        ->whereNull('distribusi_printed_at')
-        ->update(['distribusi_printed_at' => now()]);
-
+    
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->orderBy('no_pl')
                 ->get();
 
     $docNumber = $this->generateRekapNumber();
 
-    return view('order.print-ekspedisi', compact('data', 'docNumber'));
+    $pdf = PDF::loadView('order.print-ekspedisi', compact('data', 'docNumber'))
+               ->setPaper('A4', 'landscape')
+               ->setOptions([
+                   'defaultFont' => 'sans-serif',
+                   'isHtml5ParserEnabled' => true,
+               ]);
+
+    return $pdf->stream('Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 

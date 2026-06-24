@@ -1,121 +1,318 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Pemesanan Report - {{ $docNumber ?? 'PEMESANAN-' . now()->format('Ymd') }}</title>
+    <title>Rekap Aktual DISTRIBUSI</title>
+
     <style>
-        body { 
-            font-family: 'Poppins', Arial, sans-serif; 
-            margin: 20px;
-            font-size: 12px;
-            color: #333;
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
         }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9px;
+            margin: 0;
+            padding: 5px;
+            line-height: 1.3;
+        }
+
         table {
-            border-collapse: collapse;
             width: 100%;
-            margin: 15px 0;
+            border-collapse: collapse;
+            border: 2px solid #374151;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #374151;
-            padding: 8px 6px;
+            padding: 6px 4px;
             text-align: center;
             vertical-align: middle;
-            font-size: 12px;
         }
-        th {
-            background-color: #f0f0f0;
-            font-weight: 700;
+
+        /* ================= HEADER ================= */
+
+        .header1 th,
+        .header2 th {
+            background: #f1f5f9;
+            font-weight: bold;
+            font-size: 9px;
         }
+
         .main-title {
-            font-size: 18px;
-            font-weight: 700;
-            text-align: center;
-            padding: 12px;
-            background-color: #ffffff;
+            background: #f8fafc;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 0;
         }
-        .text-left { text-align: left; }
-        .text-right { text-align: right; }
-        .header { text-align: center; margin-bottom: 25px; }
-        .small { font-size: 10px; }
-        .green { color: #10b981; }
-        .red { color: #ef4444; }
+
+        .text-left {
+            text-align: left;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        /* ================= KOLOM ================= */
+
+        .col-no {
+            width: 25px;
+        }
+
+        .col-id {
+            width: 70px;
+        }
+
+        .col-unit {
+            width: 150px;
+        }
+
+        .col-kategori {
+            width: 70px;
+        }
+
+        .col-tanggal {
+            width: 75px;
+        }
+
+        .col-hari {
+            width: 50px;
+        }
+
+        .col-kode {
+            width: 50px;
+        }
+
+        .col-hasilcek {
+            width: 75px;
+        }
+
+        .col-catatan {
+            width: 200px;
+        }
+        .col-pengirim {
+            width: 40px;
+        }
+        .col-service {
+            width: 45px;
+        }
+        .col-cek {
+            width: 50px;
+        }
+        /* ================= AREA MANUAL ================= */
+
+        .manual-area {
+            height: 9px;
+            vertical-align: top;
+            padding-top: 8px;
+        }
+
+        /* Border luar lebih tebal */
+
+        tr:first-child th {
+            border-top: 2px solid #374151;
+        }
+
+        tr:last-child td {
+            border-bottom: 2px solid #374151;
+        }
+
+        th:first-child,
+        td:first-child {
+            border-left: 2px solid #374151;
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: 2px solid #374151;
+        }
     </style>
 </head>
+
 <body>
 
-    <div class="header">
-        <h2>PEMESANAN</h2>
-        <h3>{{ $docNumber ?? 'Pemesanan Report' }} — {{ now()->format('d F Y H:i') }}</h3>
-    </div>
+@php
+    $firstItem = $data->first();
 
-    <table>
-        <thead>
-            <tr>
-                <th colspan="16" class="main-title">PEMESANAN CONTROL REPORT</th>
-            </tr>
+    $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
 
-            <tr>
-                <th colspan="2">TANGGAL</th>
-                <th colspan="4">PENGIRIMAN & BARANG</th>
-                <th colspan="2">PEMBAYARAN</th>
-                <th>STOKIS</th>
-                <th colspan="2">ESTIMASI PERSIAPAN</th>
-                
-                <th colspan="4">EKSPEDISI</th>
-                <th colspan="1">KETERANGAN</th>
-            </tr>
+    $rekapNo = $firstItem?->rekap_number ?? '#0001';
 
-            <tr>
-                <th>No PL</th>
-                <th>Waktu Serah</th>
-                <th>NAMA UNIT</th>
-                <th>PENGIRIMAN</th>
-                <th>SERVICE</th>
-                <th>KATEGORI</th>
-                <th>TGL BAYAR</th>
-                <th>JUMLAH BAYAR</th>
-                <th>NAMA STOKIS</th>
-                <th>TGL ESTIMASI</th>
-                <th>EST. HARI</th>
-                <th>BERAT SHOP</th>
-                <th>BERAT AKTUAL</th>
-                <th>JML KOLI</th>
-                <th>KODE PACKING</th>
+    $firstDate = $data->min('created_at') ?? $data->min('tgl_turun_pl');
+@endphp
 
-                <th>KET</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($data as $item)
-            <tr>
-                <td>{{ $item->no_pl ?? '-' }}</td>
-                <td>{{ $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') : '-' }}</td>
-                <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
-                <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
-                <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
-                <td>{{ $item->tgl_bayar ?? '-' }}</td>
-                <td class="text-right">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-                <td class="text-left">{{ $item->nama_stokis ?? '-' }}</td>
-                <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
-                <td>{{ $item->estimasi_hari ?? '-' }} Hari</td>
-                <td class="text-right">{{ number_format($item->order_weight ?? 0, 0, ',', '.') }} gr</td>
-                <td class="text-right font-semibold">{{ null }}</td>
-                <td class="text-right font-semibold">{{ null }}</td>
-                <td class="text-right font-semibold">{{ null }}</td>
-                <td class="text-left text-xs">{{ $item->ket ?? '-' }}</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="16" class="text-center py-10">Tidak ada data</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
+<table>
 
-    <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #666;">
-        Dicetak pada: {{ now()->format('d/m/Y H:i:s') }} | PEMESANAN CONTROL REPORT
-    </div>
+    <thead>
+
+        <!-- JUDUL -->
+        <tr>
+            <th colspan="10" class="main-title">
+
+                <table style="width:100%; border:none; border-collapse:collapse;">
+                    <tr>
+
+                        <td style="
+                            width:75%;
+                            border:none;
+                            text-align:center;
+                            font-size:13px;
+                            font-weight:bold;
+                            padding:10px;
+                        ">
+                            Rekap Aktual Detail - DISTRIBUSI {{ $stokisName }}
+                        </td>
+
+                        <td style="
+                            width:25%;
+                            border:none;
+                            text-align:center;
+                            padding:8px;
+                        ">
+
+                            @if($firstDate)
+
+                                <div style="
+                                    font-size:10px;
+                                    color:#64748b;
+                                    font-weight:bold;
+                                ">
+                                    Waktu Serah Terima
+                                </div>
+
+                                <div style="
+                                    font-size:11px;
+                                    font-weight:bold;
+                                ">
+                                    {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
+                                </div>
+
+                            @endif
+
+                        </td>
+
+                    </tr>
+                </table>
+
+            </th>
+        </tr>
+
+        <!-- HEADER GROUP -->
+        <tr class="header1">
+
+            <th rowspan="2" class="col-no">
+                NO
+            </th>
+
+            <th colspan="3">
+                DETAIL ORDER
+            </th>
+
+            <th rowspan="2" class="col-pengirim">PENGIRIMAN</th> 
+            <th rowspan="2" class="col-service">SERVICE</th>
+
+            <th colspan="2">
+                ESTIMASI (WAKTU)
+            </th>
+
+            <th rowspan="2" class="col-cek">CEK LIST</th>
+
+            <th rowspan="2" class="col-catatan">
+                CATATAN
+            </th>
+
+        </tr>
+
+        <tr class="header2">
+
+            <th class="col-id">
+                ID ORDER
+            </th>
+
+            <th class="col-unit">
+                NAMA UNIT
+            </th>
+
+            <th class="col-kategori">
+                KATEGORI
+            </th>
+
+            <th class="col-tanggal">
+                TANGGAL
+            </th>
+
+            <th class="col-hari">
+                HARI
+            </th>
+
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach($data as $item)
+
+        <tr>
+
+            <td class="font-bold">
+                {{ $loop->iteration }}
+            </td>
+
+            <td>
+                {{ $item->no_pl ?? '-' }}
+            </td>
+
+            <td class="text-left">
+                {{ $item->nama_unit ?? '-' }}
+            </td>
+
+            <td class="text-left">
+                {{ $item->nama_barang ?? '-' }}
+            </td>
+
+            <td class="text-left">{{ $item->pengiriman ?? '-' }}</td>
+            <td class="text-left">{{ $item->service_pengiriman ?? '-' }}</td>
+
+
+            <td>
+                {{ $item->tgl_estimasi
+                    ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
+                    : '-' }}
+            </td>
+
+            <td>
+                {{ $item->estimasi_hari ?? '-' }} Hari
+            </td>
+
+            <!-- HASIL CEK -->
+            <td class="manual-area">
+            </td>
+
+            <!-- CATATAN -->
+            <td class="manual-area text-left" style="font-size:8px;">
+
+                @php
+                    $catatan = $item->ket
+                        ?? $item->jakartaAktif?->catatan
+                        ?? '';
+                @endphp
+
+                {{ Str::limit(trim($catatan), 80) }}
+
+            </td>
+
+        </tr>
+
+        @endforeach
+
+    </tbody>
+
+</table>
 
 </body>
 </html>

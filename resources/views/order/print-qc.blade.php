@@ -1,224 +1,311 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QC Report - {{ $docNumber ?? 'QC-' . now()->format('Ymd') }}</title>
+    <title>Rekap Aktual QC OUTGOING</title>
 
     <style>
         @page {
-            margin: 10px;
-            size: landscape;
+            size: A4 landscape;
+            margin: 5mm;
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 9px;
-            color: #222;
             margin: 0;
-            padding: 0;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .header h2 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .header h3 {
-            margin-top: 5px;
-            font-size: 12px;
-            font-weight: normal;
+            padding: 5px;
+            line-height: 1.3;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
+            border: 2px solid #374151;
         }
 
-        th, td {
-            border: 1px solid #444;
-            padding: 4px;
-            vertical-align: middle;
-            font-size: 12px;
-        }
-
-        th {
-            background: #e5e7eb;
+        th,
+        td {
+            border: 1px solid #374151;
+            padding: 6px 4px;
             text-align: center;
+            vertical-align: middle;
+        }
+
+        /* ================= HEADER ================= */
+
+        .header1 th,
+        .header2 th {
+            background: #f1f5f9;
             font-weight: bold;
+            font-size: 9px;
         }
 
         .main-title {
-            font-size: 11px;
-            font-weight: bold;
-            background: #ffffff;
-            text-align: center;
-            padding: 8px;
-        }
-
-        .text-left { text-align: left; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-
-        /* Lebar Kolom */
-        .col-nopl      { width: 55px; }
-        .col-serah     { width: 85px; }
-        .col-unit      { width: 220px; overflow: hidden; }
-        .col-pengiriman{ width: 65px; }
-        .col-service   { width: 60px; }
-        .col-kategori  { width: 75px; }
-        .col-tglbayar  { width: 80px; }
-        .col-bayar     { width: 90px; }
-        .col-stokis    { width: 100px; }
-        .col-estimasi  { width: 70px; }
-        .col-hari      { width: 60px; }
-        .col-qc        { width: 60px; }
-        .col-ket       { width: 280px; font-size: 12px; line-height: 1.2; }
-
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 9px;
-            color: #666;
-        }
-
-        tbody tr:nth-child(even) {
-            background: #fafafa;
-        }
-
-        /* Tombol Print */
-        .print-header {
-            position: sticky;
-            top: 0;
-            background: white;
-            padding: 10px;
-            text-align: right;
-            border-bottom: 2px solid #374151;
-            margin-bottom: 10px;
-            z-index: 100;
-        }
-
-        .btn-print {
-            background: #1e40af;
-            color: white;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 6px;
+            background: #f8fafc;
             font-size: 14px;
-            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
         }
 
-        .btn-print:hover {
-            background: #1e3a8a;
+        .text-left {
+            text-align: left;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        /* ================= KOLOM ================= */
+
+        .col-no {
+            width: 25px;
+        }
+
+        .col-id {
+            width: 70px;
+        }
+
+        .col-unit {
+            width: 150px;
+        }
+
+        .col-kategori {
+            width: 70px;
+        }
+
+        .col-tanggal {
+            width: 75px;
+        }
+
+        .col-hari {
+            width: 50px;
+        }
+
+        .col-kode {
+            width: 50px;
+        }
+
+        .col-hasilcek {
+            width: 75px;
+        }
+
+        .col-catatan {
+            width: 100px;
+        }
+
+        /* ================= AREA MANUAL ================= */
+
+        .manual-area {
+            height: 9px;
+            vertical-align: top;
+            padding-top: 8px;
+        }
+
+        /* Border luar lebih tebal */
+
+        tr:first-child th {
+            border-top: 2px solid #374151;
+        }
+
+        tr:last-child td {
+            border-bottom: 2px solid #374151;
+        }
+
+        th:first-child,
+        td:first-child {
+            border-left: 2px solid #374151;
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: 2px solid #374151;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Tombol Print -->
-    <div class="print-header">
-        <button onclick="window.print()" class="btn-print">
-            <i class="fa-solid fa-print"></i> CETAK / SIMPAN PDF
-        </button>
-    </div>
+@php
+    $firstItem = $data->first();
 
-    <div class="header">
-        <h2>REKAP AKTUAL - QC OUTGOING</h2>
-        <h3>
-            {{ $docNumber ?? 'QC Report' }}
-            —
-            {{ now()->format('d F Y H:i') }}
-        </h3>
-    </div>
+    $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
 
-    <table>
-        <thead>
-            <tr>
-                <th colspan="13" class="main-title">
-                    REKAP AKTUAL - QC OUTGOING 
-                    {{ $data->first()?->nama_stokis ?? 'STOKIS JAKARTA' }}
-                </th>
-            </tr>
+    $rekapNo = $firstItem?->rekap_number ?? '#0001';
 
-            <tr>
-                <th colspan="2">TANGGAL</th>
-                <th colspan="4">PENGIRIMAN & BARANG</th>
-                <th colspan="2">PEMBAYARAN</th>
-                <th>STOKIS</th>
-                <th colspan="2">ESTIMASI PERSIAPAN</th>
-                <th>QUALITY CONTROL</th>
-                <th>KETERANGAN</th>
-            </tr>
+    $firstDate = $data->min('created_at') ?? $data->min('tgl_turun_pl');
+@endphp
 
-            <tr>
-                <th class="col-nopl">No PL</th>
-                <th class="col-serah">Waktu Serah Terima</th>
-                <th class="col-unit">Nama Unit</th>
-                <th class="col-pengiriman">Pengiriman</th>
-                <th class="col-service">Service</th>
-                <th class="col-kategori">Kategori</th>
-                <th class="col-tglbayar">Tgl Bayar</th>
-                <th class="col-bayar">Jumlah Bayar</th>
-                <th class="col-stokis">Nama Stokis</th>
-                <th class="col-estimasi">Tgl Estimasi</th>
-                <th class="col-hari">Estimasi Hari</th>
-                <th class="col-qc">Kode QC</th>
-                <th class="col-ket">Ket</th>
-            </tr>
-        </thead>
+<table>
 
-        <tbody>
-            @forelse($data as $item)
-                <tr>
-                    <td class="text-center">{{ $item->no_pl ?? '-' }}</td>
-                    <td class="text-center">
-                        {{ $item->printed_at 
-                            ? \Carbon\Carbon::parse($item->printed_at)->format('d/m/Y H:i') 
-                            : ($item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') : '-') }}
-                    </td>
-                    <td class="text-left col-unit">{{ $item->nama_unit ?? '-' }}</td>
-                    <td class="text-center">{{ $item->pengiriman ?? '-' }}</td>
-                    <td class="text-center">{{ $item->service_pengiriman ?? '-' }}</td>
-                    <td class="text-center">{{ $item->nama_barang ?? '-' }}</td>
-                    <td class="text-center">
-                        {{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y') : '-' }}
-                    </td>
-                    <td class="text-right">Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-center">{{ $item->nama_stokis ?? '-' }}</td>
-                    <td class="text-center">
-                        {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
-                    </td>
-                    <td class="text-center">{{ $item->estimasi_hari ?? '-' }} Hari</td>
-                    <td class="text-center">-</td>
-                    <td class="text-left col-ket">{{ $item->ket ?? '-' }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="13" style="text-align:center;padding:30px;">
-                        Belum ada data QC Report
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+    <thead>
 
-    <div class="footer">
-        Dicetak pada : {{ now()->format('d/m/Y H:i:s') }} 
-        | Quality Control Report
-    </div>
+        <!-- JUDUL -->
+        <tr>
+            <th colspan="9" class="main-title">
 
-    <script>
-        // Auto print setelah halaman selesai load (opsional)
-        // window.onload = function() { window.print(); };
-    </script>
+                <table style="width:100%; border:none; border-collapse:collapse;">
+                    <tr>
+
+                        <td style="
+                            width:75%;
+                            border:none;
+                            text-align:center;
+                            font-size:13px;
+                            font-weight:bold;
+                            padding:10px;
+                        ">
+                            Rekap Aktual Detail - QC OUTGOING {{ $stokisName }}
+                        </td>
+
+                        <td style="
+                            width:25%;
+                            border:none;
+                            text-align:center;
+                            padding:8px;
+                        ">
+
+                            @if($firstDate)
+
+                                <div style="
+                                    font-size:10px;
+                                    color:#64748b;
+                                    font-weight:bold;
+                                ">
+                                    Waktu Serah Terima
+                                </div>
+
+                                <div style="
+                                    font-size:11px;
+                                    font-weight:bold;
+                                ">
+                                    {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
+                                </div>
+
+                            @endif
+
+                        </td>
+
+                    </tr>
+                </table>
+
+            </th>
+        </tr>
+
+        <!-- HEADER GROUP -->
+        <tr class="header1">
+
+            <th rowspan="2" class="col-no">
+                NO
+            </th>
+
+            <th colspan="3">
+                DETAIL ORDER
+            </th>
+
+            <th colspan="2">
+                ESTIMASI (WAKTU)
+            </th>
+
+            <th colspan="2">PIC QC OUTGOING</th>
+
+            <th rowspan="2" class="col-catatan">
+                CATATAN
+            </th>
+
+        </tr>
+
+        <tr class="header2">
+
+            <th class="col-id">
+                ID ORDER
+            </th>
+
+            <th class="col-unit">
+                NAMA UNIT
+            </th>
+
+            <th class="col-kategori">
+                KATEGORI
+            </th>
+
+            <th class="col-tanggal">
+                TANGGAL
+            </th>
+
+            <th class="col-hari">
+                HARI
+            </th>
+
+            <th class="col-kode">KODE</th>
+            <th class="col-hasilcek">HASIL CEK</th>
+
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach($data as $item)
+
+        <tr>
+
+            <td class="font-bold">
+                {{ $loop->iteration }}
+            </td>
+
+            <td>
+                {{ $item->no_pl ?? '-' }}
+            </td>
+
+            <td class="text-left">
+                {{ $item->nama_unit ?? '-' }}
+            </td>
+
+            <td class="text-left">
+                {{ $item->nama_barang ?? '-' }}
+            </td>
+
+
+            <td>
+                {{ $item->tgl_estimasi
+                    ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
+                    : '-' }}
+            </td>
+
+            <td>
+                {{ $item->estimasi_hari ?? '-' }} Hari
+            </td>
+
+            <!-- KODE -->
+            <td class="manual-area">
+            </td>
+
+            <!-- Hasil CEK -->
+            <td class="manual-area">
+            </td>
+
+            <!-- CATATAN -->
+            <td class="manual-area text-left" style="font-size:8px;">
+
+                @php
+                    $catatan = $item->ket
+                        ?? $item->jakartaAktif?->catatan
+                        ?? '';
+                @endphp
+
+                {{ Str::limit(trim($catatan), 80) }}
+
+            </td>
+
+        </tr>
+
+        @endforeach
+
+    </tbody>
+
+</table>
 
 </body>
 </html>
