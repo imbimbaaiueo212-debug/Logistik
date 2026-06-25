@@ -376,7 +376,7 @@
                     </div>
                 </td>
 
-            <td class="text-left">{{ $item->order_weight ?? '-' }} gr</td>
+            <td class="text-center">{{ $item->order_weight ?? '-' }} gr</td>
             <td class="manual-area">
             </td>
             <td class="manual-area">

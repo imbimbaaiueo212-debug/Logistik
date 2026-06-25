@@ -55,6 +55,7 @@
     .col-kategori { width: 50px; }
     .col-catatan  { width: 200px; }
     .col-picking  { width: 50px; }
+    .col-distribusi { width: 50px; }
 
     .text-left { text-align: left; }
 </style>
@@ -80,25 +81,21 @@
                 $allPickingPrinted = $data->every(fn($item) => !is_null($item->picking_printed_at));
             @endphp
 
-            @if($allPickingPrinted && !$allPrinted)
-                <button onclick="printAllAndMarkPrinted()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
-                    <i class="fa-solid fa-file-pdf"></i> Cetak PDF Semua
-                </button>
-            @endif
+            
 
             @if($allPickingPrinted)
                 <div id="advanced-print-buttons" class="flex gap-2">
                     <button onclick="printAllAndMarkPrinted()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
-                    <i class="fa-solid fa-file-pdf"></i> Cetak PDF Semua
+                    <i class="fa-solid fa-file-pdf"></i> Cetak RA Prising
                 </button>
                     <button onclick="printQC()" class="bg-emerald-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-clipboard-check"></i> Print RA QC
+                        <i class="fa-solid fa-clipboard-check"></i> Print RA QC OUTGOING
                     </button>
                     <button onclick="printPemesanan()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
                         <i class="fa-solid fa-list-check"></i> Print RA PICKING
                     </button>
                     <button onclick="printPacking()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fas fa-box mr-1"></i> Print RA Packing
+                        <i class="fas fa-box mr-1"></i> Print RA PACKING
                     </button>
                     <button onclick="printEkspedisi()" class="bg-emerald-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
                         <i class="fa-solid fa-truck"></i> Print RA DISTRIBUSI
@@ -121,11 +118,11 @@
                             <div class="flex items-center gap-3">
                                 @php $allPrinted = $data->every(fn($item) => !is_null($item->printed_at)); @endphp
                                 @if($allPrinted)
-                                    <span class="text-green-600 text-2xl"><i class="fa-solid fa-circle"></i></span>
-                                    <span class="text-green-600 font-semibold">Sudah Dicetak</span>
+                                    <span class="text-green-600 text-2xl"><i class="fa-regular fa-circle-check fa-2xl"></i></span>
+                                    <span class="text-green-600 font-semibold">RA SUDAH DICETAK</span>
                                 @else
-                                    <span class="text-red-500 text-2xl"><i class="fa-solid fa-circle"></i></span>
-                                    <span class="text-red-500 font-semibold">Belum Dicetak</span>
+                                    <span class="text-red-500 text-2xl"><i class="fa-regular fa-circle-xmark fa-2xl"></i></span>
+                                    <span class="text-red-500 font-semibold">RA BELUM DICETAK</span>
                                 @endif
                             </div>
 
@@ -163,6 +160,14 @@
             text-align:center;
             line-height:1;">NO</th>
                     <th colspan="3">DETAIL ORDER</th>
+                    <th rowspan="2" class="col-distribusi" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">DISTRIBUSI</th>
                     <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
             padding-top:1px;
             padding-bottom:2px;
@@ -195,6 +200,28 @@
                 <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
                 <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
                 <td class="text-center">{{ $item->nama_barang ?? '-' }}</td>
+
+                <td style="
+                    padding:1px 2px;
+                    vertical-align:top;
+                    text-align:center;
+                ">
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->pengiriman ?? '-' }}
+                    </div>
+
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->service_pengiriman ?? '-' }}
+                    </div>
+                </td>
                 
                 <!-- CATATAN -->
                 <td class="text-center text-xs py-3">
@@ -211,18 +238,17 @@
                     @endif
                 </td>
                 
-                <!-- PICKING LIST -->
                 <!-- PICKING LIST - ICON DIBUAT LEBIH BESAR -->
-<td class="text-center action-cell">
-    <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-            class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }} text-2xl">
-        @if($item->picking_printed_at)
-            <i class="fa-solid fa-file-pdf"></i>
-        @else
-            <i class="fa-solid fa-print"></i>
-        @endif
-    </button>
-</td>
+                <td class="text-center action-cell">
+                    <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                            class="action-btn {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }} text-2xl">
+                        @if($item->picking_printed_at)
+                            <i class="fa-solid fa-file-pdf"></i>
+                        @else
+                            <i class="fa-solid fa-print"></i>
+                        @endif
+                    </button>
+                </td>
             </tr>
             @empty
             <tr>
@@ -420,16 +446,12 @@ async function printAllAndMarkPrinted() {
 
     try {
 
-        window.open(
-            "{{ route('order.realisasi.print-pdf') }}?mark_printed=true",
-            '_blank'
-        );
-
         const csrf =
             document.querySelector(
                 'meta[name="csrf-token"]'
             );
 
+        // update printed_at terlebih dahulu
         await fetch(
             "{{ route('order.realisasi.mark-printed-all') }}",
             {
@@ -443,6 +465,12 @@ async function printAllAndMarkPrinted() {
                         : ''
                 }
             }
+        );
+
+        // baru buka PDF
+        window.open(
+            "{{ route('order.realisasi.print-pdf') }}?mark_printed=true",
+            '_blank'
         );
 
         updateStatusOnly();

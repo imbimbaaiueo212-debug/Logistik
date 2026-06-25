@@ -173,6 +173,7 @@
                         <th class="text-left">Status</th>
                         <th class="text-right">Order Total</th>
                         <th class="text-right">Ship Total</th>
+                        <th class="text-right">Berat</th>
                         <th class="text-right">Discount</th>
                         <th class="text-right">Refunded</th>
                         <th class="text-left">Payment Method</th>
@@ -204,6 +205,7 @@
                         </td>
                         <td class="text-right font-semibold nominal">Rp {{ number_format($order->order_total ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right nominal">Rp {{ number_format($order->ship_total ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right nominal">{{ number_format($order->order_weight ?? 0, 0, ',', '.') }} gr</td>
                         <td class="text-right nominal">Rp {{ number_format($order->discount_total ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right nominal">Rp {{ number_format($order->refunded_total ?? 0, 0, ',', '.') }}</td>
                         <td>{{ $order->payment_method ?? '-' }}</td>

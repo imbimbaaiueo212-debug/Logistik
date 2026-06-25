@@ -8,7 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
     body { font-family: 'Poppins', sans-serif; }
     table { border-collapse: collapse; }
@@ -45,6 +46,7 @@
         background-color: #4f46e5;
         color: white;
     }
+    
     </style>
 </head>
 <body class="bg-gray-50">
@@ -281,7 +283,11 @@
 
         <!-- Modal tetap sama -->
         <div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-7xl mx-4 max-h-[92vh] flex flex-col">
+            <div class="bg-white rounded-3xl shadow-2xl
+            w-[98vw]
+            h-[95vh]
+            mx-2
+            flex flex-col">
                 <div class="p-6 border-b flex justify-between items-center">
                     <div>
                         <h3 class="text-2xl font-semibold">Edit & Proses Data Terpilih</h3>
@@ -289,20 +295,20 @@
                     </div>
                     <button onclick="hideBulkModal()" class="text-3xl text-gray-500 hover:text-gray-700">✕</button>
                 </div>
-                <div class="flex-1 overflow-auto p-6">
-                    <table class="w-full text-sm border border-gray-200" id="modalTable">
+               <div class="flex-1 overflow-auto p-6">
+                    <table class="w-full text-sm border border-gray-200 min-w-[1600px]" id="modalTable">
                         <thead class="bg-gray-50 sticky top-0">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Status</th>
-                                <th class="px-4 py-3 text-left">Invoice</th>
-                                <th class="px-4 py-3 text-left">To Customer</th>
-                                <th class="px-4 py-3 text-left">Payment Date</th>
-                                <th class="px-4 py-3 text-left">Payment Channel</th>
-                                <th class="px-4 py-3 text-left">Distribusi <span class="text-red-500">*</span></th>
-                                <th class="px-4 py-3 text-left">Jasa Kurir <span class="text-red-500">*</span></th>
-                                <th class="px-4 py-3 text-left">Service</th>
-                                <th class="px-4 py-3 text-left">Vendor</th>
-                                <th class="px-4 py-3 text-left">Catatan</th>
+                            <tr class="divide-x divide-gray-200">
+                                <th class="px-4 py-3 text-left w-24">Status</th>
+                                <th class="px-4 py-3 text-left w-32">Invoice</th>
+                                <th class="px-4 py-3 text-left min-w-[240px]">To Customer</th>
+                                <th class="px-4 py-3 text-left w-36">Payment Date</th>
+                                <th class="px-4 py-3 text-left w-44">Payment Channel</th>
+                                <th class="px-4 py-3 text-left w-40">Distribusi <span class="text-red-500">*</span></th>
+                                <th class="px-4 py-3 text-left min-w-[220px]">Jasa Kurir <span class="text-red-500">*</span></th>
+                                <th class="px-4 py-3 text-left min-w-[190px]">Service</th>
+                                <th class="px-4 py-3 text-left w-44">Vendor</th>
+                                <th class="px-4 py-3 text-left min-w-[220px]">Catatan</th>
                             </tr>
                         </thead>
                         <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
@@ -316,7 +322,10 @@
         </div>
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+ 
+ <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     let selectedIds = [];
 
@@ -335,7 +344,6 @@
         if (!processBtn) return;
 
         let unprocessedCount = 0;
-
         document.querySelectorAll('tbody tr').forEach(row => {
             if (!row.classList.contains('processed-row')) {
                 unprocessedCount++;
@@ -360,7 +368,6 @@
             setTimeout(checkProcessButtonVisibility, 700);
         });
 
-        // Cek ulang setelah halaman load
         setTimeout(checkProcessButtonVisibility, 1000);
     });
 
@@ -423,9 +430,15 @@
                     } else {
                         distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
 
-                        jasaKurirHtml = `<select class="jasa-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500"><option value="">Pilih Jasa Kurir</option></select>`;
+                        jasaKurirHtml = `
+                            <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
+                                <option value="">Pilih atau ketik jasa kurir...</option>
+                                <option value="JNE">JNE</option>
+                                <option value="TIKI">TIKI</option>
+                                <option value="Lion Parcel">Lion Parcel</option>
+                            </select>`;
 
-                        serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">`;
+                        serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG / YES / CTC / dll">`;
 
                         catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
                     }
@@ -440,7 +453,7 @@
                             <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
                             <td class="px-4 py-3">${distribusiHtml}</td>
                             <td class="px-4 py-3">${jasaKurirHtml}</td>
-                            <td class="px-4 py-3">${serviceKurirHtml}</td>
+                            <td class="px-4 py-3" readonly>${serviceKurirHtml}</td>
                             <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
                             <td class="px-4 py-3">${catatanHtml}</td>
                         </tr>`;
@@ -460,78 +473,124 @@
     }
 
     function initModalLogic() {
-        // Setup berdasarkan Distribusi
-        $('#modalTableBody tr:not(.processed-row)').each(function() {
-            const row = $(this);
-            const distribusi = row.data('distribusi');
-            const jasaSelect = row.find('.jasa-kurir');
-            const serviceInput = row.find('.service-kurir');
 
-            if (distribusi === 'Diambil') {
-                jasaSelect.html('<option value="Diambil" selected>Diambil</option>').prop('disabled', true);
-                serviceInput.prop('disabled', true).val('');
-            } else {
-                jasaSelect.html(`
-                    <option value="">Pilih Jasa Kurir</option>
-                    <option value="JNE">JNE</option>
-                    <option value="Lion Parcel">Lion Parcel</option>
-                    <option value="TIKI">TIKI</option>
-                `).prop('disabled', false);
-                serviceInput.prop('disabled', false);
+        // ==================== JASA KURIR SELECT2 ====================
+        $('.jasa-kurir-select').select2({
+            placeholder: "Pilih atau ketik jasa kurir...",
+            allowClear: true,
+            tags: true,
+            tokenSeparators: [','],
+            width: '100%',
+            dropdownParent: $('#bulkModal'),
+            createTag: function(params) {
+                let term = $.trim(params.term);
+                if (term === '') return null;
+                return { id: term, text: term, new: true };
             }
-        });
-
-        // Event listener
-        $(document).off('change', '.jasa-kurir').on('change', '.jasa-kurir', function() {
+        }).on('change', function() {
+            const row = $(this).closest('tr');
             const jasa = $(this).val();
-            const service = $(this).closest('tr').find('.service-kurir');
-            
-            if (jasa === 'Driver') {
-                service.val('').prop('disabled', true).attr('placeholder', 'Tidak perlu diisi');
+            let serviceField = row.find('.service-kurir');
+
+            // === LOGIC SERVICE SEPERTI AWAL ===
+            if (jasa === 'JNE' || jasa === 'TIKI') {
+                if (!serviceField.is('input')) {
+                    serviceField.replaceWith(`
+                        <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" value="REG">
+                    `);
+                } else {
+                    serviceField.val('REG').prop('readonly', true);
+                }
+            } else if (jasa === 'Lion Parcel') {
+                serviceField.replaceWith(`
+                    <select class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
+                        <option value="">Pilih Service</option>
+                        <option value="REGPACK">REGPACK</option>
+                        <option value="BOSPACK">BOSPACK</option>
+                        <option value="JAGOPACK">JAGOPACK</option>
+                        <option value="BIGPACK">BIGPACK</option>
+                    </select>
+                `);
             } else {
-                service.prop('disabled', false).attr('placeholder', 'REG, YES, CTC, dll');
+                if (!serviceField.is('input')) {
+                    serviceField.replaceWith(`
+                        <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">
+                    `);
+                } else {
+                    serviceField.prop('readonly', false).val('');
+                }
             }
             checkSaveButtonState();
         });
 
-        // Cek saat service diubah juga
-        $(document).off('input change', '.service-kurir').on('input change', '.service-kurir', checkSaveButtonState);
-
-        // Cek pertama kali
-        setTimeout(checkSaveButtonState, 300);
-    }
-
-    // Validasi lengkap: Jasa Kurir & Service harus diisi
-    function checkSaveButtonState() {
-        let isValid = true;
-
+        // ==================== SETUP "DIAMBIL SENDIRI" ====================
         $('#modalTableBody tr:not(.processed-row)').each(function() {
-            const distribusi = $(this).data('distribusi');
-            const jasaKurir = $(this).find('.jasa-kurir').val();
-            const service = $(this).find('.service-kurir').val().trim();
+            const row = $(this);
+            if (row.data('distribusi') === 'Diambil') {
+                const jasaSelect = row.find('.jasa-kurir-select');
+                
+                if (jasaSelect.find('option[value="Diambil Sendiri"]').length === 0) {
+                    jasaSelect.append('<option value="Diambil Sendiri">Diambil Sendiri</option>');
+                }
 
-            if (!jasaKurir) {
-                isValid = false;
-                return false;
-            }
+                jasaSelect.val('Diambil Sendiri')
+                          .trigger('change')
+                          .prop('disabled', true);
 
-            // Untuk Dikirim, Service juga harus diisi
-            if (distribusi === 'Dikirim' && !service) {
-                isValid = false;
-                return false;
+                row.find('.service-kurir').prop('disabled', true).val('');
             }
         });
 
-        const saveButton = $('.bg-indigo-600');
-        if (isValid) {
-            saveButton.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
-        } else {
-            saveButton.prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+        // ==================== VALIDASI ====================
+        function checkSaveButtonState() {
+            let isValid = true;
+
+            $('#modalTableBody tr:not(.processed-row)').each(function () {
+                const row = $(this);
+                let jasaKurir = row.find('.jasa-kurir-select').val() || '';
+                let serviceValue = '';
+
+                const serviceField = row.find('.service-kurir');
+                if (serviceField.length) {
+                    serviceValue = serviceField.is('select') ? (serviceField.val() || '') : $.trim(serviceField.val());
+                }
+
+                const distribusi = row.data('distribusi');
+
+                if (distribusi === 'Diambil') {
+                    jasaKurir = 'Diambil Sendiri';
+                }
+
+                if (!jasaKurir) {
+                    isValid = false;
+                    return false;
+                }
+
+                if (distribusi === 'Dikirim' && !serviceValue) {
+                    isValid = false;
+                    return false;
+                }
+            });
+
+            const saveButton = $('.bg-indigo-600');
+            if (isValid) {
+                saveButton.prop('disabled', false)
+                          .removeClass('opacity-50 cursor-not-allowed')
+                          .text('💾 Simpan & Kunci Semua Data');
+            } else {
+                saveButton.prop('disabled', true)
+                          .addClass('opacity-50 cursor-not-allowed')
+                          .text('Lengkapi Jasa Kurir & Service');
+            }
         }
+
+        $(document).off('input change', '.service-kurir').on('input change', '.service-kurir', checkSaveButtonState);
+        setTimeout(checkSaveButtonState, 400);
     }
 
     function hideBulkModal() {
         $('#bulkModal').addClass('hidden');
+        $('.jasa-kurir-select').select2('destroy');
     }
 
     function executeBulkAction() {
@@ -544,14 +603,20 @@
 
         const updates = [];
         $('#modalTableBody tr').each(function() {
-            const distribusiText = $(this).find('td:nth-child(6) span').text().trim();
+            const row = $(this);
+            let distribusiText = row.data('distribusi');
+            let jasaKurirText = row.find('.jasa-kurir-select').val() || '';
+
+            if (distribusiText === 'Diambil') {
+                jasaKurirText = 'Diambil Sendiri';
+            }
 
             updates.push({
-                id: $(this).data('id'),
+                id: row.data('id'),
                 status_kirim: distribusiText,
-                jasa_kurir: $(this).find('.jasa-kurir').val() || '',
-                service_kurir: $(this).find('.service-kurir').val() || '',
-                catatan: $(this).find('.catatan').val() || ''
+                jasa_kurir: jasaKurirText,
+                service_kurir: row.find('.service-kurir').val() || '',
+                catatan: row.find('.catatan').val() || ''
             });
         });
 

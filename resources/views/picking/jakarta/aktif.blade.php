@@ -53,7 +53,7 @@
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h1 class="text-3xl font-bold text-gray-800">Picking List - Jakarta Aktif</h1>
-                <p class="text-gray-600">Daftar order siap di-picking</p>
+                <p class="text-gray-600">Daftar Picking yang sudah dibuat dari order Jakarta Aktif</p>
             </div>
             
             <div class="flex gap-3">
@@ -62,7 +62,6 @@
                     ← Kembali ke Picking Menu
                 </a>
                 
-                <!-- Tombol Generate All -->
                 <form action="{{ route('picking.generate-all') }}" method="POST" 
                       onsubmit="return confirm('Generate Picking untuk SEMUA order yang belum dibuat picking?')">
                     @csrf
@@ -78,9 +77,9 @@
         <div class="bg-white rounded-3xl shadow p-6 mb-6">
             <form method="GET" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">ID Pesan</label>
-                    <input type="text" name="id_pesan" value="{{ request('id_pesan') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Cari ID...">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">No PL / ID Pesan</label>
+                    <input type="text" name="search" value="{{ request('search') }}" 
+                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Cari No PL...">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nama Unit</label>
@@ -114,109 +113,68 @@
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
                         <th class="text-left px-4 py-3">No</th>
+                        <th class="text-left px-4 py-3">No PL</th>
                         <th class="text-left px-4 py-3">ID Pesan</th>
                         <th class="text-left px-4 py-3">Nama Unit</th>
-                        <th class="text-left px-4 py-3">Cabang</th>
+                        <th class="text-left px-4 py-3">Customer</th>
                         <th class="text-left px-4 py-3">Tanggal Order</th>
-                        <th class="text-left px-4 py-3">Payment Date</th>
-                        <th class="text-left px-4 py-3">Estimasi (Persiapan)</th>
-                        <th class="text-left px-4 py-3">Tanggal Terima PL</th>
-                        <th class="text-center px-4 py-3">Status Kirim</th>
+                        <th class="text-left px-4 py-3">Tanggal Picking</th>
+                        <th class="text-center px-4 py-3">Status</th>
                         <th class="text-right px-4 py-3">Total</th>
-                        <th class="text-center px-4 py-3">Picking</th>
                         <th class="text-center px-4 py-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($data as $index => $item)
-                        @php
-                            $paymentDate = $item->payment_date ? \Carbon\Carbon::parse($item->payment_date) : null;
-                            $estimasiPrint = $paymentDate ? $paymentDate->copy()->addHours(24) : null;
-                            $jamEstimasi = $paymentDate ? $paymentDate->diffInHours(now()) : 999;
-                        @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-center">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 font-medium">{{ $item->no_pl ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $item->id_pesan ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
-                        <td class="px-4 py-3">{{ $item->billing_last_name ?? '-' }}</td>
+                        <td class="px-4 py-3">
+                            {{ $item->billing_last_name ?? '-' }} 
+                            @if($item->billing_company)
+                                <br><small class="text-gray-500">{{ $item->billing_company }}</small>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             @if($item->tgl_order)
-                                {{ \Carbon\Carbon::parse($item->tgl_order)->format('d/m/Y H:i') }}
+                                {{ \Carbon\Carbon::parse($item->tgl_order)->format('d/m/Y') }}
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
-                            @if($paymentDate) {{ $paymentDate->format('d/m/Y H:i') }} @else - @endif
-                        </td>
-                        <!-- Ganti bagian Estimasi (Waktu) dengan ini -->
-
-                        <td class="px-4 py-3 text-center">
-                            @php
-                                $paymentDate = $item->payment_date ? \Carbon\Carbon::parse($item->payment_date) : null;
-                                $estimasiPersiapan = $paymentDate ? $paymentDate->copy()->addHours(72) : null;
-                                $jamPersiapan = $paymentDate ? $paymentDate->diffInHours(now()) : 999;
-                            @endphp
-                            
-                            @if($estimasiPersiapan)
-                                <span class="inline-block px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap 
-                                    {{ $jamPersiapan <= 48 ? 'badge-green' : 
-                                    ($jamPersiapan <= 72 ? 'badge-yellow' : 'badge-red') }}">
-                                    {{ $estimasiPersiapan->format('d/m/Y') }}
-                                </span>
+                            @if($item->tgl_picking)
+                                {{ \Carbon\Carbon::parse($item->tgl_picking)->format('d/m/Y') }}
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <!-- Kolom Tanggal Terima PL -->
-                        <td class="px-4 py-3 text-center font-medium whitespace-nowrap">
-                            @php
-                                $realisasi = $item->realisasi;
-                            @endphp
-                            @if($realisasi && $realisasi->created_at)
-                                <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-2xl text-sm">
-                                    {{ \Carbon\Carbon::parse($realisasi->created_at)->format('d/m/Y H:i') }}
-                                </span>
+                        <td class="text-center px-4 py-3">
+                            @if($item->status === 'completed' || $item->status === 'printed')
+                                <span class="badge-green">✅ Selesai</span>
+                            @elseif($item->status === 'draft')
+                                <span class="badge-yellow">Draft</span>
                             @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            @if($item->status_kirim === 'Dikirim')
-                                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm">Dikirim</span>
-                            @else
-                                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-xl text-sm">Ambil Sendiri</span>
+                                <span class="badge-black">{{ $item->status }}</span>
                             @endif
                         </td>
                         <td class="text-right px-4 py-3 font-semibold">
                             Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}
                         </td>
                         <td class="text-center px-4 py-3">
-                            @if($item->picking_generated)
-                                <span class="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 rounded-2xl text-xs font-medium">
-                                    ✅ Sudah
-                                </span>
-                            @else
-                                <span class="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-2xl text-xs font-medium">
-                                    Belum
-                                </span>
-                            @endif
-                        </td>
-                        <td class="text-center px-4 py-3">
-                            @if(!$item->picking_generated)
-                                <a href="{{ route('picking.create') }}?order_id={{ $item->id }}" 
-                                   class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-2 rounded-2xl">
-                                    📦 Buat Picking
-                                </a>
-                            @else
-                                <span class="text-emerald-600 text-sm font-medium">✓ Sudah Digenerate</span>
-                            @endif
+                            <a href="#" 
+                               onclick="if(confirm('Hapus Picking ini?')) window.location.href='{{ route('picking.destroy', $item->id) }}'"
+                               class="text-red-600 hover:text-red-800 text-sm">
+                                🗑 Hapus
+                            </a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="12" class="text-center py-16 text-gray-500">
-                            Belum ada data yang siap di-picking.
+                        <td colspan="10" class="text-center py-16 text-gray-500">
+                            Belum ada Picking List yang dibuat.
                         </td>
                     </tr>
                     @endforelse

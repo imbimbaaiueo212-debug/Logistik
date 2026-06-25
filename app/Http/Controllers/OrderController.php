@@ -568,38 +568,42 @@ public function printRealisasiPdf(Request $request)
         $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
     }
 
-    $data = $query->latest('tgl_turun_pl')->get();
+    // Ambil ID dulu
+    $ids = (clone $query)->pluck('id');
 
-    // Generate nomor sekali
+    // Generate nomor
     $docNumber = $this->generateRekapNumber();
 
-    // === SIMPAN REKAP NUMBER DENGAN RAW QUERY (Paling Aman) ===
-    if ($data->isNotEmpty()) {
-        $ids = $data->pluck('id');
-        
+    if ($ids->isNotEmpty()) {
+
         DB::table('realisasi_aktif')
             ->whereIn('id', $ids)
             ->whereNull('rekap_number')
             ->update([
                 'rekap_number' => $docNumber,
-                'updated_at'   => now()
+                'updated_at' => now(),
             ]);
+
+        if ($request->boolean('mark_printed')) {
+            DB::table('realisasi_aktif')
+                ->whereIn('id', $ids)
+                ->whereNull('printed_at')
+                ->update([
+                    'printed_at' => now(),
+                    'updated_at' => now(),
+                ]);
+        }
     }
 
-    // Mark as printed
-    if ($request->has('mark_printed') && $request->mark_printed == 'true') {
-        $ids = $data->pluck('id');
-        RealisasiAktif::whereIn('id', $ids)
-            ->whereNull('printed_at')
-            ->update(['printed_at' => now()]);
-    }
+    // BARU ambil data setelah update selesai
+    $data = $query->latest('tgl_turun_pl')->get();
 
     $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
+        ->setPaper('A4', 'landscape')
+        ->setOptions([
+            'defaultFont' => 'sans-serif',
+            'isHtml5ParserEnabled' => true,
+        ]);
 
     return $pdf->stream('Realisasi-Aktif-' . now()->format('d-m-Y_H-i') . '.pdf');
 }

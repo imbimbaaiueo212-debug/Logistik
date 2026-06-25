@@ -249,30 +249,22 @@
                         {{ $item->estimasi_hari ?? 0 }} Hari
                     </div>
                 </td>
-                <td class="text-left" style="font-size:8.8px;">
+                <td class="text-center" style="font-size:8.8px fw-bold;">
                     @php
                         $catatan = $item->ket ?? $item->jakartaAktif?->catatan ?? '';
+
+                        // Hapus tulisan "Di proses bulk pada dd/mm/yyyy hh:mm:"
+                        $catatan = preg_replace(
+                            '/Di proses bulk pada \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\s*/i',
+                            '',
+                            $catatan
+                        );
+
                         echo Str::limit(trim($catatan), 65);
                     @endphp
                 </td>
                 <td style="text-align:center;">
-                    @if($item->picking_printed_at)
-                        <span style="
-                            color:#16a34a;
-                            font-size:18px;
-                            font-weight:bold;
-                        ">
-                            &#10004;
-                        </span>
-                    @else
-                        <span style="
-                            color:#dc2626;
-                            font-size:18px;
-                            font-weight:bold;
-                        ">
-                            &#10006;
-                        </span>
-                    @endif
+                    
                 </td>
             </tr>
             @endforeach

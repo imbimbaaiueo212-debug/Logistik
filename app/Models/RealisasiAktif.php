@@ -78,4 +78,8 @@ class RealisasiAktif extends Model
 {
     return $this->hasMany(BimbashopOrder::class, 'order_id', 'no_pl');
 }
+public function picking()
+    {
+        return $this->belongsTo(Picking::class, 'picking_id');
+    }
 }

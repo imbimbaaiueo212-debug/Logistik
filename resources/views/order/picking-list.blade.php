@@ -103,25 +103,27 @@
 
     <div class="preview">
         <div style="padding: 6mm 5mm 7mm 5mm;">
-
-            <div class="header">
-                <div class="logo">biMBA LOGISTIK</div>
-                <p class="subheader">HANYA UNTUK KALANGAN SENDIRI</p>
-                <h2 style="margin:6px 0 3px 0; font-size:17px;">PICKING LIST</h2>
-            </div>
-
-            <table style="border: none; margin-bottom: 8px;">
+            <table style="width:100%; border:none; border-collapse:collapse; margin-bottom:8px;">
                 <tr>
-                    <td style="width:52%;">
-                        <strong>Nama Unit</strong> : {{ $item->nama_unit ?? '-' }}<br>
-                        <strong>CAB</strong> : {{ $billing_last_name ?? $item->billing_last_name ?? '-' }}<br>
-                        <strong>NIM</strong> : {{ $billing_company ?? $item->billing_company ?? '-' }}
+                    
+                    <td style="width:40%; border:none;">
+                        
+                        <strong style="font-size: 15px;"">{{ $no_pl ?? $item->no_pl ?? '-' }}</strong><br>
+                        <span>PayDate</span>, <strong>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</strong><br>
+                        
+                        <strong>{{ $item->pengiriman ?? '-' }} | {{ $item->service_pengiriman}}</strong><strong></strong> {{ $data->count() }} | {{ $data->sum('item_qty') ?? $data->sum('qty') ?? $data->count() }}</strong><br>
+                        <strong> {{ $item->nama_unit ?? '-' }}</strong><br>
+                        
                     </td>
-                    <td class="right">
-                        <strong>No. Order</strong> : {{ $no_pl ?? $item->no_pl ?? '-' }}<br>
-                        <strong>Tanggal Order</strong> : {{ $tgl_order ? \Carbon\Carbon::parse($tgl_order)->format('d F Y') : '-' }}<br>
-                        <strong>Pengiriman</strong> : {{ $item->status_kirim ?? 'Ambil Sendiri' }}
+
+                    <td style="border:none; text-align:right; vertical-align: top; padding-top: 15px; width: 35%;">
+                        <td style="text-align:right;">
+                            <strong style="font-size: 15px; padding:50px ">PARAF</strong><br><br><br><br>
+                           <br><br><br>
+                            
+                        </td>
                     </td>
+                    
                 </tr>
             </table>
 
@@ -148,34 +150,7 @@
                 </tbody>
             </table>
 
-            <table style="border: none; margin-top: 6px;">
-                <tr>
-                    <td><strong>TOTAL ITEM</strong> : {{ $data->count() }}</td>
-                    <td class="right"><strong>TOTAL QTY</strong> : {{ $data->sum('item_qty') ?? $data->sum('qty') ?? $data->count() }}</td>
-                </tr>
-            </table>
-
-            <div class="signature-area">
-                <div>
-                    <strong>CHECKLIST PICKING</strong><br><br>
-                    ☐ Semua produk sudah diambil sesuai daftar<br>
-                    ☐ Kondisi produk baik dan sesuai<br>
-                    ☐ Jumlah sudah sesuai<br>
-                    ☐ Packing rapi dan aman
-                </div>
-                
-                <div style="text-align:right;">
-                    <strong>Dipicking Oleh,</strong><br><br><br>
-                    ..............................................<br>
-                    <small>Nama & Tanggal</small><br><br>
-                    Tanggal Picking : ________________<br>
-                    Jam Picking     : ________________
-                </div>
-            </div>
-
-            <div style="margin-top: 25px; text-align: center; font-size: 10.5px; color: #666;">
-                No. Order: {{ $no_pl ?? $item->no_pl ?? '-' }} | Dicetak: {{ now()->format('d/m/Y H:i') }}
-            </div>
+            
 
         </div>
     </div>
