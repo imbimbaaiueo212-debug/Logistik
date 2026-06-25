@@ -12,7 +12,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9px;
+            font-size: 10px;
             margin: 0;
             padding: 5px;
             line-height: 1.3;
@@ -25,11 +25,15 @@
         }
 
         th,
-        td {
-            border: 1px solid #374151;
-            padding: 6px 4px;
-            text-align: center;
-            vertical-align: middle;
+        td{
+            border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:top;
+            text-align:center;
+            line-height:1;
         }
 
         /* ================= HEADER ================= */
@@ -59,35 +63,19 @@
         /* ================= KOLOM ================= */
 
         .col-no {
-            width: 25px;
+            width: 15px;
         }
 
         .col-id {
-            width: 70px;
+            width: 20px;
         }
 
         .col-unit {
-            width: 150px;
+            width: 100px;
         }
 
         .col-kategori {
-            width: 70px;
-        }
-
-        .col-tanggal {
-            width: 75px;
-        }
-
-        .col-hari {
             width: 50px;
-        }
-
-        .col-kode {
-            width: 50px;
-        }
-
-        .col-hasilcek {
-            width: 75px;
         }
 
         .col-catatan {
@@ -97,9 +85,13 @@
         .col-distribusi {
             width: 25px;
         }
+
+        .col-estimasi {
+            width: 50px;
+        }
         
         .col-cek {
-            width: 50px;
+            width: 30px;
         }
         /* ================= AREA MANUAL ================= */
 
@@ -149,7 +141,7 @@
 
         <!-- JUDUL -->
         <tr>
-            <th colspan="9" class="main-title">
+            <th colspan="8" class="main-title">
 
                 <table style="width:100%; border:none; border-collapse:collapse;">
                     <tr>
@@ -202,7 +194,14 @@
         <!-- HEADER GROUP -->
         <tr class="header1">
 
-            <th rowspan="2" class="col-no">
+            <th rowspan="2" class="col-no" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">
                 NO
             </th>
 
@@ -210,16 +209,44 @@
                 DETAIL ORDER
             </th>
 
-            <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
+            <th rowspan="2" class="col-distribusi" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">DISTRIBUSI</th>
 
 
-            <th colspan="2">
+            <th rowspan="2" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;" class="col-estimasi">
                 ESTIMASI (WAKTU)
             </th>
 
-            <th rowspan="2" class="col-cek">CEK LIST</th>
+            <th rowspan="2" class="col-cek" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">CEK LIST</th>
 
-            <th rowspan="2" class="col-catatan">
+            <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">
                 CATATAN
             </th>
 
@@ -238,16 +265,6 @@
             <th class="col-kategori">
                 KATEGORI
             </th>
-
-            <th class="col-tanggal">
-                TANGGAL
-            </th>
-
-            <th class="col-hari">
-                HARI
-            </th>
-
-
         </tr>
 
     </thead>
@@ -270,26 +287,54 @@
                 {{ $item->nama_unit ?? '-' }}
             </td>
 
-            <td class="text-left">
+            <td class="text-center">
                 {{ $item->nama_barang ?? '-' }}
             </td>
 
-            <td class="text-center" style="padding: 6px 4px; line-height: 1.35;">
-                    <div>{{ $item->pengiriman ?? '-' }}</div>
-                    <div style="border-top: 1px solid #64748b; margin: 5px 0;"></div>
-                    <div>{{ $item->service_pengiriman ?? '-' }}</div>
+            <td style="
+                    padding:1px 2px;
+                    vertical-align:top;
+                    text-align:center;
+                ">
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->pengiriman ?? '-' }}
+                    </div>
+
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->service_pengiriman ?? '-' }}
+                    </div>
                 </td>
 
 
-            <td>
-                {{ $item->tgl_estimasi
-                    ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
-                    : '-' }}
-            </td>
+            <td style="
+                    padding:1px 2px;
+                    vertical-align:top;
+                    text-align:center;
+                ">
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
+                    </div>
 
-            <td>
-                {{ $item->estimasi_hari ?? '-' }} Hari
-            </td>
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->estimasi_hari ?? 0 }} Hari
+                    </div>
+                </td>
 
             <!-- HASIL CEK -->
             <td class="manual-area">

@@ -27,6 +27,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\UnitKemitraanController;
+use App\Http\Controllers\PickingController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -137,6 +138,23 @@ Route::prefix('order')
         Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
             ->name('jakarta-aktif.export');
     });
+
+
+// === PICKING ROUTES ===
+Route::prefix('picking')->name('picking.')->group(function () {
+    Route::get('/', [PickingController::class, 'index'])->name('index');
+    Route::get('/create', [PickingController::class, 'create'])->name('create');
+    Route::post('/store', [PickingController::class, 'store'])->name('store');
+    
+    // Generate Massal
+    Route::post('/generate-all', [PickingController::class, 'generateAll'])->name('generate-all');
+    
+    // Hapus Picking + Reset Flag
+    Route::delete('/{id}', [PickingController::class, 'destroy'])->name('destroy');
+    
+    // Jakarta Aktif
+    Route::get('/jakarta/aktif', [PickingController::class, 'jakartaAktif'])->name('jakarta.aktif');
+});
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
 

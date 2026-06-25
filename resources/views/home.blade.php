@@ -38,7 +38,7 @@
                     </div>
                 </a>
 
-                <a href="#" class="group">
+                <a href="{{ route('picking.index') }}" class="group">
                     <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
                         <div class="bg-green-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">📦</div>
                         <h3 class="font-semibold text-lg">PICKING</h3>

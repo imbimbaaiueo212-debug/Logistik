@@ -48,6 +48,8 @@ class JakartaAktif extends Model
         'catatan',
         'payment_date',           // ← TAMBAHKAN INI
         'printed_at',
+        'picking_generated',   // baru
+        'picking_id',          // baru (relasi ke picking)
     ];
 
     protected $casts = [

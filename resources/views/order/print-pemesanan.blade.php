@@ -12,7 +12,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9px;
+            font-size: 10px;
             margin: 0;
             padding: 5px;
             line-height: 1.3;
@@ -25,11 +25,15 @@
         }
 
         th,
-        td {
-            border: 1px solid #374151;
-            padding: 6px 4px;
-            text-align: center;
-            vertical-align: middle;
+        td{
+            border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:top;
+            text-align:center;
+            line-height:1;
         }
 
         /* ================= HEADER ================= */
@@ -74,19 +78,15 @@
             width: 70px;
         }
 
-        .col-tanggal {
-            width: 75px;
+        .col-bayar {
+            width: 70px;
         }
 
-        .col-hari {
-            width: 50px;
+        .col-estimasi {
+            width: 60px;
         }
 
         .col-pic {
-            width: 100px;
-        }
-
-        .col-helper {
             width: 100px;
         }
 
@@ -142,7 +142,7 @@
 
         <!-- JUDUL -->
         <tr>
-            <th colspan="10" class="main-title">
+            <th colspan="8" class="main-title">
 
                 <table style="width:100%; border:none; border-collapse:collapse;">
                     <tr>
@@ -195,7 +195,14 @@
         <!-- HEADER GROUP -->
         <tr class="header1">
 
-            <th rowspan="2" class="col-no">
+            <th rowspan="2" class="col-no" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">
                 NO
             </th>
 
@@ -203,23 +210,45 @@
                 DETAIL ORDER
             </th>
 
-            <th rowspan="2">
+            <th rowspan="2" class="col-bayar" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">
                 WAKTU BAYAR
             </th>
 
-            <th colspan="2">
-                ESTIMASI (WAKTU)
-            </th>
+            <th rowspan="2" class="col-estimasi" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">ESTIMASI (WAKTU)</th>
 
-            <th rowspan="2" class="col-pic">
+            <th rowspan="2" class="col-pic" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">
                 PIC
             </th>
 
-            <th rowspan="2" class="col-helper">
-                HELPER
-            </th>
-
-            <th rowspan="2" class="col-catatan">
+            <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">
                 CATATAN
             </th>
 
@@ -237,14 +266,6 @@
 
             <th class="col-kategori">
                 KATEGORI
-            </th>
-
-            <th class="col-tanggal">
-                TANGGAL
-            </th>
-
-            <th class="col-hari">
-                HARI
             </th>
 
         </tr>
@@ -269,27 +290,35 @@
                 {{ $item->nama_unit ?? '-' }}
             </td>
 
-            <td class="text-left">
+            <td class="text-center">
                 {{ $item->nama_barang ?? '-' }}
             </td>
 
             <td>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</td>
 
-            <td>
-                {{ $item->tgl_estimasi
-                    ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
-                    : '-' }}
-            </td>
+            <td style="
+                    padding:1px 2px;
+                    vertical-align:top;
+                    text-align:center;
+                ">
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
+                    </div>
 
-            <td>
-                {{ $item->estimasi_hari ?? '-' }} Hari
-            </td>
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->estimasi_hari ?? 0 }} Hari
+                    </div>
+                </td>
 
             <!-- PIC -->
-            <td class="manual-area">
-            </td>
-
-            <!-- HELPER -->
             <td class="manual-area">
             </td>
 

@@ -11,7 +11,7 @@
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 9px;
             margin: 0;
             padding: 5px;
@@ -24,11 +24,16 @@
             border: 1px solid #374151;
         }
 
-        th, td {
-            border: 1px solid #374151;
-            padding: 6px 4px;
-            text-align: center;
-            vertical-align: middle;
+                th,
+        td{
+            border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:top;
+            text-align:center;
+            line-height:1;
         }
 
         .header1 th, .header2 th {
@@ -57,22 +62,19 @@
         }
 
         .col-unit {
-            width: 200px;
-        }
-
-        .col-kategori {
             width: 150px;
         }
 
-        .col-tanggal {
+        .col-kategori {
+            width: 100px;
+        }
+
+        .col-estimasi {
             width: 50px;
         }
 
-        .col-hari {
-            width: 50px;
-        }
         .col-kode {
-            width: 35px;
+            width: 45px;
         }
 
         .col-hasilcek {
@@ -102,14 +104,13 @@
             <div style="height:68px; position:relative;">
                 
                 <!-- Tulisan Serah Terima & Packing -->
-                <div style="padding-top:6px; font-weight:bold; font-size:8.8px; text-align:center; line-height:1.05;">
+                <div style="padding-top:1px; font-weight:bold; font-size:8.8px; text-align:center; line-height:1.05;">
                     Serah Terima<br>Packing
                 </div>
                 
                 <!-- Garis + Nama/Tgl di bawah -->
                 <div style="position:absolute; bottom:0px; left:0; right:0; text-align:center; font-size:8.3px;">
-                    ____________________<br>
-                    <strong>Nama/Tgl</strong>
+                    <strong>Nama__________/__________Tgl</strong>
                 </div>
                 
             </div>
@@ -167,20 +168,53 @@
 <table>
     <thead>
         <tr class="header1">
-            <th rowspan="2" class="col-no">NO</th>
-            <th colspan="3">DETAIL ORDER</th>
-            <th colspan="2">ESTIMASI (WAKTU)</th>
+            <th rowspan="2" class="col-no" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">NO</th>
+            <th colspan="3" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:5px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:top;
+            text-align:center;
+            line-height:1;">DETAIL ORDER</th>
+            <th rowspan="2" class="col-estimasi" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">ESTIMASI (WAKTU)</th>
             <th colspan="2">PIC QC OUTGOING</th>
-            <th rowspan="2" class="col-ceklist">CEKLIST</th>
-            <th rowspan="2" class="col-catatan">CATATAN</th>
+            <th rowspan="2" class="col-ceklist" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">CEKLIST</th>
+            <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">CATATAN</th>
         </tr>
 
         <tr class="header2">
             <th class="col-id">ID ORDER</th>
             <th class="col-unit">NAMA UNIT</th>
             <th class="col-kategori">KATEGORI</th>
-            <th class="col-tanggal">TANGGAL</th>
-            <th class="col-hari">HARI</th>
             <th class="col-kode">KODE</th>
             <th class="col-hasilcek">HASIL CEK</th>
         </tr>
@@ -192,9 +226,28 @@
             <td class="font-bold">{{ $loop->iteration }}</td>
             <td>{{ $item->no_pl ?? '-' }}</td>
             <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-            <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
-            <td>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
-            <td>{{ $item->estimasi_hari ?? '-' }} Hari</td>
+            <td class="text-center">{{ $item->nama_barang ?? '-' }}</td>
+            <td style="
+                    padding:1px 2px;
+                    vertical-align:top;
+                    text-align:center;
+                ">
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
+                    </div>
+
+                    <div style="
+                        margin:0;
+                        padding:0;
+                        line-height:1;
+                    ">
+                        {{ $item->estimasi_hari ?? 0 }} Hari
+                    </div>
+                </td>
             <td class="manual-area"></td>
             <td class="manual-area"></td>
             <td class="manual-area"></td>

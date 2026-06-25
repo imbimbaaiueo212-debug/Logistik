@@ -15,49 +15,46 @@
     table {
         border-collapse: collapse;
         width: 100%;
-        font-size: 0.82rem;
-        border: 3px solid #374151;
+        font-size: 15px;
+        border: 1px solid #374151;
     }
     
-    th, td {
-        border: 1px solid #37415171;
-        padding: 8px 6px;
-        text-align: center;
-        vertical-align: middle;
-    }
+
+    th,
+        td{
+            border: 1px solid #37415171;
+            padding-top:3px;
+            padding-bottom:3px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:top;
+            text-align:center;
+            line-height:1;
+        }
 
     /* ================== HEADER GROUP ================== */
     .header1 th, 
     .header2 th {
         background-color: #f1f5f9;
-        border-bottom: 3px solid #374151;
+        border-bottom: 1px solid #374151;
         font-weight: 600;
     }
-
-    /* Border */
-    th:first-child, td:first-child { border-left: 3px solid #374151; }
-    th:last-child,  td:last-child  { border-right: 3px solid #374151; }
-
-    th:nth-child(1), td:nth-child(1) { border-right: 3px solid #374151; }
-    th:nth-child(2), td:nth-child(2) { border-right: 3px solid #374151; }
-    th:nth-child(5), td:nth-child(5) { border-right: 3px solid #374151; }
-    th:nth-child(6), td:nth-child(6) { border-right: 3px solid #374151; }
 
     .main-title {
         font-size: 1.05rem;
         font-weight: 700;
         background-color: #ffffff;
-        border-bottom: 3px solid #374151;
+        border-bottom: 1px solid #374151;
         padding: 12px 10px;
     }
 
     /* Lebar Kolom yang dioptimalkan */
-    .col-no       { width: 5px; }
-    .col-id       { width: 85px; }
-    .col-unit     { width: 220px; }
-    .col-kategori { width: 85px; }
-    .col-catatan  { width: 180px; }
-    .col-picking  { width: 90px; }
+    .col-no       { width: 10px; }
+    .col-id       { width: 50px; }
+    .col-unit     { width: 100px; }
+    .col-kategori { width: 50px; }
+    .col-catatan  { width: 200px; }
+    .col-picking  { width: 50px; }
 
     .text-left { text-align: left; }
 </style>
@@ -157,10 +154,31 @@
 
                 <!-- HEADER GROUP -->
                 <tr class="header1">
-                    <th rowspan="2" class="col-no">NO</th>
+                    <th rowspan="2" class="col-no" style="
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">NO</th>
                     <th colspan="3">DETAIL ORDER</th>
-                    <th rowspan="2" class="col-catatan">CATATAN</th>
-                    <th rowspan="2" class="col-picking">PICKING LIST</th>
+                    <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">CATATAN</th>
+                    <th rowspan="2" class="col-picking" style="
+            padding-top:1px;
+            padding-bottom:2px;
+            padding-left:3px;
+            padding-right:3px;
+            vertical-align:middle;
+            text-align:center;
+            line-height:1;">PICKING LIST</th>
                 </tr>
 
                 <tr class="header2">
@@ -176,7 +194,7 @@
                 <td class="font-medium text-center">{{ $loop->iteration }}</td>
                 <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
                 <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
+                <td class="text-center">{{ $item->nama_barang ?? '-' }}</td>
                 
                 <!-- CATATAN -->
                 <td class="text-center text-xs py-3">
