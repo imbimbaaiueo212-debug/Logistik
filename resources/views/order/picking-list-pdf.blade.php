@@ -19,11 +19,11 @@
         }
 
         .container{
-    width:100%;
-    max-width:135mm;
-    margin:0 auto;
-    box-sizing:border-box;
-}
+            width:100%;
+            max-width:135mm;
+            margin:0 auto;
+            box-sizing:border-box;
+        }
 
         .header {
             text-align: center;
@@ -47,7 +47,7 @@
         th, td {
             border: 1px solid #333;
             padding: 3.5px 3px;          /* padding kolom dikecilkan */
-            font-size: 10.5px;
+            font-size: 15px;
         }
 
         th {
@@ -155,15 +155,15 @@ if (isset($pdf)) {
 
         $canvas->text(
             20,
-            555,
+            575,
             "No. Order: {$noOrder} | Dicetak: {$printed}",
             $font,
             9
         );
 
         $canvas->text(
-            380,
-            555,
+            385,
+            575,
             "{$pageNumber} / {$pageCount}",
             $font,
             9
