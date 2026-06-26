@@ -172,7 +172,7 @@
             padding-right:3px;
             vertical-align:middle;
             text-align:center;
-            line-height:1;">WAKTU ESTIMASI PERSIAPAN</th>
+            line-height:1;">ESTIMASI (WAKTU)</th>
                 <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
             padding-top:1px;
             padding-bottom:2px;

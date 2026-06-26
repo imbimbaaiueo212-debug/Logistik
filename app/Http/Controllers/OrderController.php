@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -86,10 +88,6 @@ public function jakartaAktif(Request $request)
  * Sync dari Bimbashop + Casdana 
  * Hanya JKT murni (dikecualikan JKTP dan semua stokis lain)
  */
-/**
- * Sync dari Bimbashop + Casdana 
- * Hanya JKT murni
- */
 public function syncJktFromBimbashop()
 {
     $count = 0;
@@ -128,16 +126,93 @@ public function syncJktFromBimbashop()
             continue;
         }
 
-        // === HITUNG ESTIMASI ===
-        $paymentDate = $casdana->payment_date;
-        $estimasiPrintPl = null;
-        $estimasiPersiapan = null;
+               // =====================================================
+// HITUNG ESTIMASI PRINT PL & PERSIAPAN
+// =====================================================
 
-        if ($paymentDate) {
-            $payment = \Carbon\Carbon::parse($paymentDate);
-            $estimasiPrintPl   = $payment->copy()->addHours(24);
-            $estimasiPersiapan = $payment->copy()->addHours(72);
-        }
+$paymentDate = $casdana->payment_date;
+
+$estimasiPrintPl = null;
+$estimasiPersiapan = null;
+
+if (!empty($paymentDate)) {
+
+    /**
+     * JANGAN gunakan setTimezone dulu.
+     * Kita ingin melihat nilai asli dari database.
+     */
+    $payment = Carbon::parse($paymentDate);
+
+    Log::info('===== ORDER DEBUG =====', [
+        'order_id'         => $bimba->order_id,
+        'payment_raw'      => $paymentDate,
+        'payment_parsed'   => $payment->format('Y-m-d H:i:s'),
+        'hour'             => $payment->hour,
+        'minute'           => $payment->minute,
+    ]);
+
+    /**
+     * ====================================
+     * PRINT PL
+     * ====================================
+     *
+     * < 12:00  = Hari ini
+     * >=12:00 = Besok
+     */
+
+    if ($payment->hour < 12) {
+
+        $estimasiPrintPl = $payment->copy();
+
+        Log::info('Print PL : Hari yang sama');
+
+    } else {
+
+        $estimasiPrintPl = $payment->copy()->addDay();
+
+        Log::info('Print PL : Besok karena lewat jam 12');
+    }
+
+    /**
+     * Kalau Print PL jatuh di Minggu / Hari Libur,
+     * cari hari kerja berikutnya.
+     */
+
+    while (
+        $estimasiPrintPl->isSunday() ||
+        $this->isHoliday($estimasiPrintPl)
+    ) {
+
+        Log::info('Print PL Skip', [
+            'tanggal' => $estimasiPrintPl->format('d/m/Y'),
+            'minggu'  => $estimasiPrintPl->isSunday(),
+            'libur'   => $this->isHoliday($estimasiPrintPl),
+        ]);
+
+        $estimasiPrintPl->addDay();
+    }
+
+    Log::info('Print PL Final', [
+        'tanggal' => $estimasiPrintPl->format('d/m/Y H:i'),
+    ]);
+
+    /**
+     * ====================================
+     * ESTIMASI PERSIAPAN
+     * ====================================
+     */
+
+    $estimasiPersiapan = $this->addBusinessDays(
+        $estimasiPrintPl,
+        2
+    );
+
+    Log::info('Estimasi Persiapan', [
+        'tanggal' => $estimasiPersiapan->format('d/m/Y H:i'),
+    ]);
+}
+        // ========================================================
+        // =========================================
 
         // === NAMA UNIT ===
         $parts = [];
@@ -203,7 +278,7 @@ public function syncJktFromBimbashop()
             'amount'             => $casdana->amount ?? 0,
 
             'billing_last_name'  => $bimba->billing_last_name ?? null,
-            'billing_company'    => $bimba->billing_company ?? null,     // ← TAMBAHKAN INI
+            'billing_company'    => $bimba->billing_company ?? null,
             'status_kirim'       => $statusKirim,
 
             // === ESTIMASI BARU ===
@@ -219,6 +294,57 @@ public function syncJktFromBimbashop()
 
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', "✅ Berhasil sync {$count} data JKT murni!");
+}
+/**
+ * Hitung +3 Hari Kerja sambil mempertahankan jam & menit
+ */
+private function addBusinessDays(Carbon $startDate, int $days = 2)
+{
+    $date = $startDate->copy();
+
+    $added = 0;
+
+    while ($added < $days) {
+
+        $date->addDay();
+
+        if (
+            $date->isSunday() ||
+            $this->isHoliday($date)
+        ) {
+            continue;
+        }
+
+        $added++;
+    }
+
+    return $date;
+}
+
+/**
+ * Daftar Hari Libur Nasional 2026
+ */
+private function isHoliday($date)
+{
+    $holidays = [
+        '2026-01-01',
+        '2026-01-16',
+        '2026-02-17',
+        '2026-03-19',
+        '2026-03-21',
+        '2026-03-22',
+        '2026-04-03',
+        '2026-04-05',
+        '2026-05-01',
+        '2026-05-14',
+        '2026-05-27',
+        '2026-06-01',
+        '2026-06-16',
+        '2026-08-17',
+        '2026-12-25',
+    ];
+
+    return in_array($date->format('Y-m-d'), $holidays);
 }
 
     public function unitAktif() { return view('order.unit-aktif'); }
@@ -729,6 +855,55 @@ public function printPickingList($id)
         'billing_last_name' => $main->billing_last_name, // ← TAMBAHKAN INI
         'billing_company'    => $main->billing_company,   // ← tambahkan
     ]);
+}
+
+
+public function printPickingListPdf($id)
+{
+    $main = RealisasiAktif::findOrFail($id);
+
+    // Tandai sudah dicetak
+    if (!$main->picking_printed_at) {
+        $main->update(['picking_printed_at' => now()]);
+    }
+
+    $items = BimbashopOrder::where('order_id', $main->no_pl)
+                ->orderBy('item_sku')
+                ->get();
+
+    if ($items->isEmpty()) {
+        $items = collect([
+            (object)[
+                'item_name' => $main->nama_barang ?? '-',
+                'item_sku'  => '-',
+                'item_qty'  => 1,
+            ]
+        ]);
+    }
+
+    $pdf = Pdf::loadView('order.picking-list-pdf', [
+        'item'              => $main,
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name,
+        'billing_company'   => $main->billing_company,
+    ]);
+
+    $pdf->setPaper('A5', 'portrait');
+    
+    $pdf->setOptions([
+        'margin-top'           => 8,
+        'margin-right'         => 6,
+        'margin-bottom'        => 18,     // diperbesar untuk page number
+        'margin-left'          => 6,
+        'isHtml5ParserEnabled' => true,
+        'isPhpEnabled'         => true,   // ← INI YANG PENTING
+    ]);
+
+    $filename = 'Picking_List_' . ($main->no_pl ?? 'unknown') . '_' . now()->format('Ymd_His') . '.pdf';
+
+    return $pdf->stream($filename);
 }
 /**
  * Print QC

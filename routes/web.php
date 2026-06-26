@@ -111,9 +111,13 @@ Route::prefix('order')
         Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])
             ->name('realisasi.print-single');
 
-        // PICKING LIST
+                        // PICKING LIST
         Route::get('/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
             ->name('realisasi.picking-list');
+
+        // PICKING LIST PDF
+        Route::get('/picking-list/pdf/{id}', [OrderController::class, 'printPickingListPdf'])
+            ->name('picking-list.pdf');
 
         // PRINT QC, PEMESANAN, EKSPEDISI
         Route::get('/realisasi/print-qc', [OrderController::class, 'printQC'])

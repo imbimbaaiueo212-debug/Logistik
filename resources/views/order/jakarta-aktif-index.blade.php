@@ -172,13 +172,28 @@
                 <tbody class="divide-y divide-gray-200">
                     @forelse($data as $item)
                         @php
-                            $isProcessed = $item->is_processed ?? false;
-                            $paymentDate = $item->payment_date ? \Carbon\Carbon::parse($item->payment_date) : null;
-                            $estimasiPrint = $paymentDate ? $paymentDate->copy()->addHours(24) : null;
-                            $jamPrint = $paymentDate ? $paymentDate->diffInHours(\Carbon\Carbon::now()) : 999;
-                            $estimasiPersiapan = $paymentDate ? $paymentDate->copy()->addHours(72) : null;
-                            $jamPersiapan = $paymentDate ? $paymentDate->diffInHours(\Carbon\Carbon::now()) : 999;
-                        @endphp
+    $isProcessed = $item->is_processed ?? false;
+
+    $paymentDate = $item->payment_date
+        ? \Carbon\Carbon::parse($item->payment_date)
+        : null;
+
+    $estimasiPrint = $item->estimasi_print_pl
+        ? \Carbon\Carbon::parse($item->estimasi_print_pl)
+        : null;
+
+    $estimasiPersiapan = $item->estimasi_persiapan
+        ? \Carbon\Carbon::parse($item->estimasi_persiapan)
+        : null;
+
+    $jamPrint = $estimasiPrint
+        ? now()->diffInHours($estimasiPrint, false)
+        : 999;
+
+    $jamPersiapan = $estimasiPersiapan
+        ? now()->diffInHours($estimasiPersiapan, false)
+        : 999;
+@endphp
                     <tr class="{{ $isProcessed ? 'processed-row' : '' }} hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
