@@ -12,7 +12,7 @@
 
         body {
             font-family: "DejaVu Sans", sans-serif;
-            font-size: 9px;
+            font-size: 13px;
             margin: 0;
             padding: 5px;
             line-height: 1.3;
@@ -62,11 +62,11 @@
         }
 
         .col-unit {
-            width: 150px;
+            width: 200px;
         }
 
         .col-kategori {
-            width: 100px;
+            width: 85px;
         }
 
         .col-estimasi {
@@ -84,6 +84,12 @@
         .col-ceklist {
             width: 10px;
         }
+        .footer {
+        text-align: center;
+        font-size: 10px;
+        color: #555;
+        margin-top: 20px;
+    }
     </style>
 </head>
 
@@ -99,23 +105,6 @@
 <!-- HEADER UTAMA: TANDA TANGAN + JUDUL + WAKTU -->
 <table style="width:100%; margin-bottom: 2px; border: 1px solid #374151;">
     <tr>
-        <!-- KOLOM TANDA TANGAN (KIRI) - DIBUAT LEBIH KECIL -->
-        <td style="width: 18%; padding: 6px 4px; border-right: 1px solid #374151; vertical-align: top;">
-            <div style="height:68px; position:relative;">
-                
-                <!-- Tulisan Serah Terima & Packing -->
-                <div style="padding-top:1px; font-weight:bold; font-size:8.8px; text-align:center; line-height:1.05;">
-                    Serah Terima<br>Packing
-                </div>
-                
-                <!-- Garis + Nama/Tgl di bawah -->
-                <div style="position:absolute; bottom:0px; left:0; right:0; text-align:center; font-size:8.3px;">
-                    <strong>Nama__________/__________Tgl</strong>
-                </div>
-                
-            </div>
-        </td>
-
         <!-- JUDUL + WAKTU (KANAN) -->
         <td style="
                             width:75%;
@@ -261,6 +250,10 @@
         @endforeach
     </tbody>
 </table>
+
+<div class="footer" style="margin-top:10px; font-size:9px;">
+        Dicetak oleh : QC {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
+    </div>
 
 </body>
 </html>

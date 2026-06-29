@@ -20,7 +20,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9px;
+            font-size: 13px;
             table-layout: auto;
         }
 
@@ -59,11 +59,11 @@
         .col-kategori    { width: 65px; }
         .col-distribusi  { width: 30px;}
         .col-tglbayar    { width: 50px; }
-        .col-nominal     { width: 50px; }
+        .col-nominal     { width: 80px; }
         .col-estimasi    { width: 20px; }
         .col-hari        { width: 45px; }
         .col-catatan     { width: 145px; }
-        .col-status      { width: 25px; }
+        .col-status      { width: 20px; }
 
         .text-left  { text-align: left; }
         .text-right { text-align: right; }
@@ -76,6 +76,12 @@
             vertical-align: top;
             width: 20%;
         }
+        .footer {
+        text-align: center;
+        font-size: 10px;
+        color: #555;
+        margin-top: 20px;
+    }
     </style>
 </head>
 <body>
@@ -102,7 +108,7 @@
 
                 @if($firstDate)
                 <div style="font-size:10.5px; color:#64748b; font-weight:bold; margin-bottom:1px;">
-                    Waktu Serah Terima
+                    Waktu Rekap & Cetak RA
                 </div>
                 <div style="font-size:11.5px; font-weight:bold; color:#111827;">
                     {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
@@ -164,7 +170,7 @@
             vertical-align:middle;
             text-align:center;
             line-height:1;">DISTRIBUSI</th>
-                <th colspan="2">PEMBAYARAN</th>
+                <th colspan="2" class="col-nominal">PEMBAYARAN</th>
                 <th rowspan="2" class="col-estimasi" style="border:1px solid #374151;
             padding-top:1px;
             padding-bottom:2px;
@@ -271,8 +277,9 @@
         </tbody>
     </table>
 
+    <!-- FOOTER -->
     <div class="footer" style="margin-top:10px; font-size:9px;">
-        Dicetak oleh : Pricing
+        Dicetak oleh : Pricing {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
     </div>
 
 </body>

@@ -40,6 +40,45 @@
                 Home
             </a>
 
+            <div class="relative group">
+
+    <button class="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition-colors">
+        Database User
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="w-4 h-4"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+
+    <!-- Dropdown Import -->
+    <div class="absolute hidden group-hover:block pt-2 z-50">
+
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 py-2 w-72">
+
+            <div class="border-t my-2"></div>
+
+            <a href="{{ route('user.export') }}"
+               class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-blue-600 transition-colors">
+                🏪 Import User biMBA Shop
+            </a>
+
+            <a href="{{ route('stokis.index') }}"
+           class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-green-600 transition-colors">
+            🏢 Data Stokis Mitra
+        </a>
+
+        </div>
+
+    </div>
+
+</div>
+
 
             <div class="relative group">
 

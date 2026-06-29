@@ -112,15 +112,19 @@ class ProductController extends Controller
     }
 
     public function import(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,csv'
-        ]);
+{
+    $request->validate([
+        'file' => 'required|mimes:xlsx,csv'
+    ]);
 
-        Excel::import(new ProductsImport, $request->file('file'));
+    // Tambahkan ini
+    ini_set('max_execution_time', 300);   // 5 menit
+    ini_set('memory_limit', '512M');
 
-        return redirect()->back()->with('success', 'Import berhasil');
-    }
+    Excel::import(new ProductsImport, $request->file('file'));
+
+    return redirect()->back()->with('success', 'Import berhasil');
+}
 
     public function show(Product $product)
     {

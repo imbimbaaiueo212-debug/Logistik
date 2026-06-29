@@ -28,6 +28,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\UnitKemitraanController;
 use App\Http\Controllers\PickingController;
+use App\Http\Controllers\UserExportController;
+use App\Http\Controllers\StokisMitraController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -274,4 +276,17 @@ Route::resource('unit-kemitraan', UnitKemitraanController::class);
 Route::get('/unit-kemitraan/import', [UnitKemitraanController::class, 'importForm'])->name('unit-kemitraan.import');
 Route::post('/unit-kemitraan/import', [UnitKemitraanController::class, 'importStore'])->name('unit-kemitraan.import.store');
 
-//============= REALISASI ORDER
+//============= untuk user export bimba shop
+// Import User biMBA Shop
+Route::get('/user-export', [UserExportController::class, 'index'])->name('user.export');
+Route::post('/user-export/import', [UserExportController::class, 'import'])->name('user-export.import');
+
+// Optional: Delete (jika kamu pakai)
+Route::delete('/user-export/{id}', [UserExportController::class, 'destroy'])->name('user-export.destroy');
+
+//stokis apps
+// Stokis Mitra
+Route::prefix('stokis-mitra')->name('stokis.')->group(function () {
+    Route::get('/', [StokisMitraController::class, 'index'])->name('index');
+    Route::post('/import', [StokisMitraController::class, 'import'])->name('import');
+});

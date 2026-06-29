@@ -11,8 +11,8 @@
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 10px;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 13px;
             margin: 0;
             padding: 5px;
             line-height: 1.3;
@@ -120,6 +120,12 @@
         td:last-child {
             border-right: 2px solid #374151;
         }
+        .footer {
+        text-align: center;
+        font-size: 10px;
+        color: #555;
+        margin-top: 20px;
+    }
     </style>
 </head>
 
@@ -360,6 +366,10 @@
     </tbody>
 
 </table>
+
+    <div class="footer" style="margin-top:10px; font-size:9px;">
+        Dicetak oleh : DISTRIBUSI {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
+    </div>
 
 </body>
 </html>
