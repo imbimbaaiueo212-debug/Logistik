@@ -23,8 +23,8 @@
         }
         
         th, td {
-            padding: 12px 8px;           /* lebih nyaman */
-            font-size: 0.875rem;         /* 14px - sama seperti halaman user export */
+            padding: 12px 8px;
+            font-size: 0.875rem;
             vertical-align: top;
             border-bottom: 1px solid #e5e7eb;
         }
@@ -62,23 +62,53 @@
             <p class="text-gray-500">Database Stokis Mitra Apps</p>
         </div>
 
+        <!-- Tombol Import -->
         <button onclick="document.getElementById('importForm').classList.toggle('hidden')"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-semibold">
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
             📤 Import Excel
         </button>
     </div>
 
+    <!-- ==================== FORM IMPORT ==================== -->
+    <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8">
+        <h3 class="font-semibold text-lg mb-4">Import Data Stokis dari Excel</h3>
+        
+        <form action="{{ route('stokis.import') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1">
+                    <label class="block text-sm text-gray-600 mb-1">Pilih File Excel</label>
+                    <input type="file" name="file" 
+                           accept=".xlsx,.xls,.csv"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                
+                <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-2xl font-semibold">
+                    🚀 Upload & Import
+                </button>
+                
+                <button type="button" onclick="document.getElementById('importForm').classList.add('hidden')"
+                        class="text-gray-500 hover:text-gray-700 px-4 py-3">
+                    Batal
+                </button>
+            </div>
+        </form>
+        
+        <p class="text-xs text-gray-500 mt-3">
+            Format yang didukung: .xlsx, .xls, .csv • Maksimal 10MB
+        </p>
+    </div>
+    <!-- ==================== END FORM IMPORT ==================== -->
+
     <!-- Search & Per Page -->
     <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
         <form method="GET" class="flex gap-3">
-            <input type="text" 
-                   name="search" 
-                   value="{{ request('search') ?? '' }}"
+            <input type="text" name="search" value="{{ request('search') ?? '' }}"
                    placeholder="Cari No Cab, Nama Stokis, Nama Mitra, Email..." 
-                   class="border border-gray-300 rounded-2xl px-5 py-3 focus:outline-none focus:border-blue-500 text-base w-80">   <!-- text-base -->
+                   class="border border-gray-300 rounded-2xl px-5 py-3 focus:outline-none focus:border-blue-500 text-base w-80">
             
-            <button type="submit"
-                    class="bg-gray-700 hover:bg-gray-800 text-white px-8 py-3 rounded-2xl font-semibold">
+            <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white px-8 py-3 rounded-2xl font-semibold">
                 🔍 Cari
             </button>
 
@@ -90,12 +120,11 @@
             @endif
         </form>
 
-        <!-- Per Page -->
         <form method="GET" class="flex items-center gap-2">
             <input type="hidden" name="search" value="{{ request('search') }}">
             <label class="text-sm text-gray-600 whitespace-nowrap">Tampilkan:</label>
             <select name="per_page" onchange="this.form.submit()" 
-                    class="border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none">   <!-- text-base -->
+                    class="border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none">
                 <option value="5"  {{ $perPage == 5 ? 'selected' : '' }}>5</option>
                 <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
                 <option value="20" {{ $perPage == 20 ? 'selected' : '' }}>20</option>
@@ -107,7 +136,8 @@
 
     <!-- Tabel -->
     <div class="bg-white rounded-3xl shadow table-container">
-        <table class="w-full text-sm">   <!-- text-sm = 14px -->
+        <table class="w-full text-sm">
+            <!-- ... isi tabel tetap sama seperti sebelumnya ... -->
             <thead>
                 <tr>
                     <th>No Cab</th>

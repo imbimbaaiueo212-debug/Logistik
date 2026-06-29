@@ -19,12 +19,12 @@
         table {
             border-collapse: collapse;
             width: 100%;
-            min-width: 2000px; /* ditambah agar tidak terlalu sempit */
+            min-width: 2000px;
         }
         
         th, td {
-            padding: 12px 8px;           /* padding lebih besar */
-            font-size: 0.875rem;         /* 14px - lebih besar */
+            padding: 12px 8px;
+            font-size: 0.875rem;
             vertical-align: top;
             border-bottom: 1px solid #e5e7eb;
         }
@@ -42,7 +42,7 @@
         tr:hover { background-color: #f1f5f9; }
         
         .truncate {
-            max-width: 160px;            /* sedikit lebih lebar */
+            max-width: 160px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -70,6 +70,44 @@
             </button>
         </div>
 
+        <!-- ==================== FORM IMPORT ==================== -->
+        <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8 border border-blue-100">
+            <h3 class="font-semibold text-lg mb-4">Import Data User dari Excel</h3>
+            
+            <form action="{{ route('user-export.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="flex flex-col md:flex-row gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="block text-sm text-gray-600 mb-1">Pilih File Excel</label>
+                        <input type="file" name="file" 
+                               accept=".xlsx,.xls,.csv"
+                               class="block w-full text-sm text-gray-500 
+                                      file:mr-4 file:py-3 file:px-6 
+                                      file:rounded-2xl file:border-0 
+                                      file:text-sm file:font-semibold 
+                                      file:bg-blue-50 file:text-blue-700 
+                                      hover:file:bg-blue-100">
+                    </div>
+                    
+                    <button type="submit"
+                            class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-2xl font-semibold">
+                        🚀 Upload & Import
+                    </button>
+                    
+                    <button type="button" 
+                            onclick="document.getElementById('importForm').classList.add('hidden')"
+                            class="text-gray-500 hover:text-gray-700 px-5 py-3">
+                        Batal
+                    </button>
+                </div>
+            </form>
+            
+            <p class="text-xs text-gray-500 mt-3">
+                Format yang didukung: .xlsx, .xls, .csv • Maksimal 10MB
+            </p>
+        </div>
+        <!-- ==================== END FORM IMPORT ==================== -->
+
         <!-- Search + Per Page -->
         <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
             <form method="GET" class="flex gap-3">
@@ -92,13 +130,15 @@
                     <option value="20" {{ $perPage == 20 ? 'selected' : '' }}>20</option>
                     <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
                     <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
+                    <option value="200" {{ $perPage == 200 ? 'selected' : '' }}>200</option>
+                    <option value="500" {{ $perPage == 500 ? 'selected' : '' }}>500</option>
                 </select>
             </form>
         </div>
 
         <!-- TABEL -->
         <div class="bg-white rounded-3xl shadow table-container">
-            <table class="text-sm">   <!-- text-sm = 14px -->
+            <table class="text-sm">
                 <thead>
                     <tr class="bg-gray-100">
                         <th class="narrow">ID</th>
