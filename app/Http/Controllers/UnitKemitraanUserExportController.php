@@ -50,13 +50,13 @@ class UnitKemitraanUserExportController extends Controller
             $query->whereExists(function($sub) {
                 $sub->selectRaw(1)
                     ->from('user_export_bimba_shop')
-                    ->whereColumn('user_export_bimba_shop.first_name', 'like', DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')"));
+                    ->whereColumn('user_export_bimba_shop.billing_last_name', 'like', DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')"));
             });
         } elseif ($status === 'tidak_ditemukan') {
             $query->whereNotExists(function($sub) {
                 $sub->selectRaw(1)
                     ->from('user_export_bimba_shop')
-                    ->whereColumn('user_export_bimba_shop.first_name', 'like', DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')"));
+                    ->whereColumn('user_export_bimba_shop.billing_last_name', 'like', DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')"));
             });
         }
     }
