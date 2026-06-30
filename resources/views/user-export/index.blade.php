@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data User Export - biMBA AIUEO Logistik</title>
+    <title>Database User Export - biMBA AIUEO Logistik</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
@@ -61,7 +61,7 @@
 
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">Data User Export (biMBA Shop)</h1>
+                <h1 class="text-3xl font-bold text-gray-800">Database User Export (biMBA Shop)</h1>
                 <p class="text-gray-600">Semua kolom dari tabel user_export_bimba_shop</p>
             </div>
             <button onclick="document.getElementById('importForm').classList.toggle('hidden')"

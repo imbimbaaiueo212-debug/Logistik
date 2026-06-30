@@ -13,11 +13,58 @@ class UnitKemitraanController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        $unitKemitraans = UnitKemitraan::latest()->paginate(20);
-        return view('unit_kemitraan.index', compact('unitKemitraans'));
+    public function index(Request $request)
+{
+    $query = UnitKemitraan::query();
+
+    // Filter No Cabang
+    if ($request->filled('no_cab')) {
+        $query->where('no_cab', 'like', '%' . $request->no_cab . '%');
     }
+
+    // Filter Nama Mitra
+    if ($request->filled('nama_mitra')) {
+        $query->where('nama_mitra', 'like', '%' . $request->nama_mitra . '%');
+    }
+
+    // Filter Status
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // Filter Provinsi
+    if ($request->filled('provinsi')) {
+        $query->where('provinsi', 'like', '%' . $request->provinsi . '%');
+    }
+
+    // Filter Kab/Kota
+    if ($request->filled('kab_kota')) {
+        $query->where('kab_kota', 'like', '%' . $request->kab_kota . '%');
+    }
+
+    // Filter Tanggal Awal Kontrak
+    if ($request->filled('awal_kontrak_start')) {
+        $query->whereDate('awal_kontrak', '>=', $request->awal_kontrak_start);
+    }
+    if ($request->filled('awal_kontrak_end')) {
+        $query->whereDate('awal_kontrak', '<=', $request->awal_kontrak_end);
+    }
+
+    // Search umum (bisa cari di beberapa kolom)
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('no_cab', 'like', "%{$search}%")
+              ->orWhere('nama_mitra', 'like', "%{$search}%")
+              ->orWhere('bimba_aiueo_unit', 'like', "%{$search}%")
+              ->orWhere('alamat_unit', 'like', "%{$search}%");
+        });
+    }
+
+    $unitKemitraans = $query->latest()->paginate(20)->appends($request->all());
+
+    return view('unit_kemitraan.index', compact('unitKemitraans'));
+}
 
     /**
      * Show the form for creating a new resource.
@@ -114,21 +161,37 @@ class UnitKemitraanController extends Controller
     return view('unit_kemitraan.import');
 }
 
-public function importStore(Request $request)
+
+   public function import(Request $request)
 {
     $request->validate([
-        'import_file' => 'required|mimes:xlsx,xls,csv|max:10240',
+        'import_file' => 'required|mimes:xlsx,xls,csv|max:51200', // 50MB
     ]);
 
     try {
-        Excel::import(new UnitKemitraanImport, $request->file('import_file'));
+        set_time_limit(900); // 15 menit
+        ini_set('memory_limit', '1024M');
+
+        $file = $request->file('import_file');
+
+        Log::info('Mulai Import Besar', [
+            'filename' => $file->getClientOriginalName(),
+            'size' => round($file->getSize() / (1024*1024), 2) . ' MB'
+        ]);
+
+        Excel::import(new UnitKemitraanImport, $file);
 
         return redirect()->route('unit-kemitraan.index')
-                         ->with('success', '✅ Data Unit Kemitraan berhasil diimport!');
+                         ->with('success', '✅ Import 6000+ data berhasil!');
+
     } catch (\Exception $e) {
-        Log::error('Import Error: ' . $e->getMessage());
+        Log::error('Import Error Besar', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine()
+        ]);
+
         return redirect()->back()
-                         ->with('error', '❌ Gagal import: ' . $e->getMessage());
+                         ->with('error', '❌ Gagal: ' . $e->getMessage());
     }
 }
 }

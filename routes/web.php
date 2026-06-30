@@ -30,6 +30,7 @@ use App\Http\Controllers\UnitKemitraanController;
 use App\Http\Controllers\PickingController;
 use App\Http\Controllers\UserExportController;
 use App\Http\Controllers\StokisMitraController;
+use App\Http\Controllers\UnitKemitraanUserExportController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -273,8 +274,11 @@ Route::get('/get-products/{supplier}', function ($supplierId) {
 //=========user kemitraan
 Route::resource('unit-kemitraan', UnitKemitraanController::class);
 
-Route::get('/unit-kemitraan/import', [UnitKemitraanController::class, 'importForm'])->name('unit-kemitraan.import');
-Route::post('/unit-kemitraan/import', [UnitKemitraanController::class, 'importStore'])->name('unit-kemitraan.import.store');
+Route::get('/unit-kemitraan/import', [UnitKemitraanController::class, 'importForm'])
+     ->name('unit-kemitraan.import');
+
+Route::post('/unit-kemitraan/import', [UnitKemitraanController::class, 'import'])
+     ->name('unit-kemitraan.import.store');   // tetap pakai .import.store biar form tidak berubah
 
 //============= untuk user export bimba shop
 // Import User biMBA Shop
@@ -290,3 +294,7 @@ Route::prefix('stokis-mitra')->name('stokis.')->group(function () {
     Route::get('/', [StokisMitraController::class, 'index'])->name('index');
     Route::post('/import', [StokisMitraController::class, 'import'])->name('import');
 });
+
+Route::resource('unit-kemitraan-user', UnitKemitraanUserExportController::class);
+Route::post('unit-kemitraan-user/import-unit', [UnitKemitraanUserExportController::class, 'importUnit'])->name('unit-kemitraan-user.import-unit');
+Route::post('unit-kemitraan-user/import-user', [UnitKemitraanUserExportController::class, 'importUserExport'])->name('unit-kemitraan-user.import-user');

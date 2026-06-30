@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Unit Kemitraan - biMBA AIUEO Logistik</title>
+    <title>Database Unit Kemitraan - biMBA AIUEO Logistik</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
@@ -27,7 +27,7 @@
 
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">Data Unit Kemitraan</h1>
+                <h1 class="text-3xl font-bold text-gray-800">Database Unit Kemitraan</h1>
                 <p class="text-gray-600">Semua kolom dari tabel unit_kemitraan</p>
             </div>
             <div class="flex gap-3">
@@ -42,30 +42,91 @@
             </div>
         </div>
 
+        
         <!-- ==================== FORM IMPORT ==================== -->
         <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Import Data Unit Kemitraan</h2>
-            <form action="{{ route('unit-kemitraan.import.store') }}" method="POST" enctype="multipart/form-data">
+                        <form action="{{ route('unit-kemitraan.import.store') }}" 
+                method="POST" 
+                enctype="multipart/form-data">
+                
                 @csrf
+                
                 <div class="flex gap-4 items-end">
                     <div class="flex-1">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File Excel / CSV</label>
                         <input type="file" name="import_file" 
-                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 
-                                      file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                               accept=".xlsx,.xls,.csv" required>
+                            class="..." 
+                            accept=".xlsx,.xls,.csv" required>
                     </div>
                     <button type="submit" 
                             class="bg-green-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-green-700">
                         🚀 Import Sekarang
                     </button>
                 </div>
-                <p class="text-xs text-gray-500 mt-3">
-                    Format yang didukung: .xlsx, .xls, .csv (maksimal 10MB)
-                </p>
             </form>
         </div>
         <!-- ==================== END FORM IMPORT ==================== -->
+        <!-- ==================== FILTER FORM ==================== -->
+        <div class="bg-white rounded-3xl shadow p-6 mb-8">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                @csrf
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">No Cab</label>
+                    <input type="text" name="no_cab" 
+                           value="{{ request('no_cab') }}"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                           placeholder="Cari No Cab...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Mitra</label>
+                    <input type="text" name="nama_mitra" 
+                           value="{{ request('nama_mitra') }}"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                           placeholder="Nama Mitra...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                        <option value="">Semua Status</option>
+                        <option value="Active" {{ request('status') == 'Active' ? 'selected' : '' }}>Active</option>
+                        <option value="Closed" {{ request('status') == 'Closed' ? 'selected' : '' }}>Closed</option>
+                        <option value="TUTUP" {{ request('status') == 'TUTUP' ? 'selected' : '' }}>TUTUP</option>
+                        <option value="Blocking" {{ request('status') == 'Blocking' ? 'selected' : '' }}>Blocking</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                    <input type="text" name="provinsi" 
+                           value="{{ request('provinsi') }}"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                           placeholder="Provinsi...">
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian Umum</label>
+                    <input type="text" name="search" 
+                           value="{{ request('search') }}"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                           placeholder="Cari No Cab, Nama Unit, Alamat...">
+                </div>
+
+                <div class="flex items-end gap-3 lg:col-span-2">
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex-1 md:flex-none">
+                        🔍 Terapkan Filter
+                    </button>
+                    <a href="{{ route('unit-kemitraan.index') }}" 
+                       class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
+                        Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+        <!-- ==================== END FILTER ==================== -->
 
         <!-- Tabel Utama -->
         <div class="bg-white rounded-3xl shadow overflow-x-auto">
@@ -209,7 +270,7 @@
                         <td>{{ $unit->len_perubahan_unit ?? '-' }}</td>
                         <td>{{ $unit->kirim_email_lisensi ?? '-' }}</td>
                         <td>{{ $unit->jakarta ?? '-' }}</td>
-                        <td class="small-text">{{ $unit->tanggal_update ? $unit->tanggal_update->format('d/m/Y H:i') : '-' }}</td>
+                        <td class="small-text">{{ $unit->tanggal_update ? $unit->tanggal_update->format('d/m/Y') : '-' }}</td>
                         <td class="truncate">{{ $unit->akun_facebook ?? '-' }}</td>
                         <td class="truncate">{{ $unit->akun_instagram ?? '-' }}</td>
                         <td class="truncate">{{ $unit->akun_media_sosial_unit_bimba_aiueo ?? '-' }}</td>

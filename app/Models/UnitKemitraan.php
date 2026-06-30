@@ -11,14 +11,19 @@ class UnitKemitraan extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'unit_kemitraan';
-    
+
     protected $primaryKey = 'id_record';
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
     
     // Jika primary key bukan integer/auto-increment
     // public $incrementing = true;
     // protected $keyType = 'int';
 
     protected $fillable = [
+        'id_record',
         'no_cab',
         'bimba_aiueo_unit',
         'status',
@@ -174,7 +179,7 @@ class UnitKemitraan extends Model
         'sisa_2' => 'decimal:2',
         'sisa_4' => 'decimal:2',
         'sisa_f' => 'decimal:2',
-        'sisa' => 'decimal:2',
+        'sisa' => 'string',
         'sisa_rr' => 'decimal:2',
         'lampiran_jarak_stokis_1' => 'decimal:2',
         'lampiran_jarak_stokis_2' => 'decimal:2',

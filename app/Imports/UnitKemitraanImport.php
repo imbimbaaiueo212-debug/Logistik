@@ -3,110 +3,252 @@
 namespace App\Imports;
 
 use App\Models\UnitKemitraan;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithStartRow;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
-class UnitKemitraanImport implements ToModel, WithHeadingRow
+class UnitKemitraanImport implements ToModel, WithStartRow, WithBatchInserts, WithChunkReading
 {
+    private function toDecimal($value)
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+        if (strpos((string)$value, '#') !== false) {
+            return null;
+        }
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    public function batchSize(): int { return 500; }
+    public function chunkSize(): int { return 500; }
+    public function startRow(): int { return 3; }
+
+    private function clean($value)
+    {
+        if ($value === null) return null;
+        $value = trim((string) $value);
+        return in_array($value, ['', '-', '?']) ? null : $value;
+    }
+
+    private function cleanPhone($value)
+    {
+        if (empty($value)) return null;
+        $value = trim((string) $value);
+        if (strpos($value, ',') !== false || strpos($value, '/') !== false) {
+            $parts = preg_split('/[,\/]/', $value);
+            $value = trim($parts[0]);
+        }
+        $value = preg_replace('/[^0-9+\-]/', '', $value);
+        return $value ?: null;
+    }
+
+    // FUNGSI PALING KUAT UNTUK NO_CAB (mengatasi rumus Excel)
+    private function rawText($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $str = (string) $value;
+        $str = trim($str);
+
+        // Jika hasil rumus Excel (angka desimal panjang seperti serial date)
+        if (is_numeric($str) && strpos($str, '.') !== false && strlen($str) > 6) {
+            return $str;                    // Ambil mentah
+        }
+
+        // Jika angka biasa, tetap jadikan string
+        if (is_numeric($str)) {
+            return $str;
+        }
+
+        return $this->clean($str);
+    }
+
+    private function parseDate($value)
+    {
+        if ($value === null || $value === '' || $value === '-') {
+            return null;
+        }
+
+        try {
+            if (is_numeric($value)) {
+                return ExcelDate::excelToDateTimeObject($value)->format('Y-m-d H:i:s');
+            }
+            if ($value instanceof \DateTimeInterface) {
+                return Carbon::instance($value)->format('Y-m-d H:i:s');
+            }
+            try {
+                return Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d H:i:s');
+            } catch (\Throwable $e) {}
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public function model(array $row)
     {
+        if (empty($row[0])) return null;
+
+        $extractNumber = fn($v) => empty($v) || $v === '-' ? null : preg_replace('/[^0-9.-]/', '', $v);
+
         return new UnitKemitraan([
-            'id_record'                     => $row['id record'] ?? null,
-            'no_cab'                        => $row['no cab'] ?? null,
-            'bimba_aiueo_unit'              => $row['bimba aiueo unit'] ?? null,
-            'status'                        => $row['status'] ?? null,
-            'ops'                           => $row['ops'] ?? null,
-            'no_telp_unit'                  => $row['no telp unit'] ?? null,
-            'email_unit'                    => $row['email unit'] ?? null,
-            'alamat_unit'                   => $row['alamat unit'] ?? null,
-            'rt'                            => $row['rt'] ?? null,
-            'rw'                            => $row['rw'] ?? null,
-            'provinsi'                      => $row['provinsi'] ?? null,
-            'kab_kota'                      => $row['kab/kota'] ?? null,
-            'kecamatan'                     => $row['kecamatan'] ?? null,
-            'kel_desa'                      => $row['kel/desa'] ?? null,
-            'kode_pos'                      => $row['kode pos'] ?? null,
-            'titik_koordinat'               => $row['titik koordinat'] ?? null,
-            'koordinat_s'                   => $row['koordinat s'] ?? null,
-            'koordinat_e'                   => $row['koordinat e'] ?? null,
 
-            'no_induk_mitra'                => $row['no induk mitra'] ?? null,
-            'nama_mitra'                    => $row['nama mitra'] ?? null,
-            'email'                         => $row['email'] ?? $row['email mitra'] ?? null,
-            'no_hp'                         => $row['no hp'] ?? $row['no hp mitra'] ?? null,
-            'foto'                          => $row['foto'] ?? null,
+            // IDENTITAS UNIT
+            'id_record'        => $this->clean($row[0] ?? null),
+            'no_cab'           => $this->rawText($row[1] ?? null),           // ← Diperbaiki
+            'bimba_aiueo_unit' => $this->clean($row[2] ?? null),
+            'status'           => $this->clean($row[3] ?? null),
+            'ops'              => $this->clean($row[4] ?? null),
+            'no_telp_unit'     => $this->clean($row[5] ?? null),
+            'email_unit'       => $this->clean($row[6] ?? null),
+            'alamat_unit'      => $this->clean($row[7] ?? null),
+            'rt'               => $this->clean($row[8] ?? null),
+            'rw'               => $this->clean($row[9] ?? null),
+            'provinsi'         => $this->clean($row[10] ?? null),
+            'kab_kota'         => $this->clean($row[11] ?? null),
+            'kecamatan'        => $this->clean($row[12] ?? null),
+            'kel_desa'         => $this->clean($row[13] ?? null),
+            'kode_pos'         => $this->rawText($row[14] ?? null),         // ← Diperbaiki
+            'titik_koordinat'  => $this->clean($row[15] ?? null),
+            'koordinat_s'      => $extractNumber($row[16] ?? null),
+            'koordinat_e'      => $extractNumber($row[17] ?? null),
 
-            'bank'                          => $row['bank'] ?? null,
-            'no_rekening'                   => $row['no rekening'] ?? null,
-            'atas_nama'                     => $row['atas nama'] ?? null,
+            // MITRA
+            'no_induk_mitra'   => $this->clean($row[18] ?? null),
+            'nama_mitra'       => $this->clean($row[19] ?? null),
+            'email'            => $this->clean($row[20] ?? null),
+            'no_hp'            => $this->cleanPhone($row[21] ?? null),
+            'foto'             => $this->clean($row[22] ?? null),
 
-            'no_akta'                       => $row['no akta'] ?? null,
-            'tgl_akta'                      => $row['tgl akta'] ?? null,
-            'nilai_lisensi'                 => $row['nilai lisensi'] ?? null,
-            'persen_mitra'                  => $row['% mitra'] ?? null,
-            'persen_ypai'                   => $row['% ypai'] ?? null,
+            // BANK
+            'bank'             => $this->clean($row[23] ?? null),
+            'no_rekening'      => $this->clean($row[24] ?? null),
+            'atas_nama'        => $this->clean($row[25] ?? null),
 
-            'awal'                          => $row['awal'] ?? null,
-            'akhir'                         => $row['akhir'] ?? null,
-            'perpanjang'                    => $row['perpanjang'] ?? null,
-            'tutup'                         => $row['tutup'] ?? null,
+            // LISENSI
+            'no_akta'          => $this->clean($row[26] ?? null),
+            'tgl_akta'         => $this->parseDate($row[27] ?? null),
+            'nilai_lisensi'    => $extractNumber($row[28] ?? null),
+            'persen_mitra'     => $extractNumber($row[29] ?? null),
+            'persen_ypai'      => $extractNumber($row[30] ?? null),
 
-            'jmp'                           => $row['jmp'] ?? null,
-            'lpm'                           => $row['lpm'] ?? null,
-            'pengembalian'                  => $row['pengembalian'] ?? null,
-            'tanggal'                       => $row['tanggal'] ?? null,
-            'va_bca'                        => $row['va bca'] ?? null,
-            'va_mandiri_royalti'            => $row['va mandiri royalti'] ?? null,
-            'va_mandiri_lisensi'            => $row['va mandiri lisensi'] ?? null,
-            'marketing'                     => $row['marketing'] ?? null,
-            'koorwil_kpk_sos'               => $row['koorwil/kpk/sos'] ?? null,
+            'awal'             => $this->parseDate($row[31] ?? null),
+            'akhir'            => $this->parseDate($row[32] ?? null),
+            'perpanjang'       => $this->parseDate($row[33] ?? null),
+            'tutup'            => $this->parseDate($row[34] ?? null),
 
-            'detail'                        => $row['detail'] ?? null,
-            'note'                          => $row['note'] ?? null,
-            'updated_by'                    => $row['updated by'] ?? 'Import System',
-            'history'                       => $row['history'] ?? null,
-            'valid'                         => $row['valid'] ?? null,
-            'level_user'                    => $row['level user'] ?? null,
+            // VA
+            'jmp'              => $this->clean($row[35] ?? null),
+            'lpm'              => $this->clean($row[36] ?? null),
+            'pengembalian'     => $this->clean($row[37] ?? null),
+            'tanggal'          => $this->parseDate($row[38] ?? null),
+            'va_bca'           => $this->clean($row[39] ?? null),
+            'va_mandiri_royalti' => $this->clean($row[40] ?? null),
+            'va_mandiri_lisensi' => $this->clean($row[41] ?? null),
+            'marketing'        => $this->clean($row[42] ?? null),
+            'koorwil_kpk_sos'  => $this->clean($row[43] ?? null),
 
-            'sisa_3'                        => $row['sisa_3'] ?? null,
-            'sisa_1'                        => $row['sisa_1'] ?? null,
-            'sisa_2'                        => $row['sisa_2'] ?? null,
-            'sisa_4'                        => $row['sisa_4'] ?? null,
-            'sisa_f'                        => $row['sisa_f'] ?? null,
-            'masa_kontrak'                  => $row['masa kontrak'] ?? null,
-            'sisa'                          => $row['sisa'] ?? null,
-            'sisa_rr'                       => $row['sisa_rr'] ?? null,
+            // KETERANGAN
+            'detail'           => $this->clean($row[44] ?? null),
+            'note'             => $this->clean($row[45] ?? null),
+            'updated_by'       => $this->clean($row[46] ?? null) ?? 'Import System',
+            'last_updated'     => $this->parseDate($row[47] ?? null),
+            'history'          => $this->clean($row[48] ?? null),
+            'valid'            => $this->clean($row[49] ?? null),
+            'level_user'       => $this->clean($row[50] ?? null),
 
-            'no_lokasi'                     => $row['no'] ?? $row['no lokasi'] ?? null,
-            'kategori_perubahan'            => $row['kategori perubahan'] ?? null,
+            // SISA
+            'sisa_3'           => $extractNumber($row[51] ?? null),
+            'sisa_1'           => $extractNumber($row[52] ?? null),
+            'sisa_2'           => $extractNumber($row[53] ?? null),
+            'sisa_4'           => $extractNumber($row[54] ?? null),
+            'sisa_f'           => $extractNumber($row[55] ?? null),
+            'masa_kontrak'     => $this->clean($row[56] ?? null),
+            'sisa'             => $this->clean($row[57] ?? null),
+            'sisa_rr'          => $extractNumber($row[58] ?? null),
 
-            'pdf'                           => $row['pdf'] ?? null,
-            'update_pdf'                    => $row['update pdf'] ?? null,
-            'last_updated_'                 => $row['last updated_'] ?? null,
-            'version'                       => $row['version'] ?? null,
+            // PERUBAHAN
+            'no'               => $this->clean($row[59] ?? null),
+            'lokasi_'          => $this->clean($row[60] ?? null),
+            'kategori_perubahan' => $this->clean($row[61] ?? null),
 
-            'vendor_stokis_1'               => $row['vendor stokis 1'] ?? null,
-            'vendor_stokis_2'               => $row['vendor stokis 2'] ?? null,
-            'sisa_summary'                  => $row['sisa summary'] ?? null,
-            'notifikasi_sisa_kontrak_lisensi' => $row['notifikasi sisa kontrak (lisensi)'] ?? null,
+            'awal_kontrak'     => $this->parseDate($row[62] ?? null),
+            'akhir_kontrak'    => $this->parseDate($row[63] ?? null),
 
-            'alamat_saat_ini'               => $row['alamat saat ini'] ?? null,
-            'alamat_mitra'                  => $row['alamat mitra'] ?? null,
-            'no_cab_bimba_unit'             => $row['no cab - bimba unit'] ?? null,
-            'len_perubahan_unit'            => $row['len perubahan unit'] ?? null,
-            'kirim_email_lisensi'           => $row['kirim email lisensi'] ?? null,
+            'pdf'              => $this->clean($row[64] ?? null),
+            'update_pdf'       => $this->clean($row[65] ?? null),
 
-            'jakarta'                       => $row['jakarta'] ?? null,
-            'tanggal_update'                => $row['tanggal update'] ?? null,
-            'akun_facebook'                 => $row['akun facebook'] ?? null,
-            'akun_instagram'                => $row['akun instagram'] ?? null,
-            'akun_media_sosial_unit_bimba_aiueo' => $row['akun media sosial unit bimba aiueo'] ?? null,
+            'last_updated_'    => $this->parseDate($row[66] ?? null),
 
-            // Kolom dengan titik dan variasi lain
-            'awal_tanda'                    => $row['awal.'] ?? null,
-            'akhir_tanda'                   => $row['akhir.'] ?? null,
-            'perpanjang_tanda'              => $row['perpanjang.'] ?? null,
-            'tutup_tanda'                   => $row['tutup.'] ?? null,
+            'version'          => $this->clean($row[67] ?? null),
+            'related_pengajuan_perubahans' => $this->clean($row[68] ?? null),
+
+            'awal_'            => $this->parseDate($row[69] ?? null),
+            'awal_kontrak_'    => $this->parseDate($row[70] ?? null),
+            'awal_tanda'       => $this->parseDate($row[71] ?? null),
+            'akhir_tanda'      => $this->parseDate($row[72] ?? null),
+            'perpanjangan_tanda' => $this->parseDate($row[73] ?? null),
+            'tutup_tanda'      => $this->parseDate($row[74] ?? null),
+
+            'vendor_stokis_1'  => $this->clean($row[75] ?? null),
+            'vendor_stokis_2'  => $this->clean($row[76] ?? null),
+
+            'sisa_summary'     => $this->clean($row[77] ?? null),
+            'notifikasi_sisa_kontrak_lisensi' => $this->clean($row[78] ?? null),
+
+            'alamat_saat_ini'  => $this->clean($row[79] ?? null),
+            'related_pengajuan_perubahans_by_no_cab' => $this->clean($row[80] ?? null),
+            'alamat_mitra'     => $this->clean($row[81] ?? null),
+            'nama_mitra_tanda' => $this->clean($row[82] ?? null),
+            'no_hp_mitra'      => $this->cleanPhone($row[83] ?? null),
+            'email_mitra'      => $this->clean($row[84] ?? null),
+
+            'len_perubahan_unit' => $this->clean($row[85] ?? null),
+            'no_cab_bimba_unit'  => $this->rawText($row[86] ?? null),
+
+            'lampiran_jarak_stokis_1' => $this->toDecimal($row[87] ?? null),
+            'lampiran_jarak_stokis_2' => $this->toDecimal($row[88] ?? null),
+
+            'keterangan_stokis_1' => $this->clean($row[89] ?? null),
+            'keterangan_stokis_2' => $this->clean($row[90] ?? null),
+            'kirim_email_lisensi' => $this->clean($row[91] ?? null),
+
+            'pdf_'            => $this->clean($row[92] ?? null),
+            'update_pdf_'     => $this->clean($row[93] ?? null),
+
+            'last_updated__'  => $this->parseDate($row[94] ?? null),
+
+            'version_'        => $this->clean($row[95] ?? null),
+
+            'awal_kontrak__'  => $this->parseDate($row[96] ?? null),
+            'akhir_kontrak__' => $this->parseDate($row[97] ?? null),
+
+            'jakarta'         => $this->clean($row[98] ?? null),
+            'tanggal_update'  => $this->parseDate($row[99] ?? null),
+            'tanggal_update__'=> $this->parseDate($row[100] ?? null),
+
+            'masa_kontrak_____' => $this->clean($row[101] ?? null),
+            'jika_maka'         => $this->clean($row[102] ?? null),
+            'related_perpanjang_kontraks' => $this->clean($row[103] ?? null),
+
+            'cabang_unit_bimba'     => $this->clean($row[104] ?? null),
+            'status_ops_unit_bimba' => $this->clean($row[105] ?? null),
+            'status_ops_vendor_1'   => $this->clean($row[106] ?? null),
+            'status_ops_vendor_2'   => $this->clean($row[107] ?? null),
+
+            'dokumen_tambahan_1' => $this->clean($row[108] ?? null),
+            'dokumen_tambahan_2' => $this->clean($row[109] ?? null),
+            'dokumen_tambahan_3' => $this->clean($row[110] ?? null),
+
+            'akun_facebook' => $this->clean($row[111] ?? null),
+            'akun_instagram' => $this->clean($row[112] ?? null),
+            'akun_media_sosial_unit_bimba_aiueo' => $this->clean($row[113] ?? null),
         ]);
     }
 }

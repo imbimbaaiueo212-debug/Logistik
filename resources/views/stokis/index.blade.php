@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Stokis Mitra - biMBA AIUEO</title>
+    <title>Database Stokis Mitra - biMBA AIUEO</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
@@ -58,7 +58,7 @@
 
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Data Stokis Mitra</h1>
+            <h1 class="text-3xl font-bold text-gray-800">Database Stokis Mitra</h1>
             <p class="text-gray-500">Database Stokis Mitra Apps</p>
         </div>
 

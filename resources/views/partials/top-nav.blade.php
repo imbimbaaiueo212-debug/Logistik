@@ -61,19 +61,29 @@
 
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 py-2 w-72">
 
-            <div class="border-t my-2"></div>
+    <div class="border-t my-2"></div>
 
-            <a href="{{ route('user.export') }}"
-               class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-blue-600 transition-colors">
-                🏪 Import User biMBA Shop
-            </a>
+    <a href="{{ route('user.export') }}"
+       class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-blue-600 transition-colors">
+        🏢 Database Import User biMBA Shop
+    </a>
 
-            <a href="{{ route('stokis.index') }}"
-           class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-green-600 transition-colors">
-            🏢 Data Stokis Mitra
-        </a>
+    <a href="{{ route('unit-kemitraan.index') }}"
+       class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-blue-600 transition-colors">
+        🏢 Database Unit Kemitraan
+    </a>
 
-        </div>
+    <a href="{{ route('stokis.index') }}"
+       class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-green-600 transition-colors">
+        🏢 Database Stokis Mitra
+    </a>
+
+    <a href="{{ route('unit-kemitraan-user.index') }}"
+       class="block px-5 py-3 hover:bg-gray-50 text-gray-700 hover:text-purple-600 transition-colors font-medium">
+        🔗 Database Unit + User Export (Matching)
+    </a>
+
+</div>
 
     </div>
 
