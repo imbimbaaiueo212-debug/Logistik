@@ -106,7 +106,7 @@
                     <td style="width:20%; text-align:center; border:1px solid #333;">
                         <strong style="font-size:13.5px;">PARAF</strong>
                         <br><br><br>
-                        ..............................................
+                        
                     </td>
                 </tr>
             </table>

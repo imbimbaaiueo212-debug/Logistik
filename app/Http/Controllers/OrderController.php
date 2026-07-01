@@ -834,8 +834,22 @@ public function printPickingList($id)
     }
 
     $items = BimbashopOrder::where('order_id', $main->no_pl)
-                ->orderBy('item_sku')
-                ->get();
+            ->orderBy('item_sku')
+            ->get()
+            ->transform(function ($item) {
+
+                // Hapus JKT pada SKU
+                $item->item_sku = preg_replace('/-?JKT$/i', '', trim($item->item_sku));
+
+                // Hapus JKT pada Nama Produk
+                $item->item_name = preg_replace('/-?JKT$/i', '', trim($item->item_name));
+                $item->item_name = preg_replace('/JKT$/i', '', trim($item->item_name));
+
+                // Rapikan spasi
+                $item->item_name = preg_replace('/\s+/', ' ', trim($item->item_name));
+
+                return $item;
+            });
 
     if ($items->isEmpty()) {
         $items = collect([
@@ -868,8 +882,22 @@ public function printPickingListPdf($id)
     }
 
     $items = BimbashopOrder::where('order_id', $main->no_pl)
-                ->orderBy('item_sku')
-                ->get();
+            ->orderBy('item_sku')
+            ->get()
+            ->transform(function ($item) {
+
+                // Hapus JKT pada SKU
+                $item->item_sku = preg_replace('/-?JKT$/i', '', trim($item->item_sku));
+
+                // Hapus JKT pada Nama Produk
+                $item->item_name = preg_replace('/-?JKT$/i', '', trim($item->item_name));
+                $item->item_name = preg_replace('/JKT$/i', '', trim($item->item_name));
+
+                // Rapikan spasi
+                $item->item_name = preg_replace('/\s+/', ' ', trim($item->item_name));
+
+                return $item;
+            });
 
     if ($items->isEmpty()) {
         $items = collect([

@@ -12,7 +12,7 @@
 
         body { 
             font-family: Arial, Helvetica, sans-serif; 
-            font-size: 11.8px;
+            font-size: 12px;
             color: #333;
             line-height: 1.35;
             margin: 0;
@@ -36,11 +36,11 @@
 
         /* Footer di paling bawah */
         .footer {
-    text-align: center;
-    font-size: 10px;
-    color: #555;
-    margin-top: 20px;
-}
+        text-align: center;
+        font-size: 10px;
+        color: #555;
+        margin-top: 20px;
+        }
 
 @media print {
 
@@ -61,15 +61,27 @@
             border-collapse: collapse; 
             margin: 8px 0; 
         }
-        th, td { 
-            border: 1px solid #333; 
-            padding: 5px 4px; 
-            font-size: 11.5px;
+        th,
+        td{
+            border:1px solid #333;
+            padding-top:1px;
+            padding-bottom:1px;
+            padding-left:3px;
+            padding-right:3px;
+
+            vertical-align:top;
+            line-height:1;
+
+            font-size:13px;
         }
-        th { 
-            background-color: #f4f4f4; 
-            font-weight: bold; 
-            text-align: center;
+                th{
+            background:#f4f4f4;
+            font-weight:bold;
+            text-align:center;
+            vertical-align:middle;
+            line-height:1;
+            padding-top:2px;
+            padding-bottom:2px;
         }
 
         @media print {
@@ -77,6 +89,9 @@
             .preview { box-shadow: none; width: 100%; margin: 0; }
             .print-btn { display: none !important; }
         }
+        tbody tr{
+    height:18px;
+}
     </style>
 </head>
 <body>
@@ -135,10 +150,10 @@
                 <tbody>
                     @foreach($data as $index => $row)
                     <tr>
-                        <td class="center">{{ $index + 1 }}</td>
-                        <td>{{ $row->item_name ?? $row->nama_barang ?? '-' }}</td>
-                        <td>{{ $row->item_sku ?? '-' }}</td>
-                        <td class="center">{{ $row->item_qty ?? $row->qty ?? 1 }}</td>
+                        <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $index + 1 }}</td>
+                        <td style="text-align:left; vertical-align:top; padding-top:1px; padding-bottom:1px; padding-left:4px; line-height:1;">{{ $row->item_name ?? $row->nama_barang ?? '-' }}</td>
+                        <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $row->item_sku ?? '-' }}</td>
+                        <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $row->item_qty ?? $row->qty ?? 1 }}</td>
                         <td class="center"></td>
                     </tr>
                     @endforeach
