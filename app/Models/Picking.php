@@ -52,6 +52,10 @@ class Picking extends Model
         'finishing_at',
         'printed_at',
         'status',
+        'waktu_estimasi_persiapan',
+        'payment_date',
+        'pic',
+        'status_pesiapan',
         'catatan',
         'created_by',
     ];
@@ -88,14 +92,14 @@ class Picking extends Model
     }
 
     // Event otomatis saat dihapus
-    protected static function booted()
+   protected static function booted()
     {
         static::deleting(function ($picking) {
+
             JakartaAktif::where('id', $picking->jakarta_aktif_id)
-                        ->update([
-                            'picking_generated' => false,
-                            'picking_id'        => null,
-                        ]);
+                ->update([
+                    'picking_generated' => false,
+                ]);
         });
     }
 

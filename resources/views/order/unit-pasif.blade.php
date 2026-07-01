@@ -36,12 +36,12 @@
                     
                     
                     <!-- Card 3 -->
-                    <a href="{{ route('order.jakarta-aktif') }}" class="group">
-    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-        <div class="text-5xl mb-4">🎯</div>
-        <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
-    </div>
-</a>
+                    <a href="{{ route('order.jakarta-aktif.menu') }}" class="group">
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                            <div class="text-5xl mb-4">🎯</div>
+                            <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
+                        </div>
+                    </a>
 
                     <a href="#" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">

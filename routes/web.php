@@ -153,14 +153,26 @@ Route::prefix('picking')->name('picking.')->group(function () {
     Route::get('/create', [PickingController::class, 'create'])->name('create');
     Route::post('/store', [PickingController::class, 'store'])->name('store');
     
+    // Edit & Update
+    Route::get('/{id}/edit', [PickingController::class, 'edit'])->name('edit');           // ← Tambahkan ini
+    Route::put('/{id}', [PickingController::class, 'update'])->name('update');           // ← Tambahkan ini
+    
     // Generate Massal
     Route::post('/generate-all', [PickingController::class, 'generateAll'])->name('generate-all');
     
-    // Hapus Picking + Reset Flag
+    // Hapus
     Route::delete('/{id}', [PickingController::class, 'destroy'])->name('destroy');
     
     // Jakarta Aktif
     Route::get('/jakarta/aktif', [PickingController::class, 'jakartaAktif'])->name('jakarta.aktif');
+    
+    // Checklist
+    Route::post('/checklist/update', [PickingController::class, 'updateChecklist'])
+         ->name('checklist.update');   // ini sudah benar
+    Route::post('/pic/update', [PickingController::class, 'updatePic'])
+        ->name('pic.update');
+    Route::post('/status/update', [PickingController::class, 'updateStatus'])
+        ->name('status.update');
 });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
@@ -298,3 +310,27 @@ Route::prefix('stokis-mitra')->name('stokis.')->group(function () {
 Route::resource('unit-kemitraan-user', UnitKemitraanUserExportController::class);
 Route::post('unit-kemitraan-user/import-unit', [UnitKemitraanUserExportController::class, 'importUnit'])->name('unit-kemitraan-user.import-unit');
 Route::post('unit-kemitraan-user/import-user', [UnitKemitraanUserExportController::class, 'importUserExport'])->name('unit-kemitraan-user.import-user');
+
+
+//menu baru
+Route::get('/order/jakarta-aktif/menu', function () {
+    return view('order.jakarta-aktif-menu');
+})->name('order.jakarta-aktif.menu');
+
+Route::get('/order/jakarta-aktif/realisasi', function () {
+    return view('order.jakarta-aktif-realisasi');
+})->name('order.jakarta-aktif.realisasi');
+
+Route::get('/order/jakarta-aktif/realisasi/modul', [OrderController::class, 'jakartaAktifModul'])
+    ->name('order.jakarta-aktif.modul');
+
+    Route::get('/order/jakarta-aktif/realisasi/majalah', function () {
+    return view('order.jakarta-aktif-majalah-menu');
+})->name('order.jakarta-aktif.majalah');
+
+Route::view(
+    '/order/jakarta-aktif/realisasi/modul',
+    'order.jakarta-aktif-modul-menu'
+)->name('order.jakarta-aktif.modul');
+
+

@@ -6,13 +6,20 @@ use App\Models\JakartaAktif;
 use App\Models\BimbashopOrder;
 use App\Models\CasdanaTransaction;
 use App\Models\RealisasiAktif;
+use App\Models\Picking;          // Tambahkan
+use App\Models\PickingItem;      // Tambahkan
+
 use App\Imports\JakartaAktifImport;
+
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Auth;   // Tambahkan
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -479,7 +486,7 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
         $servicePengiriman = 'Diambil';
     }
 
-    RealisasiAktif::create([
+    $realisasi = RealisasiAktif::create([
         'jakarta_aktif_id'   => $jakarta->id,
         'no_pl'              => $jakarta->id_pesan,
         'tgl_turun_pl'       => $jakarta->tgl_pesan,
@@ -495,11 +502,12 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
         'penyebut'           => $jakarta->nama_unit,
         'pengambil'          => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
         'ket'                => $jakarta->catatan,
-        'order_weight' => $jakarta->berat ?? $bimbashop->order_weight ?? 0,  // sesuaikan
+        'order_weight' => $jakarta->berat ?? 0,
         // === TAMBAHKAN DUA BARIS INI ===
         'billing_last_name'  => $jakarta->billing_last_name ?? null,
         'billing_company'    => $jakarta->billing_company ?? null,
     ]);
+    $this->createPicking($realisasi);
 }
             $successCount++;
         }
@@ -507,6 +515,130 @@ if (!RealisasiAktif::where('jakarta_aktif_id', $jakarta->id)->exists()) {
 
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', "$successCount data berhasil dikunci dan dipindah ke Realisasi Aktif!");
+}
+
+private function createPicking(RealisasiAktif $realisasi)
+{
+    $jakarta = JakartaAktif::find($realisasi->jakarta_aktif_id);
+
+    if (!$jakarta) {
+        return;
+    }
+
+    $items = BimbashopOrder::where('order_id', $realisasi->no_pl)
+                ->orderBy('item_sku')
+                ->get();
+
+    $picking = Picking::create([
+
+    'jakarta_aktif_id'   => $realisasi->jakarta_aktif_id,
+
+    'no_pl'              => $realisasi->no_pl,
+
+    'payment_date'          => $realisasi->tgl_bayar,
+
+    'waktu_estimasi_persiapan' => $jakarta->estimasi_persiapan
+    ? Carbon::parse($jakarta->estimasi_persiapan)->toDateString()
+    : now()->toDateString(),
+
+    'jam_picking'        => now()->format('H:i:s'),
+
+    'id_pesan'           => $realisasi->no_pl,
+
+    'cabang'             => $jakarta->cabang ?? null,
+
+    'vendor'             => $realisasi->nama_stokis,
+
+    'nama_unit'          => $realisasi->nama_unit,
+
+    'billing_last_name'  => $realisasi->billing_last_name,
+
+    'billing_company'    => $realisasi->billing_company,
+
+    'kirim'              => $jakarta->kirim,
+
+    'no_telpon'          => $jakarta->no_telpon,
+
+    'alamat_kirim'       => $jakarta->alamat_kirim,
+
+    'kab_kota_provinsi'  => $jakarta->kab_kota_provinsi,
+
+    'ekspedisi'          => $realisasi->pengiriman,
+
+    'service_pengiriman' => $realisasi->service_pengiriman,
+
+    'tracking_number'    => $jakarta->tracking_number,
+
+    'pesanan'            => $realisasi->nama_barang,
+
+    'jenis_bank'         => $jakarta->jenis_bank,
+
+    'status_pembayaran'  => $jakarta->status_pembayaran,
+
+    'harga'              => $jakarta->harga,
+
+    'diskon'             => $jakarta->diskon ?? 0,
+
+    'ongkir'             => $jakarta->ongkir,
+
+    'fee_payment'        => $jakarta->fee_payment ?? 0,
+
+    'total'              => $realisasi->jumlah_bayar,
+
+    'berat'              => $realisasi->order_weight,
+
+    'berat_bimbashop'    => $jakarta->berat,
+
+    'berat_aktual'       => null,
+
+    'total_item'         => $items->count(),
+
+    'total_qty'          => $items->sum('item_qty'),
+
+    'status'             => 'completed',
+
+    'printed_at'         => now(),
+
+    'created_by'         => Auth::id(),
+
+    'catatan'            => 'Auto Generate',
+]);
+
+    foreach ($items as $item) {
+
+        PickingItem::create([
+
+            'picking_id' => $picking->id,
+
+            'item_name' => trim(
+                preg_replace('/-?JKT$/i', '', $item->item_name)
+            ),
+
+            'item_sku' => trim(
+                preg_replace('/-?JKT$/i', '', $item->item_sku)
+            ),
+
+            'item_qty' => $item->item_qty,
+
+            'qty_picked' => 0,
+
+            'cek' => false,
+
+        ]);
+    }
+
+    // Jika order tidak punya item
+    if ($items->isEmpty()) {
+
+        PickingItem::create([
+            'picking_id' => $picking->id,
+            'item_name'  => $realisasi->nama_barang,
+            'item_sku'   => '-',
+            'item_qty'   => 1,
+            'qty_picked' => 0,
+            'cek'        => false,
+        ]);
+    }
 }
 // ====================== MENU PRINT (Sudah Diproses) ======================
 public function jakartaPrinted(Request $request)
