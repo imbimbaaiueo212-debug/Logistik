@@ -66,13 +66,13 @@
                 <a href="{{ route('order.jakarta-aktif.menu') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali</a>
                 <a href="{{ route('order.jakarta-printed') }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">Rekap Aktual</a>
                 @php
-                        $queryString = http_build_query(request()->all());
-                    @endphp
+                    $queryString = http_build_query(request()->all());
+                @endphp
 
-                    <a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}" 
-                    class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 flex items-center gap-2">
-                        📥 Export Excel
-                    </a>
+                <a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}" 
+                class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 flex items-center gap-2">
+                    📥 Export Excel
+                </a>
                 
                 <form action="{{ route('order.jakarta-aktif.sync-jkt') }}" method="POST" style="display: inline;" onsubmit="return confirm('Yakin ingin sync?')">
                     @csrf
@@ -156,6 +156,8 @@
                         <th class="text-left px-4 py-3">Payment Date</th>
                         <th class="text-left px-4 py-3">Estimasi Print PL | PS</th>
                         <th class="text-left px-4 py-3">Estimasi Persiapan</th>
+                        <th class="text-left px-4 py-3">Jasa Kurir</th>
+                        <th class="text-left px-4 py-3">Service Kurir</th>
                         <th class="text-left px-4 py-3">Distribusi</th>
                         <th class="text-right px-4 py-3">Ship Total</th>
                         <th class="text-right px-4 py-3">Berat (gr)</th>
@@ -223,17 +225,14 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
+                        <td class="px-4 py-3">{{ $item->ekspedisi ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $item->service_pengiriman ?? '-' }}</td>
                         <td class="px-4 py-3">
-                            {{ $item->ekspedisi ?? '-' }} 
-                            • 
-                            {{ $item->service_pengiriman ?? '-' }}
-                            <div class="mt-1">
-                                @if($item->status_kirim === 'Dikirim')
-                                    <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm">Dikirim</span>
-                                @else
-                                    <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-xl text-sm">Diambil</span>
-                                @endif
-                            </div>
+                            @if($item->status_kirim === 'Dikirim')
+                                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm">Dikirim</span>
+                            @else
+                                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-xl text-sm">Diambil</span>
+                            @endif
                         </td>
                         <td class="text-right px-4 py-3">Rp {{ number_format($item->ongkir ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right px-4 py-3">{{ number_format($item->berat ?? 0, 0, ',', '.') }} gr</td>

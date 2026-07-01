@@ -69,63 +69,91 @@
         <!-- ==================== END FORM IMPORT ==================== -->
         <!-- ==================== FILTER FORM ==================== -->
         <div class="bg-white rounded-3xl shadow p-6 mb-8">
-            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">No Cab</label>
-                    <input type="text" name="no_cab" 
-                           value="{{ request('no_cab') }}"
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                           placeholder="Cari No Cab...">
-                </div>
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        @csrf
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Mitra</label>
-                    <input type="text" name="nama_mitra" 
-                           value="{{ request('nama_mitra') }}"
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                           placeholder="Nama Mitra...">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
-                        <option value="">Semua Status</option>
-                        <option value="Active" {{ request('status') == 'Active' ? 'selected' : '' }}>Active</option>
-                        <option value="Closed" {{ request('status') == 'Closed' ? 'selected' : '' }}>Closed</option>
-                        <option value="TUTUP" {{ request('status') == 'TUTUP' ? 'selected' : '' }}>TUTUP</option>
-                        <option value="Blocking" {{ request('status') == 'Blocking' ? 'selected' : '' }}>Blocking</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
-                    <input type="text" name="provinsi" 
-                           value="{{ request('provinsi') }}"
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                           placeholder="Provinsi...">
-                </div>
-
-                <div class="lg:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian Umum</label>
-                    <input type="text" name="search" 
-                           value="{{ request('search') }}"
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                           placeholder="Cari No Cab, Nama Unit, Alamat...">
-                </div>
-
-                <div class="flex items-end gap-3 lg:col-span-2">
-                    <button type="submit" 
-                            class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex-1 md:flex-none">
-                        🔍 Terapkan Filter
-                    </button>
-                    <a href="{{ route('unit-kemitraan.index') }}" 
-                       class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
-                        Reset
-                    </a>
-                </div>
-            </form>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">No Cab</label>
+            <input type="text" name="no_cab" 
+                   value="{{ request('no_cab') }}"
+                   class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                   placeholder="Cari No Cab...">
         </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Mitra</label>
+            <input type="text" name="nama_mitra" 
+                   value="{{ request('nama_mitra') }}"
+                   class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                   placeholder="Nama Mitra...">
+        </div>
+
+        <!-- Filter Status Pengelolaan -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status Pengelolaan</label>
+            <select name="status_pengelolaan" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                <option value="">Semua Status Pengelolaan</option>
+                <option value="Unit Aktif" {{ request('status_pengelolaan') == 'Unit Aktif' ? 'selected' : '' }}>Unit Aktif</option>
+                <option value="Unit Pasif" {{ request('status_pengelolaan') == 'Unit Pasif' ? 'selected' : '' }}>Unit Pasif</option>
+                <option value="all" {{ request('status_pengelolaan') == 'all' ? 'selected' : '' }}>Tampilkan Semua</option>
+            </select>
+        </div>
+
+        <!-- Filter Mitra Pengelolaan -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Mitra Pengelolaan</label>
+            <select name="mitra_pengelolaan" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                <option value="">Semua Mitra Pengelolaan</option>
+                <option value="YPAI" {{ request('mitra_pengelolaan') == 'YPAI' ? 'selected' : '' }}>YPAI</option>
+                <option value="PUW1 | ops1" {{ request('mitra_pengelolaan') == 'PUW1 | ops1' ? 'selected' : '' }}>PUW1 | ops1</option>
+
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select name="status" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                <option value="">Semua Status</option>
+                <option value="MM" {{ request('status') == 'MM' ? 'selected' : '' }}>MM</option>
+                <option value="MM 1" {{ request('status') == 'MM 1' ? 'selected' : '' }}>MM 1</option>
+                <option value="Aktif 1" {{ request('status') == 'Aktif 1' ? 'selected' : '' }}>Aktif 1</option>
+                <option value="MK 1" {{ request('status') == 'MK 1' ? 'selected' : '' }}>MK 1</option>
+                <option value="MK" {{ request('status') == 'MK' ? 'selected' : '' }}>MK</option>
+                <option value="MK Rinda" {{ request('status') == 'MK Rinda' ? 'selected' : '' }}>MK Rinda</option>
+                <option value="MKU" {{ request('status') == 'MKU' ? 'selected' : '' }}>MKU</option>
+                <option value="MKU 1" {{ request('status') == 'MKU 1' ? 'selected' : '' }}>MKU 1</option>
+                <option value="E-biMBA Aktif" {{ request('status') == 'E-biMBA Aktif' ? 'selected' : '' }}>E-biMBA Aktif</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+            <input type="text" name="provinsi" 
+                   value="{{ request('provinsi') }}"
+                   class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                   placeholder="Provinsi...">
+        </div>
+
+        <div class="lg:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian Umum</label>
+            <input type="text" name="search" 
+                   value="{{ request('search') }}"
+                   class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
+                   placeholder="Cari No Cab, Nama Unit, Alamat...">
+        </div>
+
+        <div class="flex items-end gap-3 lg:col-span-2">
+            <button type="submit" 
+                    class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex-1 md:flex-none">
+                🔍 Terapkan Filter
+            </button>
+            <a href="{{ route('unit-kemitraan.index') }}" 
+               class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
+                Reset
+            </a>
+        </div>
+    </form>
+</div>
         <!-- ==================== END FILTER ==================== -->
 
         <!-- Tabel Utama -->
@@ -133,165 +161,199 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
-                        <th>ID Record</th>
-                        <th>No Cab</th>
-                        <th>BiMBA AIUEO Unit</th>
-                        <th>Status</th>
-                        <th>Ops</th>
-                        <th>No Telp Unit</th>
-                        <th>Email Unit</th>
-                        <th>Alamat Unit</th>
-                        <th>RT</th>
-                        <th>RW</th>
-                        <th>Provinsi</th>
-                        <th>Kab/Kota</th>
-                        <th>Kecamatan</th>
-                        <th>Kel/Desa</th>
-                        <th>Kode Pos</th>
-                        <th>No Induk Mitra</th>
-                        <th>Nama Mitra</th>
-                        <th>Email Mitra</th>
-                        <th>No HP Mitra</th>
-                        <th>Bank</th>
-                        <th>No Rekening</th>
-                        <th>Atas Nama</th>
-                        <th>No Akta</th>
-                        <th>Tgl Akta</th>
-                        <th>Nilai Lisensi</th>
-                        <th>% Mitra</th>
-                        <th>% YPAI</th>
-                        <th>Awal</th>
-                        <th>Akhir</th>
-                        <th>Perpanjang</th>
-                        <th>Tutup</th>
-                        <th>JMP</th>
-                        <th>LPM</th>
-                        <th>Pengembalian</th>
-                        <th>Tanggal VA BCA</th>
-                        <th>VA Mandiri Royalti</th>
-                        <th>VA Mandiri Lisensi</th>
-                        <th>Marketing</th>
-                        <th>Koorwil/KPK/Sos</th>
-                        <th>Detail</th>
-                        <th>Note</th>
-                        <th>Updated By</th>
-                        <th>Last Updated</th>
-                        <th>Sisa 3</th>
-                        <th>Sisa 1</th>
-                        <th>Sisa 2</th>
-                        <th>Sisa 4</th>
-                        <th>Sisa F</th>
-                        <th>Masa Kontrak</th>
-                        <th>Sisa</th>
-                        <th>Sisa RR</th>
-                        <th>No Lokasi</th>
-                        <th>Kategori Perubahan</th>
-                        <th>PDF</th>
-                        <th>Update PDF</th>
-                        <th>Vendor Stokis 1</th>
-                        <th>Vendor Stokis 2</th>
-                        <th>Alamat Saat Ini</th>
-                        <th>Alamat Mitra</th>
-                        <th>No Cab BiMBA Unit</th>
-                        <th>LEN Perubahan Unit</th>
-                        <th>Kirim Email Lisensi</th>
-                        <th>Jakarta</th>
-                        <th>Tanggal Update</th>
-                        <th>Akun Facebook</th>
-                        <th>Akun Instagram</th>
-                        <th>Akun Media Sosial</th>
-                        <th class="text-center">Aksi</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider text-center">ID Record</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Cab</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold text-xs tracking-wider">biMBA AIUEO Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Jenis Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Status Pengelolaan</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Mitra Pengelolaan</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Status Operasional</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Telp Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Email Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Alamat Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">RT</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">RW</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Provinsi</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Kab/Kota</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Kecamatan</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Kel/Desa</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Kode Pos</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Induk Mitra</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Nama Mitra</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Email Mitra</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No HP Mitra</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Bank</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Rekening</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Atas Nama</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Akta</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Tgl Akta</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Nilai Lisensi</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">% Mitra</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">% YPAI</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Awal</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Akhir</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Perpanjang</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Tutup</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">JMP</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">LPM</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Pengembalian</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Tanggal VA BCA</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">VA Mandiri Royalti</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">VA Mandiri Lisensi</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Marketing</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Koorwil/KPK/Sos</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Detail</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Note</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Updated By</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Last Updated</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa 3</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa 1</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa 2</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa 4</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa F</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Masa Kontrak</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Sisa RR</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Lokasi</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Kategori Perubahan</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">PDF</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Update PDF</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Vendor Stokis 1</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Vendor Stokis 2</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Alamat Saat Ini</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Alamat Mitra</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">No Cab BiMBA Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">LEN Perubahan Unit</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Kirim Email Lisensi</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Jakarta</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Tanggal Update</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Akun Facebook</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Akun Instagram</th>
+                        <th class="whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Akun Media Sosial</th>
+                        <th class="text-center whitespace-normal text-wrap px-4 py-4 font-bold uppercase text-xs tracking-wider">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @forelse($unitKemitraans as $unit)
-                    <tr class="hover:bg-gray-50">
-                        <!-- ... (semua kolom tetap sama seperti sebelumnya) ... -->
-                        <td class="font-medium">{{ $unit->id_record }}</td>
-                        <td>{{ $unit->no_cab ?? '-' }}</td>
-                        <td>{{ $unit->bimba_aiueo_unit ?? '-' }}</td>
-                        <td>{{ $unit->status ?? '-' }}</td>
-                        <td>{{ $unit->ops ?? '-' }}</td>
-                        <td>{{ $unit->no_telp_unit ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->email_unit ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->alamat_unit ?? '-' }}</td>
-                        <td>{{ $unit->rt ?? '-' }}</td>
-                        <td>{{ $unit->rw ?? '-' }}</td>
-                        <td>{{ $unit->provinsi ?? '-' }}</td>
-                        <td>{{ $unit->kab_kota ?? '-' }}</td>
-                        <td>{{ $unit->kecamatan ?? '-' }}</td>
-                        <td>{{ $unit->kel_desa ?? '-' }}</td>
-                        <td>{{ $unit->kode_pos ?? '-' }}</td>
-                        <td>{{ $unit->no_induk_mitra ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->nama_mitra ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->email ?? $unit->email_mitra ?? '-' }}</td>
-                        <td>{{ $unit->no_hp ?? $unit->no_hp_mitra ?? '-' }}</td>
-                        <td>{{ $unit->bank ?? '-' }}</td>
-                        <td>{{ $unit->no_rekening ?? '-' }}</td>
-                        <td>{{ $unit->atas_nama ?? '-' }}</td>
-                        <td>{{ $unit->no_akta ?? '-' }}</td>
-                        <td>{{ $unit->tgl_akta ? $unit->tgl_akta->format('d/m/Y') : '-' }}</td>
-                        <td class="text-right">{{ number_format($unit->nilai_lisensi ?? 0, 2) }}</td>
-                        <td class="text-right">{{ $unit->persen_mitra ?? '-' }}</td>
-                        <td class="text-right">{{ $unit->persen_ypai ?? '-' }}</td>
-                        <td>{{ $unit->awal ? $unit->awal->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $unit->akhir ? $unit->akhir->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $unit->perpanjang ? $unit->perpanjang->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $unit->tutup ? $unit->tutup->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $unit->jmp ?? '-' }}</td>
-                        <td>{{ $unit->lpm ?? '-' }}</td>
-                        <td>{{ $unit->pengembalian ?? '-' }}</td>
-                        <td>{{ $unit->tanggal ? $unit->tanggal->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $unit->va_mandiri_royalti ?? '-' }}</td>
-                        <td>{{ $unit->va_mandiri_lisensi ?? '-' }}</td>
-                        <td>{{ $unit->marketing ?? '-' }}</td>
-                        <td>{{ $unit->koorwil_kpk_sos ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->detail ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->note ?? '-' }}</td>
-                        <td>{{ $unit->updated_by ?? '-' }}</td>
-                        <td class="small-text">{{ $unit->last_updated ? $unit->last_updated->format('d/m/Y H:i') : '-' }}</td>
-                        <td>{{ $unit->sisa_3 ?? '-' }}</td>
-                        <td>{{ $unit->sisa_1 ?? '-' }}</td>
-                        <td>{{ $unit->sisa_2 ?? '-' }}</td>
-                        <td>{{ $unit->sisa_4 ?? '-' }}</td>
-                        <td>{{ $unit->sisa_f ?? '-' }}</td>
-                        <td>{{ $unit->masa_kontrak ?? '-' }}</td>
-                        <td>{{ $unit->sisa ?? '-' }}</td>
-                        <td>{{ $unit->sisa_rr ?? '-' }}</td>
-                        <td>{{ $unit->no_lokasi ?? '-' }}</td>
-                        <td>{{ $unit->kategori_perubahan ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->pdf ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->update_pdf ?? '-' }}</td>
-                        <td>{{ $unit->vendor_stokis_1 ?? '-' }}</td>
-                        <td>{{ $unit->vendor_stokis_2 ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->alamat_saat_ini ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->alamat_mitra ?? '-' }}</td>
-                        <td>{{ $unit->no_cab_bimba_unit ?? '-' }}</td>
-                        <td>{{ $unit->len_perubahan_unit ?? '-' }}</td>
-                        <td>{{ $unit->kirim_email_lisensi ?? '-' }}</td>
-                        <td>{{ $unit->jakarta ?? '-' }}</td>
-                        <td class="small-text">{{ $unit->tanggal_update ? $unit->tanggal_update->format('d/m/Y') : '-' }}</td>
-                        <td class="truncate">{{ $unit->akun_facebook ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->akun_instagram ?? '-' }}</td>
-                        <td class="truncate">{{ $unit->akun_media_sosial_unit_bimba_aiueo ?? '-' }}</td>
-                        <td class="text-center whitespace-nowrap">
-                            <a href="{{ route('unit-kemitraan.show', $unit) }}" class="text-blue-600 hover:text-blue-700 mx-1">👁</a>
-                            <a href="{{ route('unit-kemitraan.edit', $unit) }}" class="text-amber-600 hover:text-amber-700 mx-1">✏</a>
-                            <button onclick="if(confirm('Yakin hapus?')) document.getElementById('delete-{{ $unit->id_record }}').submit()" 
-                                    class="text-red-600 hover:text-red-700 mx-1">🗑</button>
-                            <form id="delete-{{ $unit->id_record }}" action="{{ route('unit-kemitraan.destroy', $unit) }}" method="POST" class="hidden">
-                                @csrf @method('DELETE')
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="70" class="text-center py-20 text-gray-500">
-                            Belum ada data unit kemitraan.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
+                <tbody class="divide-y divide-gray-200 text-sm">
+    @forelse($unitKemitraans as $unit)
+    <tr class="hover:bg-gray-50">
+        <td class="font-medium px-3 py-3 text-center">{{ $unit->id_record }}</td>
+        <td class="px-3 py-3">{{ $unit->no_cab ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->bimba_aiueo_unit ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->status ?? '-' }}</td>
+        
+        <!-- Status Pengelolaan -->
+        <td class="text-center px-3 py-3">
+            @if($unit->status_pengelolaan == 'Unit Aktif')
+                <span class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Unit Aktif</span>
+            @elseif($unit->status_pengelolaan == 'Unit Pasif')
+                <span class="px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Unit Pasif</span>
+            @else
+                <span class="text-gray-400">-</span>
+            @endif
+        </td>
+
+        <td class="px-3 py-3">{{ $unit->mitra_pengelolaan ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->ops ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->no_telp_unit ?? '-' }}</td>
+        
+        <!-- Kolom yang sering panjang -->
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->email_unit ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words max-w-md">{{ $unit->alamat_unit ?? '-' }}</td>
+        
+        <td class="px-3 py-3 text-center">{{ $unit->rt ?? '-' }}</td>
+        <td class="px-3 py-3 text-center">{{ $unit->rw ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->provinsi ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->kab_kota ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->kecamatan ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->kel_desa ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->kode_pos ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->no_induk_mitra ?? '-' }}</td>
+        
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->nama_mitra ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->email ?? $unit->email_mitra ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->no_hp ?? $unit->no_hp_mitra ?? '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->bank ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->no_rekening ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->atas_nama ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->no_akta ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->tgl_akta ? $unit->tgl_akta->format('d/m/Y') : '-' }}</td>
+        
+        <td class="text-right px-3 py-3">{{ number_format($unit->nilai_lisensi ?? 0, 2) }}</td>
+        <td class="text-right px-3 py-3">{{ $unit->persen_mitra ?? '-' }}</td>
+        <td class="text-right px-3 py-3">{{ $unit->persen_ypai ?? '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->awal ? $unit->awal->format('d/m/Y') : '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->akhir ? $unit->akhir->format('d/m/Y') : '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->perpanjang ? $unit->perpanjang->format('d/m/Y') : '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->tutup ? $unit->tutup->format('d/m/Y') : '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->jmp ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->lpm ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->pengembalian ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->tanggal ? $unit->tanggal->format('d/m/Y') : '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->va_mandiri_royalti ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->va_mandiri_lisensi ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->marketing ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->koorwil_kpk_sos ?? '-' }}</td>
+        
+        <td class="px-3 py-3 whitespace-normal break-words max-w-xs">{{ $unit->detail ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words max-w-xs">{{ $unit->note ?? '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->updated_by ?? '-' }}</td>
+        <td class="px-3 py-3 text-sm">{{ $unit->last_updated ? $unit->last_updated->format('d/m/Y H:i') : '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->sisa_3 ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->sisa_1 ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->sisa_2 ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->sisa_4 ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->sisa_f ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->masa_kontrak ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->sisa ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->sisa_rr ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->no_lokasi ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->kategori_perubahan ?? '-' }}</td>
+        
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->pdf ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->update_pdf ?? '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->vendor_stokis_1 ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->vendor_stokis_2 ?? '-' }}</td>
+        
+        <td class="px-3 py-3 whitespace-normal break-words max-w-md">{{ $unit->alamat_saat_ini ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words max-w-md">{{ $unit->alamat_mitra ?? '-' }}</td>
+        
+        <td class="px-3 py-3">{{ $unit->no_cab_bimba_unit ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->len_perubahan_unit ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->kirim_email_lisensi ?? '-' }}</td>
+        <td class="px-3 py-3">{{ $unit->jakarta ?? '-' }}</td>
+        <td class="px-3 py-3 text-sm">{{ $unit->tanggal_update ? $unit->tanggal_update->format('d/m/Y') : '-' }}</td>
+        
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->akun_facebook ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->akun_instagram ?? '-' }}</td>
+        <td class="px-3 py-3 whitespace-normal break-words">{{ $unit->akun_media_sosial_unit_bimba_aiueo ?? '-' }}</td>
+
+        <!-- Aksi -->
+        <td class="text-center whitespace-nowrap px-3 py-3">
+            <a href="{{ route('unit-kemitraan.show', $unit) }}" class="text-blue-600 hover:text-blue-700 mx-1">👁</a>
+            <a href="{{ route('unit-kemitraan.edit', $unit) }}" class="text-amber-600 hover:text-amber-700 mx-1">✏</a>
+            <button onclick="if(confirm('Yakin hapus data ini?')) document.getElementById('delete-{{ $unit->id_record }}').submit()" 
+                    class="text-red-600 hover:text-red-700 mx-1">🗑</button>
+            <form id="delete-{{ $unit->id_record }}" action="{{ route('unit-kemitraan.destroy', $unit) }}" method="POST" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+        </td>
+    </tr>
+    @empty
+    <tr>
+        <td colspan="70" class="text-center py-20 text-gray-500">
+            Belum ada data unit kemitraan.
+        </td>
+    </tr>
+    @endforelse
+</tbody>
             </table>
         </div>
 

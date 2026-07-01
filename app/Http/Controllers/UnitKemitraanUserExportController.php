@@ -20,52 +20,124 @@ class UnitKemitraanUserExportController extends Controller
 {
     $query = UnitKemitraan::query();
 
-    // Filter biasa
+    // ==========================
+    // Filter No Cabang
+    // ==========================
     if ($request->filled('no_cab')) {
-        $query->where('no_cab', 'like', '%' . $request->no_cab . '%');
-    }
-    if ($request->filled('nama_mitra')) {
-        $query->where('nama_mitra', 'like', '%' . $request->nama_mitra . '%');
-    }
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
-    }
-    if ($request->filled('provinsi')) {
-        $query->where('provinsi', 'like', '%' . $request->provinsi . '%');
-    }
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where('no_cab', 'like', "%{$search}%")
-              ->orWhere('nama_mitra', 'like', "%{$search}%")
-              ->orWhere('bimba_aiueo_unit', 'like', "%{$search}%")
-              ->orWhere('alamat_unit', 'like', "%{$search}%");
-        });
+        $query->where('no_cab', 'like', '%' . trim($request->no_cab) . '%');
     }
 
-    // Filter Matching First Name (Dropdown)
-    if ($request->filled('matching_status')) {
-        $status = $request->matching_status;
-        if ($status === 'ditemukan') {
-            $query->whereExists(function($sub) {
-                $sub->selectRaw(1)
-                    ->from('user_export_bimba_shop')
-                    ->whereColumn('user_export_bimba_shop.billing_last_name', 'like', DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')"));
-            });
-        } elseif ($status === 'tidak_ditemukan') {
-            $query->whereNotExists(function($sub) {
-                $sub->selectRaw(1)
-                    ->from('user_export_bimba_shop')
-                    ->whereColumn('user_export_bimba_shop.billing_last_name', 'like', DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')"));
-            });
+    // ==========================
+    // Filter No Induk Mitra
+    // ==========================
+    if ($request->filled('no_induk_mitra')) {
+        $query->where('no_induk_mitra', 'like', '%' . trim($request->no_induk_mitra) . '%');
+    }
+
+    // ==========================
+    // Filter Status
+    // ==========================
+    if ($request->filled('status') && $request->status !== 'all') {
+        $query->where('status', $request->status);
+    }
+
+    // ==========================
+    // Filter Provinsi
+    // ==========================
+    if ($request->filled('provinsi')) {
+        $query->where('provinsi', 'like', '%' . trim($request->provinsi) . '%');
+    }
+
+    // ==========================
+    // Filter Status Pengelolaan
+    // ==========================
+    if ($request->filled('status_pengelolaan')
+        && $request->status_pengelolaan !== 'all') {
+
+        if ($request->status_pengelolaan === 'Aktif') {
+            $query->where('status_pengelolaan', 'Unit Aktif');
+        } elseif ($request->status_pengelolaan === 'Pasif') {
+            $query->where('status_pengelolaan', 'Unit Pasif');
+        } else {
+            $query->where('status_pengelolaan', $request->status_pengelolaan);
         }
     }
 
-    $unitKemitraans = $query->latest()->paginate(20)->appends($request->all());
+    // ==========================
+    // Filter Mitra Pengelolaan
+    // ==========================
+    if ($request->filled('mitra_pengelolaan')
+        && $request->mitra_pengelolaan !== 'all') {
 
-    $userExports = UserExportBimbaShop::all(['ID', 'user_login', 'user_email', 'display_name', 'first_name', 'last_name']);
+        $query->where('mitra_pengelolaan', $request->mitra_pengelolaan);
+    }
 
-    return view('unit_kemitraan_user.index', compact('unitKemitraans', 'userExports'));
+    // ==========================
+    // Filter Matching User Export
+    // ==========================
+    if ($request->filled('matching_status')) {
+
+        if ($request->matching_status === 'ditemukan') {
+
+            $query->whereExists(function ($sub) {
+                $sub->selectRaw(1)
+                    ->from('user_export_bimba_shop')
+                    ->whereColumn(
+                        'user_export_bimba_shop.billing_last_name',
+                        'like',
+                        DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')")
+                    );
+            });
+
+        } elseif ($request->matching_status === 'tidak_ditemukan') {
+
+            $query->whereNotExists(function ($sub) {
+                $sub->selectRaw(1)
+                    ->from('user_export_bimba_shop')
+                    ->whereColumn(
+                        'user_export_bimba_shop.billing_last_name',
+                        'like',
+                        DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')")
+                    );
+            });
+
+        }
+    }
+
+    // ==========================
+    // Search
+    // ==========================
+    if ($request->filled('search')) {
+
+        $search = trim($request->search);
+
+        $query->where(function ($q) use ($search) {
+            $q->where('no_cab', 'like', "%{$search}%")
+              ->orWhere('nama_mitra', 'like', "%{$search}%")
+              ->orWhere('bimba_aiueo_unit', 'like', "%{$search}%")
+              ->orWhere('alamat_unit', 'like', "%{$search}%")
+              ->orWhere('provinsi', 'like', "%{$search}%");
+        });
+    }
+
+    $unitKemitraans = $query
+        ->orderBy('id_record', 'desc')
+        ->paginate(20)
+        ->appends($request->query());
+
+    $userExports = UserExportBimbaShop::select(
+        'ID',
+        'user_login',
+        'user_email',
+        'display_name',
+        'first_name',
+        'last_name'
+    )->get();
+
+    return view('unit_kemitraan_user.index', compact(
+        'unitKemitraans',
+        'userExports'
+    ));
 }
     /**
      * Import Unit Kemitraan

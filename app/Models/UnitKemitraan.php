@@ -153,6 +153,8 @@ class UnitKemitraan extends Model
         'akun_facebook',
         'akun_instagram',
         'akun_media_sosial_unit_bimba_aiueo',
+        'status_pengelolaan',
+        'mitra_pengelolaan',
     ];
 
     protected $casts = [

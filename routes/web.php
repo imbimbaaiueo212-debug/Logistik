@@ -291,6 +291,8 @@ Route::get('/unit-kemitraan/import', [UnitKemitraanController::class, 'importFor
 
 Route::post('/unit-kemitraan/import', [UnitKemitraanController::class, 'import'])
      ->name('unit-kemitraan.import.store');   // tetap pakai .import.store biar form tidak berubah
+     Route::get('/unit-kemitraan/fix-status', [App\Http\Controllers\UnitKemitraanController::class, 'fixStatusPengelolaan'])
+     ->name('unit-kemitraan.fix-status');
 
 //============= untuk user export bimba shop
 // Import User biMBA Shop

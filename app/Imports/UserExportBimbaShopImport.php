@@ -6,6 +6,7 @@ use App\Models\UserExportBimbaShop;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Illuminate\Support\Facades\Log;
 
 class UserExportBimbaShopImport implements ToModel, WithStartRow, WithChunkReading
 {
@@ -16,11 +17,13 @@ class UserExportBimbaShopImport implements ToModel, WithStartRow, WithChunkReadi
 
     public function chunkSize(): int
     {
-        return 100;
+        return 500;
     }
 
     public function model(array $row)
     {
+        Log::info('Import ID : ' . ($row[0] ?? 'NULL'));
+
         if (empty(array_filter($row))) {
             return null;
         }

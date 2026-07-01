@@ -74,63 +74,75 @@
 
         <!-- Filter -->
         <div class="bg-white rounded-3xl shadow p-6 mb-8">
-            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">No Cab</label>
                     <input type="text" name="no_cab" value="{{ request('no_cab') }}" 
                            class="w-full border border-gray-300 rounded-xl px-4 py-3" placeholder="Cari No Cab...">
                 </div>
+
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Mitra</label>
-                    <input type="text" name="nama_mitra" value="{{ request('nama_mitra') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3" placeholder="Nama Mitra...">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">NIM / No Induk Mitra</label>
+                    <input type="text" 
+                        name="no_induk_mitra" 
+                        value="{{ request('no_induk_mitra') }}" 
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3" 
+                        placeholder="Cari NIM / No Induk Mitra...">
                 </div>
+
+                <!-- Status Pengelolaan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Pengelolaan</label>
+                    <select name="status_pengelolaan" class="w-full border border-gray-300 rounded-xl px-4 py-3">
+                        <option value="">Semua</option>
+                        <option value="Unit Aktif" {{ request('status_pengelolaan') == 'Unit Aktif' ? 'selected' : '' }}>Unit Aktif</option>
+                        <option value="Unit Pasif" {{ request('status_pengelolaan') == 'Unit Pasif' ? 'selected' : '' }}>Unit Pasif</option>
+                        <option value="all" {{ request('status_pengelolaan') == 'all' ? 'selected' : '' }}>Tampilkan Semua</option>
+                    </select>
+                </div>
+
+                <!-- Mitra Pengelolaan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mitra Pengelolaan</label>
+                    <select name="mitra_pengelolaan" class="w-full border border-gray-300 rounded-xl px-4 py-3">
+                        <option value="">Semua</option>
+                        <option value="YPAI" {{ request('mitra_pengelolaan') == 'YPAI' ? 'selected' : '' }}>YPAI</option>
+                        <option value="PUW1 | OPS1" {{ request('mitra_pengelolaan') == 'PUW1 | OPS1' ? 'selected' : '' }}>PUW1 | OPS1</option>
+                    </select>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" class="w-full border border-gray-300 rounded-xl px-4 py-3">
+                    <select name="status" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
                         <option value="">Semua Status</option>
-                        <option value="-" {{ request('status') == '-' ? 'selected' : '' }}>-</option>
+                        <option value="MM" {{ request('status') == 'MM' ? 'selected' : '' }}>MM</option>
+                        <option value="MM 1" {{ request('status') == 'MM 1' ? 'selected' : '' }}>MM 1</option>
                         <option value="Aktif 1" {{ request('status') == 'Aktif 1' ? 'selected' : '' }}>Aktif 1</option>
-                        <option value="Aktif Kab/Kota" {{ request('status') == 'Aktif Kab/Kota' ? 'selected' : '' }}>Aktif Kab/Kota</option>
-                        <option value="Aktif Kecamatan" {{ request('status') == 'Aktif Kecamatan' ? 'selected' : '' }}>Aktif Kecamatan</option>
-                        <option value="E-biMBA Aktif" {{ request('status') == 'E-biMBA Aktif' ? 'selected' : '' }}>E-biMBA Aktif</option>
-                        <option value="E-biMBA Pasif" {{ request('status') == 'E-biMBA Pasif' ? 'selected' : '' }}>E-biMBA Pasif</option>
-                        <option value="MK" {{ request('status') == 'MK' ? 'selected' : '' }}>MK</option>
                         <option value="MK 1" {{ request('status') == 'MK 1' ? 'selected' : '' }}>MK 1</option>
+                        <option value="MK" {{ request('status') == 'MK' ? 'selected' : '' }}>MK</option>
                         <option value="MK Rinda" {{ request('status') == 'MK Rinda' ? 'selected' : '' }}>MK Rinda</option>
                         <option value="MKU" {{ request('status') == 'MKU' ? 'selected' : '' }}>MKU</option>
                         <option value="MKU 1" {{ request('status') == 'MKU 1' ? 'selected' : '' }}>MKU 1</option>
-                        <option value="MM" {{ request('status') == 'MM' ? 'selected' : '' }}>MM</option>
-                        <option value="MM 1" {{ request('status') == 'MM 1' ? 'selected' : '' }}>MM 1</option>
-                        <option value="Pasif Kab/Kota" {{ request('status') == 'Pasif Kab/Kota' ? 'selected' : '' }}>Pasif Kab/Kota</option>
-                        <option value="Pasif Kecamatan" {{ request('status') == 'Pasif Kecamatan' ? 'selected' : '' }}>Pasif Kecamatan</option>
-                        <option value="Stockist" {{ request('status') == 'Stockist' ? 'selected' : '' }}>Stockist</option>
-                        <option value="Stockist Aktif" {{ request('status') == 'Stockist Aktif' ? 'selected' : '' }}>Stockist Aktif</option>
-                        <option value="Stockist Pasif" {{ request('status') == 'Stockist Pasif' ? 'selected' : '' }}>Stockist Pasif</option>
-                        <option value="Unit Aktif" {{ request('status') == 'Unit Aktif' ? 'selected' : '' }}>Unit Aktif</option>
-                        <option value="Unit Pasif" {{ request('status') == 'Unit Pasif' ? 'selected' : '' }}>Unit Pasif</option>
+                        <option value="E-biMBA Aktif" {{ request('status') == 'E-biMBA Aktif' ? 'selected' : '' }}>E-biMBA Aktif</option>
                     </select>
                 </div>
+
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian Umum</label>
-                    <input type="text" name="search" value="{{ request('search') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3" placeholder="Cari apapun...">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Matching First Name</label>
+                    <select name="matching_status" class="w-full border border-gray-300 rounded-xl px-4 py-3">
+                        <option value="">Semua</option>
+                        <option value="ditemukan" {{ request('matching_status') == 'ditemukan' ? 'selected' : '' }}>✅ Ditemukan</option>
+                        <option value="tidak_ditemukan" {{ request('matching_status') == 'tidak_ditemukan' ? 'selected' : '' }}>❌ Tidak Ditemukan</option>
+                    </select>
                 </div>
 
-               <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Matching First Name</label>
-            <select name="matching_status" class="w-full border border-gray-300 rounded-xl px-4 py-3">
-                <option value="">Semua</option>
-                <option value="ditemukan" {{ request('matching_status') == 'ditemukan' ? 'selected' : '' }}>✅ Ditemukan</option>
-                <option value="tidak_ditemukan" {{ request('matching_status') == 'tidak_ditemukan' ? 'selected' : '' }}>❌ Tidak Ditemukan</option>
-            </select>
-        </div>
-
-                <div class="lg:col-span-4 flex gap-3">
+                <div class="xl:col-span-6 flex gap-3">
                     <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-blue-700">
                         🔍 Terapkan Filter
                     </button>
-                    <a href="{{ route('unit-kemitraan-user.index') }}" class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
+                    <a href="{{ route('unit-kemitraan-user.index') }}" 
+                       class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
                         Reset
                     </a>
                 </div>
@@ -142,14 +154,17 @@
             <table class="text-sm">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="narrow">No Cab</th>
-                        <th class="medium">BiMBA AIUEO Unit</th>
-                        <th class="medium">Nama Mitra</th>
-                        <th class="narrow">Status</th>
-                        <th class="medium">No HP</th>
-                        <th class="wide">Matching First Name</th>
-                        <th class="wide">User Email</th>
-                        <th class="narrow">Display Name</th>
+                        <th class="narrow uppercase">No Cab</th>
+                        <th class="medium uppercase">BiMBA AIUEO Unit</th>
+                        <th class="medium uppercase">Nama Mitra</th>
+                        <th class="narrow uppercase">Jenis Unit</th>
+                        <th class="narrow uppercase">Status Pengelolaan</th>
+                        <th class="narrow uppercase">Mitra Pengelolaan</th>
+                        <th class="narrow uppercase">No Induk Mitra</th>
+                        <th class="medium uppercase">No HP</th>
+                        <th class="wide uppercase">Matching First Name</th>
+                        <th class="wide uppercase">User Email</th>
+                        <th class="narrow uppercase">Display Name</th>
                         <th class="narrow text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -165,6 +180,10 @@
                             <td>{{ $unit->bimba_aiueo_unit ?? '-' }}</td>
                             <td class="truncate">{{ $unit->nama_mitra ?? '-' }}</td>
                             <td>{{ $unit->status ?? '-' }}</td>
+                            <!--untuk unit pengelolaan-->
+                            <td>{{ $unit->status_pengelolaan ?? '-' }}</td>
+                            <td>{{ $unit->mitra_pengelolaan ?? '-' }}</td>
+                            <td>{{ $unit->no_induk_mitra ?? '-' }}</td>
                             <td>{{ $unit->no_hp ?? '-' }}</td>
                             <td class="truncate">
                                 @if($matched)

@@ -30,21 +30,21 @@
         <a href="#">
             <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
                 <div class="text-5xl mb-3">🏢</div>
-                <h3 class="text-xl font-semibold">Jakarta Aktif</h3>
+                <h3 class="text-xl font-semibold">Unit Aktif</h3>
             </div>
         </a>
 
         <a href="#">
             <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
                 <div class="text-5xl mb-3">🏢</div>
-                <h3 class="text-xl font-semibold">Jakarta Pasif</h3>
+                <h3 class="text-xl font-semibold">Unit Pasif</h3>
             </div>
         </a>
 
         <a href="#">
             <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
                 <div class="text-5xl mb-3">📦</div>
-                <h3 class="text-xl font-semibold">DLC</h3>
+                <h3 class="text-xl font-semibold">DLC | InterVio</h3>
             </div>
         </a>
 
