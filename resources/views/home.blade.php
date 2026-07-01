@@ -73,34 +73,6 @@
                     </div>
                 </a>
 
-                @php
-    $allowedEmails = [
-        'robiensyah22@gmail.com', 
-        'oktaviandaaria@gmail.com'
-    ];
-    
-    $user = auth()->user();
-    
-    $isAllowed = $user && (
-        // Cek apakah user admin (sesuaikan dengan kolom yang ada di tabel users kamu)
-        ($user->is_admin ?? false) || 
-        ($user->role == 'admin' ?? false) || 
-        in_array($user->email, $allowedEmails)
-    );
-@endphp
-
-@if($isAllowed)
-    <a href="https://infinite-management.id/" 
-       class="group" 
-       target="_blank" 
-       rel="noopener noreferrer">
-        <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
-            <div class="bg-teal-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">📈</div>
-            <h3 class="font-semibold text-lg">Infinite Management</h3>
-        </div>
-    </a>
-@endif
-
                 <!-- Tambahkan menu lainnya sesuai aplikasi kamu -->
             </div>
         </div>
