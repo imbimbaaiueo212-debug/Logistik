@@ -31,6 +31,7 @@ use App\Http\Controllers\PickingController;
 use App\Http\Controllers\UserExportController;
 use App\Http\Controllers\StokisMitraController;
 use App\Http\Controllers\UnitKemitraanUserExportController;
+use App\Http\Controllers\QcOutgoingController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -335,4 +336,41 @@ Route::view(
     'order.jakarta-aktif-modul-menu'
 )->name('order.jakarta-aktif.modul');
 
+Route::post('/unit-kemitraan-user/generate-match', [UnitKemitraanUserExportController::class, 'generateMatch'])
+     ->name('unit-kemitraan-user.generate-match');
 
+
+
+     //menu untuk index ada di dalam sini
+     // ====================== DATABASE USER HUB ======================
+Route::prefix('database-user')
+    ->name('database-user.')
+    ->middleware('auth')
+    ->group(function () {
+
+        Route::get('/', [App\Http\Controllers\DatabaseUserController::class, 'index'])
+             ->name('index');
+    });
+
+    // ====================== QC OUTGOING ======================
+Route::prefix('qc-outgoing')
+    ->name('qc-outgoing.')
+    ->middleware('auth')
+    ->group(function () {
+
+        Route::get('/', [App\Http\Controllers\QcOutgoingController::class, 'index'])
+             ->name('index');
+
+        // QC Jakarta Aktif
+        Route::get('/jakarta-aktif', [App\Http\Controllers\PickingController::class, 'qcJakartaAktif'])
+             ->name('jakarta-aktif');
+    });
+
+    Route::post('/store', [App\Http\Controllers\PickingController::class, 'qcStore'])
+     ->name('qc-outgoing.store');
+     // QC Outgoing
+Route::prefix('qc-outgoing')->name('qc-outgoing.')->middleware('auth')->group(function () {
+    Route::get('/', [QcOutgoingController::class, 'index'])->name('index');
+    Route::get('/jakarta-aktif', [PickingController::class, 'qcJakartaAktif'])->name('jakarta-aktif');
+    Route::post('/store', [PickingController::class, 'qcStore'])->name('store');   // ← Tambahkan ini
+});

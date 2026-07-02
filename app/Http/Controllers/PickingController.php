@@ -6,8 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Picking;
 use App\Models\PickingItem;
 use App\Models\JakartaAktif;
+use App\Models\QcOutgoing;
 use App\Models\BimbashopOrder;
 use Illuminate\Support\Facades\Auth;   // ← TAMBAHKAN INI
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PickingController extends Controller
 {
@@ -161,45 +164,47 @@ class PickingController extends Controller
 }
 
     public function destroy($id)
-    {
-        $picking = Picking::findOrFail($id);
+{
+    $picking = Picking::findOrFail($id);
 
-        JakartaAktif::where('id', $picking->jakarta_aktif_id)
-    ->update([
-        'picking_generated' => false,
-    ]);
+    // Hapus data QC yang terkait
+    QcOutgoing::where('picking_id', $picking->id)->delete();
+    QcOutgoing::where('no_pl', $picking->no_pl)->delete();
 
-        $picking->items()->delete();
-        $picking->delete();
+    // Reset flag di Jakarta Aktif
+    JakartaAktif::where('id', $picking->jakarta_aktif_id)
+        ->update(['picking_generated' => false]);
 
-        return redirect()->back()
-                         ->with('success', 'Picking List berhasil dihapus dan flag Jakarta Aktif di-reset.');
-    }
+    // Hapus Picking
+    $picking->items()->delete();
+    $picking->delete();
+
+    return redirect()->back()
+                     ->with('success', 'Picking List dan data QC terkait berhasil dihapus.');
+}
 public function updateChecklist(Request $request)
 {
     try {
-
         $picking = Picking::findOrFail($request->id);
-
         $checked = $request->boolean('checked');
 
-        // Hanya simpan waktu terima
-        $picking->tgl_terima = $checked ? now() : null;
+        if ($checked) {
+            $picking->tgl_terima = now();
+            // JANGAN otomatis set ke Sudah, biarkan user yang pilih status
+            // $picking->status_persiapan = 'Sudah Disiapkan';
+            $picking->tgl_picking = now()->toDateString();
+        } else {
+            $picking->tgl_terima = null;
+            $picking->tgl_picking = null;
+            $picking->status_persiapan = 'Belum';
+        }
 
         $picking->save();
 
-        return response()->json([
-            'success' => true,
-            'tanggal' => optional($picking->tgl_terima)->format('d/m/Y'),
-        ]);
+        return response()->json(['success' => true]);
 
     } catch (\Throwable $e) {
-
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage(),
-        ],500);
-
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
 }
 public function updatePic(Request $request)
@@ -222,19 +227,140 @@ public function updatePic(Request $request)
 
 public function updateStatus(Request $request)
 {
-    $request->validate([
-        'id' => 'required|exists:pickings,id',
-        'status_persiapan' => 'required|in:Belum Dipersiapkan,On Proses,Hold,Sudah Disiapkan',
-    ]);
+    DB::beginTransaction();
 
-    $picking = Picking::findOrFail($request->id);
+    try {
 
-    $picking->status_persiapan = $request->status_persiapan;
+        $request->validate([
+            'id' => 'required|exists:pickings,id',
+            'status_persiapan' => 'required|in:Belum,Sudah',
+        ]);
 
-    $picking->save();
+        $picking = Picking::with(['items','jakartaAktif'])
+            ->findOrFail($request->id);
 
-    return response()->json([
-        'success' => true
-    ]);
+        $picking->status_persiapan = $request->status_persiapan;
+
+        if (!$picking->tgl_picking) {
+            $picking->tgl_picking = now()->toDateString();
+        }
+
+        $picking->save();
+
+        Log::info('STEP 1 : Picking berhasil disimpan');
+
+        if ($request->status_persiapan == 'Sudah') {
+
+            $ja = $picking->jakartaAktif;
+
+            Log::info('STEP 2 : Relasi Jakarta Aktif', [
+                'ada' => $ja ? true : false
+            ]);
+QcOutgoing::updateOrCreate(
+    [
+        'picking_id' => $picking->id,
+    ],
+    [
+        'picking_id'     => $picking->id,
+        'no_pl'          => $picking->no_pl,
+        'tgl_turun_pl'   => $picking->tgl_picking,
+        'nama_unit'      => $picking->nama_unit,
+
+        'pengiriman' => $picking->ekspedisi,
+
+        'nama_barang' => $picking->pesanan,
+
+        'tgl_bayar'      => $ja?->payment_date,
+        'jumlah_bayar'   => $ja?->harga ?? 0,
+        'tgl_estimasi'   => $ja?->estimasi_persiapan,
+        'nama_stokis'    => $ja?->nama_stokis ?? '-',
+        'estimasi_hari'  => $ja?->estimasi_hari,
+
+        'kode_qc' => 'QC-'
+            . now()->format('Ymd')
+            . '-'
+            . str_pad($picking->id, 5, '0', STR_PAD_LEFT),
+
+        'tgl_qc'      => now(),
+        'status_qc'   => 'Pending',
+        'keterangan'  => null,
+        'created_by'  => Auth::id(),
+    ]
+);
+
+            Log::info('STEP 3 : QC berhasil dibuat');
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true
+        ]);
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        Log::error($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ],500);
+
+    }
 }
+
+/**
+ * QC Outgoing - Jakarta Aktif (Status Sudah)
+ */
+/**
+ * Simpan Data QC Outgoing
+ */
+public function qcStore(Request $request)
+{
+    $validated = $request->validate([
+        'picking_id' => 'required|exists:pickings,id',
+        'status_qc' => 'required|in:Pending,Lolos,Reject,Revisi',
+        'keterangan' => 'nullable|string',
+        'pic_qc' => 'nullable|string',
+    ]);
+
+    $picking = Picking::with('items')->findOrFail($validated['picking_id']);
+
+    QcOutgoing::updateOrCreate(
+        [
+            'picking_id' => $picking->id,
+        ],
+        [
+            'no_pl' => $picking->no_pl,
+            'tgl_turun_pl' => $picking->tgl_picking,
+            'nama_unit' => $picking->nama_unit,
+            'pengiriman' => $picking->kirim,
+            'nama_barang' => $picking->pesanan,
+            'tgl_bayar' => $picking->payment_date,
+            'jumlah_bayar' => $picking->harga ?? 0,
+            'tgl_estimasi' => $picking->tgl_estimasi,
+            'nama_stokis' => $picking->nama_stokis,
+            'estimasi_hari' => $picking->estimasi_hari,
+            'kode_qc' => 'QC-' . now()->format('Ymd') . '-' . str_pad($picking->id, 4, '0', STR_PAD_LEFT),
+            'tgl_qc' => now()->toDateString(),
+            'status_qc' => $validated['status_qc'],
+            'keterangan' => $validated['keterangan'],
+            'pic_qc' => $validated['pic_qc'],
+            'created_by' => Auth::id(),
+        ]
+    );
+
+    return redirect()->back()->with('success', 'Data QC berhasil disimpan.');
+}
+public function qcJakartaAktif()
+{
+    $data = QcOutgoing::with(['picking.items'])
+        ->orderByDesc('created_at')
+        ->paginate(20);
+
+    return view('qc-outgoing.jakarta-aktif', compact('data'));
+}
+
 }

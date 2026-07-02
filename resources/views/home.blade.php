@@ -23,6 +23,13 @@
                     </div>
                 </a>
 
+                <a href="{{ route('database-user.index') }}" class="group">
+                    <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
+                        <div class="bg-blue-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">👤</div>
+                        <h3 class="font-semibold text-lg">DATABASE USER</h3>
+                    </div>
+                </a>
+
                 <a href="{{ route('import.index') }}" class="group">
                     <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
                         <div class="bg-orange-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">📦</div>
@@ -45,12 +52,12 @@
                     </div>
                 </a>
 
-                <a href="#" class="group">
-                    <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
-                        <div class="bg-purple-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">🚚</div>
-                        <h3 class="font-semibold text-lg">QC OUTGOING</h3>
-                    </div>
-                </a>
+                <a href="{{ route('qc-outgoing.index') }}" class="group">
+    <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
+        <div class="bg-purple-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">🚚</div>
+        <h3 class="font-semibold text-lg">QC OUTGOING</h3>
+    </div>
+</a>
 
                 <a href="#" class="group">
                     <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">

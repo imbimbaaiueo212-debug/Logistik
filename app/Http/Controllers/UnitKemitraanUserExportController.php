@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\UnitKemitraan;
 use App\Models\UserExportBimbaShop;
+use App\Models\MatchingUserExport;
 use App\Imports\UnitKemitraanImport;
 use App\Imports\UserExportBimbaShopImport;
 use Illuminate\Http\Request;
@@ -122,7 +123,7 @@ class UnitKemitraanUserExportController extends Controller
 
     $unitKemitraans = $query
         ->orderBy('id_record', 'desc')
-        ->paginate(20)
+        ->paginate(50)
         ->appends($request->query());
 
     $userExports = UserExportBimbaShop::select(
@@ -182,8 +183,64 @@ class UnitKemitraanUserExportController extends Controller
         }
     }
 
+    /**
+ * Generate Matching antara Unit Kemitraan dan User Export
+ */
+public function generateMatch(Request $request)
+{
+    try {
+        set_time_limit(600);
+        ini_set('memory_limit', '1024M');
+
+        $matchesCreated = 0;
+        $skipped = 0;
+
+        $units = UnitKemitraan::whereDoesntHave('matchingUserExport')
+            ->select('id_record', 'no_cab')
+            ->get();
+
+        foreach ($units as $unit) {
+            $noCab = trim($unit->no_cab ?? '');
+            if (empty($noCab)) {
+                $skipped++;
+                continue;
+            }
+
+            $userExports = UserExportBimbaShop::where('billing_last_name', 'like', "%{$noCab}%")
+                ->select('ID', 'billing_last_name')
+                ->get();
+
+            foreach ($userExports as $user) {
+                $exists = MatchingUserExport::where('unit_kemitraan_id', $unit->id_record)
+                            ->where('user_export_id', $user->ID)
+                            ->exists();
+
+                if (!$exists) {
+                    MatchingUserExport::create([
+                        'unit_kemitraan_id' => $unit->id_record,
+                        'user_export_id'    => $user->ID,
+                        'no_cab'            => $noCab,
+                        'billing_last_name' => trim($user->billing_last_name ?? ''),
+                        'status'            => true,
+                    ]);
+                    $matchesCreated++;
+                }
+            }
+        }
+
+        $message = "✅ Generate Match selesai! {$matchesCreated} matching baru dibuat.";
+        if ($skipped > 0) $message .= " {$skipped} unit dilewati (no_cab kosong).";
+
+        return redirect()->route('unit-kemitraan-user.index')->with('success', $message);
+
+    } catch (\Exception $e) {
+        Log::error('Generate Match Error: ' . $e->getMessage() . ' | Line: ' . $e->getLine());
+        return redirect()->back()->with('error', '❌ Gagal generate match: ' . $e->getMessage());
+    }
+}
+
     // CRUD Unit Kemitraan (bisa ditambah sesuai kebutuhan)
     public function create() { return view('unit_kemitraan.create'); }
     public function store(Request $request) { /* ... */ }
-    // edit, update, destroy, show bisa ditambahkan
+    // edit, update, destroy, show bisa ditambahkan    
 }

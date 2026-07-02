@@ -56,20 +56,13 @@
     <div class="max-w-screen-2xl mx-auto px-6 py-6">
 
         <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Database Unit Kemitraan + User Export</h1>
-                <p class="text-gray-600">Matching No Cab dengan First Name di User Export</p>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="document.getElementById('importUnitForm').classList.toggle('hidden')"
-                        class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700">
-                    📤 Import Unit Kemitraan
-                </button>
-                <button onclick="document.getElementById('importUserForm').classList.toggle('hidden')"
-                        class="bg-purple-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-purple-700">
-                    📤 Import User Export
-                </button>
-            </div>
+            <form action="{{ route('unit-kemitraan-user.generate-match') }}" method="POST" style="display: inline;">
+    @csrf
+    <button type="submit" class="btn btn-success" 
+            onclick="return confirm('Generate matching untuk semua unit yang belum match?')">
+        <i class="fas fa-magic"></i> Generate Match Otomatis
+    </button>
+</form>
         </div>
 
         <!-- Filter -->
@@ -171,10 +164,19 @@
                 <tbody class="divide-y divide-gray-200">
                     @forelse($unitKemitraans as $unit)
                         @php
-                            $matched = $userExports->first(function($u) use ($unit) {
-                                return $u->first_name && str_contains($u->first_name, (string)$unit->no_cab);
+                            $noCab = trim((string)$unit->no_cab);
+
+                            $matched = $userExports->first(function ($u) use ($noCab) {
+
+                                $billing = trim((string)($u->billing_last_name ?? ''));
+                                $first   = trim((string)($u->first_name ?? ''));
+                                $last    = trim((string)($u->last_name ?? ''));
+
+                                return str_contains($billing, $noCab)
+                                    || str_contains($first, $noCab)
+                                    || str_contains($last, $noCab);
                             });
-                        @endphp
+                            @endphp
                         <tr class="hover:bg-gray-50">
                             <td class="font-medium">{{ $unit->no_cab ?? '-' }}</td>
                             <td>{{ $unit->bimba_aiueo_unit ?? '-' }}</td>

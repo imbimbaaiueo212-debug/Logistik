@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QC Outgoing - Jakarta Aktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        th, td { padding: 12px 8px; font-size: 0.85rem; }
+        tr:hover { background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    @include('partials.top-nav')
+
+    <div class="max-w-screen-2xl mx-auto px-6 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">QC Outgoing - Jakarta Aktif</h1>
+            <a href="{{ route('qc-outgoing.index') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl hover:bg-gray-700">← Kembali</a>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="text-left px-4 py-3">No</th>
+                        <th class="text-left px-4 py-3">No PL</th>
+                        <th class="text-left px-4 py-3">Tgl Turun PL</th>
+                        <th class="text-left px-4 py-3">Nama Unit</th>
+                        <th class="text-left px-4 py-3">Pengiriman</th>
+                        <th class="text-left px-4 py-3">Nama Barang</th>
+                        <th class="text-left px-4 py-3">Tgl Bayar</th>
+                        <th class="text-right px-4 py-3">Jumlah Bayar</th>
+                        
+                        <th class="text-left px-4 py-3">Tgl Estimasi</th>
+                        
+                        <th class="text-left px-4 py-3">Status QC</th>
+                        <th class="text-left px-4 py-3">Keterangan</th>
+                        <th class="text-center px-4 py-3">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @forelse($data as $index => $item)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-center">{{ $index + 1 }}</td>
+                        <td class="px-4 py-3 font-medium">{{ $item->no_pl }}</td>
+                        <td class="px-4 py-3">{{ $item->tgl_turun_pl }}</td>
+                        <td class="px-4 py-3">{{ $item->nama_unit }}</td>
+                        <td class="px-4 py-3">{{ $item->pengiriman }}</td>
+                        <td class="px-4 py-3 text-xs">{{ $item->nama_barang }}</td>
+                        <td class="px-4 py-3">{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y') : '-' }}</td>
+                        <td class="px-4 py-3 text-right">Rp {{ number_format($item->jumlah_bayar, 0, ',', '.') }}</td>
+                        
+                        <td class="px-4 py-3">{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
+                        
+
+                        <form method="POST" action="{{ route('qc-outgoing.store') }}">
+                            @csrf
+                            <input type="hidden" name="picking_id" value="{{ $item->id }}">
+
+                            <td class="px-4 py-3">
+                                <select name="status_qc" class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Lolos">Lolos</option>
+                                    <option value="Reject">Reject</option>
+                                    <option value="Revisi">Revisi</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="text" name="keterangan" class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full" placeholder="Keterangan QC...">
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                                    Simpan QC
+                                </button>
+                            </td>
+                        </form>
+                    </tr>
+                    @empty
+                    <tr><td colspan="14" class="text-center py-10 text-gray-500">Tidak ada data</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

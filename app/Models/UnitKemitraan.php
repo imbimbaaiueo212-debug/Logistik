@@ -187,6 +187,11 @@ class UnitKemitraan extends Model
         'lampiran_jarak_stokis_2' => 'decimal:2',
     ];
 
+public function matchingUserExport()
+{
+    return $this->hasOne(MatchingUserExport::class, 'unit_kemitraan_id', 'id_record');
+}
+
     // Opsional: Jika ingin mengatur kolom yang tidak boleh di-mass assignment
     // protected $guarded = ['id_record'];
 }

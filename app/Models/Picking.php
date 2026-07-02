@@ -55,7 +55,7 @@ class Picking extends Model
         'waktu_estimasi_persiapan',
         'payment_date',
         'pic',
-        'status_pesiapan',
+        'status_persiapan',
         'catatan',
         'created_by',
     ];

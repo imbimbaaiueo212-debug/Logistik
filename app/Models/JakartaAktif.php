@@ -115,13 +115,16 @@ class JakartaAktif extends Model
  */
 public function getNamaStokisAttribute()
 {
-    // Jika sudah ada di kolom nama_stokis (setelah sync/update)
-    if (!empty($this->attributes['nama_stokis'] ?? $this->nama_stokis)) {
-        return $this->attributes['nama_stokis'] ?? $this->nama_stokis;
+    if (
+        array_key_exists('nama_stokis', $this->attributes)
+        && !empty($this->attributes['nama_stokis'])
+    ) {
+        return $this->attributes['nama_stokis'];
     }
 
-    // Gunakan logic yang sudah bagus di controller
-    return $this->extractVendorFromSku($this->pesanan ?? '');
+    return $this->extractVendorFromSku(
+        $this->attributes['pesanan'] ?? ''
+    );
 }
 
 /**
