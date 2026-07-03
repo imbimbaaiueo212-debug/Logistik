@@ -10,7 +10,6 @@
         body { font-family: 'Poppins', sans-serif; }
         th, td { padding: 12px 8px; font-size: 0.875rem; }
         
-        /* Efek muted untuk baris yang selesai */
         tr.locked {
             opacity: 0.75;
             background-color: #f1f5f9 !important;
@@ -61,7 +60,7 @@
                     $isLocked = $item->status_packing === 'selesai';
                 @endphp
 
-                <form method="POST" action="{{ route('packing.update', $item->id) }}">
+                <form method="POST" action="{{ route('packing.update', $item->id) }}" class="packing-form">
                     @csrf
                     @method('PUT')
 
@@ -75,46 +74,31 @@
                             @endswitch
                         @endif">
 
-                        {{-- NO --}}
                         <td class="px-3 py-4 text-center font-semibold whitespace-nowrap">
                             {{ $data->firstItem() + $index }}
                         </td>
-
-                        {{-- NO PL --}}
-                        <td class="px-3 py-4 font-semibold whitespace-nowrap">
-                            {{ $item->no_pl }}
-                        </td>
-
-                        {{-- NAMA UNIT --}}
-                        <td class="px-3 py-4 leading-5 font-medium min-w-[180px]">
-                            {{ $item->nama_unit }}
-                        </td>
-
-                        {{-- NAMA BARANG --}}
-                        <td class="px-3 py-4 whitespace-nowrap">
-                            {{ $item->nama_barang }}
-                        </td>
-
-                        {{-- TGL ESTIMASI --}}
+                        <td class="px-3 py-4 font-semibold whitespace-nowrap">{{ $item->no_pl }}</td>
+                        <td class="px-3 py-4 leading-5 font-medium min-w-[180px]">{{ $item->nama_unit }}</td>
+                        <td class="px-3 py-4 whitespace-nowrap">{{ $item->nama_barang }}</td>
                         <td class="px-3 py-4 whitespace-nowrap">
                             {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
                         </td>
 
-                        {{-- TGL PACKING --}}
+                        <!-- TGL PACKING -->
                         <td class="px-3 py-4">
                             <input type="date" 
-                                   name="tgl_packing"
+                                   name="tgl_packing" 
                                    value="{{ $item->tgl_packing ? \Carbon\Carbon::parse($item->tgl_packing)->format('Y-m-d') : '' }}"
                                    class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                                   {{ $isLocked ? 'disabled' : '' }}>
+                                   {{ $isLocked ? 'disabled' : '' }} required>
                         </td>
 
-                        {{-- STATUS PACKING --}}
+                        <!-- STATUS -->
                         <td class="px-3 py-4">
                             <select name="status_packing" 
                                     onchange="changeStatusColor(this)"
                                     class="status-select w-44 rounded-lg border font-semibold px-3 py-2 text-sm"
-                                    {{ $isLocked ? 'disabled' : '' }}>
+                                    {{ $isLocked ? 'disabled' : '' }} required>
                                 <option value="belum" {{ $item->status_packing == 'belum' ? 'selected' : '' }}>🔴 Belum Dipacking</option>
                                 <option value="proses" {{ $item->status_packing == 'proses' ? 'selected' : '' }}>🟡 Sedang Dipacking</option>
                                 <option value="pending" {{ $item->status_packing == 'pending' ? 'selected' : '' }}>🟠 Packing Belum Selesai</option>
@@ -122,12 +106,12 @@
                             </select>
                         </td>
 
-                        {{-- NAMA PACKER --}}
+                        <!-- NAMA PACKER -->
                         <td class="px-3 py-4">
                             <select name="nama_packer" 
                                     class="w-48 border rounded-lg px-3 py-2 text-sm"
-                                    {{ $isLocked ? 'disabled' : '' }}>
-                                <option value="">Pilih</option>
+                                    {{ $isLocked ? 'disabled' : '' }} required>
+                                <option value="">Pilih Packer</option>
                                 <option value="Jodi Setiawan" {{ $item->nama_packer=='Jodi Setiawan'?'selected':'' }}>Jodi Setiawan</option>
                                 <option value="Achmad Saefudin" {{ $item->nama_packer=='Achmad Saefudin'?'selected':'' }}>Achmad Saefudin</option>
                                 <option value="Amar Romdhoni" {{ $item->nama_packer=='Amar Romdhoni'?'selected':'' }}>Amar Romdhoni</option>
@@ -143,37 +127,37 @@
                             </select>
                         </td>
 
-                        {{-- BERAT BIMBA SHOP --}}
+                        <!-- BERAT BIMBA -->
                         <td class="px-3 py-4 text-center whitespace-nowrap">
                             <span class="inline-block bg-gray-100 rounded-lg px-3 py-2 font-semibold">
                                 {{ $item->berat ? number_format($item->berat,0,',','.') : '-' }} g
                             </span>
                         </td>
 
-                        {{-- BERAT AKTUAL --}}
+                        <!-- BERAT AKTUAL -->
                         <td class="px-3 py-4">
                             <div class="flex">
                                 <input type="number" 
                                        name="berat_aktual"
                                        value="{{ $item->berat_aktual ? (int)$item->berat_aktual : '' }}"
-                                       min="0" step="1"
+                                       min="0" step="0.01"
                                        class="w-20 border border-r-0 rounded-l-lg px-3 py-2 text-center"
-                                       {{ $isLocked ? 'disabled' : '' }}>
+                                       {{ $isLocked ? 'disabled' : '' }} required>
                                 <span class="bg-gray-100 border rounded-r-lg px-3 py-2 text-gray-600 font-medium">KG</span>
                             </div>
                         </td>
 
-                        {{-- KOLI --}}
+                        <!-- KOLI -->
                         <td class="px-3 py-4">
                             <input type="number" 
                                    name="koli"
-                                   value="{{ $item->koli }}"
+                                   value="{{ $item->koli ?? '' }}"
                                    min="1"
                                    class="w-16 border rounded-lg px-2 py-2 text-center font-semibold"
-                                   {{ $isLocked ? 'disabled' : '' }}>
+                                   {{ $isLocked ? 'disabled' : '' }} required>
                         </td>
 
-                        {{-- KETERANGAN --}}
+                        <!-- KETERANGAN -->
                         <td class="px-3 py-4">
                             <input type="text" 
                                    name="keterangan_packing"
@@ -183,17 +167,14 @@
                                    {{ $isLocked ? 'disabled' : '' }}>
                         </td>
 
-                        {{-- AKSI --}}
+                        <!-- AKSI -->
                         <td class="px-3 py-4 text-center">
                             @if($isLocked)
-                                <button type="button" 
-                                        class="bg-green-600 text-white rounded-lg px-6 py-2 font-semibold cursor-not-allowed flex items-center gap-2 mx-auto"
-                                        disabled>
+                                <button type="button" class="bg-green-600 text-white rounded-lg px-6 py-2 font-semibold cursor-not-allowed flex items-center gap-2 mx-auto" disabled>
                                     ✅ Selesai
                                 </button>
                             @else
-                                <button type="submit" 
-                                        class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-2 font-semibold">
+                                <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-2 font-semibold">
                                     💾 Simpan
                                 </button>
                             @endif
@@ -203,15 +184,40 @@
 
             @empty
                 <tr>
-                    <td colspan="13" class="text-center py-12 text-gray-400">
-                        Belum ada data packing.
-                    </td>
+                    <td colspan="13" class="text-center py-12 text-gray-400">Belum ada data packing.</td>
                 </tr>
             @endforelse
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.packing-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const tglPacking   = form.querySelector('input[name="tgl_packing"]').value.trim();
+        const status       = form.querySelector('select[name="status_packing"]').value;
+        const packer       = form.querySelector('select[name="nama_packer"]').value;
+        const beratAktual  = form.querySelector('input[name="berat_aktual"]').value.trim();
+        const koli         = form.querySelector('input[name="koli"]').value.trim();
+
+        let errors = [];
+
+        if (!tglPacking)   errors.push('Tanggal Packing harus diisi');
+        if (!status)       errors.push('Status Packing harus dipilih');
+        if (!packer)       errors.push('Nama Packer harus dipilih');
+        if (!beratAktual || parseFloat(beratAktual) <= 0) 
+            errors.push('Berat Aktual harus diisi dan lebih dari 0');
+        if (!koli || parseInt(koli) < 1) 
+            errors.push('Koli harus diisi minimal 1');
+
+        if (errors.length > 0) {
+            e.preventDefault();
+            alert('❌ Data belum lengkap:\n\n' + errors.join('\n'));
+        }
+    });
+});
+</script>
 
 </body>
 </html>
