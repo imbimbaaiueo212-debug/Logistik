@@ -391,15 +391,18 @@ Route::delete('/import/manual/{id}', [ImportController::class,'manualDestroy'])
 
 
     // ====================== PACKING ======================
-    Route::prefix('packing')->group(function () {
+Route::prefix('packing')->group(function () {
 
-    Route::get('/', [PackingController::class,'index'])
+    Route::get('/', [PackingController::class, 'index'])
         ->name('packing.index');
 
-    Route::get('/jakarta-aktif', [PackingController::class,'jakartaAktif'])
+    Route::get('/jakarta-aktif', [PackingController::class, 'jakartaAktif'])
         ->name('packing.jakarta.aktif');
 
-    Route::post('/store', [PackingController::class,'store'])
-        ->name('packing.store');
+    // Tambahkan route ini
+    Route::put('/{id}', [PackingController::class, 'update'])
+        ->name('packing.update');
 
+    Route::post('/store', [PackingController::class, 'store'])
+        ->name('packing.store');
 });
