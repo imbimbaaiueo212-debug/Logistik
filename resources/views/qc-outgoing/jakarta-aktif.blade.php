@@ -34,10 +34,10 @@
                         <th class="text-left px-4 py-3">Nama Barang</th>
                         <th class="text-left px-4 py-3">Tgl Bayar</th>
                         <th class="text-right px-4 py-3">Jumlah Bayar</th>
-                        
                         <th class="text-left px-4 py-3">Tgl Estimasi</th>
-                        
                         <th class="text-left px-4 py-3">Status QC</th>
+                        <th class="text-left px-4 py-3">PIC QC</th>
+                        <th class="text-left px-4 py-3">Kode QC</th>
                         <th class="text-left px-4 py-3">Keterangan</th>
                         <th class="text-center px-4 py-3">Aksi</th>
                     </tr>
@@ -53,34 +53,135 @@
                         <td class="px-4 py-3 text-xs">{{ $item->nama_barang }}</td>
                         <td class="px-4 py-3">{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y') : '-' }}</td>
                         <td class="px-4 py-3 text-right">Rp {{ number_format($item->jumlah_bayar, 0, ',', '.') }}</td>
-                        
                         <td class="px-4 py-3">{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}</td>
-                        
 
                         <form method="POST" action="{{ route('qc-outgoing.store') }}">
-                            @csrf
-                            <input type="hidden" name="picking_id" value="{{ $item->id }}">
+    @csrf
 
-                            <td class="px-4 py-3">
-                                <select name="status_qc" class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Lolos">Lolos</option>
-                                    <option value="Reject">Reject</option>
-                                    <option value="Revisi">Revisi</option>
-                                </select>
-                            </td>
-                            <td class="px-4 py-3">
-                                <input type="text" name="keterangan" class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full" placeholder="Keterangan QC...">
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
-                                    Simpan QC
-                                </button>
-                            </td>
-                        </form>
+    <input type="hidden"
+           name="picking_id"
+           value="{{ $item->picking_id ?? ($item->picking->id ?? $item->id) }}">
+
+    {{-- STATUS QC --}}
+    <td class="px-4 py-3">
+    @if($item->status_qc == 'Lolos')
+
+        <span class="inline-block px-3 py-1 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+            {{ $item->status_qc }}
+        </span>
+
+        <input type="hidden" name="status_qc" value="{{ $item->status_qc }}">
+
+    @else
+
+        <select name="status_qc"
+                class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full">
+
+            <option value="Pending" {{ $item->status_qc=='Pending'?'selected':'' }}>Pending</option>
+            <option value="Lolos" {{ $item->status_qc=='Lolos'?'selected':'' }}>Lolos</option>
+            <option value="Reject" {{ $item->status_qc=='Reject'?'selected':'' }}>Reject</option>
+            <option value="Revisi" {{ $item->status_qc=='Revisi'?'selected':'' }}>Revisi</option>
+
+        </select>
+
+    @endif
+</td>
+
+    {{-- PIC QC --}}
+    <td class="px-4 py-3">
+
+@if($item->pic_qc)
+
+    <span>{{ preg_replace('/^\d+\s*-\s*/', '', $item->pic_qc) }}</span>
+
+    <input
+        type="hidden"
+        name="pic_qc"
+        value="{{ $item->pic_qc }}">
+
+@else
+
+    <select
+        name="pic_qc"
+        class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full"
+        required>
+
+        <option value="">Pilih PIC</option>
+
+        <option value="01 - Aep Saefudin">01 - Aep Saefudin</option>
+        <option value="02 - Yusuf Supena">02 - Yusuf Supena</option>
+        <option value="03 - Ramdhan Yusuf">03 - Ramdhan Yusuf</option>
+        <option value="04 - Usman Agung Permana">04 - Usman Agung Permana</option>
+
+    </select>
+
+@endif
+
+</td>
+
+    {{-- KODE QC --}}
+    <td class="px-4 py-3">
+
+                @if($item->kode_qc)
+                    <span>{{ $item->kode_qc }}</span>
+                @else
+                    <span>-</span>
+                @endif
+
+    </td>
+
+    {{-- KETERANGAN --}}
+    <td class="px-4 py-3">
+
+@if($item->status_qc == 'Lolos')
+
+    {{ $item->keterangan }}
+
+    <input
+        type="hidden"
+        name="keterangan"
+        value="{{ $item->keterangan }}">
+
+@else
+
+    <input
+        type="text"
+        name="keterangan"
+        value="{{ $item->keterangan }}"
+        class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full"
+        placeholder="Keterangan QC">
+
+@endif
+
+</td>
+
+    {{-- AKSI --}}
+    <td class="px-4 py-3 text-center">
+
+@if($item->status_qc == 'Lolos')
+
+    <span class="inline-flex items-center px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">
+        ✓ Selesai
+    </span>
+
+@else
+
+    <button
+        type="submit"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+
+        {{ $item->pic_qc ? 'Update QC' : 'Simpan QC' }}
+
+    </button>
+
+@endif
+
+</td>
+
+</form>
                     </tr>
                     @empty
-                    <tr><td colspan="14" class="text-center py-10 text-gray-500">Tidak ada data</td></tr>
+                    <tr><td colspan="13" class="text-center py-10 text-gray-500">Tidak ada data</td></tr>
                     @endforelse
                 </tbody>
             </table>

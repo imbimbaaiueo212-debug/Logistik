@@ -60,7 +60,7 @@
             QC Outgoing
         </a>
 
-        <a href="#"
+        <a href="{{ route('packing.index') }}"
            class="{{ request()->routeIs('packing.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
             Packing
         </a>

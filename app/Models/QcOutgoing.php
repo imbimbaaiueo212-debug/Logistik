@@ -25,6 +25,7 @@ class QcOutgoing extends Model
         'status_qc',
         'keterangan',
         'picking_id',
+        'pic_qc',       // WAJIB ADA
         'created_by'
     ];
 

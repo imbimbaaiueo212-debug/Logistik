@@ -53,15 +53,17 @@
                 </a>
 
                 <a href="{{ route('qc-outgoing.index') }}" class="group">
-    <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
-        <div class="bg-purple-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">🚚</div>
-        <h3 class="font-semibold text-lg">QC OUTGOING</h3>
-    </div>
-</a>
-
-                <a href="#" class="group">
                     <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
-                        <div class="bg-pink-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">📋</div>
+                        <div class="bg-purple-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">🚚</div>
+                        <h3 class="font-semibold text-lg">QC OUTGOING</h3>
+                    </div>
+                </a>
+
+                <a href="{{ route('packing.index') }}" class="group">
+                    <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
+                        <div class="bg-pink-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">
+                            📋
+                        </div>
                         <h3 class="font-semibold text-lg">PACKING</h3>
                     </div>
                 </a>

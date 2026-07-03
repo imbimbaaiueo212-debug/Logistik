@@ -276,10 +276,7 @@ QcOutgoing::updateOrCreate(
         'nama_stokis'    => $ja?->nama_stokis ?? '-',
         'estimasi_hari'  => $ja?->estimasi_hari,
 
-        'kode_qc' => 'QC-'
-            . now()->format('Ymd')
-            . '-'
-            . str_pad($picking->id, 5, '0', STR_PAD_LEFT),
+        'kode_qc' => null,
 
         'tgl_qc'      => now(),
         'status_qc'   => 'Pending',
@@ -309,58 +306,6 @@ QcOutgoing::updateOrCreate(
         ],500);
 
     }
-}
-
-/**
- * QC Outgoing - Jakarta Aktif (Status Sudah)
- */
-/**
- * Simpan Data QC Outgoing
- */
-public function qcStore(Request $request)
-{
-    $validated = $request->validate([
-        'picking_id' => 'required|exists:pickings,id',
-        'status_qc' => 'required|in:Pending,Lolos,Reject,Revisi',
-        'keterangan' => 'nullable|string',
-        'pic_qc' => 'nullable|string',
-    ]);
-
-    $picking = Picking::with('items')->findOrFail($validated['picking_id']);
-
-    QcOutgoing::updateOrCreate(
-        [
-            'picking_id' => $picking->id,
-        ],
-        [
-            'no_pl' => $picking->no_pl,
-            'tgl_turun_pl' => $picking->tgl_picking,
-            'nama_unit' => $picking->nama_unit,
-            'pengiriman' => $picking->kirim,
-            'nama_barang' => $picking->pesanan,
-            'tgl_bayar' => $picking->payment_date,
-            'jumlah_bayar' => $picking->harga ?? 0,
-            'tgl_estimasi' => $picking->tgl_estimasi,
-            'nama_stokis' => $picking->nama_stokis,
-            'estimasi_hari' => $picking->estimasi_hari,
-            'kode_qc' => 'QC-' . now()->format('Ymd') . '-' . str_pad($picking->id, 4, '0', STR_PAD_LEFT),
-            'tgl_qc' => now()->toDateString(),
-            'status_qc' => $validated['status_qc'],
-            'keterangan' => $validated['keterangan'],
-            'pic_qc' => $validated['pic_qc'],
-            'created_by' => Auth::id(),
-        ]
-    );
-
-    return redirect()->back()->with('success', 'Data QC berhasil disimpan.');
-}
-public function qcJakartaAktif()
-{
-    $data = QcOutgoing::with(['picking.items'])
-        ->orderByDesc('created_at')
-        ->paginate(20);
-
-    return view('qc-outgoing.jakarta-aktif', compact('data'));
 }
 
 }

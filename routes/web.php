@@ -32,6 +32,7 @@ use App\Http\Controllers\UserExportController;
 use App\Http\Controllers\StokisMitraController;
 use App\Http\Controllers\UnitKemitraanUserExportController;
 use App\Http\Controllers\QcOutgoingController;
+use App\Http\Controllers\PackingController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -352,7 +353,7 @@ Route::prefix('database-user')
              ->name('index');
     });
 
-    // ====================== QC OUTGOING ======================
+// ====================== QC OUTGOING ======================
 Route::prefix('qc-outgoing')
     ->name('qc-outgoing.')
     ->middleware('auth')
@@ -361,16 +362,44 @@ Route::prefix('qc-outgoing')
         Route::get('/', [App\Http\Controllers\QcOutgoingController::class, 'index'])
              ->name('index');
 
-        // QC Jakarta Aktif
-        Route::get('/jakarta-aktif', [App\Http\Controllers\PickingController::class, 'qcJakartaAktif'])
+        Route::get('/jakarta-aktif', [App\Http\Controllers\QcOutgoingController::class, 'jakartaAktif'])
              ->name('jakarta-aktif');
+
+        Route::post('/store', [App\Http\Controllers\QcOutgoingController::class, 'qcStore'])
+             ->name('store');
     });
 
-    Route::post('/store', [App\Http\Controllers\PickingController::class, 'qcStore'])
-     ->name('qc-outgoing.store');
-     // QC Outgoing
-Route::prefix('qc-outgoing')->name('qc-outgoing.')->middleware('auth')->group(function () {
-    Route::get('/', [QcOutgoingController::class, 'index'])->name('index');
-    Route::get('/jakarta-aktif', [PickingController::class, 'qcJakartaAktif'])->name('jakarta-aktif');
-    Route::post('/store', [PickingController::class, 'qcStore'])->name('store');   // ← Tambahkan ini
+//ORDER MANUAL
+Route::get('/import/manual', [ImportController::class,'manual'])
+    ->name('import.manual');
+
+Route::get('/import/manual/create', [ImportController::class,'manualCreate'])
+    ->name('import.manual.create');
+Route::post('/import/manual', [ImportController::class, 'manualImport'])->name('import.manual.store');
+
+Route::post('/import/manual/store', [ImportController::class,'manualStore'])
+    ->name('import.manual.store');
+
+Route::get('/import/manual/{id}/edit', [ImportController::class,'manualEdit'])
+    ->name('import.manual.edit');
+
+Route::put('/import/manual/{id}', [ImportController::class,'manualUpdate'])
+    ->name('import.manual.update');
+
+Route::delete('/import/manual/{id}', [ImportController::class,'manualDestroy'])
+    ->name('import.manual.destroy');
+
+
+    // ====================== PACKING ======================
+    Route::prefix('packing')->group(function () {
+
+    Route::get('/', [PackingController::class,'index'])
+        ->name('packing.index');
+
+    Route::get('/jakarta-aktif', [PackingController::class,'jakartaAktif'])
+        ->name('packing.jakarta.aktif');
+
+    Route::post('/store', [PackingController::class,'store'])
+        ->name('packing.store');
+
 });
