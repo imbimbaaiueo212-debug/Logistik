@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Picking;
+use App\Models\DistributionOrder;
 use App\Models\QcOutgoing;
 use App\Models\Packing;
 use Illuminate\Support\Facades\Auth;
@@ -80,6 +81,7 @@ class QcOutgoingController extends Controller
             'packing_at'       => now(),
         ]
     );
+    
 }
 
     return back()->with('success', 'QC berhasil disimpan.');

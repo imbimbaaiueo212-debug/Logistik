@@ -50,4 +50,8 @@ class Packing extends Model
     {
         return $this->belongsTo(QcOutgoing::class);
     }
+    public function distributionOrder()
+{
+    return $this->hasOne(DistributionOrder::class, 'packing_id');
+}
 }

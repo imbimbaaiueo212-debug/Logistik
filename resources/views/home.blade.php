@@ -68,9 +68,11 @@
                     </div>
                 </a>
 
-                <a href="#" class="group">
+                <a href="{{ route('distribution-order.index') }}" class="group">
                     <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
-                        <div class="bg-red-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">📦</div>
+                        <div class="bg-red-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">
+                            🚚
+                        </div>
                         <h3 class="font-semibold text-lg">DISTRIBUTION</h3>
                     </div>
                 </a>

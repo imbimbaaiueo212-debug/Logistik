@@ -34,6 +34,8 @@ use App\Http\Controllers\UnitKemitraanUserExportController;
 use App\Http\Controllers\QcOutgoingController;
 use App\Http\Controllers\PackingController;
 
+use App\Http\Controllers\DistributionOrderController;
+
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -406,3 +408,25 @@ Route::prefix('packing')->group(function () {
     Route::post('/store', [PackingController::class, 'store'])
         ->name('packing.store');
 });
+
+// Distribution Order Routes
+Route::prefix('distribution-order')
+    ->name('distribution-order.')
+    ->group(function () {
+
+        Route::get('/', [DistributionOrderController::class, 'index'])->name('index');
+
+        Route::get('/jakarta-aktif', [DistributionOrderController::class, 'jakartaAktif'])->name('jakarta-aktif');
+        Route::get('/jakarta-pasif', [DistributionOrderController::class, 'jakartaPasif'])->name('jakarta-pasif');
+        Route::get('/intervio', [DistributionOrderController::class, 'intervio'])->name('intervio');
+        Route::get('/ebt', [DistributionOrderController::class, 'ebt'])->name('ebt');
+
+        // === ROUTE BARU YANG DIBUTUHKAN ===
+        Route::get('/create', [DistributionOrderController::class, 'create'])->name('create');
+        Route::post('/', [DistributionOrderController::class, 'store'])->name('store');
+
+        Route::get('/{distributionOrder}', [DistributionOrderController::class, 'show'])->name('show');
+        Route::get('/{distributionOrder}/edit', [DistributionOrderController::class, 'edit'])->name('edit');
+        Route::put('/{distributionOrder}', [DistributionOrderController::class, 'update'])->name('update');
+        Route::delete('/{distributionOrder}', [DistributionOrderController::class, 'destroy'])->name('destroy');
+    });

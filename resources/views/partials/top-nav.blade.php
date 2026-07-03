@@ -65,8 +65,8 @@
             Packing
         </a>
 
-        <a href="#"
-           class="{{ request()->routeIs('distribution.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
+        <a href="{{ route('distribution-order.index') }}"
+           class="{{ request()->routeIs('distribution-order.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
             Distribution
         </a>
     </div>
