@@ -11,12 +11,59 @@ use App\Imports\ProductsImport;
 
 class ProductController extends Controller
 {
-    public function index()
-    {
-        // ✅ FIX eager loading
-        $products = Product::with('category')->latest()->get();
-        return view('products.index', compact('products'));
+    public function index(Request $request)
+{
+    $perPage = (int) $request->get('per_page', 20);
+
+    if (!in_array($perPage, [10,20,50,100,250,500,1000,5000])) {
+        $perPage = 20;
     }
+
+    $query = Product::with('category');
+
+    // ==========================
+    // FILTER JENIS
+    // ==========================
+    if ($request->filled('jenis')) {
+        $query->where('jenis', $request->jenis);
+    }
+
+    // ==========================
+    // FILTER KATEGORI
+    // ==========================
+    if ($request->filled('kategori')) {
+        $query->where('kategori', $request->kategori);
+    }
+
+    $products = $query
+        ->latest()
+        ->paginate($perPage)
+        ->withQueryString();
+
+    // ==========================
+    // DATA FILTER
+    // ==========================
+    $jenisList = Product::select('jenis')
+        ->whereNotNull('jenis')
+        ->where('jenis', '<>', '')
+        ->distinct()
+        ->orderBy('jenis')
+        ->pluck('jenis');
+
+    $kategoriList = Product::select('kategori')
+        ->whereNotNull('kategori')
+        ->where('kategori', '<>', '')
+        ->distinct()
+        ->orderBy('kategori')
+        ->pluck('kategori');
+
+    return view('products.index', compact(
+        'products',
+        'perPage',
+        'jenisList',
+        'kategoriList'
+    ));
+}
 
     public function create()
     {
@@ -48,6 +95,7 @@ class ProductController extends Controller
             'lembar'        => 'nullable|integer',
             'kertas'        => 'nullable|string',
             'kode'          => 'nullable|string',
+            'sub_kategori'   => 'nullable|string',
 
             // ❌ HAPUS 'kategori'
             // 'kategori' => 'nullable|string',
@@ -82,6 +130,7 @@ class ProductController extends Controller
             'lembar'        => 'nullable|integer',
             'kertas'        => 'nullable|string',
             'kode'          => 'nullable|string',
+            'sub_kategori'   => 'nullable|string',
 
             // ❌ HAPUS
             // 'kategori' => 'nullable|string',

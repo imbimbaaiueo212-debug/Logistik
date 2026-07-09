@@ -97,11 +97,12 @@
                     <th class="text-left px-4 py-3">Berat</th>
                     <th class="text-left px-4 py-3">Berat Aktual</th>
                     <th class="text-left px-4 py-3">Koli</th>
-                    <th class="text-left px-4 py-3">Tgl Pickup/Ambil</th>
-                    
+                    <th class="text-left px-4 py-3">Tanggal Pickup</th>
                     <th class="text-left px-4 py-3">AWB</th>
                     <th class="text-left px-4 py-3">Status</th>
                     <th class="text-left px-4 py-3">Tgl Diterima</th>
+                    <th class="text-left px-4 py-3">Penerima</th>
+                    <th class="text-left px-4 py-3">Keterangan</th>
                     <th class="text-center px-4 py-3">Aksi</th>
                 </tr>
             </thead>
@@ -228,6 +229,23 @@
                                 class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm
                                     focus:outline-none focus:ring-2 focus:ring-blue-500
                                     focus:border-blue-500 transition duration-200">
+                        </td>
+                        <td class="px-3 py-4">
+                            <input
+                                type="text"
+                                name="penerima"
+                                value="{{ $item->penerima ?? '' }}"
+                                placeholder="Masukkan nama penerima..."
+                                class="w-64 border rounded-lg px-3 py-2 text-sm"
+                            >
+                        </td>
+                        <td class="px-3 py-4">
+                            <input
+                                type="text"
+                                name="keterangan"
+                                value="{{ $item->keterangan ?? '' }}"
+                                placeholder="Tambahkan catatan..."
+                                class="w-64 border rounded-lg px-3 py-2 text-sm"
                         </td>
                         <td class="px-4 py-4 text-center">
                             <div class="flex justify-center gap-3">

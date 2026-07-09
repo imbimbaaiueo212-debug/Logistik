@@ -63,7 +63,12 @@
             </div>
             
             <div class="flex gap-3">
+                
                 <a href="{{ route('order.jakarta-aktif.menu') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali</a>
+                <a href="{{ route('order.modul') }}" class="bg-green-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-green-700">Modul</a>
+                <a href="{{ route('order.majalah') }}" class="bg-blue-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-blue-700">Majalah Sahabat biMBA AIUEO</a>
+                <a href="{{ route('order.sertifikat') }}" class="bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-red-700">Sertifikat</a>
+                <a href="{{ route('order.jakarta-aktif') }}" class="bg-gray-700 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-800">Semua Pesanan</a>
                 <a href="{{ route('order.jakarta-printed') }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">Rekap Aktual</a>
                 @php
                     $queryString = http_build_query(request()->all());
@@ -112,6 +117,10 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Kirim</label>
                     <input type="text" name="kirim" value="{{ request('kirim') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Nama Penerima...">
                 </div>
+                <div >
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pesanan</label>
+                    <input type="text" name="pesanan" value="{{ request('pesanan') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Kategori Pesanan...">
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nama Unit</label>
                     <input type="text" name="nama_unit" value="{{ request('nama_unit') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Nama Unit...">
@@ -152,6 +161,7 @@
                         <th class="text-left px-4 py-3">Alamat Kirim</th>
                         <th class="text-left px-4 py-3">Kab/Kota</th>
                         <th class="text-left px-4 py-3">Kategori Pesanan</th>
+                        <th class="text-left px-4 py-3">QTy</th>
                         <th class="text-left px-4 py-3">Order Date</th>
                         <th class="text-left px-4 py-3">Payment Date</th>
                         <th class="text-left px-4 py-3">Estimasi Print PL | PS</th>
@@ -200,7 +210,35 @@
                         <td class="px-4 py-3">{{ $item->billing_last_name ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kab_kota_provinsi ?? '-' }}</td>
-                        <td class="px-4 py-3">{{ $item->pesanan ?? '-' }}</td>
+                        
+                        <td class="px-4 py-3">
+                            @if($item->items->count())
+
+                                @php
+                                    $grouped = $item->items
+                                        ->groupBy(function ($detail) {
+                                            return $detail->product?->sub_kategori
+                                                ?? $detail->nama_produk;
+                                        });
+                                @endphp
+
+                                @foreach($grouped as $nama => $details)
+
+                                    {{ $nama }}
+
+                                    @if(!$loop->last)
+                                        <span class="text-gray-400"> | </span>
+                                    @endif
+
+                                @endforeach
+
+                            @else
+
+                                {{ $item->pesanan }}
+
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center">{{ $item->item_qty ?? 0 }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             @if($item->tgl_pesan) {{ \Carbon\Carbon::parse($item->tgl_pesan)->format('d/m/Y H:i') }} @else - @endif
                         </td>
@@ -342,7 +380,9 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-    let selectedIds = [];
+    const currentRoute = "{{ Route::currentRouteName() }}";
+
+let selectedIds = [];
 
     function checkFilterStatus() {
         const startDate = $('input[name="start_date"]').val();
@@ -399,12 +439,17 @@
             url: '{{ route("order.jakarta-aktif.filtered-ids") }}',
             method: 'GET',
             data: {
-                start_date: startDate,
-                end_date: endDate,
-                id_pesan: $('input[name="id_pesan"]').val() || '',
-                kirim: $('input[name="kirim"]').val() || '',
-                nama_unit: $('input[name="nama_unit"]').val() || ''
-            },
+
+            route: currentRoute,
+
+            start_date: startDate,
+            end_date: endDate,
+
+            id_pesan: $('input[name="id_pesan"]').val() || '',
+            kirim: $('input[name="kirim"]').val() || '',
+            nama_unit: $('input[name="nama_unit"]').val() || '',
+            pesanan: $('input[name="pesanan"]').val() || ''
+        },
             success: function(response) {
                 if (response.count === 0) {
                     alert('Tidak ada data yang belum diproses.');
@@ -609,48 +654,70 @@
     }
 
     function executeBulkAction() {
-        if ($('.bg-indigo-600').prop('disabled')) {
-            alert('❌ Harap isi Jasa Kurir dan Service untuk semua data yang belum terkunci!');
-            return;
+
+    if ($('.bg-indigo-600').prop('disabled')) {
+        alert('❌ Harap isi Jasa Kurir dan Service untuk semua data yang belum terkunci!');
+        return;
+    }
+
+    if (!confirm(`Yakin ingin memproses ${selectedIds.length} data?`)) return;
+
+    const updates = [];
+
+    $('#modalTableBody tr').each(function () {
+
+        const row = $(this);
+
+        let distribusiText = row.data('distribusi');
+        let jasaKurirText = row.find('.jasa-kurir-select').val() || '';
+
+        if (distribusiText === 'Diambil') {
+            jasaKurirText = 'Diambil Sendiri';
         }
 
-        if (!confirm(`Yakin ingin memproses ${selectedIds.length} data?`)) return;
-
-        const updates = [];
-        $('#modalTableBody tr').each(function() {
-            const row = $(this);
-            let distribusiText = row.data('distribusi');
-            let jasaKurirText = row.find('.jasa-kurir-select').val() || '';
-
-            if (distribusiText === 'Diambil') {
-                jasaKurirText = 'Diambil Sendiri';
-            }
-
-            updates.push({
-                id: row.data('id'),
-                status_kirim: distribusiText,
-                jasa_kurir: jasaKurirText,
-                service_kurir: row.find('.service-kurir').val() || '',
-                catatan: row.find('.catatan').val() || ''
-            });
+        updates.push({
+            id: row.data('id'),
+            status_kirim: distribusiText,
+            jasa_kurir: jasaKurirText,
+            service_kurir: row.find('.service-kurir').val() || '',
+            catatan: row.find('.catatan').val() || ''
         });
+    });
 
-        const form = $('<form>', {
-            action: '{{ route("order.jakarta-aktif.bulk-action") }}',
-            method: 'POST'
-        });
+    const form = $('<form>', {
+        action: '{{ route("order.jakarta-aktif.bulk-action") }}',
+        method: 'POST'
+    });
 
-        $('<input>').attr({type:'hidden', name:'_token', value:'{{ csrf_token() }}'}).appendTo(form);
-        $('<input>').attr({type:'hidden', name:'action', value:'processed'}).appendTo(form);
-        $('<input>').attr({type:'hidden', name:'per_item', value: JSON.stringify(updates)}).appendTo(form);
+    $('<input>', {
+        type: 'hidden',
+        name: '_token',
+        value: '{{ csrf_token() }}'
+    }).appendTo(form);
 
-        form.appendTo('body').submit();
-    }
+    $('<input>', {
+        type: 'hidden',
+        name: 'action',
+        value: 'processed'
+    }).appendTo(form);
 
-    function clearSelection() {
-        selectedIds = [];
-        window.location.href = '{{ route("order.jakarta-aktif") }}';
-    }
+    $('<input>', {
+        type: 'hidden',
+        name: 'per_item',
+        value: JSON.stringify(updates)
+    }).appendTo(form);
+
+    // ============================
+    // TAMBAHKAN INI
+    // ============================
+    $('<input>', {
+        type: 'hidden',
+        name: 'redirect',
+        value: currentRoute
+    }).appendTo(form);
+
+    form.appendTo('body').submit();
+}
 </script>
 </body>
 </html>

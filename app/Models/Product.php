@@ -11,6 +11,7 @@ class Product extends Model
     protected $fillable = [
         'name',
         'sku',
+        'label',
         'satuan',
         'berat_satuan',
         'isi',
@@ -25,7 +26,11 @@ class Product extends Model
         'lembar',
         'kertas',
         'kode',
-        'kategori_id'
+        'kategori_id',
+        'sub_kategori',
+        'kategori',
+        'harga_jual_penyesuaian'
+
     ];
 
     protected $appends = [
@@ -61,35 +66,54 @@ class Product extends Model
         return null;
     }
 
-    protected static function booted()
-    {
-        static::saving(function ($product) {
+   protected static function booted()
+{
+    static::saving(function ($product) {
 
-            // ================= BERAT =================
-            if ($product->berat_satuan && $product->isi) {
-                $product->berat_paket = round($product->berat_satuan * $product->isi, 3);
-            } else {
-                $product->berat_paket = null;
-            }
+        // ================= BERAT =================
 
-            // ================= HARGA =================
-            if ($product->harga_beli !== null && $product->isi > 0) {
+        if (
+            empty($product->berat_paket)
+            && $product->berat_satuan
+            && $product->isi
+        ) {
 
-                $jenis = strtolower(trim($product->jenis ?? ''));
+            $product->berat_paket =
+                round($product->berat_satuan * $product->isi, 3);
 
-                $multiplier = Str::contains($jenis, 'modul') ? 1.49 : 1.20;
+        }
 
-                $hargaDasar = $product->harga_beli * $multiplier;
-                $hargaJual  = $hargaDasar * $product->isi;
+        // ================= HARGA =================
 
-                $product->harga_jual = ceil($hargaJual / 50) * 50;
-            } else {
-                $product->harga_jual = null;
-            }
-        });
-    }
+        if (
+            empty($product->harga_jual)
+            && $product->harga_beli !== null
+            && $product->isi > 0
+        ) {
+
+            $jenis = strtolower(trim($product->jenis ?? ''));
+
+            $multiplier = Str::contains($jenis, 'modul')
+                ? 1.49
+                : 1.20;
+
+            $hargaDasar = $product->harga_beli * $multiplier;
+
+            $hargaJual = $hargaDasar * $product->isi;
+
+            $product->harga_jual =
+                ceil($hargaJual / 50) * 50;
+
+        }
+
+    });
+}
        public function category()
 {
     return $this->belongsTo(Category::class, 'kategori_id');
+}
+public function jakartaAktifItems()
+{
+    return $this->hasMany(JakartaAktifItem::class);
 }
 }

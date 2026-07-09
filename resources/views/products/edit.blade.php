@@ -23,6 +23,13 @@
                 <input type="text" name="kategori" value="{{ old('kategori', $product->kategori) }}"
                        class="w-full border border-gray-300 rounded-lg px-4 py-3">
             </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Sub Kategori</label>
+                <input type="text" name="sub_kategori" value="{{ old('sub_kategori', $product->sub_kategori) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3">
+            </div>
+
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-1">Nama Produk <span class="text-red-500">*</span></label>
                 <input type="text" name="name" value="{{ old('name', $product->name) }}" required

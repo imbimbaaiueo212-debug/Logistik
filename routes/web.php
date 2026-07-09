@@ -33,6 +33,7 @@ use App\Http\Controllers\StokisMitraController;
 use App\Http\Controllers\UnitKemitraanUserExportController;
 use App\Http\Controllers\QcOutgoingController;
 use App\Http\Controllers\PackingController;
+use App\Http\Controllers\Majalah2026Controller;
 
 use App\Http\Controllers\DistributionOrderController;
 
@@ -83,73 +84,96 @@ Route::prefix('order')
     ->middleware('auth')
     ->group(function () {
 
+        // =========================
+        // MENU
+        // =========================
         Route::get('/', [OrderController::class, 'index'])->name('index');
-        
-        Route::get('/unit-aktif', [OrderController::class, 'unitAktif'])->name('unit-aktif');
-        Route::get('/unit-pasif', [OrderController::class, 'unitPasif'])->name('unit-pasif');
 
-        // Jakarta Aktif
-        Route::get('/jakarta-aktif', [OrderController::class, 'jakartaAktif'])->name('jakarta-aktif');
-        Route::post('/jakarta-aktif/import', [OrderController::class, 'importJakartaAktif'])->name('jakarta-aktif.import');
+        Route::get('/unit-aktif', [OrderController::class, 'unitAktif'])
+            ->name('unit-aktif');
+
+        Route::get('/unit-pasif', [OrderController::class, 'unitPasif'])
+            ->name('unit-pasif');
+
+        // =========================
+        // JAKARTA AKTIF
+        // =========================
+        Route::get('/jakarta-aktif', [OrderController::class, 'jakartaAktif'])
+            ->name('jakarta-aktif');
+
+        // Halaman Modul
+        Route::get('/modul', [OrderController::class, 'modul'])
+            ->name('modul');
+
+        Route::get('/majalah', [OrderController::class, 'majalah'])
+            ->name('majalah');
+
+        Route::get('/sertifikat', [OrderController::class, 'sertifikat'])
+            ->name('sertifikat');
+
+        Route::post('/jakarta-aktif/import', [OrderController::class, 'importJakartaAktif'])
+            ->name('jakarta-aktif.import');
+
         Route::post('/jakarta-aktif/sync-jkt', [OrderController::class, 'syncJktFromBimbashop'])
             ->name('jakarta-aktif.sync-jkt');
 
-        // Bulk Action
         Route::post('/jakarta-aktif/bulk-action', [OrderController::class, 'bulkActionJakartaAktif'])
             ->name('jakarta-aktif.bulk-action');
 
-        // Edit & Update
         Route::get('/jakarta-aktif/{id}/edit', [OrderController::class, 'editJakartaAktif'])
             ->name('jakarta-aktif.edit');
+
         Route::put('/jakarta-aktif/{id}', [OrderController::class, 'updateJakartaAktif'])
             ->name('jakarta-aktif.update');
 
-        // Realisasi Aktif (Printed)
+        Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])
+            ->name('jakarta-aktif.filtered-ids');
+
+        Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])
+            ->name('jakarta-aktif.get-modal-data');
+
+        Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
+            ->name('jakarta-aktif.export');
+
+        // =========================
+        // REALISASI
+        // =========================
         Route::get('/jakarta-printed', [OrderController::class, 'jakartaPrinted'])
             ->name('jakarta-printed');
-        
+
         Route::delete('/realisasi/{id}', [OrderController::class, 'deleteRealisasi'])
             ->name('realisasi.delete');
 
-        // PRINT PDF
+        Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])
+            ->name('realisasi.mark-printed-all');
+
+        // =========================
+        // PRINT
+        // =========================
         Route::get('/realisasi/print-pdf', [OrderController::class, 'printRealisasiPdf'])
             ->name('realisasi.print-pdf');
 
         Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])
             ->name('realisasi.print-single');
 
-                        // PICKING LIST
         Route::get('/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
             ->name('realisasi.picking-list');
 
-        // PICKING LIST PDF
         Route::get('/picking-list/pdf/{id}', [OrderController::class, 'printPickingListPdf'])
             ->name('picking-list.pdf');
 
-        // PRINT QC, PEMESANAN, EKSPEDISI
         Route::get('/realisasi/print-qc', [OrderController::class, 'printQC'])
             ->name('realisasi.print-qc');
+
         Route::get('/realisasi/print-pemesanan', [OrderController::class, 'printPemesanan'])
             ->name('realisasi.print-pemesanan');
+
         Route::get('/realisasi/print-ekspedisi', [OrderController::class, 'printEkspedisi'])
             ->name('realisasi.print-ekspedisi');
-            Route::get('/realisasi/print-packing', [OrderController::class, 'printPacking'])
-    ->name('realisasi.print-packing');
 
-        // Lainnya
-        Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])
-            ->name('jakarta-aktif.filtered-ids');
-            
-        Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])
-            ->name('jakarta-aktif.get-modal-data');
-
-        Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])
-            ->name('realisasi.mark-printed-all');
-
-        Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
-            ->name('jakarta-aktif.export');
+        Route::get('/realisasi/print-packing', [OrderController::class, 'printPacking'])
+            ->name('realisasi.print-packing');
     });
-
 
 // === PICKING ROUTES ===
 Route::prefix('picking')->name('picking.')->group(function () {
@@ -430,3 +454,18 @@ Route::prefix('distribution-order')
         Route::put('/{distributionOrder}', [DistributionOrderController::class, 'update'])->name('update');
         Route::delete('/{distributionOrder}', [DistributionOrderController::class, 'destroy'])->name('destroy');
     });
+
+    // ====================== MAJALAH 2026 ======================
+    Route::get('/realisasi/majalah/2026', [Majalah2026Controller::class, 'index'])
+    ->name('majalah.2026');
+    Route::get('/realisasi/majalah/2026/{edisi}', [Majalah2026Controller::class, 'show'])
+    ->name('majalah.2026.show');
+    Route::get('/realisasi/majalah/2026/{edisi}/diproses', [Majalah2026Controller::class, 'diproses'])
+    ->name('majalah.2026.diproses');
+
+    Route::get('/realisasi/majalah/2026/{edisi}/batal', [Majalah2026Controller::class, 'batal'])
+        ->name('majalah.2026.batal');
+        Route::get(
+    '/realisasi/majalah/2026/{edisi}/diproses/{kategori}',
+    [Majalah2026Controller::class, 'kategori']
+)->name('majalah.2026.kategori');

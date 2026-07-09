@@ -27,35 +27,13 @@
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
 
-        <!-- Jakarta Aktif -->
-        <a href="#">
-            <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
-                <div class="text-5xl mb-3">🏢</div>
-                <h3 class="text-xl font-semibold">Unit Aktif</h3>
-            </div>
-        </a>
 
-        <!-- Jakarta Pasif -->
-        <a href="#">
+        <a href="{{ route('majalah.2026') }}">
             <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
-                <div class="text-5xl mb-3">🏢</div>
-                <h3 class="text-xl font-semibold">Unit Pasif</h3>
-            </div>
-        </a>
-
-        <!-- DLC -->
-        <a href="#">
-            <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
-                <div class="text-5xl mb-3">📦</div>
-                <h3 class="text-xl font-semibold">DLC | InterVio</h3>
-            </div>
-        </a>
-
-        <!-- PUW -->
-        <a href="#">
-            <div class="bg-white rounded-3xl shadow-lg p-8 hover:shadow-xl transition">
-                <div class="text-5xl mb-3">📘</div>
-                <h3 class="text-xl font-semibold">PUW</h3>
+                <div class="text-5xl mb-3">📰</div>
+                <h3 class="text-xl font-semibold">
+                    Majalah Sahabat biMBA 2026
+                </h3>
             </div>
         </a>
 

@@ -8,12 +8,19 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ProductsImport implements ToModel, WithStartRow, WithCalculatedFormulas, WithChunkReading
 {
+    private int $processed = 0;
+    private int $imported = 0;
+    private int $skipped = 0;
+
     public function startRow(): int
     {
-        return 10;
+        return 2;
     }
 
     public function chunkSize(): int
@@ -22,102 +29,205 @@ class ProductsImport implements ToModel, WithStartRow, WithCalculatedFormulas, W
     }
 
     public function model(array $row)
-{
-    if (empty(array_filter($row)) || empty(trim($row[5] ?? ''))) {
-        return null;
-    }
+    {
+        $this->processed++;
+        $excelRow = $this->startRow() + $this->processed - 1;
 
-    // ================= HELPER KG → GRAM DENGAN SAFETY KETAT =================
-$toGram = function ($value) {
-    if ($value === null || $value === '' || $value === false) {
-        return null;
-    }
-
-    // Ambil hanya angka
-    if (is_numeric($value)) {
-        $kg = (float) $value;
-    } else {
-        $str = (string) $value;
-        $str = preg_replace('/[^0-9.]/', '', $str);
-        $kg = is_numeric($str) ? (float) $str : 0;
-    }
-
-    $gram = $kg * 1000;
-
-    // BATAS KETAT: maksimal 500 kg
-    if ($gram > 500000 || $gram < 0) {
-        return null;   // skip jika terlalu besar
-    }
-
-    return $gram;
-};
-
-    // ================= HELPER HARGA =================
-    $toNumber = function ($value) {
-        if ($value === null || $value === '') return null;
-
-        if (is_numeric($value)) {
-            return (float) $value;
+        if (empty(array_filter($row))) {
+            $this->skipped++;
+            Log::warning("SKIP - Baris {$excelRow}: Baris kosong");
+            return null;
         }
 
-        $str = (string) $value;
-        $str = str_replace(['Rp', ' ', 'Rp.', 'IDR', ','], '', $str);
-        $str = str_replace('.', '', $str);
-        $str = str_replace(',', '.', $str);
-        $str = preg_replace('/[^0-9.]/', '', $str);
+        $name = trim($row[5] ?? '');
+        if (empty($name)) {
+            $this->skipped++;
+            Log::warning("SKIP - Baris {$excelRow}: Nama produk kosong");
+            return null;
+        }
 
-        return is_numeric($str) ? (float) $str : null;
-    };
+        try {
+            // ==================== HELPER BERAT ====================
+            $toKg = function ($value) {
 
-    // ================= MAPPING =================
-    $kode         = trim($row[1] ?? '');
-    $kategoriNama = trim($row[2] ?? '');
-    $jenis        = trim($row[3] ?? '');
-    $label        = $row[4] ?? null;
-    $name         = trim($row[5] ?? '');
-    $satuan       = $row[6] ?? null;
-
-    $beratSatuan  = $toGram($row[7] ?? null);
-    $beratPaket   = $toGram($row[8] ?? null);
-
-    $hargaBeli    = $toNumber($row[9] ?? null);
-    $hargaJual    = $toNumber($row[10] ?? null);
-
-    $status       = $row[12] ?? null;
-    $isi          = is_numeric($row[13] ?? null) ? (int)$row[13] : 1;
-
-    $role         = strtolower($row[14] ?? 'stock');
-    $tanggalRilis = !empty($row[15]) ? date('Y-m-d', strtotime($row[15])) : now()->format('Y-m-d');
-
-    $role = in_array($role, ['jual', 'tidak_dijual', 'stock']) ? $role : 'stock';
-
-    // ================= KATEGORI =================
-    $category = null;
-    if (!empty($kategoriNama)) {
-        $kategoriNama = ucwords(strtolower($kategoriNama));
-        $category = Category::firstOrCreate(['nama' => $kategoriNama]);
+    if ($value === null || $value === '') {
+        return null;
     }
 
-    // ================= SIMPAN =================
-    return Product::updateOrCreate(
-        ['kode' => $kode ?: $name],
-        [
-            'kode'          => $kode ?: null,
-            'name'          => $name,
-            'sku'           => $kode ?: null,
-            'label'         => $label,
-            'jenis'         => $jenis,
-            'satuan'        => $satuan,
-            'berat_satuan'  => $beratSatuan,
-            'berat_paket'   => $beratPaket,
-            'isi'           => $isi,
-            'harga_beli'    => $hargaBeli,
-            'harga_jual'    => $hargaJual,
-            'status'        => $status,
-            'role'          => $role,
-            'tanggal_rilis' => $tanggalRilis,
-            'kategori_id'   => $category?->id,
-        ]
-    );
-}
+    if (is_numeric($value)) {
+        return round((float)$value, 4);
+    }
+
+    $value = strtolower(trim((string)$value));
+
+    $value = str_replace(',', '.', $value);
+
+    $value = str_replace([
+        'kg',
+        'kgs',
+        'kilogram'
+    ], '', $value);
+
+    $value = preg_replace('/[^0-9.]/', '', $value);
+
+    return is_numeric($value)
+        ? round((float)$value, 4)
+        : null;
+};
+
+            // ==================== HELPER HARGA ====================
+            $toNumber = function ($value) {
+
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    if (is_numeric($value)) {
+        return (float)$value;
+    }
+
+    $value = trim((string)$value);
+
+    $value = str_replace([
+        'Rp',
+        'Rp.',
+        'IDR',
+        ' '
+    ], '', $value);
+
+    $value = str_replace('.', '', $value);
+
+    $value = str_replace(',', '.', $value);
+
+    $value = preg_replace('/[^0-9.]/', '', $value);
+
+    return is_numeric($value)
+        ? (float)$value
+        : null;
+};
+
+            // ==================== HELPER TANGGAL (Diperbaiki) ====================
+            $parseDate = function ($value) use ($excelRow) {
+
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    try {
+
+        // Jika berupa serial date Excel
+        if (is_numeric($value)) {
+            return ExcelDate::excelToDateTimeObject($value)
+                ->format('Y-m-d');
+        }
+
+        $value = trim((string) $value);
+
+        // Format Indonesia dd/mm/yyyy
+        if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $value)) {
+            return Carbon::createFromFormat('d/m/Y', $value)
+                ->format('Y-m-d');
+        }
+
+        // Format dd-mm-yyyy
+        if (preg_match('/^\d{2}\-\d{2}\-\d{4}$/', $value)) {
+            return Carbon::createFromFormat('d-m-Y', $value)
+                ->format('Y-m-d');
+        }
+
+        // Format umum
+        return Carbon::parse($value)->format('Y-m-d');
+
+    } catch (\Throwable $e) {
+
+        Log::warning("Tanggal gagal diparse", [
+            'baris' => $excelRow,
+            'raw'   => $value,
+            'error' => $e->getMessage(),
+        ]);
+
+        return null;
+    }
+};
+
+            // ==================== MAPPING ====================
+            $jenis         = trim($row[1] ?? '');
+            $kategoriNama  = trim($row[2] ?? '');
+            $subKategori   = trim($row[3] ?? '');
+            $label         = trim($row[4] ?? '');
+            $satuan        = trim($row[6] ?? '');
+
+            $beratSatuan   = $toKg($row[7] ?? null);
+            $beratPaket    = $toKg($row[8] ?? null);
+
+            $hargaBeli     = $toNumber($row[9] ?? null);
+            $hargaJual     = $toNumber($row[10] ?? null);
+            $hargaPenyesuaian = $toNumber($row[11] ?? null);
+
+            $status        = trim($row[12] ?? '');
+
+            $isi = is_numeric($row[13] ?? null) ? (int)$row[13] : 1;
+
+            $role = strtolower(trim($row[14] ?? 'stock'));
+            if (!in_array($role, ['jual', 'tidak_dijual', 'stock'])) {
+                $role = 'stock';
+            }
+
+            // Tanggal Rilis (Pakai helper baru)
+            $tanggalRilis = $parseDate($row[15] ?? null);
+
+            // Category
+            $category = null;
+            if (!empty($kategoriNama)) {
+                $category = Category::firstOrCreate([
+                    'nama' => ucwords(strtolower($kategoriNama))
+                ]);
+            }
+
+            // ==================== SIMPAN ====================
+            $product = new Product([
+                'name'                   => $name,
+                'label'                  => $label,
+                'jenis'                  => $jenis,
+                'kategori_id'            => $category?->id,
+                'kategori'               => $category?->nama,
+                'sub_kategori'           => $subKategori,
+                'satuan'                 => $satuan,
+                'berat_satuan'           => $beratSatuan,
+                'berat_paket'            => $beratPaket,
+                'isi'                    => $isi,
+                'harga_beli'             => $hargaBeli,
+                'harga_jual'             => $hargaJual,
+                'harga_jual_penyesuaian' => $hargaPenyesuaian,
+                'status'                 => $status,
+                'role'                   => $role,
+                'tanggal_rilis'          => $tanggalRilis,
+            ]);
+
+            $this->imported++;
+
+            Log::info("✅ BERHASIL Baris {$excelRow} | {$name}", [
+                'tanggal_rilis' => $tanggalRilis,
+                'berat_satuan'  => $beratSatuan,
+            ]);
+
+            return $product;
+
+        } catch (\Exception $e) {
+            $this->skipped++;
+            Log::error("❌ ERROR Baris {$excelRow} - {$name}", [
+                'message' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    public function __destruct()
+    {
+        Log::info("=== IMPORT SELESAI ===", [
+            'processed' => $this->processed,
+            'imported'  => $this->imported,
+            'skipped'   => $this->skipped,
+        ]);
+    }
 }
