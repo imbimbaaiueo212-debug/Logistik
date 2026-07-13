@@ -67,44 +67,52 @@
    <div class="max-w-screen-2xl mx-auto px-6 py-6">
     
     <!-- HEADER UTAMA -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <a href="{{ route('order.jakarta-aktif') }}" 
-               class="bg-gray-700 text-white px-6 py-3 rounded-xl hover:bg-gray-800 flex items-center gap-2">
-                ← Kembali
-            </a>
-        </div>
+    <div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-800">Rekap Aktual</h1>
+        <p class="text-gray-600">Data Realisasi yang sudah diproses</p>
+    </div>
 
-        <div class="flex items-center gap-3" id="print-all-container">
-            @php
-                $allPrinted = $data->every(fn($item) => !is_null($item->printed_at));
-                $allPickingPrinted = $data->every(fn($item) => !is_null($item->picking_printed_at));
-            @endphp
-
+    <!-- Filter Kategori Chip -->
+    <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border">
+        <a href="{{ route('order.jakarta-printed') }}" 
+           class="px-6 py-3 rounded-3xl font-medium transition-all {{ !request('kategori') ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+            Semua
+        </a>
+        <a href="{{ route('order.jakarta-printed') }}?kategori=Modul" 
+           class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Modul' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+            🟢 Modul
+        </a>
+        <a href="{{ route('order.jakarta-printed') }}?kategori=Majalah" 
+           class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Majalah' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+            🔵 Majalah
+        </a>
+        <a href="{{ route('order.jakarta-printed') }}?kategori=Sertifikat" 
+           class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Sertifikat' ? 'bg-red-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+            🔴 Sertifikat
+        </a>
+    </div>
+    
+</div>
+    <div id="advanced-print-buttons" class="flex gap-2 py-1">
+        <button onclick="printAllAndMarkPrinted()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
+            <i class="fa-solid fa-file-pdf"></i> Cetak RA Prising
+        </button>
+        <button onclick="printPemesanan()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+            <i class="fa-solid fa-list-check"></i> Print RA PICKING
+        </button>
+        <button onclick="printQC()" class="bg-emerald-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+            <i class="fa-solid fa-clipboard-check"></i> Print RA QC OUTGOING
+        </button>
+        
+        <button onclick="printPacking()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+            <i class="fas fa-box mr-1"></i> Print RA PACKING
+        </button>
+        <button onclick="printEkspedisi()" class="bg-emerald-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
+            <i class="fa-solid fa-truck"></i> Print RA DISTRIBUSI
+        </button>
+    </div>
             
-
-            @if($allPickingPrinted)
-                <div id="advanced-print-buttons" class="flex gap-2">
-                    <button onclick="printAllAndMarkPrinted()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition">
-                    <i class="fa-solid fa-file-pdf"></i> Cetak RA Prising
-                </button>
-                    <button onclick="printQC()" class="bg-emerald-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-clipboard-check"></i> Print RA QC OUTGOING
-                    </button>
-                    <button onclick="printPemesanan()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-list-check"></i> Print RA PICKING
-                    </button>
-                    <button onclick="printPacking()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fas fa-box mr-1"></i> Print RA PACKING
-                    </button>
-                    <button onclick="printEkspedisi()" class="bg-emerald-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-truck"></i> Print RA DISTRIBUSI
-                    </button>
-                </div>
-            @endif
-        </div>
-    </div>      
-
     <!-- TABEL -->
     <div class="bg-white shadow-lg border-2 border-gray-800 overflow-x-auto">
         <table>
@@ -438,53 +446,50 @@ async function confirmPrintPicking() {
 // ==================== CETAK PDF SEMUA ====================
 async function printAllAndMarkPrinted() {
 
-    if (!confirm(
-        'Cetak SEMUA data dan tandai sebagai sudah dicetak?'
-    )) {
+    if (!confirm('Cetak SEMUA data dan tandai sebagai sudah dicetak?')) {
         return;
     }
 
     try {
 
-        const csrf =
-            document.querySelector(
-                'meta[name="csrf-token"]'
-            );
+        const csrf = document.querySelector('meta[name="csrf-token"]');
 
-        // update printed_at terlebih dahulu
         await fetch(
             "{{ route('order.realisasi.mark-printed-all') }}",
             {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type':
-                        'application/json',
-                    'X-CSRF-TOKEN':
-                        csrf
-                        ? csrf.getAttribute('content')
-                        : ''
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrf
+                        ? csrf.getAttribute("content")
+                        : ""
                 }
             }
         );
 
-        // baru buka PDF
+        // ==============================
+        // AMBIL SEMUA FILTER YANG SEDANG DIPAKAI
+        // ==============================
+
+        const params = new URLSearchParams(window.location.search);
+
+        params.set("mark_printed", "true");
+
         window.open(
-            "{{ route('order.realisasi.print-pdf') }}?mark_printed=true",
-            '_blank'
+            "{{ route('order.realisasi.print-pdf') }}?" + params.toString(),
+            "_blank"
         );
 
         updateStatusOnly();
 
         setTimeout(() => {
-            window.location.reload();
+            location.reload();
         }, 1000);
 
-    } catch (error) {
+    } catch (e) {
 
-        console.error(
-            'Gagal update printed_at:',
-            error
-        );
+        console.error(e);
+
     }
 }
 
@@ -515,6 +520,16 @@ document.addEventListener(
         }, 3000);
     }
 );
+function printPickingByCategory() {
+    let url = "{{ route('order.print-picking-list-all') }}";
+    const kategori = new URLSearchParams(window.location.search).get('kategori');
+    
+    if (kategori) {
+        url += '?kategori=' + encodeURIComponent(kategori);
+    }
+    
+    window.open(url, '_blank');
+}
 </script>
 </body>
 </html>

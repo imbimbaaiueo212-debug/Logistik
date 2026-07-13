@@ -35,6 +35,10 @@ class ProductController extends Controller
         $query->where('kategori', $request->kategori);
     }
 
+    if ($request->filled('sub_kategori')) {
+        $query->where('sub_kategori', $request->sub_kategori);
+    }
+
     $products = $query
         ->latest()
         ->paginate($perPage)

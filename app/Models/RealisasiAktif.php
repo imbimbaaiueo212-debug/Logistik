@@ -20,6 +20,8 @@ class RealisasiAktif extends Model
         'pengiriman', 
         'service_pengiriman',
         'nama_barang',
+        'kategori_order',                    // ← Penting
+
         'tgl_bayar', 
         'jumlah_bayar', 
         'nama_stokis', 
@@ -32,7 +34,7 @@ class RealisasiAktif extends Model
         'is_processed',
         'processed_at',
         
-        // Kolom Print Status
+        // Print Status
         'printed_at',
         'picking_printed_at',
         'qc_printed_at',
@@ -40,7 +42,6 @@ class RealisasiAktif extends Model
         'packing_printed_at',
         'distribusi_printed_at',
 
-        // Kolom Berat
         'order_weight',
         'berat',
         'billing_last_name',
@@ -52,20 +53,14 @@ class RealisasiAktif extends Model
         'tgl_bayar'          => 'datetime',
         'tgl_estimasi'       => 'datetime',
         'deleted_at'         => 'datetime',
-        'created_at'         => 'datetime',
-        'updated_at'         => 'datetime',
         'is_processed'       => 'boolean',
         'processed_at'       => 'datetime',
-        
-        // Print timestamps
         'printed_at'         => 'datetime',
         'picking_printed_at' => 'datetime',
         'qc_printed_at'      => 'datetime',
         'ra_picking_printed_at' => 'datetime',
         'packing_printed_at' => 'datetime',
         'distribusi_printed_at' => 'datetime',
-
-        // Berat
         'order_weight'       => 'decimal:2',
         'berat'              => 'decimal:2',
     ];
@@ -74,12 +69,15 @@ class RealisasiAktif extends Model
     {
         return $this->belongsTo(JakartaAktif::class, 'jakarta_aktif_id');
     }
+
     public function bimbashopOrders()
-{
-    return $this->hasMany(BimbashopOrder::class, 'order_id', 'no_pl');
-}
-public function picking()
     {
-        return $this->belongsTo(Picking::class, 'picking_id');
+        return $this->hasMany(BimbashopOrder::class, 'order_id', 'no_pl');
+    }
+
+    // Relasi yang BENAR
+    public function picking()
+    {
+        return $this->hasOne(Picking::class, 'realisasi_aktif_id');
     }
 }

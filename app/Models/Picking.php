@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Picking extends Model
 {
@@ -12,13 +12,16 @@ class Picking extends Model
     protected $table = 'pickings';
 
     protected $fillable = [
+        'realisasi_aktif_id',
         'jakarta_aktif_id',
+        'kategori_order',
         'no_pl',
         'tgl_order',
         'tgl_picking',
+        'payment_date',
+        'waktu_estimasi_persiapan',
         'jam_picking',
         'id_pesan',
-        'cabang',
         'vendor',
         'nama_unit',
         'billing_last_name',
@@ -29,20 +32,20 @@ class Picking extends Model
         'kab_kota_provinsi',
         'ekspedisi',
         'service_pengiriman',
-        'tracking_number',
         'pesanan',
-        'jenis_bank',
-        'status_pembayaran',
-        'harga',
-        'diskon',
-        'ongkir',
-        'fee_payment',
         'total',
         'berat',
-        'berat_bimbashop',
-        'berat_aktual',
         'total_item',
         'total_qty',
+        'status',
+        'printed_at',
+        'created_by',
+        'catatan',
+
+        // Field legacy (jika masih ada di tabel)
+        'tracking_number',
+        'berat_bimbashop',
+        'berat_aktual',
         'dipicking_oleh',
         'pic_qc',
         'qc_at',
@@ -50,40 +53,48 @@ class Picking extends Model
         'packing_at',
         'pic_finishing',
         'finishing_at',
-        'printed_at',
-        'status',
-        'waktu_estimasi_persiapan',
-        'payment_date',
-        'pic',
         'status_persiapan',
-        'catatan',
-        'created_by',
+        'jenis_bank',
+        'status_pembayaran',
+        'ongkir',
+        'fee_payment',
+        'harga',
+        'diskon',
+        'pic',
     ];
 
     protected $casts = [
-        'tgl_order'       => 'date',
-        'tgl_picking'     => 'date',
-        'jam_picking'     => 'string',
-        'qc_at'           => 'datetime',
-        'packing_at'      => 'datetime',
-        'finishing_at'    => 'datetime',
-        'printed_at'      => 'datetime',
-        'harga'           => 'decimal:2',
-        'diskon'          => 'decimal:2',
-        'ongkir'          => 'decimal:2',
-        'fee_payment'     => 'decimal:2',
-        'total'           => 'decimal:2',
-        'berat'           => 'decimal:2',
-        'berat_bimbashop' => 'decimal:2',
-        'berat_aktual'    => 'decimal:2',
-        'total_item'      => 'integer',
-        'total_qty'       => 'integer',
+        'tgl_order'                => 'date',
+        'tgl_picking'              => 'date',
+        'payment_date'             => 'datetime',
+        'waktu_estimasi_persiapan' => 'date',
+        'qc_at'                    => 'datetime',
+        'packing_at'               => 'datetime',
+        'finishing_at'             => 'datetime',
+        'printed_at'               => 'datetime',
+        'jam_picking'              => 'string',           // ← Ditambahkan
+        'total'                    => 'decimal:2',
+        'berat'                    => 'decimal:2',
+        'berat_bimbashop'          => 'decimal:2',
+        'berat_aktual'             => 'decimal:2',
+        'harga'                    => 'decimal:2',
+        'diskon'                   => 'decimal:2',
+        'ongkir'                   => 'decimal:2',
+        'fee_payment'              => 'decimal:2',
+        'total_item'               => 'integer',
+        'total_qty'                => 'integer',
+        
     ];
 
     // Relasi
-    public function items()
+    public function realisasi()
     {
-        return $this->hasMany(PickingItem::class);
+        return $this->belongsTo(RealisasiAktif::class, 'realisasi_aktif_id');
+    }
+
+    public function pickingItems()
+    {
+        return $this->hasMany(PickingItem::class, 'picking_id');
     }
 
     public function jakartaAktif()
@@ -91,19 +102,7 @@ class Picking extends Model
         return $this->belongsTo(JakartaAktif::class, 'jakarta_aktif_id');
     }
 
-    // Event otomatis saat dihapus
-   protected static function booted()
-    {
-        static::deleting(function ($picking) {
-
-            JakartaAktif::where('id', $picking->jakarta_aktif_id)
-                ->update([
-                    'picking_generated' => false,
-                ]);
-        });
-    }
-
-    // Scope
+    // Scope (jika masih digunakan di controller lain)
     public function scopeBelumDipicking($query)
     {
         return $query->where('status', 'draft');
@@ -112,9 +111,5 @@ class Picking extends Model
     public function scopeSudahDipicking($query)
     {
         return $query->whereIn('status', ['completed', 'printed']);
-    }
-        public function realisasiAktif()
-    {
-        return $this->hasOne(RealisasiAktif::class, 'picking_id');
     }
 }

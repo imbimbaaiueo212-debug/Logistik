@@ -82,7 +82,7 @@ class PickingController extends Controller
 
     public function jakartaAktif()
     {
-        $data = Picking::with(['jakartaAktif', 'items'])
+        $data = Picking::with(['jakartaAktif', 'pickingItems'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 

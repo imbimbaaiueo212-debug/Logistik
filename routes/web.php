@@ -173,6 +173,20 @@ Route::prefix('order')
 
         Route::get('/realisasi/print-packing', [OrderController::class, 'printPacking'])
             ->name('realisasi.print-packing');
+            Route::get('/realisasi/picking-list-all', [OrderController::class, 'printPickingListAll'])
+        ->name('print-picking-list-all');
+
+    Route::get('/realisasi/print-qc-all', [OrderController::class, 'printQCAll'])
+        ->name('print-qc-all');
+
+    Route::get('/realisasi/print-packing-all', [OrderController::class, 'printPackingAll'])
+        ->name('print-packing-all');
+
+    Route::get('/realisasi/print-ekspedisi-all', [OrderController::class, 'printEkspedisiAll'])
+        ->name('print-ekspedisi-all');
+
+    Route::get('/realisasi/print-ra-all', [OrderController::class, 'printRealisasiAll'])
+        ->name('print-ra-all');
     });
 
 // === PICKING ROUTES ===

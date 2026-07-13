@@ -65,7 +65,7 @@
             <div class="flex gap-3">
                 
                 <a href="{{ route('order.jakarta-aktif.menu') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali</a>
-                <a href="{{ route('order.modul') }}" class="bg-green-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-green-700">Modul</a>
+                <a href="{{ route('order.modul') }}" class="bg-green-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-green-700">Modul dan Lainnya</a>
                 <a href="{{ route('order.majalah') }}" class="bg-blue-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-blue-700">Majalah Sahabat biMBA AIUEO</a>
                 <a href="{{ route('order.sertifikat') }}" class="bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-red-700">Sertifikat</a>
                 <a href="{{ route('order.jakarta-aktif') }}" class="bg-gray-700 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-800">Semua Pesanan</a>
@@ -305,13 +305,19 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="text-center px-4 py-3">
-                            @if(!$isProcessed)
-                                <a href="{{ route('order.jakarta-aktif.edit', $item->id) }}" class="text-blue-600 hover:text-blue-700 text-lg">✏️</a>
-                            @else
-                                <span class="text-emerald-600 font-medium">✅ Diproses</span>
-                            @endif
-                        </td>
+                        <!-- Di dalam tabel, bagian Aksi -->
+                    <td class="text-center px-4 py-3">
+                        @if(!$isProcessed)
+                            <a href="{{ route('order.jakarta-aktif.edit', $item->id) }}" 
+                            class="text-blue-600 hover:text-blue-700 text-lg inline-block hover:scale-110 transition">
+                                ✏️
+                            </a>
+                        @else
+                            <span class="inline-flex items-center gap-1 text-emerald-600 font-medium text-sm">
+                                ✅ Diproses
+                            </span>
+                        @endif
+                    </td>
                     </tr>
                     @empty
                     <tr>
