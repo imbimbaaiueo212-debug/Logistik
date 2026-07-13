@@ -755,21 +755,25 @@ public function jakartaPrinted(Request $request)
 {
     $query = RealisasiAktif::query();
 
-    // Filter Kategori (utama)
+    // ==========================
+    // FILTER
+    // ==========================
     if ($request->filled('kategori')) {
         $query->where('kategori_order', $request->kategori);
     }
 
-    // Filter lain
     if ($request->filled('id_pesan')) {
         $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
     }
+
     if ($request->filled('nama_unit')) {
         $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
     }
+
     if ($request->filled('start_date')) {
         $query->whereDate('tgl_turun_pl', '>=', $request->start_date);
     }
+
     if ($request->filled('end_date')) {
         $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
     }
@@ -778,25 +782,49 @@ public function jakartaPrinted(Request $request)
 
     $data = $query
         ->with('picking')
-        ->latest('created_at')
+        ->orderBy('tgl_turun_pl')
+        ->orderBy('created_at')
         ->paginate($perPage)
         ->appends($request->query());
 
-    $docNumber = $this->generateRekapNumber();
+    // ==========================================
+    // ASSIGN REKAP NUMBER BERDASARKAN TANGGAL
+    // ==========================================
+    if ($data->count()) {
 
-    // Update rekap_number
-    if ($data->isNotEmpty()) {
-        $ids = $data->pluck('id');
-        DB::table('realisasi_aktif')
-            ->whereIn('id', $ids)
-            ->whereNull('rekap_number')
-            ->update([
-                'rekap_number' => $docNumber,
-                'updated_at'   => now()
-            ]);
+        foreach ($data->groupBy(function ($item) {
+            return Carbon::parse($item->tgl_turun_pl)->toDateString();
+        }) as $tanggal => $rows) {
+
+            $rekapNumber = $this->generateRekapNumber($tanggal);
+
+            RealisasiAktif::whereIn('id', $rows->pluck('id'))
+                ->whereNull('rekap_number')
+                ->update([
+                    'rekap_number' => $rekapNumber,
+                    'updated_at'   => now(),
+                ]);
+
+            // supaya object yang dikirim ke view ikut berubah
+            foreach ($rows as $row) {
+                $row->rekap_number = $rekapNumber;
+            }
+        }
     }
 
-    return view('order.jakarta-printed', compact('data', 'docNumber'));
+    // ==========================================
+    // GROUP UNTUK DITAMPILKAN DI VIEW
+    // ==========================================
+    $groupedData = $data->getCollection()->groupBy(function ($item) {
+
+        return Carbon::parse($item->tgl_turun_pl)->toDateString();
+
+    });
+
+    return view('order.jakarta-printed', [
+        'data'        => $data,
+        'groupedData' => $groupedData,
+    ]);
 }
 
 
@@ -989,16 +1017,74 @@ public function printRealisasiPdf(Request $request)
 }
 
 
-private function generateRekapNumber()
+private function generateRekapNumber($tanggal = null)
 {
-    // Ambil nomor tertinggi yang pernah ada (bukan hanya hari ini)
-    $lastNumber = DB::table('realisasi_aktif')
-                    ->whereNotNull('rekap_number')
-                    ->max(DB::raw('CAST(SUBSTRING(rekap_number, 2) AS UNSIGNED)'));
+    if (!$tanggal) {
+        $tanggal = Carbon::now('Asia/Jakarta')->toDateString();
+    }
+
+    $tanggal = Carbon::parse($tanggal)->toDateString();
+
+    // Cek apakah sudah ada rekap_number untuk tanggal tersebut
+    $existing = RealisasiAktif::whereDate('tgl_turun_pl', $tanggal)
+        ->whereNotNull('rekap_number')
+        ->value('rekap_number');
+
+    if ($existing) {
+        return $existing;
+    }
+
+    // Ambil nomor tertinggi yang pernah ada
+    $lastNumber = RealisasiAktif::whereNotNull('rekap_number')
+        ->max(DB::raw("CAST(REPLACE(rekap_number, '#', '') AS UNSIGNED)"));
 
     $next = ($lastNumber ?? 0) + 1;
 
     return '#' . str_pad($next, 4, '0', STR_PAD_LEFT);
+}
+
+/**
+ * Update rekap_number secara per tanggal
+ */
+public function assignRekapNumber($ids)
+{
+    if (empty($ids)) {
+        return 0;
+    }
+
+    $data = RealisasiAktif::whereIn('id', $ids)
+        ->whereNull('rekap_number')
+        ->orderBy('tgl_turun_pl')
+        ->get();
+
+    $updatedCount = 0;
+
+    foreach ($data->groupBy(fn($row) => Carbon::parse($row->tgl_turun_pl)->toDateString()) as $tanggal => $rows) {
+        
+        $rekapNumber = $this->generateRekapNumber($tanggal);
+
+        $affected = RealisasiAktif::whereIn('id', $rows->pluck('id'))
+            ->whereNull('rekap_number')
+            ->update([
+                'rekap_number' => $rekapNumber,
+                'updated_at'   => now(),
+            ]);
+
+        $updatedCount += $affected;
+    }
+
+    return $updatedCount;
+}
+
+// Contoh di method bulk atau print rekap
+public function assignRekapBulk(Request $request)
+{
+    $ids = $request->input('ids'); // array of realisasi ids
+
+    $updated = $this->assignRekapNumber($ids);
+
+    return redirect()->back()
+        ->with('success', "$updated rekap number berhasil ditambahkan.");
 }
 
 public function printSingleRealisasi($id)
