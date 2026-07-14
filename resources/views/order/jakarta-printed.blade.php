@@ -33,23 +33,13 @@
             font-weight: 600;
         }
 
-        .main-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            background-color: #f8fafc;
-            border-bottom: 2px solid #374151;
-            padding: 12px 10px;
+        .accordion-header {
+            transition: all 0.3s ease;
         }
-
-        .col-no       { width: 40px; }
-        .col-id       { width: 80px; }
-        .col-unit     { width: 160px; }
-        .col-kategori { width: 120px; }
-        .col-distribusi { width: 90px; }
-        .col-catatan  { width: 180px; }
-        .col-picking  { width: 70px; }
-
-        .text-left { text-align: left; }
+        
+        .accordion-header:hover {
+            background-color: #f1f5f9;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -86,134 +76,141 @@
             </div>
         </div>
 
-        <!-- ==================== TABEL PER TANGGAL ==================== -->
+        <!-- ==================== ACCORDION PER TANGGAL ==================== -->
         @foreach($groupedData as $tanggal => $rows)
             @php
                 $first = $rows->first();
                 $tanggalFormatted = \Carbon\Carbon::parse($tanggal)->format('d/m/Y');
                 $allPickingDone = $rows->every(fn($item) => !is_null($item->picking_printed_at));
                 $allPrinted     = $rows->every(fn($item) => !is_null($item->printed_at));
+                $collapseId     = 'collapse_' . $loop->index;
             @endphp
 
-            <div class="bg-white shadow-lg border-2 border-gray-800 overflow-x-auto mb-10 rounded-xl" data-tanggal="{{ $tanggal }}">
-                <table>
-                    <thead>
-                        <tr>
-                            <th colspan="9" class="main-title py-4 text-center">
-                                <div class="flex justify-between items-center px-6">
-                                    <div class="flex items-center gap-3">
-                                        @if($allPrinted)
-                                            <span class="text-green-600 text-2xl">✅</span>
-                                            <span class="text-green-600 font-semibold">RA SUDAH DICETAK</span>
-                                        @else
-                                            <span class="text-red-500 text-2xl">❌</span>
-                                            <span class="text-red-500 font-semibold">RA BELUM DICETAK</span>
-                                        @endif
-                                    </div>
+            <div class="bg-white shadow-lg border-2 border-gray-800 mb-8 rounded-xl overflow-hidden" 
+                 data-tanggal="{{ $tanggal }}">
 
-                                    <div class="flex-1 text-center px-8">
-                                        Rekap Aktual Detail - {{ $first->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
-                                        <span class="text-indigo-600 font-semibold">{{ $first->rekap_number ?? '#0001' }}</span>
-                                    </div>
+                <!-- HEADER (CLICKABLE) -->
+                <button onclick="toggleContent('{{ $collapseId }}')" 
+                        class="accordion-header w-full flex justify-between items-center px-6 py-5 bg-gray-100 hover:bg-gray-200 transition text-left">
 
-                                    <div class="text-right">
-                                        <div class="text-sm text-gray-600">Tanggal Turun PL</div>
-                                        <div class="font-semibold text-gray-800">{{ $tanggalFormatted }}</div>
-                                    </div>
-                                </div>
-                            </th>
-                        </tr>
+                    <div class="flex items-center gap-4">
+                        <span id="icon-{{ $collapseId }}" class="text-2xl font-bold text-gray-600">▼</span>
+                        
+                        @if($allPrinted)
+                            <span class="text-green-600 text-2xl">✅</span>
+                            <span class="font-semibold text-green-600">RA SUDAH DICETAK</span>
+                        @else
+                            <span class="text-red-500 text-2xl">❌</span>
+                            <span class="font-semibold text-red-500">RA BELUM DICETAK</span>
+                        @endif
+                    </div>
 
-                        <tr class="header1">
-                            <th rowspan="2" class="col-no">NO</th>
-                            <th colspan="3">DETAIL ORDER</th>
-                            <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
-                            <th rowspan="2" class="col-catatan">CATATAN</th>
-                            <th rowspan="2" class="col-picking">PICKING LIST</th>
-                        </tr>
+                    <div class="flex-1 text-center px-6">
+                        <span class="font-bold text-lg">
+                            Rekap Aktual Detail - {{ $first->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
+                        </span>
+                        <span class="text-indigo-600 font-semibold ml-2">{{ $first->rekap_number ?? '#0001' }}</span>
+                    </div>
 
-                        <tr class="header2">
-                            <th class="col-id">ID ORDER</th>
-                            <th class="col-unit">NAMA UNIT</th>
-                            <th class="col-kategori">KATEGORI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($rows as $item)
-                        <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
-                            <td class="font-medium text-center">{{ $loop->iteration }}</td>
-                            <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
-                            <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                            <td class="text-center text-sm">{{ $item->nama_barang ?? '-' }}</td>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Tanggal Turun PL</div>
+                        <div class="font-semibold text-gray-800">{{ $tanggalFormatted }}</div>
+                    </div>
+                </button>
 
-                            <td class="text-center">
-                                <div>{{ $item->pengiriman ?? '-' }}</div>
-                                <div class="text-xs text-gray-500">{{ $item->service_pengiriman ?? '-' }}</div>
-                            </td>
+                <!-- CONTENT (TABEL + TOMBOL) -->
+                <div id="{{ $collapseId }}" class="accordion-content">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="header1">
+                                <th rowspan="2" class="col-no">NO</th>
+                                <th colspan="3">DETAIL ORDER</th>
+                                <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
+                                <th rowspan="2" class="col-catatan">CATATAN</th>
+                                <th rowspan="2" class="col-picking">PICKING LIST</th>
+                            </tr>
+                            <tr class="header2">
+                                <th class="col-id">ID ORDER</th>
+                                <th class="col-unit">NAMA UNIT</th>
+                                <th class="col-kategori">KATEGORI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($rows as $item)
+                            <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
+                                <td class="font-medium text-center">{{ $loop->iteration }}</td>
+                                <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
+                                <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
+                                <td class="text-center text-sm">{{ $item->nama_barang ?? '-' }}</td>
 
-                            <td class="text-center text-xs">
-                                @php
-                                    $catatan = $item->jakartaAktif?->catatan ?? $item->ket ?? '';
-                                    $display = preg_replace('/^Di proses bulk pada .*?: /i', '', trim($catatan));
-                                @endphp
-                                @if($display)
-                                    <span class="inline-block bg-gray-100 px-3 py-1 rounded-md">{{ strtoupper($display) }}</span>
-                                @else
-                                    <span class="text-gray-400">-</span>
-                                @endif
-                            </td>
+                                <td class="text-center">
+                                    <div>{{ $item->pengiriman ?? '-' }}</div>
+                                    <div class="text-xs text-gray-500">{{ $item->service_pengiriman ?? '-' }}</div>
+                                </td>
 
-                            <td class="text-center">
-                                <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-                                        class="action-btn text-2xl {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
-                                    @if($item->picking_printed_at)
-                                        <i class="fa-solid fa-file-pdf"></i>
+                                <td class="text-center text-xs">
+                                    @php
+                                        $catatan = $item->jakartaAktif?->catatan ?? $item->ket ?? '';
+                                        $display = preg_replace('/^Di proses bulk pada .*?: /i', '', trim($catatan));
+                                    @endphp
+                                    @if($display)
+                                        <span class="inline-block bg-gray-100 px-3 py-1 rounded-md">{{ strtoupper($display) }}</span>
                                     @else
-                                        <i class="fa-solid fa-print"></i>
+                                        <span class="text-gray-400">-</span>
                                     @endif
-                                </button>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                </td>
 
-                <!-- TOMBOL PER TANGGAL -->
-                @if($allPickingDone)
-                <div class="bg-gray-50 border-t p-4 flex flex-wrap gap-3 justify-end">
-                    <button onclick="printPerDate('{{ $tanggal }}', 'prising')" 
-                        class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
-                        <i class="fa-solid fa-file-pdf"></i> Cetak RA Prising
-                    </button>
+                                <td class="text-center">
+                                    <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                                            class="action-btn text-2xl {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
+                                        @if($item->picking_printed_at)
+                                            <i class="fa-solid fa-file-pdf"></i>
+                                        @else
+                                            <i class="fa-solid fa-print"></i>
+                                        @endif
+                                    </button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
 
-                    <button onclick="printPerDate('{{ $tanggal }}', 'pemesanan')" 
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
-                        <i class="fa-solid fa-list-check"></i> RA PICKING
-                    </button>
+                    <!-- TOMBOL PER TANGGAL -->
+                    @if($allPickingDone)
+                    <div class="bg-gray-50 border-t p-4 flex flex-wrap gap-3 justify-end">
+                        <button onclick="printPerDate('{{ $tanggal }}', 'prising')" 
+                            class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-file-pdf"></i> Cetak RA Prising
+                        </button>
 
-                    <button onclick="printPerDate('{{ $tanggal }}', 'qc')" 
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
-                        <i class="fa-solid fa-clipboard-check"></i> RA QC
-                    </button>
+                        <button onclick="printPerDate('{{ $tanggal }}', 'pemesanan')" 
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-list-check"></i> RA PICKING
+                        </button>
 
-                    <button onclick="printPerDate('{{ $tanggal }}', 'packing')" 
-                            class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
-                        <i class="fas fa-box"></i> RA PACKING
-                    </button>
+                        <button onclick="printPerDate('{{ $tanggal }}', 'qc')" 
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-clipboard-check"></i> RA QC
+                        </button>
 
-                    <button onclick="printPerDate('{{ $tanggal }}', 'ekspedisi')" 
-                            class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
-                        <i class="fa-solid fa-truck"></i> RA EKSPEDISI
-                    </button>
+                        <button onclick="printPerDate('{{ $tanggal }}', 'packing')" 
+                                class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fas fa-box"></i> RA PACKING
+                        </button>
+
+                        <button onclick="printPerDate('{{ $tanggal }}', 'ekspedisi')" 
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-truck"></i> RA EKSPEDISI
+                        </button>
+                    </div>
+                    @endif
                 </div>
-                @endif
             </div>
         @endforeach
 
         @if($data->count() > 0)
         <div class="mt-6 text-sm text-gray-600 flex justify-between items-center">
             <div>Menampilkan <strong>{{ $data->count() }}</strong> data</div>
-            
         </div>
         @endif
     </div>
@@ -233,34 +230,47 @@
     </div>
 
     <script>
-        let currentButton = null;
+        function toggleContent(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
 
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
+        // Print functions tetap sama
         function printPerDate(tanggal, type) {
-    const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
-    const ids = Array.from(container.querySelectorAll('tr[data-id]'))
-                    .map(row => row.dataset.id)
-                    .join(',');
+            const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
+            const ids = Array.from(container.querySelectorAll('tr[data-id]'))
+                            .map(row => row.dataset.id)
+                            .join(',');
 
-    let url = '';
-    
-    if (type === 'prising') {
-        url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
-    } else if (type === 'pemesanan') {
-        url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
-    } else if (type === 'qc') {
-        url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
-    } else if (type === 'packing') {
-        url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
-    } else if (type === 'ekspedisi') {
-        url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
-    }
+            let url = '';
+            
+            if (type === 'prising') {
+                url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
+            } else if (type === 'pemesanan') {
+                url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
+            } else if (type === 'qc') {
+                url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
+            } else if (type === 'packing') {
+                url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
+            } else if (type === 'ekspedisi') {
+                url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
+            }
 
-    if (url) {
-        window.open(url, '_blank');
-    } else {
-        alert('Tipe cetak tidak dikenali');
-    }
-}
+            if (url) {
+                window.open(url, '_blank');
+            }
+        }
+
+        // Modal functions (tetap sama)
+        let currentButton = null;
 
         function printPickingList(btn, id, noPL) {
             currentButton = btn;
@@ -276,15 +286,17 @@
             if (!currentButton) return;
             const row = currentButton.closest('tr');
             const id = row.dataset.id;
-
-            // ... (kode confirm print picking Anda sebelumnya, bisa di-copy dari file lama)
             window.open(`/order/realisasi/picking-list/${id}`, '_blank');
             closeModal();
             setTimeout(() => location.reload(), 800);
         }
 
+        // Buka semua accordion saat pertama kali load (opsional)
         document.addEventListener('DOMContentLoaded', function () {
-            // Optional auto refresh check
+            // Kalau mau semua terbuka saat load, hapus baris di bawah ini
+            document.querySelectorAll('.accordion-content').forEach(el => {
+                el.style.display = 'none';
+            });
         });
     </script>
 </body>
