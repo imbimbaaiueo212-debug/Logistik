@@ -510,45 +510,58 @@ public function bulkActionJakartaAktif(Request $request)
 
         if ($route === 'order.jakarta-aktif') {
 
-            $groups = [
-                'Modul'      => collect(),
-                'Majalah'    => collect(),
-                'Sertifikat' => collect(),
-            ];
+    $groups = [
+        'Modul'      => collect(),
+        'Majalah'    => collect(),
+        'Sertifikat' => collect(),
+    ];
 
-            foreach ($jakarta->items()->with('product')->get() as $item) {
+    foreach ($jakarta->items()->with('product')->get() as $item) {
 
-                $kategori = strtolower($item->product->kategori ?? '');
+        $kategori = strtolower(trim($item->product->kategori ?? ''));
 
-                if (str_contains($kategori, 'modul')) {
+        // =========================
+        // MAJALAH
+        // =========================
+        if (str_contains($kategori, 'majalah')) {
 
-                    $groups['Modul']->push($item);
+            $groups['Majalah']->push($item);
 
-                } elseif (str_contains($kategori, 'majalah')) {
-
-                    $groups['Majalah']->push($item);
-
-                } elseif (str_contains($kategori, 'sertifikat')) {
-
-                    $groups['Sertifikat']->push($item);
-
-                }
-
-            }
-
-        } else {
-
-            $kategoriOrder = match ($route) {
-                'order.modul'      => 'Modul',
-                'order.majalah'    => 'Majalah',
-                'order.sertifikat' => 'Sertifikat',
-                default            => 'Lainnya',
-            };
-
-            $groups = [
-                $kategoriOrder => $this->getFilteredItems($jakarta, $route)
-            ];
         }
+
+        // =========================
+        // SERTIFIKAT
+        // =========================
+        elseif (str_contains($kategori, 'sertifikat')) {
+
+            $groups['Sertifikat']->push($item);
+
+        }
+
+        // =========================
+        // SELAIN ITU MASUK MODUL
+        // =========================
+        else {
+
+            $groups['Modul']->push($item);
+
+        }
+
+    }
+
+} else {
+
+    $kategoriOrder = match ($route) {
+        'order.modul'      => 'Modul',
+        'order.majalah'    => 'Majalah',
+        'order.sertifikat' => 'Sertifikat',
+        default            => 'Lainnya',
+    };
+
+    $groups = [
+        $kategoriOrder => $this->getFilteredItems($jakarta, $route)
+    ];
+}
 
         // === DATA UTAMA ===
         foreach ($groups as $kategoriOrder => $items) {
@@ -638,40 +651,57 @@ private function getFilteredItems(JakartaAktif $jakarta, string $route)
     $items = $jakarta->items()->with('product')->get();
 
     return match ($route) {
+
+        // ===========================================
+        // MODUL
+        // Semua selain Majalah & Sertifikat
+        // ===========================================
         'order.modul' => $items->filter(function ($item) {
-            $kategori = optional($item->product)->kategori;
-            $nama     = strtoupper($item->nama_produk ?? '');
-            $label    = strtoupper($item->label ?? '');
 
-            return $kategori === 'Modul' 
-                || str_contains($nama, 'MODUL') 
-                || str_contains($label, 'MODUL');
+            $kategori = strtolower(trim($item->product->kategori ?? ''));
+
+            return !str_contains($kategori, 'majalah')
+                && !str_contains($kategori, 'sertifikat');
+
         }),
 
+        // ===========================================
+        // MAJALAH
+        // ===========================================
         'order.majalah' => $items->filter(function ($item) {
-            $kategori = optional($item->product)->kategori;
-            $nama     = strtoupper($item->nama_produk ?? '');
 
-            return $kategori === 'Majalah' 
-                || str_contains($nama, 'MAJALAH') 
-                || str_contains($nama, 'M159') 
-                || str_contains($nama, 'M160');
-        }),
-
-        'order.sertifikat' => $items->filter(function ($item) {
-            $kategori = optional($item->product)->kategori;
+            $kategori = strtolower(trim($item->product->kategori ?? ''));
             $nama     = strtoupper($item->nama_produk ?? '');
             $label    = strtoupper($item->label ?? '');
 
-            return $kategori === 'Sertifikat' 
-                || str_contains($nama, 'SERTIFIKAT') 
-                || str_contains($nama, 'STA') 
+            return str_contains($kategori, 'majalah')
+                || str_contains($nama, 'MAJALAH')
+                || str_contains($nama, 'M159')
+                || str_contains($nama, 'M160')
+                || str_contains($label, 'M159')
+                || str_contains($label, 'M160');
+
+        }),
+
+        // ===========================================
+        // SERTIFIKAT
+        // ===========================================
+        'order.sertifikat' => $items->filter(function ($item) {
+
+            $kategori = strtolower(trim($item->product->kategori ?? ''));
+            $nama     = strtoupper($item->nama_produk ?? '');
+            $label    = strtoupper($item->label ?? '');
+
+            return str_contains($kategori, 'sertifikat')
+                || str_contains($nama, 'SERTIFIKAT')
+                || str_contains($nama, 'STA')
                 || str_contains($nama, 'STPB')
                 || str_contains($label, 'STA')
                 || str_contains($label, 'STPB');
+
         }),
 
-        default => $items, // fallback semua item
+        default => $items,
     };
 }
 
@@ -780,19 +810,31 @@ public function jakartaPrinted(Request $request)
 
     $perPage = $request->get('per_page', 30);
 
-    $data = $query
+    // =====================================================
+    // DATA UNTUK TABEL (PAGINATION)
+    // =====================================================
+    $data = (clone $query)
         ->with('picking')
         ->orderBy('tgl_turun_pl')
         ->orderBy('created_at')
         ->paginate($perPage)
         ->appends($request->query());
 
-    // ==========================================
-    // ASSIGN REKAP NUMBER BERDASARKAN TANGGAL
-    // ==========================================
-    if ($data->count()) {
+    // =====================================================
+    // DATA LENGKAP UNTUK GROUP & PRINT (TANPA PAGINATION)
+    // =====================================================
+    $allData = (clone $query)
+        ->with('picking')
+        ->orderBy('tgl_turun_pl')
+        ->orderBy('created_at')
+        ->get();
 
-        foreach ($data->groupBy(function ($item) {
+    // =====================================================
+    // ASSIGN REKAP NUMBER BERDASARKAN SELURUH DATA
+    // =====================================================
+    if ($allData->isNotEmpty()) {
+
+        foreach ($allData->groupBy(function ($item) {
             return Carbon::parse($item->tgl_turun_pl)->toDateString();
         }) as $tanggal => $rows) {
 
@@ -805,20 +847,17 @@ public function jakartaPrinted(Request $request)
                     'updated_at'   => now(),
                 ]);
 
-            // supaya object yang dikirim ke view ikut berubah
             foreach ($rows as $row) {
                 $row->rekap_number = $rekapNumber;
             }
         }
     }
 
-    // ==========================================
-    // GROUP UNTUK DITAMPILKAN DI VIEW
-    // ==========================================
-    $groupedData = $data->getCollection()->groupBy(function ($item) {
-
+    // =====================================================
+    // GROUP BERDASARKAN SELURUH DATA
+    // =====================================================
+    $groupedData = $allData->groupBy(function ($item) {
         return Carbon::parse($item->tgl_turun_pl)->toDateString();
-
     });
 
     return view('order.jakarta-printed', [
@@ -950,70 +989,52 @@ private function extractVendorFromSku($skuOrPesanan)
     // Jika tidak ada kode yang cocok → default JKT
     return 'Stokis Jakarta Aktif';
 }
-
 public function printRealisasiPdf(Request $request)
 {
-    $query = RealisasiAktif::query();
+    $ids = explode(',', $request->get('ids', ''));
 
-    if ($request->filled('id_pesan')) {
-        $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
+    if (empty($ids[0])) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
-    if ($request->filled('nama_unit')) {
-        $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
+    // AMBIL SEMUA DATA TANPA BATAS
+    $data = RealisasiAktif::whereIn('id', $ids)
+                ->with(['jakartaAktif'])
+                ->orderBy('tgl_turun_pl')
+                ->orderBy('no_pl')
+                ->get();   // ← PASTIKAN PAKAI get(), bukan paginate()
+
+    // Filter hanya yang picking sudah selesai
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang siap dicetak (picking belum selesai).');
     }
 
-    if ($request->filled('start_date')) {
-        $query->whereDate('tgl_turun_pl', '>=', $request->start_date);
+    // Ambil tanggal pertama untuk nomor rekap
+    $firstDate = $filteredData->first()->tgl_turun_pl;
+    $docNumber = $this->generateRekapNumber($firstDate);
+
+    // Tandai sebagai sudah dicetak
+    if ($request->boolean('mark_printed')) {
+        RealisasiAktif::whereIn('id', $filteredData->pluck('id'))
+            ->whereNull('printed_at')
+            ->update(['printed_at' => now(), 'updated_at' => now()]);
     }
 
-    if ($request->filled('end_date')) {
-        $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
-    }
+    $pdf = PDF::loadView('order.jakarta-printed-pdf', [
+        'data'      => $filteredData,   // Kirim semua data
+        'docNumber' => $docNumber
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont' => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+    ]);
 
-    // ===== TAMBAHAN =====
-    if ($request->filled('kategori') && $request->kategori !== 'Semua') {
-        $query->where('kategori_order', $request->kategori);
-    }
-
-    // Ambil ID dulu
-    $ids = (clone $query)->pluck('id');
-
-    // Generate nomor
-    $docNumber = $this->generateRekapNumber();
-
-    if ($ids->isNotEmpty()) {
-
-        DB::table('realisasi_aktif')
-            ->whereIn('id', $ids)
-            ->whereNull('rekap_number')
-            ->update([
-                'rekap_number' => $docNumber,
-                'updated_at' => now(),
-            ]);
-
-        if ($request->boolean('mark_printed')) {
-            DB::table('realisasi_aktif')
-                ->whereIn('id', $ids)
-                ->whereNull('printed_at')
-                ->update([
-                    'printed_at' => now(),
-                    'updated_at' => now(),
-                ]);
-        }
-    }
-
-    // BARU ambil data setelah update selesai
-    $data = $query->latest('tgl_turun_pl')->get();
-
-    $pdf = PDF::loadView('order.jakarta-printed-pdf', compact('data', 'docNumber'))
-        ->setPaper('A4', 'landscape')
-        ->setOptions([
-            'defaultFont' => 'sans-serif',
-            'isHtml5ParserEnabled' => true,
-        ]);
-
-    return $pdf->stream('Realisasi-Aktif-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return $pdf->stream('RA-Prising-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 
@@ -1339,25 +1360,44 @@ public function printPickingListPdf($id)
 
     return $pdf->stream($filename);
 }
+
 /**
- * Print QC
+ * Print QC - Hanya data yang picking list sudah selesai
  */
 public function printQC(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
-    
+
+    if (empty($ids[0])) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
     $data = RealisasiAktif::whereIn('id', $ids)
+                ->with('jakartaAktif')
+                ->orderBy('tgl_turun_pl')
                 ->orderBy('no_pl')
                 ->get();
 
-    $docNumber = $this->generateRekapNumber();
+    // Filter hanya yang picking-nya sudah dicetak
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
 
-    $pdf = PDF::loadView('order.print-qc', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak untuk QC.');
+    }
+
+    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+
+    $pdf = PDF::loadView('order.print-qc', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont' => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+    ]);
 
     return $pdf->stream('QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
@@ -1369,64 +1409,122 @@ public function printPemesanan(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
 
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
     $data = RealisasiAktif::whereIn('id', $ids)
+                ->with('jakartaAktif')
+                ->orderBy('tgl_turun_pl')
                 ->orderBy('no_pl')
                 ->get();
 
-    $docNumber = $this->generateRekapNumber();
+    // Filter hanya data yang PICKING sudah selesai (picking_printed_at terisi)
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
 
-    $pdf = PDF::loadView('order.print-pemesanan', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')   // Ubah ke landscape jika terlalu lebar
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak.');
+    }
 
-    return $pdf->stream('Pemesanan-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    // Group per tanggal agar PDF lebih rapi (opsional tapi sangat direkomendasikan)
+    $groupedData = $filteredData->groupBy(function ($item) {
+        return Carbon::parse($item->tgl_turun_pl)->toDateString();
+    });
+
+    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+
+    $pdf = PDF::loadView('order.print-pemesanan', [
+        'data'        => $filteredData,      // atau $groupedData jika view mendukung
+        'docNumber'   => $docNumber,
+        'groupedData' => $groupedData,       // kirim ke view jika mau tampil per tanggal
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont' => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+    ]);
+
+    return $pdf->stream('RA-Pemesanan-Picking-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 /**
- * Print Packing
+ * Print Packing - Hanya data yang picking list sudah selesai
  */
 public function printPacking(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
 
+    if (empty($ids[0])) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
     $data = RealisasiAktif::whereIn('id', $ids)
+                ->with('jakartaAktif')
+                ->orderBy('tgl_turun_pl')
                 ->orderBy('no_pl')
                 ->get();
 
-    $docNumber = $this->generateRekapNumber();
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
 
-    $pdf = PDF::loadView('order.print-packing', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak untuk Packing.');
+    }
+
+    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+
+    $pdf = PDF::loadView('order.print-packing', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont' => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+    ]);
 
     return $pdf->stream('Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 /**
- * Print Distribusi / Ekspedisi
+ * Print Distribusi / Ekspedisi - Hanya data yang picking list sudah selesai
  */
 public function printEkspedisi(Request $request)
 {
     $ids = explode(',', $request->get('ids', ''));
-    
+
+    if (empty($ids[0])) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
     $data = RealisasiAktif::whereIn('id', $ids)
+                ->with('jakartaAktif')
+                ->orderBy('tgl_turun_pl')
                 ->orderBy('no_pl')
                 ->get();
 
-    $docNumber = $this->generateRekapNumber();
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
 
-    $pdf = PDF::loadView('order.print-ekspedisi', compact('data', 'docNumber'))
-               ->setPaper('A4', 'landscape')
-               ->setOptions([
-                   'defaultFont' => 'sans-serif',
-                   'isHtml5ParserEnabled' => true,
-               ]);
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak untuk Distribusi.');
+    }
+
+    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+
+    $pdf = PDF::loadView('order.print-ekspedisi', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont' => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+    ]);
 
     return $pdf->stream('Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
