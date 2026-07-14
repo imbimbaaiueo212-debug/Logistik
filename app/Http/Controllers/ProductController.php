@@ -21,16 +21,10 @@ class ProductController extends Controller
 
     $query = Product::with('category');
 
-    // ==========================
-    // FILTER JENIS
-    // ==========================
     if ($request->filled('jenis')) {
         $query->where('jenis', $request->jenis);
     }
 
-    // ==========================
-    // FILTER KATEGORI
-    // ==========================
     if ($request->filled('kategori')) {
         $query->where('kategori', $request->kategori);
     }
@@ -44,9 +38,7 @@ class ProductController extends Controller
         ->paginate($perPage)
         ->withQueryString();
 
-    // ==========================
-    // DATA FILTER
-    // ==========================
+    // ================== DATA UNTUK FILTER ==================
     $jenisList = Product::select('jenis')
         ->whereNotNull('jenis')
         ->where('jenis', '<>', '')
@@ -61,11 +53,20 @@ class ProductController extends Controller
         ->orderBy('kategori')
         ->pluck('kategori');
 
+    // ✅ TAMBAHKAN INI
+    $subKategoriList = Product::select('sub_kategori')
+        ->whereNotNull('sub_kategori')
+        ->where('sub_kategori', '<>', '')
+        ->distinct()
+        ->orderBy('sub_kategori')
+        ->pluck('sub_kategori');
+
     return view('products.index', compact(
         'products',
         'perPage',
         'jenisList',
-        'kategoriList'
+        'kategoriList',
+        'subKategoriList'     // ← ini yang penting
     ));
 }
 

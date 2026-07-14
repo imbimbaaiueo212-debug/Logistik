@@ -98,24 +98,21 @@
     </div>
 
     <div>
-        <label class="block text-sm font-medium mb-1">
-            Sub Kategori
-        </label>
+    <label class="block text-sm font-medium mb-1">
+        Sub Kategori
+    </label>
 
-        <select name="sub_kategori"
-                class="border rounded px-3 py-2">
+    <select name="sub_kategori" class="border rounded px-3 py-2">
+        <option value="">Semua Sub Kategori</option>
 
-            <option value="">Semua Sub Kategori</option>
-
-            @foreach($su as $kategori)
-                <option value="{{ $kategori }}"
-                    {{ request('kategori') == $kategori ? 'selected' : '' }}>
-                    {{ $kategori }}
-                </option>
-            @endforeach
-
-        </select>
-    </div>
+        @foreach($subKategoriList as $sub)
+            <option value="{{ $sub }}"
+                {{ request('sub_kategori') == $sub ? 'selected' : '' }}>
+                {{ $sub }}
+            </option>
+        @endforeach
+    </select>
+</div>
 
     <div>
         <label class="block text-sm font-medium mb-1">

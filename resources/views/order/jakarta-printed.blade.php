@@ -113,7 +113,7 @@
                     </div>
 
                     <div class="text-right">
-                        <div class="text-sm text-gray-500">Tanggal Turun PL</div>
+                        <div class="text-sm text-gray-500">Tanggal Order</div>
                         <div class="font-semibold text-gray-800">{{ $tanggalFormatted }}</div>
                     </div>
                 </button>
