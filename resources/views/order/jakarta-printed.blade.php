@@ -245,29 +245,42 @@
 
         // Print functions tetap sama
         function printPerDate(tanggal, type) {
-            const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
-            const ids = Array.from(container.querySelectorAll('tr[data-id]'))
-                            .map(row => row.dataset.id)
-                            .join(',');
+    const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
+    const ids = Array.from(container.querySelectorAll('tr[data-id]'))
+                    .map(row => row.dataset.id)
+                    .join(',');
 
-            let url = '';
-            
-            if (type === 'prising') {
-                url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
-            } else if (type === 'pemesanan') {
-                url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
-            } else if (type === 'qc') {
-                url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
-            } else if (type === 'packing') {
-                url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
-            } else if (type === 'ekspedisi') {
-                url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
-            }
+    let url = '';
+    
+    if (type === 'prising') {
+        url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
+    } else if (type === 'pemesanan') {
+        url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
+    } else if (type === 'qc') {
+        url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
+    } else if (type === 'packing') {
+        url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
+    } else if (type === 'ekspedisi') {
+        url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
+    }
 
-            if (url) {
-                window.open(url, '_blank');
-            }
+    if (url) {
+        const win = window.open(url, '_blank');
+        
+        if (win) {
+            // Tunggu sampai popup ditutup, lalu reload halaman
+            const timer = setInterval(() => {
+                if (win.closed) {
+                    clearInterval(timer);
+                    location.reload();   // Refresh halaman agar status berubah
+                }
+            }, 800);
+        } else {
+            // Fallback jika popup diblokir
+            alert('Popup diblokir oleh browser. Mohon izinkan popup untuk halaman ini.');
         }
+    }
+}
 
         // Modal functions (tetap sama)
         let currentButton = null;

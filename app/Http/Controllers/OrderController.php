@@ -454,10 +454,6 @@ $item->update([
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', '✅ Data berhasil diupdate!');
 }
-
-
-
-
 public function bulkActionJakartaAktif(Request $request)
 {
     $action  = $request->input('action');
@@ -585,10 +581,26 @@ public function bulkActionJakartaAktif(Request $request)
     $namaStokis = $this->extractVendorFromSku($skuList);
 
     $namaBarang = $items
-        ->groupBy(fn($item) => $item->product?->sub_kategori ?? $item->nama_produk)
-        ->map(fn($rows, $nama) => $nama . ' (' . $rows->sum('qty') . ')')
-        ->implode(' | ');
+    ->unique('sku')
+    ->map(function ($item) {
 
+        $nama = trim(
+            $item->product?->sub_kategori
+            ?? $item->nama_produk
+            ?? $item->label
+            ?? 'Item'
+        );
+
+        $qty = (int) $item->qty;
+        $isi = (int) ($item->product?->isi ?? 1);
+
+        if ($isi > 1) {
+            return "{$nama} ({$qty}) [Isi {$isi}]";
+        }
+
+        return "{$nama} ({$qty})";
+    })
+    ->implode(' | ');
     $estimasiHari = null;
 
     if ($jakarta->payment_date && $jakarta->estimasi_persiapan) {
@@ -727,54 +739,78 @@ private function hasRealisasiForCategory(int $jakartaAktifId, string $route): bo
 private function createPicking(RealisasiAktif $realisasi, $items = null)
 {
     $jakarta = JakartaAktif::find($realisasi->jakarta_aktif_id);
-    if (!$jakarta) return;
 
-    if ($items === null || $items->isEmpty()) {
-        $items = $jakarta->items()->get();
+    if (!$jakarta) {
+        return null;
     }
 
-    $picking = Picking::create([
-        'realisasi_aktif_id'       => $realisasi->id,                    // ← Penting
-        'jakarta_aktif_id'         => $realisasi->jakarta_aktif_id,
-        'no_pl'                    => $realisasi->no_pl,
-        'kategori_order'           => $realisasi->kategori_order,
-        'tgl_order'                => $realisasi->tgl_turun_pl,
-        'tgl_picking'              => now()->toDateString(),
-        'payment_date'             => $realisasi->tgl_bayar,
-        'waktu_estimasi_persiapan' => $jakarta->estimasi_persiapan 
-            ? Carbon::parse($jakarta->estimasi_persiapan)->toDateString() 
-            : now()->toDateString(),
-        'jam_picking'        => now()->format('H:i:s'),
-        'id_pesan'           => $realisasi->no_pl,
-        'vendor'             => $realisasi->nama_stokis,
-        'nama_unit'          => $realisasi->nama_unit,
-        'billing_last_name'  => $realisasi->billing_last_name,
-        'billing_company'    => $realisasi->billing_company,
-        'kirim'              => $jakarta->kirim,
-        'no_telpon'          => $jakarta->no_telpon,
-        'alamat_kirim'       => $jakarta->alamat_kirim,
-        'kab_kota_provinsi'  => $jakarta->kab_kota_provinsi,
-        'ekspedisi'          => $realisasi->pengiriman,
-        'service_pengiriman' => $realisasi->service_pengiriman,
-        'pesanan'            => $realisasi->nama_barang,
-        'total'              => $realisasi->jumlah_bayar,
-        'berat'              => $realisasi->order_weight,
-        'total_item'         => $items->count(),
-        'total_qty'          => $items->sum('qty'),
-        'status'             => 'completed',
-        'printed_at'         => now(),
-        'created_by'         => Auth::id(),
-        'catatan'            => 'Auto Generate dari Realisasi',
-    ]);
+    if ($items === null || $items->isEmpty()) {
+        $items = $jakarta->items()->with('product')->get();
+    }
+
+    // Hindari item SKU yang sama
+    $items = $items->unique('sku')->values();
+
+    // Update jika sudah ada, buat jika belum
+    $picking = Picking::updateOrCreate(
+        [
+            'realisasi_aktif_id' => $realisasi->id,
+        ],
+        [
+            'jakarta_aktif_id'         => $realisasi->jakarta_aktif_id,
+            'no_pl'                    => $realisasi->no_pl,
+            'kategori_order'           => $realisasi->kategori_order,
+            'tgl_order'                => $realisasi->tgl_turun_pl,
+            'tgl_picking'              => now()->toDateString(),
+            'payment_date'             => $realisasi->tgl_bayar,
+            'waktu_estimasi_persiapan' => $jakarta->estimasi_persiapan
+                ? Carbon::parse($jakarta->estimasi_persiapan)->toDateString()
+                : now()->toDateString(),
+            'jam_picking'        => now()->format('H:i:s'),
+            'id_pesan'           => $realisasi->no_pl,
+            'vendor'             => $realisasi->nama_stokis,
+            'nama_unit'          => $realisasi->nama_unit,
+            'billing_last_name'  => $realisasi->billing_last_name,
+            'billing_company'    => $realisasi->billing_company,
+            'kirim'              => $jakarta->kirim,
+            'no_telpon'          => $jakarta->no_telpon,
+            'alamat_kirim'       => $jakarta->alamat_kirim,
+            'kab_kota_provinsi'  => $jakarta->kab_kota_provinsi,
+            'ekspedisi'          => $realisasi->pengiriman,
+            'service_pengiriman' => $realisasi->service_pengiriman,
+            'pesanan'            => $realisasi->nama_barang,
+            'total'              => $realisasi->jumlah_bayar,
+            'berat'              => $realisasi->order_weight,
+            'total_item'         => $items->count(),
+            'total_qty'          => $items->sum('qty'),
+            'status'             => 'completed',
+            'printed_at'         => now(),
+            'created_by'         => Auth::id(),
+            'catatan'            => 'Auto Generate dari Realisasi',
+        ]
+    );
+
+    // Hapus item lama agar tidak dobel
+    $picking->pickingItems()->delete();
 
     foreach ($items as $item) {
+
         PickingItem::create([
             'picking_id' => $picking->id,
-            'item_name'  => $item->nama_produk ?? $item->label ?? '-',
-            'item_sku'   => $item->sku,
-            'item_qty'   => $item->qty,
+
+            'item_name' => $item->product?->nama_produk
+                ?? $item->nama_produk
+                ?? $item->label
+                ?? '-',
+
+            'item_sku' => $item->sku,
+            'item_qty' => (int) $item->qty,
+
+            // aktifkan jika kolom product_id sudah ada
+            // 'product_id' => $item->product_id,
+
             'qty_picked' => 0,
-            'cek'        => false,
+            'cek' => false,
         ]);
     }
 
@@ -991,18 +1027,18 @@ private function extractVendorFromSku($skuOrPesanan)
 }
 public function printRealisasiPdf(Request $request)
 {
-    $ids = explode(',', $request->get('ids', ''));
+    $ids = array_filter(explode(',', $request->get('ids', '')));
 
-    if (empty($ids[0])) {
+    if (empty($ids)) {
         return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
-    // AMBIL SEMUA DATA TANPA BATAS
+    // Ambil data awal
     $data = RealisasiAktif::whereIn('id', $ids)
                 ->with(['jakartaAktif'])
                 ->orderBy('tgl_turun_pl')
                 ->orderBy('no_pl')
-                ->get();   // ← PASTIKAN PAKAI get(), bukan paginate()
+                ->get();
 
     // Filter hanya yang picking sudah selesai
     $filteredData = $data->filter(function ($item) {
@@ -1010,28 +1046,40 @@ public function printRealisasiPdf(Request $request)
     });
 
     if ($filteredData->isEmpty()) {
-        return back()->with('error', 'Belum ada data yang siap dicetak (picking belum selesai).');
+        return back()->with('error', 'Belum ada data yang siap dicetak (picking list belum selesai).');
     }
 
-    // Ambil tanggal pertama untuk nomor rekap
-    $firstDate = $filteredData->first()->tgl_turun_pl;
-    $docNumber = $this->generateRekapNumber($firstDate);
-
-    // Tandai sebagai sudah dicetak
+    // === UPDATE printed_at ===
     if ($request->boolean('mark_printed')) {
         RealisasiAktif::whereIn('id', $filteredData->pluck('id'))
             ->whereNull('printed_at')
-            ->update(['printed_at' => now(), 'updated_at' => now()]);
+            ->update([
+                'printed_at' => now(),
+                'updated_at' => now()
+            ]);
     }
 
+    // === REFRESH DATA SETELAH UPDATE ===
+    $filteredData = RealisasiAktif::whereIn('id', $filteredData->pluck('id'))
+                    ->with(['jakartaAktif'])
+                    ->orderBy('tgl_turun_pl')
+                    ->orderBy('no_pl')
+                    ->get();
+
+    // Generate nomor rekap
+    $firstDate = $filteredData->first()->tgl_turun_pl;
+    $docNumber = $this->generateRekapNumber($firstDate);
+
+    // Generate PDF
     $pdf = PDF::loadView('order.jakarta-printed-pdf', [
-        'data'      => $filteredData,   // Kirim semua data
+        'data'      => $filteredData,
         'docNumber' => $docNumber
     ])
     ->setPaper('A4', 'landscape')
     ->setOptions([
         'defaultFont' => 'sans-serif',
         'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled' => true,
     ]);
 
     return $pdf->stream('RA-Prising-' . now()->format('d-m-Y_H-i') . '.pdf');
@@ -1277,31 +1325,35 @@ public function exportJakartaAktif(Request $request)
  */
 public function printPickingList($id)
 {
-    $main = RealisasiAktif::with('picking.pickingItems')->findOrFail($id);
+    $main = RealisasiAktif::with([
+        'picking',
+        'picking.pickingItems.product'
+    ])->findOrFail($id);
 
-    // Tandai sudah dicetak
     if (!$main->picking_printed_at) {
-        $main->update(['picking_printed_at' => now()]);
+        $main->update([
+            'picking_printed_at' => now()
+        ]);
     }
 
-    // Ambil Picking yang terkait
-    $picking = $main->picking; // relasi hasOne
-
-    if (!$picking) {
-        return redirect()->back()->with('error', 'Picking belum dibuat untuk realisasi ini.');
+    if (!$main->picking) {
+        return back()->with('error','Picking belum dibuat.');
     }
 
-    $items = $picking->pickingItems()->orderBy('item_sku')->get();
+    $items = $main->picking
+        ->pickingItems
+        ->sortBy('item_sku')
+        ->values();
 
-    return view('order.picking-list', [
-        'item'              => $main,                    // RealisasiAktif
-        'picking'           => $picking,
-        'data'              => $items,                   // ← PickingItem
-        'no_pl'             => $main->no_pl,
-        'tgl_order'         => $main->tgl_turun_pl,
-        'billing_last_name' => $main->billing_last_name,
-        'billing_company'   => $main->billing_company,
-        'kategori_order'    => $main->kategori_order,    // ← Tambahan
+    return view('order.picking-list',[
+        'item'=>$main,
+        'picking'=>$main->picking,
+        'data'=>$items,
+        'no_pl'=>$main->no_pl,
+        'tgl_order'=>$main->tgl_turun_pl,
+        'billing_last_name'=>$main->billing_last_name,
+        'billing_company'=>$main->billing_company,
+        'kategori_order'=>$main->kategori_order,
     ]);
 }
 

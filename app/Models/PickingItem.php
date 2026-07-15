@@ -27,4 +27,8 @@ class PickingItem extends Model
     {
         return $this->belongsTo(Picking::class);
     }
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
 }

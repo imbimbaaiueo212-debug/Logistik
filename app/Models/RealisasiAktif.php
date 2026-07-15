@@ -80,4 +80,9 @@ class RealisasiAktif extends Model
     {
         return $this->hasOne(Picking::class, 'realisasi_aktif_id');
     }
+
+    public function produk()
+{
+    return $this->belongsTo(Product::class, 'product_id'); // sesuaikan nama foreign key
+}
 }
