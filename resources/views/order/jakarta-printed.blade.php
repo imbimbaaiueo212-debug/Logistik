@@ -84,10 +84,11 @@
                 $allPickingDone = $rows->every(fn($item) => !is_null($item->picking_printed_at));
                 $allPrinted     = $rows->every(fn($item) => !is_null($item->printed_at));
                 $collapseId     = 'collapse_' . $loop->index;
+                $totalOrder     = $rows->count();
             @endphp
 
             <div class="bg-white shadow-lg border-2 border-gray-800 mb-8 rounded-xl overflow-hidden" 
-                 data-tanggal="{{ $tanggal }}">
+                data-tanggal="{{ $tanggal }}">
 
                 <!-- HEADER (CLICKABLE) -->
                 <button onclick="toggleContent('{{ $collapseId }}')" 
@@ -106,10 +107,17 @@
                     </div>
 
                     <div class="flex-1 text-center px-6">
-                        <span class="font-bold text-lg">
-                            Rekap Aktual Detail - {{ $first->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
-                        </span>
-                        <span class="text-indigo-600 font-semibold ml-2">{{ $first->rekap_number ?? '#0001' }}</span>
+                        <div>
+                            <span class="font-bold text-lg">
+                                Rekap Aktual Detail - {{ $first->nama_stokis ?? 'STOKIS JAKARTA AKTIF' }}
+                            </span>
+                            <span class="text-indigo-600 font-semibold ml-2">{{ $first->rekap_number ?? '#0001' }}</span>
+                        </div>
+                        
+                        <div class="text-sm text-gray-500 mt-1">
+                            Total Order : 
+                            <span class="font-bold text-blue-600">{{ $totalOrder }}</span>
+                        </div>
                     </div>
 
                     <div class="text-right">
@@ -209,9 +217,8 @@
         @endforeach
 
         @if($data->count() > 0)
-        <div class="mt-6 text-sm text-gray-600 flex justify-between items-center">
-            <div>Menampilkan <strong>{{ $data->count() }}</strong> data</div>
-        </div>
+            <div class="mt-6 text-sm text-gray-600 flex justify-between items-center">
+            </div>
         @endif
     </div>
 
