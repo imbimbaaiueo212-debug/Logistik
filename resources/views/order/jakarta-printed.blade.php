@@ -230,87 +230,101 @@
     </div>
 
     <script>
-        function toggleContent(id) {
-            const content = document.getElementById(id);
-            const icon = document.getElementById('icon-' + id);
+    // ==================== ACCORDION DENGAN LOCALSTORAGE ====================
+    function toggleContent(id) {
+        const content = document.getElementById(id);
+        const icon = document.getElementById('icon-' + id);
 
-            if (content.style.display === 'none') {
+        if (content.style.display === 'none' || content.style.display === '') {
+            content.style.display = 'block';
+            icon.textContent = '▼';
+            localStorage.setItem('openAccordion', id);   // Simpan yang terbuka
+        } else {
+            content.style.display = 'none';
+            icon.textContent = '▶';
+            localStorage.removeItem('openAccordion');
+        }
+    }
+
+    // ==================== PRINT FUNCTION (Tanpa bergantung win.closed) ====================
+    function printPerDate(tanggal, type) {
+        const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
+        if (!container) return;
+
+        const ids = Array.from(container.querySelectorAll("tr[data-id]"))
+            .map(r => r.dataset.id)
+            .join(",");
+
+        let url = "";
+
+        switch(type) {
+            case "prising":
+                url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
+                break;
+            case "pemesanan":
+                url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
+                break;
+            case "qc":
+                url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
+                break;
+            case "packing":
+                url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
+                break;
+            case "ekspedisi":
+                url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
+                break;
+        }
+
+        if (url) {
+            window.open(url, "_blank");
+
+            // Reload setelah 1.2 detik (cukup untuk proses print)
+            setTimeout(() => {
+                location.reload();
+            }, 1200);
+        }
+    }
+
+    // ==================== MODAL PICKING LIST ====================
+    let currentButton = null;
+
+    function printPickingList(btn, id, noPL) {
+        currentButton = btn;
+        document.getElementById('modalMessage').innerHTML = `Cetak Picking List untuk No. PL <strong>${noPL}</strong>?`;
+        document.getElementById('pickingModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('pickingModal').classList.add('hidden');
+    }
+
+    async function confirmPrintPicking() {
+        if (!currentButton) return;
+        const row = currentButton.closest('tr');
+        const id = row.dataset.id;
+        window.open(`/order/realisasi/picking-list/${id}`, '_blank');
+        closeModal();
+        setTimeout(() => location.reload(), 1000);
+    }
+
+    // ==================== RESTORE ACCORDION SAAT LOAD ====================
+    document.addEventListener('DOMContentLoaded', function () {
+        // Tutup semua dulu
+        document.querySelectorAll('.accordion-content').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Buka yang sebelumnya terbuka
+        const openedId = localStorage.getItem('openAccordion');
+        if (openedId) {
+            const content = document.getElementById(openedId);
+            const icon = document.getElementById('icon-' + openedId);
+            if (content && icon) {
                 content.style.display = 'block';
                 icon.textContent = '▼';
-            } else {
-                content.style.display = 'none';
-                icon.textContent = '▶';
             }
         }
-
-        // Print functions tetap sama
-        function printPerDate(tanggal, type) {
-    const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
-    const ids = Array.from(container.querySelectorAll('tr[data-id]'))
-                    .map(row => row.dataset.id)
-                    .join(',');
-
-    let url = '';
-    
-    if (type === 'prising') {
-        url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
-    } else if (type === 'pemesanan') {
-        url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
-    } else if (type === 'qc') {
-        url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
-    } else if (type === 'packing') {
-        url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
-    } else if (type === 'ekspedisi') {
-        url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
-    }
-
-    if (url) {
-        const win = window.open(url, '_blank');
-        
-        if (win) {
-            // Tunggu sampai popup ditutup, lalu reload halaman
-            const timer = setInterval(() => {
-                if (win.closed) {
-                    clearInterval(timer);
-                    location.reload();   // Refresh halaman agar status berubah
-                }
-            }, 800);
-        } else {
-            // Fallback jika popup diblokir
-            alert('Popup diblokir oleh browser. Mohon izinkan popup untuk halaman ini.');
-        }
-    }
-}
-
-        // Modal functions (tetap sama)
-        let currentButton = null;
-
-        function printPickingList(btn, id, noPL) {
-            currentButton = btn;
-            document.getElementById('modalMessage').innerHTML = `Cetak Picking List untuk No. PL <strong>${noPL}</strong>?`;
-            document.getElementById('pickingModal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('pickingModal').classList.add('hidden');
-        }
-
-        async function confirmPrintPicking() {
-            if (!currentButton) return;
-            const row = currentButton.closest('tr');
-            const id = row.dataset.id;
-            window.open(`/order/realisasi/picking-list/${id}`, '_blank');
-            closeModal();
-            setTimeout(() => location.reload(), 800);
-        }
-
-        // Buka semua accordion saat pertama kali load (opsional)
-        document.addEventListener('DOMContentLoaded', function () {
-            // Kalau mau semua terbuka saat load, hapus baris di bawah ini
-            document.querySelectorAll('.accordion-content').forEach(el => {
-                el.style.display = 'none';
-            });
-        });
-    </script>
+    });
+</script>
 </body>
 </html>

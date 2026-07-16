@@ -1033,56 +1033,93 @@ public function printRealisasiPdf(Request $request)
         return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
-    // Ambil data awal
+    // Ambil data beserta relasi
     $data = RealisasiAktif::whereIn('id', $ids)
-                ->with(['jakartaAktif'])
-                ->orderBy('tgl_turun_pl')
-                ->orderBy('no_pl')
-                ->get();
+        ->with(['jakartaAktif'])
+        ->get();
 
-    // Filter hanya yang picking sudah selesai
+    // Hanya yang Picking sudah selesai
     $filteredData = $data->filter(function ($item) {
         return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
-        return back()->with('error', 'Belum ada data yang siap dicetak (picking list belum selesai).');
+        return back()->with('error', 'Belum ada data yang siap dicetak (Picking List belum selesai).');
     }
 
-    // === UPDATE printed_at ===
+    // Tandai sudah print
     if ($request->boolean('mark_printed')) {
         RealisasiAktif::whereIn('id', $filteredData->pluck('id'))
             ->whereNull('printed_at')
             ->update([
                 'printed_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
     }
 
-    // === REFRESH DATA SETELAH UPDATE ===
+    // Refresh data
     $filteredData = RealisasiAktif::whereIn('id', $filteredData->pluck('id'))
-                    ->with(['jakartaAktif'])
-                    ->orderBy('tgl_turun_pl')
-                    ->orderBy('no_pl')
-                    ->get();
+        ->with(['jakartaAktif'])
+        ->get();
 
-    // Generate nomor rekap
-    $firstDate = $filteredData->first()->tgl_turun_pl;
+    /*
+    |--------------------------------------------------------------------------
+    | Urutkan data
+    |--------------------------------------------------------------------------
+    | 1. Jumlah item paling sedikit
+    | 2. Tanggal Turun PL
+    | 3. Nomor PL
+    |--------------------------------------------------------------------------
+    */
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+
+            $countA = empty($a->nama_barang)
+                ? 0
+                : substr_count($a->nama_barang, '|') + 1;
+
+            $countB = empty($b->nama_barang)
+                ? 0
+                : substr_count($b->nama_barang, '|') + 1;
+
+            // jumlah item
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            // tanggal
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            // nomor order
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+
+        })
+        ->values();
+
+    // Nomor dokumen
+    $firstDate = optional($filteredData->first())->tgl_turun_pl;
+
     $docNumber = $this->generateRekapNumber($firstDate);
 
     // Generate PDF
     $pdf = PDF::loadView('order.jakarta-printed-pdf', [
         'data'      => $filteredData,
-        'docNumber' => $docNumber
+        'docNumber' => $docNumber,
     ])
     ->setPaper('A4', 'landscape')
     ->setOptions([
-        'defaultFont' => 'sans-serif',
-        'isHtml5ParserEnabled' => true,
-        'isRemoteEnabled' => true,
+        'defaultFont'            => 'sans-serif',
+        'isHtml5ParserEnabled'   => true,
+        'isRemoteEnabled'        => true,
     ]);
 
-    return $pdf->stream('RA-Prising-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return $pdf->stream(
+        'RA-Pricing-' . now()->format('d-m-Y_H-i') . '.pdf'
+    );
 }
 
 
@@ -1418,40 +1455,81 @@ public function printPickingListPdf($id)
  */
 public function printQC(Request $request)
 {
-    $ids = explode(',', $request->get('ids', ''));
+    $ids = array_filter(explode(',', $request->get('ids', '')));
 
-    if (empty($ids[0])) {
+    if (empty($ids)) {
         return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
+    // Ambil data
     $data = RealisasiAktif::whereIn('id', $ids)
-                ->with('jakartaAktif')
-                ->orderBy('tgl_turun_pl')
-                ->orderBy('no_pl')
-                ->get();
+        ->with('jakartaAktif')
+        ->get();
 
-    // Filter hanya yang picking-nya sudah dicetak
+    // Hanya yang Picking List sudah dicetak
     $filteredData = $data->filter(function ($item) {
         return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
-        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak untuk QC.');
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak untuk QC.');
     }
 
-    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+    /*
+    |--------------------------------------------------------------------------
+    | Urutan:
+    | 1. Jumlah item paling sedikit
+    | 2. Tanggal Turun PL
+    | 3. Nomor PL
+    |--------------------------------------------------------------------------
+    */
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+
+            $countA = empty($a->nama_barang)
+                ? 0
+                : substr_count($a->nama_barang, '|') + 1;
+
+            $countB = empty($b->nama_barang)
+                ? 0
+                : substr_count($b->nama_barang, '|') + 1;
+
+            // Jumlah item
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            // Tanggal Turun PL
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            // Nomor PL
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+
+        })
+        ->values();
+
+    $docNumber = $this->generateRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
 
     $pdf = PDF::loadView('order.print-qc', [
         'data'      => $filteredData,
-        'docNumber' => $docNumber
+        'docNumber' => $docNumber,
     ])
     ->setPaper('A4', 'landscape')
     ->setOptions([
-        'defaultFont' => 'sans-serif',
+        'defaultFont'          => 'sans-serif',
         'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
     ]);
 
-    return $pdf->stream('QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return $pdf->stream(
+        'QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf'
+    );
 }
 
 /**
@@ -1459,46 +1537,88 @@ public function printQC(Request $request)
  */
 public function printPemesanan(Request $request)
 {
-    $ids = explode(',', $request->get('ids', ''));
+    $ids = array_filter(explode(',', $request->get('ids', '')));
 
     if (empty($ids)) {
         return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
+    // Ambil data
     $data = RealisasiAktif::whereIn('id', $ids)
-                ->with('jakartaAktif')
-                ->orderBy('tgl_turun_pl')
-                ->orderBy('no_pl')
-                ->get();
+        ->with('jakartaAktif')
+        ->get();
 
-    // Filter hanya data yang PICKING sudah selesai (picking_printed_at terisi)
+    // Hanya yang Picking selesai
     $filteredData = $data->filter(function ($item) {
         return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
-        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak.');
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak.');
     }
 
-    // Group per tanggal agar PDF lebih rapi (opsional tapi sangat direkomendasikan)
+    /*
+    |--------------------------------------------------------------------------
+    | Urutan:
+    | 1. Jumlah kategori / item paling sedikit
+    | 2. Tanggal Turun PL
+    | 3. Nomor PL
+    |--------------------------------------------------------------------------
+    */
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+
+            // Hitung jumlah item dari nama_barang
+            $countA = empty($a->nama_barang)
+                ? 0
+                : substr_count($a->nama_barang, '|') + 1;
+
+            $countB = empty($b->nama_barang)
+                ? 0
+                : substr_count($b->nama_barang, '|') + 1;
+
+            // Jumlah item
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            // Tanggal
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            // Nomor PL
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+
+        })
+        ->values();
+
+    // Group per tanggal
     $groupedData = $filteredData->groupBy(function ($item) {
         return Carbon::parse($item->tgl_turun_pl)->toDateString();
     });
 
-    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+    $docNumber = $this->generateRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
 
     $pdf = PDF::loadView('order.print-pemesanan', [
-        'data'        => $filteredData,      // atau $groupedData jika view mendukung
+        'data'        => $filteredData,
+        'groupedData' => $groupedData,
         'docNumber'   => $docNumber,
-        'groupedData' => $groupedData,       // kirim ke view jika mau tampil per tanggal
     ])
     ->setPaper('A4', 'landscape')
     ->setOptions([
-        'defaultFont' => 'sans-serif',
-        'isHtml5ParserEnabled' => true,
+        'defaultFont'           => 'sans-serif',
+        'isHtml5ParserEnabled'  => true,
+        'isRemoteEnabled'       => true,
     ]);
 
-    return $pdf->stream('RA-Pemesanan-Picking-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return $pdf->stream(
+        'RA-Pemesanan-Picking-' . now()->format('d-m-Y_H-i') . '.pdf'
+    );
 }
 
 /**
@@ -1506,39 +1626,81 @@ public function printPemesanan(Request $request)
  */
 public function printPacking(Request $request)
 {
-    $ids = explode(',', $request->get('ids', ''));
+    $ids = array_filter(explode(',', $request->get('ids', '')));
 
-    if (empty($ids[0])) {
+    if (empty($ids)) {
         return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
+    // Ambil data
     $data = RealisasiAktif::whereIn('id', $ids)
-                ->with('jakartaAktif')
-                ->orderBy('tgl_turun_pl')
-                ->orderBy('no_pl')
-                ->get();
+        ->with('jakartaAktif')
+        ->get();
 
+    // Hanya yang Picking List sudah dicetak
     $filteredData = $data->filter(function ($item) {
         return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
-        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak untuk Packing.');
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak untuk Packing.');
     }
 
-    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+    /*
+    |--------------------------------------------------------------------------
+    | Urutan:
+    | 1. Jumlah item paling sedikit
+    | 2. Tanggal Turun PL
+    | 3. Nomor PL
+    |--------------------------------------------------------------------------
+    */
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+
+            $countA = empty($a->nama_barang)
+                ? 0
+                : substr_count($a->nama_barang, '|') + 1;
+
+            $countB = empty($b->nama_barang)
+                ? 0
+                : substr_count($b->nama_barang, '|') + 1;
+
+            // Jumlah item
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            // Tanggal Turun PL
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            // Nomor PL
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+
+        })
+        ->values();
+
+    $docNumber = $this->generateRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
 
     $pdf = PDF::loadView('order.print-packing', [
         'data'      => $filteredData,
-        'docNumber' => $docNumber
+        'docNumber' => $docNumber,
     ])
     ->setPaper('A4', 'landscape')
     ->setOptions([
-        'defaultFont' => 'sans-serif',
+        'defaultFont'          => 'sans-serif',
         'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
     ]);
 
-    return $pdf->stream('Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return $pdf->stream(
+        'Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf'
+    );
 }
 
 /**
@@ -1546,39 +1708,81 @@ public function printPacking(Request $request)
  */
 public function printEkspedisi(Request $request)
 {
-    $ids = explode(',', $request->get('ids', ''));
+    $ids = array_filter(explode(',', $request->get('ids', '')));
 
-    if (empty($ids[0])) {
+    if (empty($ids)) {
         return back()->with('error', 'Tidak ada data yang dipilih.');
     }
 
+    // Ambil data
     $data = RealisasiAktif::whereIn('id', $ids)
-                ->with('jakartaAktif')
-                ->orderBy('tgl_turun_pl')
-                ->orderBy('no_pl')
-                ->get();
+        ->with('jakartaAktif')
+        ->get();
 
+    // Hanya yang Picking List sudah dicetak
     $filteredData = $data->filter(function ($item) {
         return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
-        return back()->with('error', 'Belum ada data yang picking list-nya selesai dicetak untuk Distribusi.');
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak untuk Distribusi.');
     }
 
-    $docNumber = $this->generateRekapNumber($filteredData->first()->tgl_turun_pl ?? now());
+    /*
+    |--------------------------------------------------------------------------
+    | Urutan:
+    | 1. Jumlah item paling sedikit
+    | 2. Tanggal Turun PL
+    | 3. Nomor PL
+    |--------------------------------------------------------------------------
+    */
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+
+            $countA = empty($a->nama_barang)
+                ? 0
+                : substr_count($a->nama_barang, '|') + 1;
+
+            $countB = empty($b->nama_barang)
+                ? 0
+                : substr_count($b->nama_barang, '|') + 1;
+
+            // Jumlah item
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            // Tanggal Turun PL
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            // Nomor PL
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+
+        })
+        ->values();
+
+    $docNumber = $this->generateRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
 
     $pdf = PDF::loadView('order.print-ekspedisi', [
         'data'      => $filteredData,
-        'docNumber' => $docNumber
+        'docNumber' => $docNumber,
     ])
     ->setPaper('A4', 'landscape')
     ->setOptions([
-        'defaultFont' => 'sans-serif',
+        'defaultFont'          => 'sans-serif',
         'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
     ]);
 
-    return $pdf->stream('Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    return $pdf->stream(
+        'Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf'
+    );
 }
 
 

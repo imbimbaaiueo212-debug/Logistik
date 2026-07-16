@@ -4,85 +4,244 @@
     <meta charset="UTF-8">
     <title>Rekap Aktual Detail</title>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 8mm;
-        }
 
-        body {
-            font-family: "DejaVu Sans", sans-serif;
-            font-size: 9px;           /* dikecilkan */
-            margin: 0;
-            padding: 10px;
-            line-height: 1.35;
-        }
+@page{
+    size:A4 landscape;
+    margin:7mm;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            table-layout: auto;
-        }
+body{
+    font-family:"DejaVu Sans",sans-serif;
+    font-size:9px;
+    color:#1f2937;
+    margin:0;
+    padding:0;
+    line-height:1.3;
+}
 
-        th,
-        td{
-            border:1px solid #374151;
-            padding-top:1px;
-            padding-bottom:1px;
-            padding-left:3px;
-            padding-right:3px;
-            vertical-align:top;
-            text-align:center;
-            line-height:1;
-        }
+/* ===========================
+   TABLE
+=========================== */
 
-        .header1 th, 
-        .header2 th {
-            background-color: #f1f5f9;
-            border-bottom: 1px solid #374151;
-            font-weight: 700;
-            font-size: 9px;
-        }
+table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+}
 
-        .main-title {
-            font-size: 14px;
-            font-weight: 700;
-            background-color: #f8fafc;
-            border-bottom: 2px solid #374151;
-            padding: 6px 8px;
-        }
+th{
+    background:#e8eef7;
+    color:#111827;
+    border:1px solid #0000003d;
+    padding:5px 4px;
+    text-align:center;
+    vertical-align:middle;
+    font-size:9.5px;
+    font-weight:bold;
+    line-height:1.25;
+}
 
-        /* ================== LEBAR KOLOM BARU (DIKECILKAN) ================== */
-        .col-no          { width: 25px; }
-        .col-id          { width: 68px; }
-        .col-unit        { width: 135px; }
-        .col-kategori    { width: 65px; }
-        .col-distribusi  { width: 30px;}
-        .col-tglbayar    { width: 50px; }
-        .col-nominal     { width: 80px; }
-        .col-estimasi    { width: 20px; }
-        .col-hari        { width: 45px; }
-        .col-catatan     { width: 145px; }
-        .col-status      { width: 20px; }
+td{
+    border:1px solid #0000003d;
+    padding:3px 4px;
+    font-size:9px;
+    color:#374151;
+    vertical-align:top;
+    line-height:1.25;
+    word-wrap:break-word;
+}
 
-        .text-left  { text-align: left; }
-        .text-right { text-align: right; }
-        .font-bold  { font-weight: bold; }
+/* Zebra */
 
-        /* Signature */
-        .signature-table td {
-            border: none;
-            padding: 3px;
-            vertical-align: top;
-            width: 20%;
-        }
-        .footer {
-        text-align: center;
-        font-size: 10px;
-        color: #555;
-        margin-top: 20px;
-    }
-    </style>
+tbody tr:nth-child(even){
+    background:#fafafa;
+}
+
+tbody tr:nth-child(odd){
+    background:#ffffff;
+}
+
+/* ===========================
+   HEADER
+=========================== */
+
+.header1 th{
+    background:#dbeafe;
+    border:1px solid #0000003d;
+    font-size:10px;
+    font-weight:700;
+    padding:6px 4px;
+}
+
+.header2 th{
+    background:#dbeafe;
+    border:1px solid #0000003d;
+    font-size:9px;
+    font-weight:700;
+    padding:5px 4px;
+}
+
+.main-title{
+    font-size:18px;
+    font-weight:bold;
+    color:#1e3a8a;
+    text-align:center;
+    padding-bottom:8px;
+    margin-bottom:8px;
+    border-bottom:2px solid #3b82f6;
+}
+
+/* ===========================
+   TEXT
+=========================== */
+
+.text-left{
+    text-align:left;
+}
+
+.text-center{
+    text-align:center;
+}
+
+.text-right{
+    text-align:right;
+}
+
+.font-bold{
+    font-weight:bold;
+}
+
+/* ===========================
+   COLUMN WIDTH
+=========================== */
+
+.col-no{
+    width:32px;
+}
+
+.col-id{
+    width:75px;
+}
+
+.col-unit{
+    width:145px;
+}
+
+.col-kategori{
+    width:240px;
+}
+
+.col-distribusi{
+    width:80px;
+}
+
+.col-tglbayar{
+    width:90px;
+}
+
+.col-nominal{
+    width:100px;
+}
+
+.col-estimasi{
+    width:95px;
+}
+
+.col-catatan{
+    width:120px;
+}
+
+.col-status{
+    width:75px;
+}
+
+/* ===========================
+   SIGNATURE
+=========================== */
+
+.signature-table{
+    width:100%;
+    border:none;
+    margin-top:8px;
+}
+
+.signature-table td{
+    border:none;
+    text-align:center;
+    padding-top:12px;
+    width:20%;
+    font-size:9px;
+}
+
+.signature-title{
+    font-size:10px;
+    font-weight:bold;
+    margin-bottom:28px;
+}
+
+.signature-name{
+    margin-top:4px;
+    font-size:9px;
+}
+
+/* ===========================
+   FOOTER
+=========================== */
+
+.footer{
+    margin-top:10px;
+    border-top:1px solid #d1d5db;
+    padding-top:4px;
+    text-align:right;
+    font-size:8px;
+    color:#6b7280;
+}
+
+/* ===========================
+   BADGE
+=========================== */
+
+.badge-print{
+    display:inline-block;
+    padding:2px 6px;
+    border:1px solid #16a34a;
+    color:#16a34a;
+    font-weight:bold;
+    border-radius:3px;
+    font-size:8px;
+}
+
+.badge-pending{
+    display:inline-block;
+    padding:2px 6px;
+    border:1px solid #dc2626;
+    color:#dc2626;
+    font-weight:bold;
+    border-radius:3px;
+    font-size:8px;
+}
+
+/* ===========================
+   UTILITIES
+=========================== */
+
+.small{
+    font-size:8px;
+}
+
+.large{
+    font-size:10px;
+}
+
+.nowrap{
+    white-space:nowrap;
+}
+
+.wrap{
+    white-space:normal;
+}
+
+</style>
 </head>
 <body>
 
@@ -153,7 +312,7 @@
     <table>
         <thead>
             <tr class="header1">
-                <th rowspan="2" class="col-no" style="border:1px solid #374151;
+                <th rowspan="2" class="col-no" style="border:1px solid #0000003d;
             padding-top:1px;
             padding-bottom:2px;
             padding-left:3px;
@@ -162,7 +321,7 @@
             text-align:center;
             line-height:1;">NO</th>
                 <th colspan="3">DETAIL ORDER</th>
-                <th rowspan="2" class="col-distribusi" style="border:1px solid #374151;
+                <th rowspan="2" class="col-distribusi" style="border:1px solid #0000003d;
             padding-top:1px;
             padding-bottom:2px;
             padding-left:3px;
@@ -171,7 +330,7 @@
             text-align:center;
             line-height:1;">DISTRIBUSI</th>
                 <th colspan="2" class="col-nominal">PEMBAYARAN</th>
-                <th rowspan="2" class="col-estimasi" style="border:1px solid #374151;
+                <th rowspan="2" class="col-estimasi" style="border:1px solid #0000003d;
             padding-top:1px;
             padding-bottom:2px;
             padding-left:3px;
@@ -179,7 +338,7 @@
             vertical-align:middle;
             text-align:center;
             line-height:1;">ESTIMASI (WAKTU)</th>
-                <th rowspan="2" class="col-catatan" style="border:1px solid #374151;
+                <th rowspan="2" class="col-catatan" style="border:1px solid #0000003d;
             padding-top:1px;
             padding-bottom:2px;
             padding-left:3px;
@@ -187,7 +346,7 @@
             vertical-align:middle;
             text-align:center;
             line-height:1;">CATATAN</th>
-                <th rowspan="2" class="col-status" style="border:1px solid #374151;
+                <th rowspan="2" class="col-status" style="border:1px solid #0000003d;
             padding-top:1px;
             padding-bottom:2px;
             padding-left:3px;
