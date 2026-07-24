@@ -150,48 +150,48 @@
                                 <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
                                 <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
                                 <td class="text-center text-sm">
-    @php
-        $sku = $item->product?->sku;
-        $kategori = $item->product?->kategori ?? $item->kategori_order;
-        $namaBarang = $item->nama_barang;
-        $label = $item->product?->label ?? ''; // Ambil label jika ada (M158, M159, dst)
-    @endphp
+                                    @php
+                                        $sku = $item->product?->sku;
+                                        $kategori = $item->product?->kategori ?? $item->kategori_order;
+                                        $namaBarang = $item->nama_barang;
+                                        $label = $item->product?->label ?? ''; // Ambil label jika ada (M158, M159, dst)
+                                    @endphp
 
-    @if(str_contains(strtolower($kategori ?? ''), 'sertifikat') || str_contains(strtolower($namaBarang ?? ''), 'sertifikat'))
-        <!-- Khusus Sertifikat: SKU + Kategori -->
-        <div class="font-medium">
-            {{ $sku ? $sku . ' - ' . $kategori : $kategori }}
-        </div>
+                                    @if(str_contains(strtolower($kategori ?? ''), 'sertifikat') || str_contains(strtolower($namaBarang ?? ''), 'sertifikat'))
+                                        <!-- Khusus Sertifikat: SKU + Kategori -->
+                                        <div class="font-medium">
+                                            {{ $sku ? $sku . ' - ' . $kategori : $kategori }}
+                                        </div>
 
-    @elseif(str_contains(strtolower($kategori ?? ''), 'majalah') || str_contains(strtolower($namaBarang ?? ''), 'majalah'))
-        <!-- Khusus Majalah: Tampilkan Label + Nama Majalah + Edisi -->
-        <div class="font-medium">
-            @if($label)
-                {{ $label }} - {{ $kategori }}
-            @else
-                {{ $kategori }}
-            @endif
-        </div>
-        
-        @if($namaBarang)
-            <div class="text-xs text-gray-600 mt-1">
-                {{ $namaBarang }}
-            </div>
-        @endif
+                                    @elseif(str_contains(strtolower($kategori ?? ''), 'majalah') || str_contains(strtolower($namaBarang ?? ''), 'majalah'))
+                                        <!-- Khusus Majalah: Tampilkan Label + Nama Majalah + Edisi -->
+                                        <div class="font-medium">
+                                            @if($label)
+                                                {{ $label }} - {{ $kategori }}
+                                            @else
+                                                {{ $kategori }}
+                                            @endif
+                                        </div>
+                                        
+                                        @if($namaBarang)
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                {{ $namaBarang }}
+                                            </div>
+                                        @endif
 
-    @else
-        <!-- Normal: Tampilkan nama_barang atau kategori -->
-        <div class="font-medium">
-            {{ $kategori ?? $namaBarang ?? '-' }}
-        </div>
+                                    @else
+                                        <!-- Normal: Tampilkan nama_barang atau kategori -->
+                                        <div class="font-medium">
+                                            {{ $kategori ?? $namaBarang ?? '-' }}
+                                        </div>
 
-        @if($namaBarang && $namaBarang !== $kategori)
-            <div class="text-xs text-gray-600 mt-1">
-                {{ $namaBarang }}
-            </div>
-        @endif
-    @endif
-</td>
+                                        @if($namaBarang && $namaBarang !== $kategori)
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                {{ $namaBarang }}
+                                            </div>
+                                        @endif
+                                    @endif
+                                </td>
 
                                 <td class="text-center">
                                     <div>{{ $item->pengiriman ?? '-' }}</div>

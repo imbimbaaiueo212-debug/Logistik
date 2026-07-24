@@ -68,8 +68,8 @@ public function jakartaAktif(Request $request)
         $query->whereDate('tgl_pesan', '<=', $request->end_date);
     }
 
-    $perPage = $request->get('per_page', 5);
-    $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 5;
+    $perPage = $request->get('per_page', 50);
+    $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 50;
 
     $data = $query
         ->with(['casdana' => function ($q) {

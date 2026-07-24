@@ -559,10 +559,10 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
                     <select name="per_page" onchange="this.form.submit()" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
-                        <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
                         <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                         <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                        <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
+                        <option value="300" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                     </select>
                 </div>
                 <div class="flex items-end gap-3 pt-6 lg:col-span-2">

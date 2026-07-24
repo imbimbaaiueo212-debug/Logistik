@@ -152,7 +152,19 @@
                     <tr>
                         <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $index + 1 }}</td>
                         <td style="text-align:left; vertical-align:top; padding-top:1px; padding-bottom:1px; padding-left:4px; line-height:1;">{{ $row->item_name ?? $row->nama_barang ?? '-' }}</td>
-                        <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $row->item_sku ?? '-' }}</td>
+                        <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">
+                            @php
+                                $sku = trim($row->item_sku ?? '');
+                                
+                                // Hapus JKT dan semua tanda -
+                                $cleanSku = str_ireplace(['JKT', '-'], '', $sku);
+                                $cleanSku = trim($cleanSku);
+                            @endphp
+                            
+                            <span class="font-medium">
+                                {{ $cleanSku ?: '-' }}
+                            </span>
+                        </td>
                         <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $row->item_qty ?? $row->qty ?? 1 }}</td>
                         <td class="center"></td>
                     </tr>
