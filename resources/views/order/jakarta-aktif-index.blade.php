@@ -47,154 +47,39 @@
         color: white;
     }
     
-    </style>
-</head>
-<body class="bg-gray-50">
-
-    @include('partials.top-nav')
-
-    <div class="max-w-screen-2xl mx-auto px-6 py-6">
-
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Jakarta Aktif</h1>
-                <p class="text-gray-600">Kelola Data Order Jakarta Aktif</p>
-            </div>
-            
-            <div class="mb-5">
-
-    {{-- ==========================================
-         NAVIGASI UTAMA
-    =========================================== --}}
-    <div class="flex items-center justify-between gap-4 flex-wrap mb-4">
-
-        {{-- KIRI: NAVIGASI --}}
-        <div class="flex gap-2 flex-wrap" id="navButtons">
-
-            {{-- KEMBALI --}}
-            <a href="{{ route('order.jakarta-aktif.menu') }}"
-               class="nav-back">
-                <span>Menu</span>
-            </a>
-
-
-            {{-- MODUL --}}
-            <a href="{{ route('order.modul') }}"
-               onclick="setActiveTab(this)"
-               class="nav-tab nav-modul"
-               data-tab="modul">
-
-                <span class="nav-icon">📦</span>
-                <span>Modul & Lainnya</span>
-
-            </a>
-
-
-            {{-- MAJALAH --}}
-            <a href="{{ route('order.majalah') }}"
-               onclick="setActiveTab(this)"
-               class="nav-tab nav-majalah"
-               data-tab="majalah">
-
-                <span class="nav-icon">📖</span>
-                <span>Majalah Sahabat</span>
-
-            </a>
-
-
-            {{-- SERTIFIKAT --}}
-            <a href="{{ route('order.sertifikat') }}"
-               onclick="setActiveTab(this)"
-               class="nav-tab nav-sertifikat"
-               data-tab="sertifikat">
-
-                <span class="nav-icon">🏆</span>
-                <span>Sertifikat</span>
-
-            </a>
-
-
-            {{-- SEMUA PESANAN --}}
-            <a href="{{ route('order.jakarta-aktif') }}"
-               onclick="setActiveTab(this)"
-               class="nav-tab nav-semua active-tab"
-               data-tab="semua">
-
-                <span class="nav-icon">📋</span>
-                <span>Semua Pesanan</span>
-
-            </a>
-
-        </div>
-
-
-        {{-- KANAN: REKAP --}}
-        <div>
-            <a href="{{ route('order.jakarta-printed') }}"
-               class="btn-rekap">
-
-                <span>📊</span>
-                <span>Rekap Aktual</span>
-
-            </a>
-        </div>
-
-    </div>
-
-
-    {{-- ==========================================
-         ACTION BAR
-    =========================================== --}}
-    <div class="action-bar">
-
-        <div class="action-buttons">
-
-            @php
-                $queryString = http_build_query(request()->all());
-            @endphp
-
-
-            {{-- EXPORT --}}
-            <a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}"
-               class="btn-action btn-export">
-
-                <span>📥</span>
-                <span>Export Excel</span>
-
-            </a>
-
-
-            {{-- SYNC --}}
-            <form action="{{ route('order.jakarta-aktif.sync-jkt') }}"
-                  method="POST"
-                  onsubmit="return confirm('Yakin ingin melakukan Sync JKT + Casdana?')">
-
-                @csrf
-
-                <button type="submit"
-                        class="btn-action btn-sync">
-
-                    <span>🔄</span>
-                    <span>Sync JKT + Casdana</span>
-
-                </button>
-
-            </form>
-
-        </div>
-
-    </div>
-
-</div>
-        </div>
-
-
-<style>
-
-/* ==========================================
+    /* ==========================================
    NAVIGASI
 ========================================== */
+.nav-dropdown {
+    appearance: none;
+    min-width: 220px;
+    padding: 12px 42px 12px 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 14px;
+    background-color: white;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    /* Panah dropdown */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%23374151'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 18px;
+    background-position: right 14px center;
+
+    transition: all 0.2s ease;
+}
+
+.nav-dropdown:hover {
+    border-color: #6366f1;
+}
+
+.nav-dropdown:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
 
 #navButtons {
     display: flex;
@@ -335,11 +220,11 @@
     align-items: center;
     justify-content: space-between;
 
-    gap: 20px;
+    gap: 10px;
 
     padding: 14px 18px;
 
-    background: #f8fafc;
+    background: #EFF6FF;
 
     border: 1px solid #e2e8f0;
 
@@ -506,8 +391,93 @@
     }
 
 }
+    </style>
+</head>
+<body class="bg-gray-50">
 
-</style>
+    @include('partials.top-nav')
+
+    <div class="max-w-screen-2xl mx-auto px-6 py-6">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Jakarta Aktif</h1>
+                <p class="text-gray-600">Kelola Data Order Jakarta Aktif</p>
+            </div>
+            
+            <div class="mb-5">
+
+    {{-- ==========================================
+         NAVIGASI UTAMA
+    =========================================== --}}
+                <div class="flex items-center justify-between gap-4 flex-wrap mb-4">
+                            <div class="action-bar">
+
+                        <div class="action-buttons">
+
+                    {{-- KIRI: NAVIGASI --}}
+                    <div class="flex items-center gap-3 flex-wrap">
+
+                        {{-- KEMBALI --}}
+                        
+
+                        {{-- DROPDOWN KATEGORI --}}
+                       <form action="{{ route('order.jakarta-aktif.sync-jkt') }}"
+                                method="POST"
+                                onsubmit="return confirm('Yakin ingin melakukan Sync JKT + Casdana?')">
+
+                                @csrf
+
+                                <button type="submit"
+                                        class="btn-action btn-sync">
+
+                                    <span>🔄</span>
+                                    <span>Sync JKT + Casdana</span>
+                                </button>
+                            </form>
+
+                    </div>
+
+
+                    {{-- KANAN: REKAP --}}
+                    <div>
+                        <a href="{{ route('order.jakarta-printed') }}"
+                        class="btn-rekap">
+
+                            <span>📊</span>
+                            <span>Rekap Aktual</span>
+
+                        </a>
+                    </div>
+
+
+                            @php
+                                $queryString = http_build_query(request()->all());
+                            @endphp
+
+
+                            {{-- EXPORT --}}
+                            <a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}"
+                            class="btn-action btn-export">
+
+                                <span>📥</span>
+                                <span>Export Excel</span>
+
+                            </a>
+                            <a href="{{ route('order.jakarta-aktif.menu') }}"
+                        class="nav-back">
+                            <span>Kembali</span>
+                        </a>
+
+
+                            {{-- SYNC --}}
+                            
+                        </div>
+                    </div>
+                </div>  
+            </div>
+        </div>
 
         <!-- Bulk Action Bar -->
         <div id="bulkActionBar" class="bg-white rounded-3xl shadow p-5 mb-6 flex items-center justify-between border border-indigo-100">
@@ -530,48 +500,103 @@
         </div>
 
         <!-- Filter Section -->
-        <div class="bg-white rounded-3xl shadow p-6 mb-6">
-            <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">ID Pesan</label>
-                    <input type="text" name="id_pesan" value="{{ request('id_pesan') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Cari ID Pesan...">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Kirim</label>
-                    <input type="text" name="kirim" value="{{ request('kirim') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Nama Penerima...">
-                </div>
-                <div >
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Pesanan</label>
-                    <input type="text" name="pesanan" value="{{ request('pesanan') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Kategori Pesanan...">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Unit</label>
-                    <input type="text" name="nama_unit" value="{{ request('nama_unit') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Nama Unit...">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
-                    <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
-                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
-                    <select name="per_page" onchange="this.form.submit()" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
-                        <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
-                        <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
-                        <option value="300" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
-                    </select>
-                </div>
-                <div class="flex items-end gap-3 pt-6 lg:col-span-2">
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">🔍 Terapkan Filter</button>
-                    <a href="{{ route('order.jakarta-aktif') }}" class="text-gray-500 hover:text-red-600 px-4 py-2.5">Reset</a>
-                    
-                </div>
-            </form>
+       <div class="bg-slate-100 rounded-3xl shadow p-6 mb-6">
+    <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                ID Pesan
+            </label>
+            <input type="text"
+                   name="id_pesan"
+                   value="{{ request('id_pesan') }}"
+                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5"
+                   placeholder="Cari ID Pesan...">
         </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Kirim
+            </label>
+            <input type="text"
+                   name="kirim"
+                   value="{{ request('kirim') }}"
+                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5"
+                   placeholder="Nama Penerima...">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Pesanan
+            </label>
+            <input type="text"
+                   name="pesanan"
+                   value="{{ request('pesanan') }}"
+                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5"
+                   placeholder="Kategori Pesanan...">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Nama Unit
+            </label>
+            <input type="text"
+                   name="nama_unit"
+                   value="{{ request('nama_unit') }}"
+                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5"
+                   placeholder="Nama Unit...">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Dari Tanggal
+            </label>
+            <input type="date"
+                   name="start_date"
+                   value="{{ request('start_date') }}"
+                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Sampai Tanggal
+            </label>
+            <input type="date"
+                   name="end_date"
+                   value="{{ request('end_date') }}"
+                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Tampilkan
+            </label>
+            <select name="per_page"
+                    onchange="this.form.submit()"
+                    class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
+
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
+                <option value="300" {{ request('per_page') == 300 ? 'selected' : '' }}>300</option>
+
+            </select>
+        </div>
+
+        <div class="flex items-end gap-3 pt-6 lg:col-span-2">
+            <button type="submit"
+                    class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">
+                🔍 Terapkan Filter
+            </button>
+
+            <a href="{{ route('order.jakarta-aktif') }}"
+               class="text-gray-500 hover:text-red-600 px-4 py-2.5">
+                Reset
+            </a>
+        </div>
+
+    </form>
+</div>
 
         <!-- Tabel Data -->
         <div class="bg-white rounded-3xl shadow overflow-x-auto">

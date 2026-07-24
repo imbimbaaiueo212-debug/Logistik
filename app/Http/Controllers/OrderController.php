@@ -1185,57 +1185,33 @@ public function bulkActionJakartaAktif(Request $request)
             // Tetap menggunakan kategori TERBARU dari Master Product
             // ==================================================
             $namaBarang = $items
-                ->groupBy(function ($item) {
+    ->groupBy(function ($item) {
 
-                    $kategori = trim(
-                        $item->product?->kategori
-                        ?? $item->kategori
-                        ?? 'Lainnya'
-                    );
+        return trim(
+            $item->product?->kategori
+            ?? $item->kategori
+            ?? 'Lainnya'
+        );
+    })
+    ->map(function ($rows, $kategori) {
 
-                    $kategoriLower = strtolower($kategori);
+        $qty = $rows
+            ->groupBy(function ($item) {
+                return strtoupper(
+                    trim($item->sku ?? '')
+                );
+            })
+            ->sum(function ($skuRows) {
 
-                    if (str_contains($kategoriLower, 'modul')) {
-                        return 'Modul biMBA';
-                    }
+                return (int) (
+                    $skuRows->first()->qty ?? 0
+                );
+            });
 
-                    if (str_contains($kategoriLower, 'seragam')) {
-                        return 'Seragam Anak Bimba Aiueo';
-                    }
-
-                    if (str_contains($kategoriLower, 'perlengkapan')) {
-                        return 'Perlengkapan Bimba Unit Reguler';
-                    }
-
-                    if (str_contains($kategoriLower, 'administrasi')) {
-                        return 'Administrasi Akademik Bimba Aiueo';
-                    }
-
-                    return $kategori;
-                })
-                ->map(function ($rows, $kategori) {
-
-                    // ==================================================
-                    // GROUP BERDASARKAN SKU
-                    // AGAR ITEM YANG SAMA TIDAK DIHITUNG BERULANG
-                    // ==================================================
-                    $qty = $rows
-                        ->groupBy(function ($item) {
-                            return strtoupper(
-                                trim($item->sku ?? '')
-                            );
-                        })
-                        ->sum(function ($skuRows) {
-
-                            return (int) (
-                                $skuRows->first()->qty ?? 0
-                            );
-                        });
-
-                    return "{$kategori} ({$qty})";
-                })
-                ->values()
-                ->implode(' | ');
+        return "{$kategori} ({$qty})";
+    })
+    ->values()
+    ->implode(' | ');
 
             // ==================================================
             // PRODUCT ID UNTUK REALISASI AKTIF

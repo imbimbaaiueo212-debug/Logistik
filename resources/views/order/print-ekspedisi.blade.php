@@ -157,7 +157,145 @@
                 <td class="font-bold text-center">{{ $loop->iteration }}</td>
                 <td class="text-center">{{ $item->no_pl ?? '-' }}</td>
                 <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                <td class="text-left">{{ $item->nama_barang ?? '-' }}</td>
+                <td class="text-center text-sm">
+    @php
+        /*
+        |--------------------------------------------------------------------------
+        | AMBIL SEMUA PRODUCT ID
+        |--------------------------------------------------------------------------
+        */
+
+        $productIds = [];
+
+        if (!empty($item->product_ids)) {
+            $decodedIds = is_array($item->product_ids)
+                ? $item->product_ids
+                : json_decode($item->product_ids, true);
+
+            if (is_array($decodedIds)) {
+                $productIds = $decodedIds;
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | FALLBACK PRODUCT ID UTAMA
+        |--------------------------------------------------------------------------
+        */
+
+        if (empty($productIds) && !empty($item->product_id)) {
+            $productIds = [$item->product_id];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | AMBIL SEMUA PRODUCT
+        |--------------------------------------------------------------------------
+        */
+
+        $products = collect();
+
+        if (!empty($productIds)) {
+            $products = \App\Models\Product::whereIn('id', $productIds)
+                ->get();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | FALLBACK RELASI PRODUCT
+        |--------------------------------------------------------------------------
+        */
+
+        if ($products->isEmpty() && $item->product) {
+            $products = collect([$item->product]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | TAMPILKAN SKU TERLEBIH DAHULU, BARU KATEGORI
+        |--------------------------------------------------------------------------
+        */
+
+        $displayList = $products
+            ->map(function ($product) {
+
+                $kategori = trim(
+                    $product->kategori ?? ''
+                );
+
+                $kategoriLower = strtolower($kategori);
+
+                /*
+                |--------------------------------------------------------------------------
+                | AMBIL SKU / LABEL
+                |--------------------------------------------------------------------------
+                */
+
+                $sku = trim(
+                    $product->label
+                    ?? $product->kode
+                    ?? ''
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | KHUSUS SERTIFIKAT
+                |--------------------------------------------------------------------------
+                */
+
+                if (str_contains($kategoriLower, 'sertifikat')) {
+
+                    return ($sku ? $sku . ' - ' : '')
+                        . $kategori;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | KHUSUS MAJALAH
+                |--------------------------------------------------------------------------
+                */
+
+                if (str_contains($kategoriLower, 'majalah')) {
+
+                    return ($sku ? $sku . ' - ' : '')
+                        . $kategori;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | KATEGORI LAIN
+                |--------------------------------------------------------------------------
+                */
+
+                return $kategori;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | GABUNG DENGAN |
+        |--------------------------------------------------------------------------
+        */
+
+        $kategoriDisplay = $displayList->implode(' | ');
+
+        /*
+        |--------------------------------------------------------------------------
+        | FALLBACK
+        |--------------------------------------------------------------------------
+        */
+
+        if (empty($kategoriDisplay)) {
+            $kategoriDisplay = $item->kategori_order ?? 'Lainnya';
+        }
+    @endphp
+
+    <div class="font-medium">
+        {{ $kategoriDisplay }}
+    </div>
+</td>
 
                 <td class="text-center">
                     {{ $item->pengiriman ?? '-' }}<br>

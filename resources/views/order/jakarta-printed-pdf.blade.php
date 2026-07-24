@@ -111,48 +111,61 @@ tbody tr:nth-child(odd){
     font-weight:bold;
 }
 
-/* ===========================
+//* ===========================
    COLUMN WIDTH
 =========================== */
 
-.col-no{
-    width:32px;
+.main-table{
+    width:100%;
+    table-layout:fixed;
+    border-collapse:collapse;
 }
 
-.col-id{
-    width:75px;
+/* NO */
+.main-table .col-no{
+    width:4%;
 }
 
-.col-unit{
-    width:145px;
+/* DETAIL ORDER */
+.main-table .col-id{
+    width:7%;
 }
 
-.col-kategori{
-    width:240px;
+.main-table .col-unit{
+    width:12%;
 }
 
-.col-distribusi{
-    width:80px;
+.main-table .col-kategori{
+    width:17%;
 }
 
-.col-tglbayar{
-    width:90px;
+/* DISTRIBUSI */
+.main-table .col-distribusi{
+    width:8%;
 }
 
-.col-nominal{
-    width:100px;
+/* PEMBAYARAN */
+.main-table .col-tglbayar{
+    width:9%;
 }
 
-.col-estimasi{
-    width:95px;
+.main-table .col-nominal{
+    width:10%;
 }
 
-.col-catatan{
-    width:120px;
+/* ESTIMASI */
+.main-table .col-estimasi{
+    width:9%;
 }
 
-.col-status{
-    width:75px;
+/* CATATAN */
+.main-table .col-catatan{
+    width:14%;
+}
+
+/* STATUS */
+.main-table .col-status{
+    width:10%;
 }
 
 /* ===========================
@@ -245,81 +258,103 @@ tbody tr:nth-child(odd){
 </head>
 <body>
 
-    @php
-        $firstItem = $data->first();
-        $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
-        $rekapNo    = $firstItem?->rekap_number ?? '#0001';
-        $firstDate  = $data->min('created_at') ?? $data->min('tgl_turun_pl');
-    @endphp
+                    @php
+                        $firstItem = $data->first();
+                        $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
+                        $rekapNo    = $firstItem?->rekap_number ?? '#0001';
+                        $firstDate  = $data->min('created_at') ?? $data->min('tgl_turun_pl');
+                    @endphp
 
-    <!-- ================= HEADER ================= -->
-    <table style="width:100%; border:none; border-collapse:collapse; margin-bottom:10px;">
-        <tr>
-            <!-- Spacer kiri -->
-            <td style="width:15%; border:none;"></td>
+                    <!-- ================= HEADER ================= -->
+                    <table style="width:100%; border:none; border-collapse:collapse; margin-bottom:10px;">
+                        <tr>
+                            <!-- Spacer kiri -->
+                            <td style="width:15%; border:none;"></td>
 
-            <!-- Judul -->
-            <td style="width:70%; border:none; text-align:center; vertical-align:middle; padding-bottom:6px;">
-                <div style="font-size:15px; font-weight:bold; margin-bottom:6px;">
-                    Rekap Aktual Detail - {{ $stokisName }}
-                    <span style="color:#4f46e5; font-weight:bold;">{{ $rekapNo }}</span>
-                </div>
+                            <!-- Judul -->
+                            <td style="width:70%; border:none; text-align:center; vertical-align:middle; padding-bottom:6px;">
+                                <div style="font-size:15px; font-weight:bold; margin-bottom:6px;">
+                                    Rekap Aktual Detail - {{ $stokisName }}
+                                    <span style="color:#4f46e5; font-weight:bold;">{{ $rekapNo }}</span>
+                                </div>
 
-                @if($firstDate)
-                <div style="font-size:10.5px; color:#64748b; font-weight:bold; margin-bottom:1px;">
-                    Waktu Rekap & Cetak RA
-                </div>
-                <div style="font-size:11.5px; font-weight:bold; color:#111827;">
-                    {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
-                </div>
-                @endif
-            </td>
+                                @if($firstDate)
+                                <div style="font-size:10.5px; color:#64748b; font-weight:bold; margin-bottom:1px;">
+                                    Waktu Rekap & Cetak RA
+                                </div>
+                                <div style="font-size:11.5px; font-weight:bold; color:#111827;">
+                                    {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
+                                </div>
+                                @endif
+                            </td>
 
-            <!-- Status -->
-            <td style="width:15%; border:none; text-align:center; vertical-align:middle;">
-                @php $allPrinted = $data->every(fn($item) => !is_null($item->printed_at)); @endphp
-                <div style="font-size:10.5px; font-weight:bold; color:#64748b; margin-bottom:3px;">
-                    STATUS RA & PL (PDF)
-                </div>
-                <div style="font-size:14px; font-weight:bold; color:{{ $allPrinted ? '#10b981' : '#ef4444' }};">
-                    &#10003; {{ $allPrinted ? 'PRINT' : 'BELUM' }}
-                </div>
-            </td>
-        </tr>
+                            <!-- Status -->
+                            <td style="width:15%; border:none; text-align:center; vertical-align:middle;">
+                                @php $allPrinted = $data->every(fn($item) => !is_null($item->printed_at)); @endphp
+                                <div style="font-size:10.5px; font-weight:bold; color:#64748b; margin-bottom:3px;">
+                                    STATUS RA & PL (PDF)
+                                </div>
+                                <div style="font-size:14px; font-weight:bold; color:{{ $allPrinted ? '#10b981' : '#ef4444' }};">
+                                    &#10003; {{ $allPrinted ? 'PRINT' : 'BELUM' }}
+                                </div>
+                            </td>
+                        </tr>
 
-        <!-- TANDA TANGAN -->
-        <tr>
-            <td colspan="3" style="border:1px solid #374151; padding:10px 8px;">
-                <table style="width:100%; border:none; border-collapse:collapse;">
-                    <tr>
-                        @foreach(['Pricing','Picking','Checking','Packing','Finishing'] as $bagian)
-                        <td style="border:none; text-align:center; vertical-align:top;">
-                            <div style="font-size:9.5px; font-weight:bold; margin-bottom:35px;">
-                                {{ $bagian }}
-                            </div>
-                            <div style="font-size:8px; font-weight:bold; white-space:nowrap;">
-                                Nama __________ &nbsp;&nbsp; Tgl __________
-                            </div>
-                        </td>
-                        @endforeach
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+                        <!-- TANDA TANGAN -->
+                        <tr>
+                            <td colspan="3" style="border:1px solid #374151; padding:10px 8px;">
+                                <table style="width:100%; border:none; border-collapse:collapse;">
+                                    <tr>
+                                        @foreach(['Pricing','Picking','Checking','Packing','Finishing'] as $bagian)
+                                        <td style="border:none; text-align:center; vertical-align:top;">
+                                            <div style="font-size:9.5px; font-weight:bold; margin-bottom:35px;">
+                                                {{ $bagian }}
+                                            </div>
+                                            <div style="font-size:8px; font-weight:bold; white-space:nowrap;">
+                                                Nama __________ &nbsp;&nbsp; Tgl __________
+                                            </div>
+                                        </td>
+                                        @endforeach
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
 
-    <!-- TABEL UTAMA -->
-    <table>
-        <thead>
-            <tr class="header1">
-                <th rowspan="2" class="col-no" style="border:1px solid #0000003d;
-            padding-top:1px;
-            padding-bottom:2px;
-            padding-left:3px;
-            padding-right:3px;
-            vertical-align:middle;
-            text-align:center;
-            line-height:1;">NO</th>
+                    <!-- TABEL UTAMA -->
+                    <table class="main-table">
+
+                    <colgroup>
+                        <!-- NO -->
+                        <col style="width:4%;">
+
+                        <!-- DETAIL ORDER -->
+                        <col style="width:7%;">
+                        <col style="width:12%;">
+                        <col style="width:17%;">
+
+                        <!-- DISTRIBUSI -->
+                        <col style="width:8%;">
+
+                        <!-- PEMBAYARAN -->
+                        <col style="width:9%;">
+                        <col style="width:10%;">
+
+                        <!-- ESTIMASI -->
+                        <col style="width:9%;">
+
+                        <!-- CATATAN -->
+                        <col style="width:14%;">
+
+                        <!-- STATUS -->
+                        <col style="width:10%;">
+                    </colgroup>
+
+                    <thead>
+                            <tr class="header1">
+                                <th rowspan="2" class="col-no">
+                    NO
+                </th>
                 <th colspan="3">DETAIL ORDER</th>
                 <th rowspan="2" class="col-distribusi" style="border:1px solid #0000003d;
             padding-top:1px;
@@ -338,14 +373,9 @@ tbody tr:nth-child(odd){
             vertical-align:middle;
             text-align:center;
             line-height:1;">ESTIMASI (WAKTU)</th>
-                <th rowspan="2" class="col-catatan" style="border:1px solid #0000003d;
-            padding-top:1px;
-            padding-bottom:2px;
-            padding-left:3px;
-            padding-right:3px;
-            vertical-align:middle;
-            text-align:center;
-            line-height:1;">CATATAN</th>
+                <th rowspan="2" class="col-catatan">
+                    CATATAN
+                </th>
                 <th rowspan="2" class="col-status" style="border:1px solid #0000003d;
             padding-top:1px;
             padding-bottom:2px;
@@ -369,7 +399,145 @@ tbody tr:nth-child(odd){
                 <td class="font-bold">{{ $loop->iteration }}</td>
                 <td class="text-center">{{ $item->no_pl ?? '-' }}</td>
                 <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                <td class="text-center">{{ $item->nama_barang ?? '-' }}</td>
+                <td class="text-center text-sm">
+                    @php
+                        /*
+                        |--------------------------------------------------------------------------
+                        | AMBIL SEMUA PRODUCT ID
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $productIds = [];
+
+                        if (!empty($item->product_ids)) {
+                            $decodedIds = is_array($item->product_ids)
+                                ? $item->product_ids
+                                : json_decode($item->product_ids, true);
+
+                            if (is_array($decodedIds)) {
+                                $productIds = $decodedIds;
+                            }
+                        }
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | FALLBACK PRODUCT ID UTAMA
+                        |--------------------------------------------------------------------------
+                        */
+
+                        if (empty($productIds) && !empty($item->product_id)) {
+                            $productIds = [$item->product_id];
+                        }
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | AMBIL SEMUA PRODUCT
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $products = collect();
+
+                        if (!empty($productIds)) {
+                            $products = \App\Models\Product::whereIn('id', $productIds)
+                                ->get();
+                        }
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | FALLBACK RELASI PRODUCT
+                        |--------------------------------------------------------------------------
+                        */
+
+                        if ($products->isEmpty() && $item->product) {
+                            $products = collect([$item->product]);
+                        }
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | TAMPILKAN SKU TERLEBIH DAHULU, BARU KATEGORI
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $displayList = $products
+                            ->map(function ($product) {
+
+                                $kategori = trim(
+                                    $product->kategori ?? ''
+                                );
+
+                                $kategoriLower = strtolower($kategori);
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | AMBIL SKU / LABEL
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $sku = trim(
+                                    $product->label
+                                    ?? $product->kode
+                                    ?? ''
+                                );
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | KHUSUS SERTIFIKAT
+                                |--------------------------------------------------------------------------
+                                */
+
+                                if (str_contains($kategoriLower, 'sertifikat')) {
+
+                                    return ($sku ? $sku . ' - ' : '')
+                                        . $kategori;
+                                }
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | KHUSUS MAJALAH
+                                |--------------------------------------------------------------------------
+                                */
+
+                                if (str_contains($kategoriLower, 'majalah')) {
+
+                                    return ($sku ? $sku . ' - ' : '')
+                                        . $kategori;
+                                }
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | KATEGORI LAIN
+                                |--------------------------------------------------------------------------
+                                */
+
+                                return $kategori;
+                            })
+                            ->filter()
+                            ->unique()
+                            ->values();
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | GABUNG DENGAN |
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $kategoriDisplay = $displayList->implode(' | ');
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | FALLBACK
+                        |--------------------------------------------------------------------------
+                        */
+
+                        if (empty($kategoriDisplay)) {
+                            $kategoriDisplay = $item->kategori_order ?? 'Lainnya';
+                        }
+                    @endphp
+
+                    <div class="font-medium">
+                        {{ $kategoriDisplay }}
+                    </div>
+                </td>
                 <td style="
                     padding:1px 2px;
                     vertical-align:top;

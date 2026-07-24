@@ -220,9 +220,17 @@ Route::prefix('picking')->name('picking.')->group(function () {
 Route::resource('suppliers', SupplierController::class);
 
 // ====================== PRODUCTS ======================
+Route::resource('products', ProductController::class)->except(['show']);
+
 Route::get('/products/export', [ProductController::class, 'export'])->name('products.export');
 Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
-Route::resource('products', ProductController::class)->except(['show']);
+
+// Tambahkan ini
+Route::post('/products/bulk-edit-data', [ProductController::class, 'getBulkEditData'])
+     ->name('products.bulk-edit-data');
+
+Route::post('/products/bulk-update', [ProductController::class, 'bulkUpdate'])
+     ->name('products.bulk-update');
 
 // ====================== CATEGORIES ======================
 Route::resource('categories', CategoryController::class);

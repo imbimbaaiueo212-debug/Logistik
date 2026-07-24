@@ -57,6 +57,10 @@
 
             <!-- Filter Kategori -->
             <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border">
+                <a href="{{ route('order.jakarta-aktif') }}"
+                    class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">
+                        kembali
+                </a>
                 <a href="{{ route('order.jakarta-printed') }}" 
                    class="px-6 py-3 rounded-3xl font-medium transition-all {{ !request('kategori') ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
                     Semua
@@ -151,46 +155,142 @@
                                 <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
                                 <td class="text-center text-sm">
                                     @php
-                                        $sku = $item->product?->sku;
-                                        $kategori = $item->product?->kategori ?? $item->kategori_order;
-                                        $namaBarang = $item->nama_barang;
-                                        $label = $item->product?->label ?? ''; // Ambil label jika ada (M158, M159, dst)
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | AMBIL SEMUA PRODUCT ID
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        $productIds = [];
+
+                                        if (!empty($item->product_ids)) {
+                                            $decodedIds = is_array($item->product_ids)
+                                                ? $item->product_ids
+                                                : json_decode($item->product_ids, true);
+
+                                            if (is_array($decodedIds)) {
+                                                $productIds = $decodedIds;
+                                            }
+                                        }
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | FALLBACK PRODUCT ID UTAMA
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        if (empty($productIds) && !empty($item->product_id)) {
+                                            $productIds = [$item->product_id];
+                                        }
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | AMBIL SEMUA PRODUCT
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        $products = collect();
+
+                                        if (!empty($productIds)) {
+                                            $products = \App\Models\Product::whereIn('id', $productIds)
+                                                ->get();
+                                        }
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | FALLBACK RELASI PRODUCT
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        if ($products->isEmpty() && $item->product) {
+                                            $products = collect([$item->product]);
+                                        }
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | TAMPILKAN SKU TERLEBIH DAHULU, BARU KATEGORI
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        $displayList = $products
+                                            ->map(function ($product) {
+
+                                                $kategori = trim(
+                                                    $product->kategori ?? ''
+                                                );
+
+                                                $kategoriLower = strtolower($kategori);
+
+                                                /*
+                                                |--------------------------------------------------------------------------
+                                                | AMBIL SKU / LABEL
+                                                |--------------------------------------------------------------------------
+                                                */
+
+                                                $sku = trim(
+                                                    $product->label
+                                                    ?? $product->kode
+                                                    ?? ''
+                                                );
+
+                                                /*
+                                                |--------------------------------------------------------------------------
+                                                | KHUSUS SERTIFIKAT
+                                                |--------------------------------------------------------------------------
+                                                */
+
+                                                if (str_contains($kategoriLower, 'sertifikat')) {
+
+                                                    return ($sku ? $sku . ' - ' : '')
+                                                        . $kategori;
+                                                }
+
+                                                /*
+                                                |--------------------------------------------------------------------------
+                                                | KHUSUS MAJALAH
+                                                |--------------------------------------------------------------------------
+                                                */
+
+                                                if (str_contains($kategoriLower, 'majalah')) {
+
+                                                    return ($sku ? $sku . ' - ' : '')
+                                                        . $kategori;
+                                                }
+
+                                                /*
+                                                |--------------------------------------------------------------------------
+                                                | KATEGORI LAIN
+                                                |--------------------------------------------------------------------------
+                                                */
+
+                                                return $kategori;
+                                            })
+                                            ->filter()
+                                            ->unique()
+                                            ->values();
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | GABUNG DENGAN |
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        $kategoriDisplay = $displayList->implode(' | ');
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | FALLBACK
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        if (empty($kategoriDisplay)) {
+                                            $kategoriDisplay = $item->kategori_order ?? 'Lainnya';
+                                        }
                                     @endphp
 
-                                    @if(str_contains(strtolower($kategori ?? ''), 'sertifikat') || str_contains(strtolower($namaBarang ?? ''), 'sertifikat'))
-                                        <!-- Khusus Sertifikat: SKU + Kategori -->
-                                        <div class="font-medium">
-                                            {{ $sku ? $sku . ' - ' . $kategori : $kategori }}
-                                        </div>
-
-                                    @elseif(str_contains(strtolower($kategori ?? ''), 'majalah') || str_contains(strtolower($namaBarang ?? ''), 'majalah'))
-                                        <!-- Khusus Majalah: Tampilkan Label + Nama Majalah + Edisi -->
-                                        <div class="font-medium">
-                                            @if($label)
-                                                {{ $label }} - {{ $kategori }}
-                                            @else
-                                                {{ $kategori }}
-                                            @endif
-                                        </div>
-                                        
-                                        @if($namaBarang)
-                                            <div class="text-xs text-gray-600 mt-1">
-                                                {{ $namaBarang }}
-                                            </div>
-                                        @endif
-
-                                    @else
-                                        <!-- Normal: Tampilkan nama_barang atau kategori -->
-                                        <div class="font-medium">
-                                            {{ $kategori ?? $namaBarang ?? '-' }}
-                                        </div>
-
-                                        @if($namaBarang && $namaBarang !== $kategori)
-                                            <div class="text-xs text-gray-600 mt-1">
-                                                {{ $namaBarang }}
-                                            </div>
-                                        @endif
-                                    @endif
+                                    <div class="font-medium">
+                                        {{ $kategoriDisplay }}
+                                    </div>
                                 </td>
 
                                 <td class="text-center">
