@@ -48,20 +48,44 @@
     @include('partials.top-nav')
 
     <div class="max-w-screen-2xl mx-auto px-6 py-6">
-
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Picking List - Jakarta Aktif</h1>
-                <p class="text-gray-600">Daftar Picking yang sudah dibuat dari order Jakarta Aktif</p>
-            </div>
             
-            <div class="flex gap-3">
-                <a href="{{ route('picking.index') }}"
-                   class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">
-                    ← Kembali
-                </a>
+            <!-- Header + Filter Kategori -->
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Picking List - Jakarta Aktif</h1>
+                    <p class="text-gray-600">Daftar Picking yang sudah dibuat dari order Jakarta Aktif</p>
+                </div>
+
+                <!-- Filter Kategori -->
+                <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border">
+                    <a href="{{ route('picking.jakarta.aktif') }}" 
+                    class="px-6 py-3 rounded-3xl font-medium transition-all {{ !request('kategori') ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                        Semua
+                    </a>
+                    <a href="{{ route('picking.jakarta.aktif') }}?kategori=Modul" 
+                    class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Modul' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                        🟢 Modul
+                    </a>
+                    <a href="{{ route('picking.jakarta.aktif') }}?kategori=Majalah" 
+                    class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Majalah' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                        🔵 Majalah
+                    </a>
+                    <a href="{{ route('picking.jakarta.aktif') }}?kategori=Sertifikat" 
+                    class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Sertifikat' ? 'bg-red-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                        🔴 Sertifikat
+                    </a>
+                </div>
+
+                <div>
+                    <a href="{{ route('picking.index') }}"
+                    class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">
+                        ← Kembali
+                    </a>
+                </div>
             </div>
+
+            
         </div>
 
         <!-- Filter -->
@@ -133,7 +157,59 @@
                                 <br><small class="text-gray-500">{{ $item->billing_company }}</small>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-center">{{ $item->pesanan ?? '-' }}</td>
+                        <td class="text-center text-sm">
+    @php
+        $kategoriProduk = $item->pickingItems
+            ->map(function ($pickingItem) {
+
+                $sku = $pickingItem->product?->sku;
+                $kategori = $pickingItem->product?->kategori;
+                $namaBarang = $pickingItem->item_name;
+                $label = $pickingItem->product?->label ?? '';
+
+                $kategoriLower = strtolower($kategori ?? '');
+                $namaBarangLower = strtolower($namaBarang ?? '');
+
+                // ==============================
+                // SERTIFIKAT
+                // ==============================
+                if (
+                    str_contains($kategoriLower, 'sertifikat') ||
+                    str_contains($namaBarangLower, 'sertifikat')
+                ) {
+                    return $sku
+                        ? $sku . ' - ' . $kategori
+                        : $kategori;
+                }
+
+                // ==============================
+                // MAJALAH
+                // ==============================
+                elseif (
+                    str_contains($kategoriLower, 'majalah') ||
+                    str_contains($namaBarangLower, 'majalah')
+                ) {
+                    return $label
+                        ? $label . ' - ' . $kategori
+                        : $kategori;
+                }
+
+                // ==============================
+                // NORMAL
+                // ==============================
+                else {
+                    return $kategori
+                        ?? $namaBarang
+                        ?? '-';
+                }
+            })
+            ->filter()
+            ->unique()
+            ->implode(' | ');
+    @endphp
+
+    {{ $kategoriProduk ?: ($item->pesanan ?? '-') }}
+</td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
                             @if($item->payment_date)
                                 {{ \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y') }}

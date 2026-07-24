@@ -80,88 +80,155 @@ class PickingController extends Controller
                          ->with('success', 'Picking List berhasil dibuat!');
     }
 
-    public function jakartaAktif()
-    {
-        $data = Picking::with(['jakartaAktif', 'pickingItems'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+    public function jakartaAktif(Request $request)
+{
+    $query = Picking::with([
+        'jakartaAktif',
+        'pickingItems.product'
+    ]);
 
-        return view('picking.jakarta.aktif', compact('data'));
+    // ==================== FILTER KATEGORI ====================
+    if ($request->filled('kategori')) {
+        $query->where('kategori_order', $request->kategori);
     }
+
+    // ==================== FILTER LAINNYA ====================
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('no_pl', 'like', "%{$search}%")
+              ->orWhere('id_pesan', 'like', "%{$search}%")
+              ->orWhere('nama_unit', 'like', "%{$search}%");
+        });
+    }
+
+    if ($request->filled('nama_unit')) {
+        $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
+    }
+
+    if ($request->filled('start_date')) {
+        $query->whereDate('tgl_order', '>=', $request->start_date);
+    }
+
+    if ($request->filled('end_date')) {
+        $query->whereDate('tgl_order', '<=', $request->end_date);
+    }
+
+    $data = $query->orderBy('created_at', 'desc')
+                  ->paginate(20)
+                  ->appends($request->query());
+
+    return view('picking.jakarta.aktif', compact('data'));
+}
 
     /**
      * Generate Picking dari Realisasi Aktif
      */
     public function generatePicking($jakartaId)
-{
-    $jakarta = JakartaAktif::findOrFail($jakartaId);
+    {
+        $jakarta = JakartaAktif::with(['items.product'])->findOrFail($jakartaId);
 
-    if ($jakarta->picking_generated) {
-        return back()->with('warning', 'Picking sudah dibuat.');
+        if ($jakarta->picking_generated) {
+            return back()->with('warning', 'Picking sudah pernah dibuat.');
+        }
+
+        $allItems = $jakarta->items()->with('product')->get();
+
+        if ($allItems->isEmpty()) {
+            return back()->with('error', 'Tidak ada item untuk dibuat picking.');
+        }
+
+        // =============================================
+        // PEMISAHAN KATEGORI (sama seperti OrderController)
+        // =============================================
+        $groups = [
+            'Modul'      => collect(),
+            'Majalah'    => collect(),
+            'Sertifikat' => collect(),
+            'Lainnya'    => collect(),
+        ];
+
+        foreach ($allItems as $item) {
+            $kategori = trim($item->product?->kategori ?? $item->nama_produk ?? '');
+
+            $kategoriLower = strtolower($kategori);
+
+            if (str_contains($kategoriLower, 'majalah')) {
+                $groups['Majalah']->push($item);
+            } 
+            elseif (str_contains($kategoriLower, 'sertifikat')) {
+                $groups['Sertifikat']->push($item);
+            } 
+            elseif (str_contains($kategoriLower, 'modul') || str_contains($kategoriLower, 'bimba')) {
+                $groups['Modul']->push($item);
+            } else {
+                $groups['Lainnya']->push($item);
+            }
+        }
+
+        $createdCount = 0;
+
+        DB::transaction(function () use ($jakarta, $groups, &$createdCount) {
+
+            foreach ($groups as $kategoriOrder => $items) {
+
+                if ($items->isEmpty()) continue;
+
+                // Buat Picking per kategori
+                $picking = Picking::create([
+                    'jakarta_aktif_id'   => $jakarta->id,
+                    'no_pl'              => $jakarta->id_pesan . '-' . strtoupper(substr($kategoriOrder, 0, 3)),
+                    'tgl_order'          => $jakarta->tgl_pesan,
+                    'tgl_picking'        => now()->toDateString(),
+                    'jam_picking'        => now()->format('H:i:s'),
+                    'id_pesan'           => $jakarta->id_pesan,
+                    'kategori_order'     => $kategoriOrder,           // ← Penting
+
+                    'nama_unit'          => $jakarta->nama_unit,
+                    'billing_last_name'  => $jakarta->billing_last_name,
+                    'billing_company'    => $jakarta->billing_company,
+
+                    'kirim'              => $jakarta->kirim,
+                    'no_telpon'          => $jakarta->no_telpon,
+                    'alamat_kirim'       => $jakarta->alamat_kirim,
+                    'kab_kota_provinsi'  => $jakarta->kab_kota_provinsi,
+
+                    'ekspedisi'          => $jakarta->ekspedisi,
+                    'service_pengiriman' => $jakarta->service_pengiriman,
+
+                    'total_item'         => $items->count(),
+                    'total_qty'          => $items->sum('qty'),
+
+                    'status'             => 'completed',
+                    'printed_at'         => now(),
+                    'created_by'         => Auth::id(),
+                    'catatan'            => "Auto generate - {$kategoriOrder}",
+                ]);
+
+                // Simpan item
+                foreach ($items as $item) {
+                    PickingItem::create([
+                        'picking_id' => $picking->id,
+                        'product_id' => $item->product_id ?? $item->product?->id,
+                        'item_name'  => $item->product?->nama_produk ?? $item->nama_produk ?? $item->label ?? '-',
+                        'item_sku'   => $item->sku,
+                        'item_qty'   => (int) $item->qty,
+                        'qty_picked' => 0,
+                        'cek'        => false,
+                    ]);
+                }
+
+                $createdCount++;
+            }
+
+            // Tandai sudah generate
+            $jakarta->update(['picking_generated' => true]);
+        });
+
+        return redirect()
+            ->route('picking.jakarta.aktif')
+            ->with('success', "✅ Berhasil membuat {$createdCount} Picking List berdasarkan kategori.");
     }
-
-    $items = BimbashopOrder::where('order_id', $jakarta->id_pesan)
-                ->orderBy('item_sku')
-                ->get();
-
-    $picking = Picking::create([
-        'jakarta_aktif_id'   => $jakarta->id,
-        'no_pl'              => $jakarta->id_pesan,
-        'tgl_order'          => $jakarta->tgl_pesan,
-        'tgl_picking'        => now()->toDateString(),
-        'jam_picking'        => now()->format('H:i:s'),
-
-        'id_pesan'           => $jakarta->id_pesan,
-
-        'nama_unit'          => $jakarta->nama_unit,
-        'billing_last_name'  => $jakarta->billing_last_name,
-        'billing_company'    => $jakarta->billing_company,
-
-        'kirim'              => $jakarta->kirim,
-        'no_telpon'          => $jakarta->no_telpon,
-        'alamat_kirim'       => $jakarta->alamat_kirim,
-        'kab_kota_provinsi'  => $jakarta->kab_kota_provinsi,
-
-        'ekspedisi'          => $jakarta->ekspedisi,
-        'service_pengiriman' => $jakarta->service_pengiriman,
-
-        'harga'              => $jakarta->harga,
-        'ongkir'             => $jakarta->ongkir,
-        'berat'              => $jakarta->berat,
-        'total'              => $jakarta->total,
-
-        'total_item'         => $items->count(),
-        'total_qty'          => $items->sum('item_qty'),
-
-        'status'             => 'completed',
-
-        'printed_at'         => now(),
-        'created_by'         => Auth::id(),
-
-        'catatan'            => 'Generate otomatis dari Jakarta Aktif',
-    ]);
-
-    foreach ($items as $item) {
-
-        PickingItem::create([
-            'picking_id' => $picking->id,
-            'item_name'  => $item->item_name,
-            'item_sku'   => $item->item_sku,
-            'item_qty'   => $item->item_qty,
-            'qty_picked' => 0,
-            'cek'        => false,
-        ]);
-
-    }
-
-    $jakarta->update([
-        'picking_generated' => true,
-    ]);
-
-    return redirect()
-        ->route('picking.jakarta.aktif')
-        ->with('success', 'Picking berhasil dibuat.');
-}
 
     public function destroy($id)
 {

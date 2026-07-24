@@ -112,4 +112,8 @@ class Picking extends Model
     {
         return $query->whereIn('status', ['completed', 'printed']);
     }
+        public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
 }

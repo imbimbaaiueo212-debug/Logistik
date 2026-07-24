@@ -1514,22 +1514,21 @@ private function createPicking(RealisasiAktif $realisasi, $items = null)
     foreach ($items as $item) {
 
         PickingItem::create([
-            'picking_id' => $picking->id,
+    'picking_id' => $picking->id,
 
-            'item_name' => $item->product?->nama_produk
-                ?? $item->nama_produk
-                ?? $item->label
-                ?? '-',
+    'product_id' => $item->product_id,
 
-            'item_sku' => $item->sku,
-            'item_qty' => (int) $item->qty,
+    'item_name' => $item->product?->nama_produk
+        ?? $item->nama_produk
+        ?? $item->label
+        ?? '-',
 
-            // aktifkan jika kolom product_id sudah ada
-            // 'product_id' => $item->product_id,
+    'item_sku' => $item->sku,
+    'item_qty' => (int) $item->qty,
 
-            'qty_picked' => 0,
-            'cek' => false,
-        ]);
+    'qty_picked' => 0,
+    'cek' => false,
+]);
     }
 
     return $picking;

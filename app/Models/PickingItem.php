@@ -10,6 +10,7 @@ class PickingItem extends Model
 
     protected $fillable = [
         'picking_id',
+        'product_id',
         'item_name',
         'item_sku',
         'item_qty',

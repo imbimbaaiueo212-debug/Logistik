@@ -127,7 +127,17 @@
                     <tr>
                         <td class="center">{{ $index + 1 }}</td>
                         <td class="left">{{ $row->item_name ?? $row->nama_barang ?? '-' }}</td>
-                        <td class="center">{{ $row->item_sku ?? '-' }}</td>
+                        <td class="center">
+                            @php
+                                $sku = trim($row->item_sku ?? '');
+                                $cleanSku = str_ireplace(['JKT', '-'], '', $sku);
+                                $cleanSku = trim($cleanSku);
+                            @endphp
+                            
+                            <span class="font-medium">
+                                {{ $cleanSku ?: '-' }}
+                            </span>
+                        </td>
                         <td class="center">{{ $row->item_qty ?? $row->qty ?? 1 }}</td>
                         <td class="center"></td>
                     </tr>
