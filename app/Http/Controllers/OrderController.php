@@ -107,56 +107,112 @@ public function jakartaAktif(Request $request)
  */
 public function syncJktFromBimbashop()
 {
-    $totalOrder = 0;
-    $skipExists = 0;
+    $totalOrder  = 0;
+    $skipExists  = 0;
     $skipCasdana = 0;
-    $skipStatus = 0;
-    $inserted = 0;
+    $skipStatus  = 0;
+    $inserted    = 0;
 
     $excludedSkus = [
-        'JKTP', 'PUA1', 'PUA2', 'PUA3', 'DPK1', 'SRG1', 'KWG1', 'BKS1', 
-        'BGR1', 'TNG1', 'SNG', 'BGRT', 'PWK', 'TNG2', 'KNG', 'IDM', 
-        'SKB1', 'SKB2', 'BDG1', 'BDG2', 'CIL1', 'SRG2', 'DPR1', 'KWG2', 
-        'BGR3', '-LG', 'DLC', 'EBT', 'SMG', 'SBY', 'YYK', 'INV', 'SGN', 
+        'JKTP', 'PUA1', 'PUA2', 'PUA3', 'DPK1', 'SRG1', 'KWG1', 'BKS1',
+        'BGR1', 'TNG1', 'SNG', 'BGRT', 'PWK', 'TNG2', 'KNG', 'IDM',
+        'SKB1', 'SKB2', 'BDG1', 'BDG2', 'CIL1', 'SRG2', 'DPR1', 'KWG2',
+        'BGR3', '-LG', 'DLC', 'EBT', 'SMG', 'SBY', 'YYK', 'INV', 'SGN',
         'YK1', 'GR2', 'ENB', 'RB1', 'TNG3'
     ];
 
-    $bimbashopOrders = BimbashopOrder::where('item_sku', 'like', '%JKT%')
-                        ->whereNotIn('item_sku', $excludedSkus)
-                        ->where(function($q) use ($excludedSkus) {
-                            foreach ($excludedSkus as $sku) {
-                                $q->where('item_sku', 'not like', "%{$sku}%");
-                            }
-                        })
-                        ->get()
-                        ->groupBy('order_id');
+    // =====================================================
+    // AMBIL ORDER JKT
+    // =====================================================
+    $bimbashopOrders = BimbashopOrder::where(
+            'item_sku',
+            'like',
+            '%JKT%'
+        )
+        ->whereNotIn(
+            'item_sku',
+            $excludedSkus
+        )
+        ->where(function ($q) use ($excludedSkus) {
+
+            foreach ($excludedSkus as $sku) {
+                $q->where(
+                    'item_sku',
+                    'not like',
+                    "%{$sku}%"
+                );
+            }
+
+        })
+        ->get()
+        ->groupBy('order_id');
 
     $totalOrder = $bimbashopOrders->count();
 
+    // =====================================================
+    // LOOP ORDER
+    // =====================================================
     foreach ($bimbashopOrders as $orderId => $items) {
-        
-        if (JakartaAktif::where('id_pesan', $orderId)->exists()) {
+
+        // =================================================
+        // CEK ORDER SUDAH ADA
+        // =================================================
+        if (
+            JakartaAktif::where(
+                'id_pesan',
+                $orderId
+            )->exists()
+        ) {
             $skipExists++;
             continue;
         }
 
         $firstItem = $items->first();
 
-        // =====================================================
-        // QUERY CASDANA (versi fleksibel)
-        // =====================================================
-        $casdana = CasdanaTransaction::where('invoice_number', 'like', "%{$orderId}%")
-                    ->orWhere('invoice_number', $orderId)
-                    ->latest('id')
-                    ->first();
+        // =================================================
+        // QUERY CASDANA
+        // =================================================
+        $casdana = CasdanaTransaction::where(
+            function ($q) use ($orderId) {
+
+                $q->where(
+                    'invoice_number',
+                    'like',
+                    "%{$orderId}%"
+                )
+                ->orWhere(
+                    'invoice_number',
+                    $orderId
+                );
+
+            }
+        )
+        ->latest('id')
+        ->first();
 
         if (!$casdana) {
             $skipCasdana++;
             continue;
         }
 
-        $statusCasdana = strtoupper(trim($casdana->status ?? ''));
-        if (!in_array($statusCasdana, ['SUCCESS', 'SETTLED'])) {
+        // =================================================
+        // STATUS PEMBAYARAN
+        // =================================================
+        $statusCasdana = strtoupper(
+            trim(
+                $casdana->status ?? ''
+            )
+        );
+
+        if (
+            !in_array(
+                $statusCasdana,
+                [
+                    'SUCCESS',
+                    'SETTLED'
+                ]
+            )
+        ) {
             $skipStatus++;
             continue;
         }
@@ -164,141 +220,560 @@ public function syncJktFromBimbashop()
         // =====================================================
         // ESTIMASI WAKTU
         // =====================================================
-        $paymentDate = $casdana->payment_date;
-        $estimasiPrintPl = null;
+        $paymentDate       = $casdana->payment_date;
+        $estimasiPrintPl   = null;
         $estimasiPersiapan = null;
 
         if ($paymentDate) {
-            $payment = Carbon::parse($paymentDate);
-            $estimasiPrintPl = $payment->hour < 12 
-                ? $payment->copy() 
+
+            $payment = Carbon::parse(
+                $paymentDate
+            );
+
+            $estimasiPrintPl = $payment->hour < 12
+                ? $payment->copy()
                 : $payment->copy()->addDay();
 
-            while ($estimasiPrintPl->isSunday() || $this->isHoliday($estimasiPrintPl)) {
+            while (
+                $estimasiPrintPl->isSunday()
+                ||
+                $this->isHoliday(
+                    $estimasiPrintPl
+                )
+            ) {
                 $estimasiPrintPl->addDay();
             }
 
-            $estimasiPersiapan = $this->addBusinessDays($estimasiPrintPl, 2);
+            $estimasiPersiapan =
+                $this->addBusinessDays(
+                    $estimasiPrintPl,
+                    2
+                );
         }
 
         // =====================================================
-        // PRODUCT CACHE + KATEGORI LIST
+        // PRODUCT CACHE
         // =====================================================
         $productCache = [];
+
+        // =====================================================
+        // KATEGORI UTAMA ORDER
+        // =====================================================
         $kategoriList = [];
 
         foreach ($items as $item) {
-            $sku = strtoupper(trim($item->item_sku ?? ''));
-            if (empty($sku)) continue;
 
-            $searchCode = trim(explode('-', $sku)[0]);
+            $sku = strtoupper(
+                trim(
+                    $item->item_sku ?? ''
+                )
+            );
 
-            if (!isset($productCache[$searchCode])) {
-                $productCache[$searchCode] = $this->findProductBySku($sku, $item->item_name ?? '');
+            if (empty($sku)) {
+                continue;
             }
 
-            $product = $productCache[$searchCode];
+            // =================================================
+            // KODE SKU
+            // =================================================
+            $searchCode = trim(
+                explode(
+                    '-',
+                    $sku
+                )[0]
+            );
 
+            // =================================================
+            // CARI PRODUCT
+            // =================================================
+            if (
+                !array_key_exists(
+                    $searchCode,
+                    $productCache
+                )
+            ) {
+
+                $productCache[$searchCode] =
+                    $this->findProductBySku(
+                        $sku,
+                        $item->item_name ?? ''
+                    );
+            }
+
+            $product =
+                $productCache[$searchCode];
+
+            // =================================================
+            // AMBIL KATEGORI UTAMA
+            //
+            // PENTING:
+            //
+            // products.kategori
+            //      = KATEGORI UTAMA
+            //
+            // products.sub_kategori
+            //      = SUB KATEGORI
+            //
+            // KITA HANYA PAKAI:
+            //      $product->kategori
+            //
+            // JANGAN PAKAI sub_kategori
+            // =================================================
             if ($product) {
-                $kategoriList[] = trim($product->sub_kategori ?? $product->kategori ?? $product->name ?? $product->label);
+
+                $kategori = trim(
+                    (string) (
+                        $product->kategori ?? ''
+                    )
+                );
+
             } else {
-                $itemName = trim($item->item_name ?? '');
-                $clean = str_ireplace(['JKT', 'biMBA', 'Unit', 'Reguler'], '', $itemName);
-                $clean = preg_replace('/\s+/', ' ', $clean);
-                $kategoriList[] = trim($clean) ?: trim(preg_replace('/\s+/', ' ', str_ireplace(['JKT', '-JKT'], '', $sku)));
+
+                // =================================================
+                // FALLBACK JIKA PRODUCT TIDAK DITEMUKAN
+                // =================================================
+                $itemName = trim(
+                    $item->item_name ?? ''
+                );
+
+                $kategori = str_ireplace(
+                    [
+                        'JKT',
+                        'biMBA',
+                        'Unit',
+                        'Reguler'
+                    ],
+                    '',
+                    $itemName
+                );
+
+                $kategori = preg_replace(
+                    '/\s+/',
+                    ' ',
+                    $kategori
+                );
+
+                $kategori = trim(
+                    $kategori
+                );
+
+                if (empty($kategori)) {
+
+                    $kategori = trim(
+                        preg_replace(
+                            '/\s+/',
+                            ' ',
+                            str_ireplace(
+                                [
+                                    'JKT',
+                                    '-JKT'
+                                ],
+                                '',
+                                $sku
+                            )
+                        )
+                    );
+                }
+            }
+
+            // =================================================
+            // NORMALISASI KATEGORI UTAMA
+            // =================================================
+            $kategoriLower = strtolower(
+                trim(
+                    $kategori
+                )
+            );
+
+            // =================================================
+            // MODUL
+            //
+            // SEMUA PRODUK YANG KATEGORINYA MODUL
+            // DIGABUNG MENJADI:
+            //
+            // Modul biMBA
+            //
+            // Contoh:
+            //
+            // kategori:
+            // Modul biMBA
+            //
+            // sub_kategori:
+            // Modul Baca
+            // Modul Matematika
+            // Modul Dikte
+            //
+            // SEMUANYA:
+            // Modul biMBA
+            // =================================================
+            if (
+                $kategoriLower === 'modul bimba'
+                ||
+                $kategoriLower === 'modul bimba unit'
+                ||
+                str_contains(
+                    $kategoriLower,
+                    'modul'
+                )
+            ) {
+
+                $kategoriUmum =
+                    'Modul biMBA';
+
+            }
+
+            // =================================================
+            // MAJALAH
+            // =================================================
+            elseif (
+                str_contains(
+                    $kategoriLower,
+                    'majalah'
+                )
+            ) {
+
+                $kategoriUmum =
+                    'Majalah Sahabat biMBA';
+
+            }
+
+            // =================================================
+            // SERTIFIKAT
+            // =================================================
+            elseif (
+                str_contains(
+                    $kategoriLower,
+                    'sertifikat'
+                )
+            ) {
+
+                $kategoriUmum =
+                    'Sertifikat';
+
+            }
+
+            // =================================================
+            // KATEGORI LAIN
+            //
+            // Contoh:
+            // Kaos Anak
+            // =================================================
+            else {
+
+                $kategoriUmum =
+                    $kategori;
+
+            }
+
+            // =================================================
+            // MASUKKAN KATEGORI
+            // =================================================
+            if (
+                !empty(
+                    trim(
+                        $kategoriUmum
+                    )
+                )
+            ) {
+
+                $kategoriList[] =
+                    trim(
+                        $kategoriUmum
+                    );
             }
         }
 
-        $kategoriList = collect($kategoriList)->filter()->unique()->values();
+        // =====================================================
+        // HAPUS DUPLIKAT KATEGORI
+        // =====================================================
+        $kategoriList = collect(
+            $kategoriList
+        )
+        ->filter()
+        ->unique()
+        ->values();
 
+        // =====================================================
+        // BUAT PESANAN
+        //
+        // CONTOH ORDER 847896:
+        //
+        // Kaos Anak
+        // Modul Mewarnai Kartun
+        // Modul Mewarnai Transportasi
+        // Modul Baca
+        // Modul Matematika
+        //
+        // HASIL:
+        //
+        // Kaos Anak | Modul biMBA
+        // =====================================================
         $pesanan = $kategoriList->isEmpty()
-            ? 'Media Pembelajaran bimBA AIUEO'
-            : ($kategoriList->count() > 6 
-                ? $kategoriList->take(5)->implode(' | ') . ' + ...'
-                : $kategoriList->implode(' | '));
+            ? 'Media Pembelajaran biMBA AIUEO'
+            : $kategoriList->implode(' | ');
 
         // =====================================================
-        // NAMA UNIT - Menggunakan resolveNamaUnit
+        // NAMA UNIT
         // =====================================================
-        $firstItem = $items->first();
-
         $namaUnit = $this->resolveNamaUnit(
             $firstItem->billing_company,
             $firstItem->billing_last_name,
-            $firstItem->item_name ?? $casdana->customer ?? '-'
+            $firstItem->item_name
+                ?? $casdana->customer
+                ?? '-'
         );
 
         // =====================================================
-        // ALAMAT & STATUS KIRIM
+        // ALAMAT
         // =====================================================
-        $kirim = trim(implode(', ', array_filter([
-            $firstItem->shipping_address_1,
-            $firstItem->shipping_address_2,
-            $firstItem->shipping_city
-        ]))) ?: $namaUnit;
+        $kirim = trim(
+            implode(
+                ', ',
+                array_filter(
+                    [
+                        $firstItem->shipping_address_1,
+                        $firstItem->shipping_address_2,
+                        $firstItem->shipping_city
+                    ]
+                )
+            )
+        ) ?: $namaUnit;
 
-        $ongkir = (int) ($firstItem->ship_total ?? 0);
-        $statusKirim = $ongkir > 0 ? 'Dikirim' : 'Diambil';
+        // =====================================================
+        // STATUS PENGIRIMAN
+        // =====================================================
+        $ongkir = (int) (
+            $firstItem->ship_total ?? 0
+        );
 
+        $statusKirim = $ongkir > 0
+            ? 'Dikirim'
+            : 'Diambil';
+
+        // =====================================================
         // DATA HEADER
+        // =====================================================
         $data = [
-            'tgl_input'          => now()->format('Y-m-d'),
-            'tgl_pesan'          => $firstItem->order_date,
-            'kirim'              => $kirim,
-            'no_telpon'          => $firstItem->shipping_phone ?? null,
-            'alamat_kirim'       => $firstItem->shipping_address_1 ?? null,
-            'kab_kota_provinsi'  => $firstItem->shipping_city ?? null,
-            'ongkir'             => $ongkir,
-            'nama_unit'          => $namaUnit,           // ← Sekarang akurat
-            'pesanan'            => $pesanan,
-            'harga'              => $items->sum(fn($item) => ($item->item_price ?? 0) * ($item->item_qty ?? 1)),
-            'berat'              => $firstItem->order_weight ?? 0,
-            'item_qty'           => $items->sum('item_qty'),
-            'total'              => $casdana->amount ?? $firstItem->order_total ?? 0,
-            'jenis_bank'         => $casdana->payment_channel ?? $firstItem->payment_method,
-            'status_pembayaran'  => $statusCasdana,
-            'status_pesan'       => $firstItem->status,
-            'id_pesan'           => $orderId,
-            'status'             => 'aktif',
-            'payment_date'       => $paymentDate,
-            'amount'             => $casdana->amount ?? 0,
-            'billing_last_name'  => $firstItem->billing_last_name ?? null,
-            'billing_company'    => $firstItem->billing_company ?? null,
-            'status_kirim'       => $statusKirim,
-            'estimasi_print_pl'  => $estimasiPrintPl,
-            'estimasi_persiapan' => $estimasiPersiapan,
+
+            'tgl_input' =>
+                now()->format('Y-m-d'),
+
+            'tgl_pesan' =>
+                $firstItem->order_date,
+
+            'kirim' =>
+                $kirim,
+
+            'no_telpon' =>
+                $firstItem->shipping_phone
+                ?? null,
+
+            'alamat_kirim' =>
+                $firstItem->shipping_address_1
+                ?? null,
+
+            'kab_kota_provinsi' =>
+                $firstItem->shipping_city
+                ?? null,
+
+            'ongkir' =>
+                $ongkir,
+
+            'nama_unit' =>
+                $namaUnit,
+
+            'pesanan' =>
+                $pesanan,
+
+            'harga' =>
+                $items->sum(
+                    fn ($item) =>
+                        ($item->item_price ?? 0)
+                        *
+                        ($item->item_qty ?? 1)
+                ),
+
+            'berat' =>
+                $firstItem->order_weight
+                ?? 0,
+
+            'item_qty' =>
+                $items->sum(
+                    'item_qty'
+                ),
+
+            'total' =>
+                $casdana->amount
+                ??
+                $firstItem->order_total
+                ??
+                0,
+
+            'jenis_bank' =>
+                $casdana->payment_channel
+                ??
+                $firstItem->payment_method,
+
+            'status_pembayaran' =>
+                $statusCasdana,
+
+            'status_pesan' =>
+                $firstItem->status,
+
+            'id_pesan' =>
+                $orderId,
+
+            'status' =>
+                'aktif',
+
+            'payment_date' =>
+                $paymentDate,
+
+            'amount' =>
+                $casdana->amount
+                ?? 0,
+
+            'billing_last_name' =>
+                $firstItem->billing_last_name
+                ?? null,
+
+            'billing_company' =>
+                $firstItem->billing_company
+                ?? null,
+
+            'status_kirim' =>
+                $statusKirim,
+
+            'estimasi_print_pl' =>
+                $estimasiPrintPl,
+
+            'estimasi_persiapan' =>
+                $estimasiPersiapan,
         ];
 
-        // TRANSACTION + CREATE
-        DB::transaction(function () use ($data, $items, $productCache, &$inserted) {
-            $jakarta = JakartaAktif::create($data);
+        // =====================================================
+        // TRANSACTION
+        // =====================================================
+        DB::transaction(
+            function () use (
+                $data,
+                $items,
+                $productCache,
+                &$inserted
+            ) {
 
-            foreach ($items as $item) {
-                $sku = strtoupper(trim($item->item_sku ?? ''));
-                $searchCode = trim(explode('-', $sku)[0]);
-                $product = $productCache[$searchCode] ?? null;
+                // =================================================
+                // CREATE HEADER
+                // =================================================
+                $jakarta =
+                    JakartaAktif::create(
+                        $data
+                    );
 
-                $qty = (int) ($item->item_qty ?? 1);
-                $harga = (float) ($item->item_price ?? 0);
+                // =================================================
+                // CREATE DETAIL ITEM
+                //
+                // DETAIL TETAP DISIMPAN SATU-SATU
+                //
+                // Contoh:
+                //
+                // Modul Baca
+                // Modul Matematika
+                // Modul Dikte
+                //
+                // TETAP MENJADI ITEM TERPISAH.
+                //
+                // YANG DIGABUNG HANYA KATEGORI PADA HEADER
+                // =================================================
+                foreach (
+                    $items
+                    as $item
+                ) {
 
-                JakartaAktifItem::create([
-                    'jakarta_aktif_id' => $jakarta->id,
-                    'product_id'       => $product?->id,
-                    'sku'              => $sku,
-                    'label'            => $product?->label ?? $searchCode,
-                    'nama_produk'      => $product?->name ?? $item->item_name,
-                    'qty'              => $qty,
-                    'harga'            => $harga,
-                    'subtotal'         => $qty * $harga,
-                ]);
+                    $sku = strtoupper(
+                        trim(
+                            $item->item_sku
+                            ?? ''
+                        )
+                    );
+
+                    if (
+                        empty($sku)
+                    ) {
+                        continue;
+                    }
+
+                    $searchCode =
+                        trim(
+                            explode(
+                                '-',
+                                $sku
+                            )[0]
+                        );
+
+                    $product =
+                        $productCache[
+                            $searchCode
+                        ] ?? null;
+
+                    $qty = (int) (
+                        $item->item_qty
+                        ?? 1
+                    );
+
+                    $harga = (float) (
+                        $item->item_price
+                        ?? 0
+                    );
+
+                    JakartaAktifItem::create([
+
+                        'jakarta_aktif_id' =>
+                            $jakarta->id,
+
+                        'product_id' =>
+                            $product?->id,
+
+                        'sku' =>
+                            $sku,
+
+                        'label' =>
+                            $product?->label
+                            ??
+                            $searchCode,
+
+                        'nama_produk' =>
+                            $product?->name
+                            ??
+                            $item->item_name,
+
+                        'qty' =>
+                            $qty,
+
+                        'harga' =>
+                            $harga,
+
+                        'subtotal' =>
+                            $qty * $harga,
+                    ]);
+                }
+
+                $inserted++;
             }
-
-            $inserted++;
-        });
+        );
     }
 
-    return redirect()->route('order.jakarta-aktif')
-                     ->with('success', "✅ Berhasil sync {$inserted} data JKT murni!");
+    // =====================================================
+    // HASIL SYNC
+    // =====================================================
+    return redirect()
+        ->route(
+            'order.jakarta-aktif'
+        )
+        ->with(
+            'success',
+            "✅ Berhasil sync {$inserted} data JKT murni!"
+        );
 }
 /**
  * Mendapatkan nama unit yang benar menggunakan MatchingUserExport
@@ -459,200 +934,443 @@ public function bulkActionJakartaAktif(Request $request)
     $action  = $request->input('action');
     $perItem = $request->input('per_item');
 
+    // ======================================================
+    // VALIDASI REQUEST
+    // ======================================================
     if ($action !== 'processed' || empty($perItem)) {
-        return redirect()->back()->with('error', 'Data tidak valid.');
+        return redirect()->back()
+            ->with('error', 'Data tidak valid.');
     }
 
     $updates = json_decode($perItem, true);
+
     if (empty($updates)) {
-        return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+        return redirect()->back()
+            ->with('error', 'Tidak ada data yang dipilih.');
     }
 
-    $now   = Carbon::now('Asia/Jakarta');
-    $route = $request->input('redirect', 'order.jakarta-aktif');
+    $now = Carbon::now('Asia/Jakarta');
+
+    $route = $request->input(
+        'redirect',
+        'order.jakarta-aktif'
+    );
+
     $successCount = 0;
 
+    // ======================================================
+    // LOOP DATA YANG DIPILIH
+    // ======================================================
     foreach ($updates as $update) {
+
         $id = $update['id'] ?? null;
-        if (!$id) continue;
+
+        if (!$id) {
+            continue;
+        }
 
         $jakarta = JakartaAktif::find($id);
-        if (!$jakarta) continue;
 
-        $statusKirim  = $update['status_kirim'] ?? $jakarta->status_kirim;
-        $jasaKurir    = $update['jasa_kurir'] ?? $jakarta->ekspedisi;
-        $serviceKurir = $update['service_kurir'] ?? $jakarta->service_pengiriman;
-        $catatan      = $update['catatan'] ?? null;
+        if (!$jakarta) {
+            continue;
+        }
 
-        // === UPDATE JAKARTA AKTIF ===
-        $setClauses = ["is_processed = 1", "processed_at = ?", "updated_at = ?"];
-        $bindings   = [$now, $now];
+        // ==================================================
+        // DATA UPDATE
+        // ==================================================
+        $statusKirim = $update['status_kirim']
+            ?? $jakarta->status_kirim;
 
-        if ($statusKirim)  { $setClauses[] = "status_kirim = ?"; $bindings[] = $statusKirim; }
-        if ($jasaKurir)    { $setClauses[] = "ekspedisi = ?"; $bindings[] = $jasaKurir; }
-        if ($serviceKurir) { $setClauses[] = "service_pengiriman = ?"; $bindings[] = $serviceKurir; }
+        $jasaKurir = $update['jasa_kurir']
+            ?? $jakarta->ekspedisi;
+
+        $serviceKurir = $update['service_kurir']
+            ?? $jakarta->service_pengiriman;
+
+        $catatan = $update['catatan'] ?? null;
+
+        // ==================================================
+        // UPDATE JAKARTA AKTIF
+        // ==================================================
+        $setClauses = [
+            "is_processed = 1",
+            "processed_at = ?",
+            "updated_at = ?"
+        ];
+
+        $bindings = [
+            $now,
+            $now
+        ];
+
+        if ($statusKirim) {
+            $setClauses[] = "status_kirim = ?";
+            $bindings[] = $statusKirim;
+        }
+
+        if ($jasaKurir) {
+            $setClauses[] = "ekspedisi = ?";
+            $bindings[] = $jasaKurir;
+        }
+
+        if ($serviceKurir) {
+            $setClauses[] = "service_pengiriman = ?";
+            $bindings[] = $serviceKurir;
+        }
+
         if ($catatan) {
-            $newNote = "\n\nDi proses bulk pada " . $now->format('d/m/Y H:i') . ": " . trim($catatan);
-            $setClauses[] = "catatan = CONCAT(COALESCE(catatan, ''), ?)";
+
+            $newNote =
+                "\n\nDi proses bulk pada "
+                . $now->format('d/m/Y H:i')
+                . ": "
+                . trim($catatan);
+
+            $setClauses[] =
+                "catatan = CONCAT(COALESCE(catatan, ''), ?)";
+
             $bindings[] = $newNote;
         }
 
-        DB::update("UPDATE jakarta_aktif SET " . implode(', ', $setClauses) . " WHERE id = ?", 
-                    array_merge($bindings, [$id]));
-
-       // ======================================================
-        // JIKA DARI MENU JAKARTA AKTIF
-        // ======================================================
-
-        if ($route === 'order.jakarta-aktif') {
-
-    $groups = [
-        'Modul'      => collect(),
-        'Majalah'    => collect(),
-        'Sertifikat' => collect(),
-    ];
-
-    foreach ($jakarta->items()->with('product')->get() as $item) {
-
-        $kategori = strtolower(trim($item->product->kategori ?? ''));
-
-        // =========================
-        // MAJALAH
-        // =========================
-        if (str_contains($kategori, 'majalah')) {
-
-            $groups['Majalah']->push($item);
-
-        }
-
-        // =========================
-        // SERTIFIKAT
-        // =========================
-        elseif (str_contains($kategori, 'sertifikat')) {
-
-            $groups['Sertifikat']->push($item);
-
-        }
-
-        // =========================
-        // SELAIN ITU MASUK MODUL
-        // =========================
-        else {
-
-            $groups['Modul']->push($item);
-
-        }
-
-    }
-
-} else {
-
-    $kategoriOrder = match ($route) {
-        'order.modul'      => 'Modul',
-        'order.majalah'    => 'Majalah',
-        'order.sertifikat' => 'Sertifikat',
-        default            => 'Lainnya',
-    };
-
-    $groups = [
-        $kategoriOrder => $this->getFilteredItems($jakarta, $route)
-    ];
-}
-
-        // === DATA UTAMA ===
-        foreach ($groups as $kategoriOrder => $items) {
-
-    if ($items->isEmpty()) {
-        continue;
-    }
-
-    if ($this->hasRealisasiForCategory($jakarta->id, $kategoriOrder)) {
-        continue;
-    }
-
-    // === DATA UTAMA ===
-    $namaUnit = $this->resolveNamaUnit(
-        $jakarta->billing_company,
-        $jakarta->billing_last_name,
-        $jakarta->nama_unit
-    );
-
-    $skuList = $items->pluck('sku')->implode('|');
-    $namaStokis = $this->extractVendorFromSku($skuList);
-
-    $namaBarang = $items
-    ->unique('sku')
-    ->map(function ($item) {
-
-        $nama = trim(
-            $item->product?->sub_kategori
-            ?? $item->nama_produk
-            ?? $item->label
-            ?? 'Item'
+        DB::update(
+            "UPDATE jakarta_aktif SET "
+            . implode(', ', $setClauses)
+            . " WHERE id = ?",
+            array_merge(
+                $bindings,
+                [$id]
+            )
         );
 
-        $qty = (int) $item->qty;
-        $isi = (int) ($item->product?->isi ?? 1);
+        // ======================================================
+        // AMBIL SEMUA ITEM
+        // ======================================================
+        $allItems = $jakarta
+            ->items()
+            ->with('product')
+            ->get();
 
-        if ($isi > 1) {
-            return "{$nama} ({$qty}) [Isi {$isi}]";
+        if ($allItems->isEmpty()) {
+            continue;
         }
 
-        return "{$nama} ({$qty})";
-    })
-    ->implode(' | ');
-    $estimasiHari = null;
+        // ======================================================
+        // PEMBAGIAN KATEGORI ORDER
+        // ======================================================
+        if ($route === 'order.jakarta-aktif') {
 
-    if ($jakarta->payment_date && $jakarta->estimasi_persiapan) {
-        $estimasiHari = Carbon::parse($jakarta->payment_date)
-            ->diffInDays(Carbon::parse($jakarta->estimasi_persiapan));
-    }
+            $groups = [
+                'Modul'      => collect(),
+                'Majalah'    => collect(),
+                'Sertifikat' => collect(),
+            ];
 
-    $pengiriman = $jasaKurir
-        ?: ($jakarta->ekspedisi
-            ?? ($statusKirim === 'Diambil'
-                ? 'Diambil'
-                : '-'));
+            foreach ($allItems as $item) {
 
-    $servicePengiriman = $serviceKurir
-        ?: (in_array(strtolower($statusKirim ?? ''), ['diambil','ambil'])
-            ? 'Diambil'
-            : null);
+                // ==================================================
+                // AMBIL KATEGORI TERBARU DARI MASTER PRODUCTS
+                // ==================================================
+                $kategori = trim(
+                    $item->product?->kategori ?? ''
+                );
 
-    $realisasi = RealisasiAktif::create([
+                $kategoriLower = strtolower($kategori);
 
-        'jakarta_aktif_id'   => $jakarta->id,
-        'no_pl'              => $jakarta->id_pesan,
-        'tgl_turun_pl'       => $jakarta->tgl_pesan,
-        'nama_unit'          => $namaUnit,
-        'pengiriman'         => $pengiriman,
-        'service_pengiriman' => $servicePengiriman,
-        'nama_barang'        => $namaBarang,
-        'kategori_order'     => $kategoriOrder,
-        'tgl_bayar'          => $jakarta->payment_date,
-        'jumlah_bayar'       => $jakarta->total ?? 0,
-        'nama_stokis'        => $namaStokis,
-        'tgl_estimasi'       => $jakarta->estimasi_persiapan,
-        'estimasi_hari'      => $estimasiHari,
-        'penyebut'           => $namaUnit,
-        'pengambil'          => $statusKirim == 'Diambil'
-                                ? 'Ambil Sendiri'
-                                : null,
-        'ket'                => $jakarta->catatan,
-        'order_weight'       => $jakarta->berat ?? 0,
-        'billing_last_name'  => $jakarta->billing_last_name,
-        'billing_company'    => $jakarta->billing_company,
+                // ==================================================
+                // MAJALAH
+                // ==================================================
+                if (str_contains($kategoriLower, 'majalah')) {
 
-    ]);
+                    $groups['Majalah']->push($item);
 
-    $this->createPicking($realisasi, $items);
-}
+                }
 
+                // ==================================================
+                // SERTIFIKAT
+                // ==================================================
+                elseif (str_contains($kategoriLower, 'sertifikat')) {
+
+                    $groups['Sertifikat']->push($item);
+
+                }
+
+                // ==================================================
+                // SELAIN MAJALAH & SERTIFIKAT
+                // MASUK MODUL
+                // ==================================================
+                else {
+
+                    $groups['Modul']->push($item);
+                }
+            }
+
+        } else {
+
+            // ==============================================================
+            // MENU KHUSUS
+            // ==============================================================
+            $kategoriOrder = match ($route) {
+
+                'order.modul'
+                    => 'Modul',
+
+                'order.majalah'
+                    => 'Majalah',
+
+                'order.sertifikat'
+                    => 'Sertifikat',
+
+                default
+                    => 'Lainnya',
+            };
+
+            $groups = [
+                $kategoriOrder =>
+                    $this->getFilteredItems(
+                        $jakarta,
+                        $route
+                    )
+            ];
+        }
+
+        // ======================================================
+        // PROSES SETIAP GROUP
+        // ======================================================
+        foreach (
+            $groups as $kategoriOrder => $items
+        ) {
+
+            if ($items->isEmpty()) {
+                continue;
+            }
+
+            // ==================================================
+            // CEK SUDAH ADA REALISASI UNTUK KATEGORI INI
+            // ==================================================
+            if (
+                $this->hasRealisasiForCategory(
+                    $jakarta->id,
+                    $kategoriOrder
+                )
+            ) {
+                continue;
+            }
+
+            // ==================================================
+            // NAMA UNIT
+            // ==================================================
+            $namaUnit =
+                $this->resolveNamaUnit(
+                    $jakarta->billing_company,
+                    $jakarta->billing_last_name,
+                    $jakarta->nama_unit
+                );
+
+            // ==================================================
+            // NAMA STOKIS
+            // ==================================================
+            $skuList = $items
+                ->pluck('sku')
+                ->filter()
+                ->implode('|');
+
+            $namaStokis =
+                $this->extractVendorFromSku(
+                    $skuList
+                );
+
+            // ==================================================
+            // NAMA BARANG
+            //
+            // Tetap menggunakan kategori TERBARU dari Master Product
+            // ==================================================
+            $namaBarang = $items
+                ->groupBy(function ($item) {
+
+                    $kategori = trim(
+                        $item->product?->kategori
+                        ?? $item->kategori
+                        ?? 'Lainnya'
+                    );
+
+                    $kategoriLower = strtolower($kategori);
+
+                    if (str_contains($kategoriLower, 'modul')) {
+                        return 'Modul biMBA';
+                    }
+
+                    if (str_contains($kategoriLower, 'seragam')) {
+                        return 'Seragam Anak Bimba Aiueo';
+                    }
+
+                    if (str_contains($kategoriLower, 'perlengkapan')) {
+                        return 'Perlengkapan Bimba Unit Reguler';
+                    }
+
+                    if (str_contains($kategoriLower, 'administrasi')) {
+                        return 'Administrasi Akademik Bimba Aiueo';
+                    }
+
+                    return $kategori;
+                })
+                ->map(function ($rows, $kategori) {
+
+                    // ==================================================
+                    // GROUP BERDASARKAN SKU
+                    // AGAR ITEM YANG SAMA TIDAK DIHITUNG BERULANG
+                    // ==================================================
+                    $qty = $rows
+                        ->groupBy(function ($item) {
+                            return strtoupper(
+                                trim($item->sku ?? '')
+                            );
+                        })
+                        ->sum(function ($skuRows) {
+
+                            return (int) (
+                                $skuRows->first()->qty ?? 0
+                            );
+                        });
+
+                    return "{$kategori} ({$qty})";
+                })
+                ->values()
+                ->implode(' | ');
+
+            // ==================================================
+            // PRODUCT ID UNTUK REALISASI AKTIF
+            //
+            // Ambil product_id dari item yang benar-benar ada
+            // pada group ini.
+            //
+            // Jika hanya ada 1 product_id -> simpan ID tersebut.
+            // Jika ada beberapa product_id -> ambil product_id
+            // pertama yang valid sebagai relasi utama.
+            // ==================================================
+            $productId = $items
+                ->pluck('product_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->first();
+
+            // ==================================================
+            // ESTIMASI HARI
+            // ==================================================
+            $estimasiHari = null;
+
+            if (
+                $jakarta->payment_date
+                &&
+                $jakarta->estimasi_persiapan
+            ) {
+
+                $estimasiHari =
+                    Carbon::parse(
+                        $jakarta->payment_date
+                    )->diffInDays(
+                        Carbon::parse(
+                            $jakarta->estimasi_persiapan
+                        )
+                    );
+            }
+
+            // ==================================================
+            // PENGIRIMAN
+            // ==================================================
+            $pengiriman =
+                $jasaKurir
+                ?: (
+                    $jakarta->ekspedisi
+                    ?? (
+                        $statusKirim === 'Diambil'
+                            ? 'Diambil'
+                            : '-'
+                    )
+                );
+
+            // ==================================================
+            // SERVICE PENGIRIMAN
+            // ==================================================
+            $servicePengiriman =
+                $serviceKurir
+                ?: (
+                    in_array(
+                        strtolower(
+                            $statusKirim ?? ''
+                        ),
+                        [
+                            'diambil',
+                            'ambil'
+                        ]
+                    )
+                        ? 'Diambil'
+                        : null
+                );
+
+            // ==================================================
+            // CREATE REALISASI AKTIF
+            // ==================================================
+            // Ambil semua product_id yang valid
+$productIds = $items
+    ->pluck('product_id')
+    ->filter()
+    ->unique()
+    ->values()
+    ->toArray();
+
+// Simpan sebagai JSON string
+$productIdsJson = !empty($productIds) ? json_encode($productIds) : null;
+
+$realisasi = RealisasiAktif::create([
+    'jakarta_aktif_id'   => $jakarta->id,
+    'no_pl'              => $jakarta->id_pesan,
+    'tgl_turun_pl'       => $jakarta->tgl_pesan,
+    'nama_unit'          => $namaUnit,
+    'pengiriman'         => $pengiriman,
+    'service_pengiriman' => $servicePengiriman,
+    'nama_barang'        => $namaBarang,
+    'kategori_order'     => $kategoriOrder,
+    'product_id'         => $productIds[0] ?? null,     // tetap simpan yang pertama
+    'product_ids'        => $productIdsJson,            // ← SEMUA ID
+    'tgl_bayar'          => $jakarta->payment_date,
+    'jumlah_bayar'       => $jakarta->total ?? 0,
+    'nama_stokis'        => $namaStokis,
+    'tgl_estimasi'       => $jakarta->estimasi_persiapan,
+    'estimasi_hari'      => $estimasiHari,
+    'penyebut'           => $namaUnit,
+    'pengambil'          => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
+    'ket'                => $jakarta->catatan,
+    'order_weight'       => $jakarta->berat ?? 0,
+    'billing_last_name'  => $jakarta->billing_last_name,
+    'billing_company'    => $jakarta->billing_company,
+]);
+
+            // ==================================================
+            // CREATE PICKING
+            // Tetap menggunakan ITEMS asli
+            // ==================================================
+            $this->createPicking(
+                $realisasi,
+                $items
+            );
+        }
+
+        // ======================================================
+        // HITUNG ORDER BERHASIL DIPROSES
+        // ======================================================
         $successCount++;
     }
 
-    return redirect()->route($route)
-        ->with('success', "$successCount data berhasil diproses!");
+    // ======================================================
+    // REDIRECT
+    // ======================================================
+    return redirect()
+        ->route($route)
+        ->with(
+            'success',
+            "$successCount data berhasil diproses!"
+        );
 }
 
 /**
@@ -846,24 +1564,24 @@ public function jakartaPrinted(Request $request)
 
     $perPage = $request->get('per_page', 30);
 
-    // =====================================================
-    // DATA UNTUK TABEL (PAGINATION)
-    // =====================================================
     $data = (clone $query)
-        ->with('picking')
-        ->orderBy('tgl_turun_pl')
-        ->orderBy('created_at')
-        ->paginate($perPage)
-        ->appends($request->query());
+    ->with([
+        'picking',
+        'product',
+    ])
+    ->orderBy('tgl_turun_pl')
+    ->orderBy('created_at')
+    ->paginate($perPage)
+    ->appends($request->query());
 
-    // =====================================================
-    // DATA LENGKAP UNTUK GROUP & PRINT (TANPA PAGINATION)
-    // =====================================================
-    $allData = (clone $query)
-        ->with('picking')
-        ->orderBy('tgl_turun_pl')
-        ->orderBy('created_at')
-        ->get();
+$allData = (clone $query)
+    ->with([
+        'picking',
+        'product',
+    ])
+    ->orderBy('tgl_turun_pl')
+    ->orderBy('created_at')
+    ->get();
 
     // =====================================================
     // ASSIGN REKAP NUMBER BERDASARKAN SELURUH DATA
@@ -932,11 +1650,11 @@ public function getModalData(Request $request)
             'nama_unit', 
             'status_pembayaran', 
             'jenis_bank', 
-            'pesanan',
+            'pesanan',           // ← Pastikan ini ada
             'status_kirim',
             'payment_date',
-            'is_processed',      // ← TAMBAHKAN
-            'processed_at'       // ← TAMBAHKAN (opsional)
+            'is_processed',
+            'processed_at'
         ])
         ->get()
         ->map(function ($item) {
@@ -946,6 +1664,7 @@ public function getModalData(Request $request)
                 'id'                  => $item->id,
                 'invoice'             => $item->id_pesan ?? '-',
                 'to_customer'         => $item->nama_unit ?? '-',
+                'pesanan'             => $item->pesanan ?? '-',     // ← TAMBAHKAN BARIS INI
                 'payment_date'        => $item->payment_date 
                                         ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
                                         : '-',
@@ -953,7 +1672,7 @@ public function getModalData(Request $request)
                 'status_pembayaran'   => $item->status_pembayaran ?? '-',
                 'status_kirim'        => $item->status_kirim ?? 'Dikirim',
                 'vendor'              => $vendor,
-                'is_processed'        => (bool) $item->is_processed,   // ← TAMBAHKAN
+                'is_processed'        => (bool) $item->is_processed,
                 'processed_at'        => $item->processed_at 
                                         ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i') 
                                         : null,

@@ -62,29 +62,452 @@
                 <p class="text-gray-600">Kelola Data Order Jakarta Aktif</p>
             </div>
             
-            <div class="flex gap-3">
-                
-                <a href="{{ route('order.jakarta-aktif.menu') }}" class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali</a>
-                <a href="{{ route('order.modul') }}" class="bg-green-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-green-700">Modul dan Lainnya</a>
-                <a href="{{ route('order.majalah') }}" class="bg-blue-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-blue-700">Majalah Sahabat biMBA AIUEO</a>
-                <a href="{{ route('order.sertifikat') }}" class="bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-red-700">Sertifikat</a>
-                <a href="{{ route('order.jakarta-aktif') }}" class="bg-gray-700 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-800">Semua Pesanan</a>
-                <a href="{{ route('order.jakarta-printed') }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">Rekap Aktual</a>
-                @php
-                    $queryString = http_build_query(request()->all());
-                @endphp
+            <div class="mb-5">
 
-                <a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}" 
-                class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 flex items-center gap-2">
-                    📥 Export Excel
-                </a>
-                
-                <form action="{{ route('order.jakarta-aktif.sync-jkt') }}" method="POST" style="display: inline;" onsubmit="return confirm('Yakin ingin sync?')">
-                    @csrf
-                    <button type="submit" class="bg-purple-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-purple-700">🔄 Sync JKT + Casdana</button>
-                </form>
-            </div>
+    {{-- ==========================================
+         NAVIGASI UTAMA
+    =========================================== --}}
+    <div class="flex items-center justify-between gap-4 flex-wrap mb-4">
+
+        {{-- KIRI: NAVIGASI --}}
+        <div class="flex gap-2 flex-wrap" id="navButtons">
+
+            {{-- KEMBALI --}}
+            <a href="{{ route('order.jakarta-aktif.menu') }}"
+               class="nav-back">
+                <span>Menu</span>
+            </a>
+
+
+            {{-- MODUL --}}
+            <a href="{{ route('order.modul') }}"
+               onclick="setActiveTab(this)"
+               class="nav-tab nav-modul"
+               data-tab="modul">
+
+                <span class="nav-icon">📦</span>
+                <span>Modul & Lainnya</span>
+
+            </a>
+
+
+            {{-- MAJALAH --}}
+            <a href="{{ route('order.majalah') }}"
+               onclick="setActiveTab(this)"
+               class="nav-tab nav-majalah"
+               data-tab="majalah">
+
+                <span class="nav-icon">📖</span>
+                <span>Majalah Sahabat</span>
+
+            </a>
+
+
+            {{-- SERTIFIKAT --}}
+            <a href="{{ route('order.sertifikat') }}"
+               onclick="setActiveTab(this)"
+               class="nav-tab nav-sertifikat"
+               data-tab="sertifikat">
+
+                <span class="nav-icon">🏆</span>
+                <span>Sertifikat</span>
+
+            </a>
+
+
+            {{-- SEMUA PESANAN --}}
+            <a href="{{ route('order.jakarta-aktif') }}"
+               onclick="setActiveTab(this)"
+               class="nav-tab nav-semua active-tab"
+               data-tab="semua">
+
+                <span class="nav-icon">📋</span>
+                <span>Semua Pesanan</span>
+
+            </a>
+
         </div>
+
+
+        {{-- KANAN: REKAP --}}
+        <div>
+            <a href="{{ route('order.jakarta-printed') }}"
+               class="btn-rekap">
+
+                <span>📊</span>
+                <span>Rekap Aktual</span>
+
+            </a>
+        </div>
+
+    </div>
+
+
+    {{-- ==========================================
+         ACTION BAR
+    =========================================== --}}
+    <div class="action-bar">
+
+        <div class="action-buttons">
+
+            @php
+                $queryString = http_build_query(request()->all());
+            @endphp
+
+
+            {{-- EXPORT --}}
+            <a href="{{ route('order.jakarta-aktif.export') }}{{ $queryString ? '?' . $queryString : '' }}"
+               class="btn-action btn-export">
+
+                <span>📥</span>
+                <span>Export Excel</span>
+
+            </a>
+
+
+            {{-- SYNC --}}
+            <form action="{{ route('order.jakarta-aktif.sync-jkt') }}"
+                  method="POST"
+                  onsubmit="return confirm('Yakin ingin melakukan Sync JKT + Casdana?')">
+
+                @csrf
+
+                <button type="submit"
+                        class="btn-action btn-sync">
+
+                    <span>🔄</span>
+                    <span>Sync JKT + Casdana</span>
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+        </div>
+
+
+<style>
+
+/* ==========================================
+   NAVIGASI
+========================================== */
+
+#navButtons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.nav-tab,
+.nav-back,
+.btn-rekap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    min-height: 42px;
+    padding: 10px 18px;
+
+    border-radius: 10px;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+
+/* KEMBALI */
+
+.nav-back {
+    background: #64748b;
+    color: white;
+}
+
+.nav-back:hover {
+    background: #475569;
+    color: white;
+    transform: translateY(-1px);
+}
+
+
+/* MODUL */
+
+.nav-modul {
+    background: #16a34a;
+    color: white;
+}
+
+.nav-modul:hover {
+    background: #15803d;
+    color: white;
+}
+
+
+/* MAJALAH */
+
+.nav-majalah {
+    background: #2563eb;
+    color: white;
+}
+
+.nav-majalah:hover {
+    background: #1d4ed8;
+    color: white;
+}
+
+
+/* SERTIFIKAT */
+
+.nav-sertifikat {
+    background: #dc2626;
+    color: white;
+}
+
+.nav-sertifikat:hover {
+    background: #b91c1c;
+}
+
+
+/* SEMUA PESANAN */
+
+.nav-semua {
+    background: #334155;
+    color: white;
+}
+
+.nav-semua:hover {
+    background: #1e293b;
+    color: white;
+}
+
+
+/* ACTIVE TAB */
+
+.nav-tab.active-tab {
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.18),
+        0 4px 12px rgba(0, 0, 0, 0.12);
+
+    transform: translateY(-1px);
+}
+
+
+/* ==========================================
+   REKAP AKTUAL
+========================================== */
+
+.btn-rekap {
+    background: #3b82f6;
+    color: white;
+
+    padding-left: 22px;
+    padding-right: 22px;
+}
+
+.btn-rekap:hover {
+    background: #2563eb;
+    color: white;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.25);
+}
+
+
+/* ==========================================
+   ACTION BAR
+========================================== */
+
+.action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 14px 18px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 12px;
+
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+
+    flex-wrap: wrap;
+}
+
+
+/* TITLE */
+
+.action-title {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.action-icon {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #e0e7ff;
+
+    border-radius: 9px;
+
+    font-size: 18px;
+}
+
+.action-heading {
+    color: #1e293b;
+
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+.action-subtitle {
+    color: #64748b;
+
+    font-size: 12px;
+
+    margin-top: 2px;
+}
+
+
+/* ==========================================
+   ACTION BUTTONS
+========================================== */
+
+.action-buttons {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+}
+
+
+.action-buttons form {
+    margin: 0;
+}
+
+
+.btn-action {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    min-height: 40px;
+
+    padding: 9px 17px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    color: white;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+/* EXPORT */
+
+.btn-export {
+    background: #16a34a;
+}
+
+.btn-export:hover {
+    background: #15803d;
+
+    color: white;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 5px 12px rgba(22, 163, 74, 0.2);
+}
+
+
+/* SYNC */
+
+.btn-sync {
+    background: #7c3aed;
+}
+
+.btn-sync:hover {
+    background: #6d28d9;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 5px 12px rgba(124, 58, 237, 0.2);
+}
+
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media (max-width: 768px) {
+
+    .nav-tab,
+    .nav-back,
+    .btn-rekap {
+        flex: 1 1 auto;
+    }
+
+    .action-bar {
+        align-items: stretch;
+    }
+
+    .action-title {
+        width: 100%;
+    }
+
+    .action-buttons {
+        width: 100%;
+    }
+
+    .btn-action {
+        flex: 1;
+    }
+
+}
+
+</style>
 
         <!-- Bulk Action Bar -->
         <div id="bulkActionBar" class="bg-white rounded-3xl shadow p-5 mb-6 flex items-center justify-between border border-indigo-100">
@@ -145,6 +568,7 @@
                 <div class="flex items-end gap-3 pt-6 lg:col-span-2">
                     <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">🔍 Terapkan Filter</button>
                     <a href="{{ route('order.jakarta-aktif') }}" class="text-gray-500 hover:text-red-600 px-4 py-2.5">Reset</a>
+                    
                 </div>
             </form>
         </div>
@@ -217,7 +641,7 @@
                                 @php
                                     $grouped = $item->items
                                         ->groupBy(function ($detail) {
-                                            return $detail->product?->sub_kategori
+                                            return $detail->product?->kategori
                                                 ?? $detail->nama_produk;
                                         });
                                 @endphp
@@ -361,6 +785,7 @@
                                 <th class="px-4 py-3 text-left w-24">Status</th>
                                 <th class="px-4 py-3 text-left w-32">Invoice</th>
                                 <th class="px-4 py-3 text-left min-w-[240px]">To Customer</th>
+                                <th class="px-4 py-3 text-left w-40">Kategori Pesanan</th>
                                 <th class="px-4 py-3 text-left w-36">Payment Date</th>
                                 <th class="px-4 py-3 text-left w-44">Payment Channel</th>
                                 <th class="px-4 py-3 text-left w-40">Distribusi <span class="text-red-500">*</span></th>
@@ -515,6 +940,9 @@ let selectedIds = [];
                             <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
                             <td class="px-4 py-3 font-medium">${item.invoice}</td>
                             <td class="px-4 py-3">${item.to_customer}</td>
+                            <td class="px-4 py-3 font-medium text-gray-700">
+            ${item.pesanan ? item.pesanan : '-'}
+        </td>
                             <td class="px-4 py-3">${item.payment_date}</td>
                             <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
                             <td class="px-4 py-3">${distribusiHtml}</td>
@@ -724,6 +1152,64 @@ let selectedIds = [];
 
     form.appendTo('body').submit();
 }
+
+function setActiveTab(el) {
+    const tabType = el.getAttribute('data-tab');
+
+    // Reset semua tombol
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active-tab', 'ring-2', 'ring-offset-2', 'ring-blue-400');
+    });
+
+    // Tambah style active
+    el.classList.add('active-tab', 'ring-2', 'ring-offset-2', 'ring-blue-400');
+
+    // Logika hide/show
+    const modulBtn     = document.querySelector('[data-tab="modul"]');
+    const majalahBtn   = document.querySelector('[data-tab="majalah"]');
+    const sertifikatBtn = document.querySelector('[data-tab="sertifikat"]');
+    const semuaBtn     = document.querySelector('[data-tab="semua"]');
+
+    if (tabType === 'semua') {
+        // Tampilkan semua
+        modulBtn.style.display = 'inline-flex';
+        majalahBtn.style.display = 'inline-flex';
+        sertifikatBtn.style.display = 'inline-flex';
+    } else {
+        // Sembunyikan yang lain
+        if (tabType === 'modul') {
+            majalahBtn.style.display = 'none';
+            sertifikatBtn.style.display = 'none';
+        } else if (tabType === 'majalah') {
+            modulBtn.style.display = 'none';
+            sertifikatBtn.style.display = 'none';
+        } else if (tabType === 'sertifikat') {
+            modulBtn.style.display = 'none';
+            majalahBtn.style.display = 'none';
+        }
+    }
+}
+
+// Inisialisasi saat halaman dimuat
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPath = window.location.pathname;
+    
+    // Otomatis aktifkan tombol sesuai halaman saat ini
+    if (currentPath.includes('/modul')) {
+        const btn = document.querySelector('[data-tab="modul"]');
+        if (btn) setActiveTab(btn);
+    } else if (currentPath.includes('/majalah')) {
+        const btn = document.querySelector('[data-tab="majalah"]');
+        if (btn) setActiveTab(btn);
+    } else if (currentPath.includes('/sertifikat')) {
+        const btn = document.querySelector('[data-tab="sertifikat"]');
+        if (btn) setActiveTab(btn);
+    } else {
+        // Default ke Semua Pesanan
+        const btn = document.querySelector('[data-tab="semua"]');
+        if (btn) setActiveTab(btn);
+    }
+});
 </script>
 </body>
 </html>
