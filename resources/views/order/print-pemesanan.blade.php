@@ -103,10 +103,82 @@
             <th colspan="8" style="border:none; padding:0;">
                 <table style="width:100%; border:none;">
                     <tr>
-                        <td style="width:75%; text-align:center; font-size:15px; font-weight:bold; color:#000000; border:none;">
-                            Rekap Aktual Detail - Picking {{ $stokisName }}
-                            <span style="color:#000000;">{{ $rekapNo }}</span>
-                        </td>
+                        @php
+    $kategoriJudul = '';
+
+    // 1. Cek dari request (jika ada)
+    if (request()->has('kategori') && !empty(request('kategori'))) {
+        $kat = strtolower(request('kategori'));
+
+        if (str_contains($kat, 'modul')) {
+            $kategoriJudul = 'MODUL';
+        } elseif (str_contains($kat, 'majalah')) {
+            $kategoriJudul = 'MAJALAH SAHABAT biMBA';
+        } elseif (str_contains($kat, 'sertifikat')) {
+            $kategoriJudul = 'SERTIFIKAT';
+        }
+    }
+
+    // 2. Fallback: deteksi dari data
+    if (empty($kategoriJudul) && isset($data) && $data->isNotEmpty()) {
+
+        $detected = $data->map(function ($item) {
+            $sku = strtoupper(trim($item->item_sku ?? $item->sku ?? $item->product?->label ?? ''));
+            $sku = preg_replace('/[^A-Z0-9]/', '', $sku);
+
+            $nama = strtolower(trim(
+                $item->item_name 
+                ?? $item->nama_barang 
+                ?? $item->kategori 
+                ?? $item->kategori_order 
+                ?? $item->product?->kategori 
+                ?? ''
+            ));
+
+            if (str_contains($sku, 'STA') && !str_contains($sku, 'STPB')) {
+                return 'STA - SERTIFIKAT';
+            }
+            if (str_contains($sku, 'STPB')) {
+                return 'STPB - SERTIFIKAT';
+            }
+            if (str_contains($nama, 'modul')) {
+                return 'MODUL';
+            }
+            if (str_contains($nama, 'majalah')) {
+                return 'MAJALAH SAHABAT biMBA';
+            }
+            if (str_contains($nama, 'sertifikat') || str_contains($nama, 'surat tanda')) {
+                return 'SERTIFIKAT';
+            }
+
+            return null;
+        })
+        ->filter()
+        ->unique()
+        ->values();
+
+        if ($detected->count() === 1) {
+            $kategoriJudul = $detected->first();
+        } 
+        elseif ($detected->count() > 1) {
+            $allSertifikat = $detected->every(function ($val) {
+                return str_contains($val, 'SERTIFIKAT');
+            });
+
+            if ($allSertifikat) {
+                $kategoriJudul = 'SERTIFIKAT';
+            }
+        }
+    }
+@endphp
+
+<td style="width:75%; text-align:center; font-size:15px; font-weight:bold; color:#000000; border:none;">
+    Rekap Aktual Detail - Picking {{ $stokisName }}
+    @if($kategoriJudul)
+        <span style="color:#000000; font-weight:bold;">| {{ $kategoriJudul }}</span>
+    @endif
+    <span style="color:#000000;">{{ $rekapNo }}</span>
+</td>
                         <td style="width:25%; text-align:center; border:none;">
                             @if($firstDate)
                                 <div style="font-size:10.5px; color:#000000;">Waktu Serah Terima</div>
