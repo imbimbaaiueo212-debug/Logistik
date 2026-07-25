@@ -274,84 +274,84 @@ tbody tr:nth-child(odd){
                             <!-- Judul -->
                             <td style="width:70%; border:none; text-align:center; vertical-align:middle; padding-bottom:6px;">
                                @php
-    $kategoriJudul = '';
+                                    $kategoriJudul = '';
 
-    // 1. Cek dari request (jika ada)
-    if (request()->has('kategori') && !empty(request('kategori'))) {
-        $kat = strtolower(request('kategori'));
+                                    // 1. Cek dari request (jika ada)
+                                    if (request()->has('kategori') && !empty(request('kategori'))) {
+                                        $kat = strtolower(request('kategori'));
 
-        if (str_contains($kat, 'modul')) {
-            $kategoriJudul = 'MODUL';
-        } elseif (str_contains($kat, 'majalah')) {
-            $kategoriJudul = 'MAJALAH SAHABAT biMBA';
-        } elseif (str_contains($kat, 'sertifikat')) {
-            $kategoriJudul = 'SERTIFIKAT';
-        }
-    }
+                                        if (str_contains($kat, 'modul')) {
+                                            $kategoriJudul = 'MODUL';
+                                        } elseif (str_contains($kat, 'majalah')) {
+                                            $kategoriJudul = 'MAJALAH SAHABAT biMBA';
+                                        } elseif (str_contains($kat, 'sertifikat')) {
+                                            $kategoriJudul = 'SERTIFIKAT';
+                                        }
+                                    }
 
-    // 2. Fallback: deteksi dari data
-    if (empty($kategoriJudul) && isset($data) && $data->isNotEmpty()) {
+                                    // 2. Fallback: deteksi dari data
+                                    if (empty($kategoriJudul) && isset($data) && $data->isNotEmpty()) {
 
-        $detected = $data->map(function ($item) {
-            $sku = strtoupper(trim($item->item_sku ?? $item->sku ?? $item->product?->label ?? ''));
-            $sku = preg_replace('/[^A-Z0-9]/', '', $sku);
+                                        $detected = $data->map(function ($item) {
+                                            $sku = strtoupper(trim($item->item_sku ?? $item->sku ?? $item->product?->label ?? ''));
+                                            $sku = preg_replace('/[^A-Z0-9]/', '', $sku);
 
-            $nama = strtolower(trim(
-                $item->item_name 
-                ?? $item->nama_barang 
-                ?? $item->kategori 
-                ?? $item->kategori_order 
-                ?? $item->product?->kategori 
-                ?? ''
-            ));
+                                            $nama = strtolower(trim(
+                                                $item->item_name 
+                                                ?? $item->nama_barang 
+                                                ?? $item->kategori 
+                                                ?? $item->kategori_order 
+                                                ?? $item->product?->kategori 
+                                                ?? ''
+                                            ));
 
-            if (str_contains($sku, 'STA') && !str_contains($sku, 'STPB')) {
-                return 'STA - SERTIFIKAT';
-            }
-            if (str_contains($sku, 'STPB')) {
-                return 'STPB - SERTIFIKAT';
-            }
-            if (str_contains($nama, 'modul')) {
-                return 'MODUL';
-            }
-            if (str_contains($nama, 'majalah')) {
-                return 'MAJALAH SAHABAT biMBA';
-            }
-            if (str_contains($nama, 'sertifikat') || str_contains($nama, 'surat tanda')) {
-                return 'SERTIFIKAT';
-            }
+                                            if (str_contains($sku, 'STA') && !str_contains($sku, 'STPB')) {
+                                                return 'STA - SERTIFIKAT';
+                                            }
+                                            if (str_contains($sku, 'STPB')) {
+                                                return 'STPB - SERTIFIKAT';
+                                            }
+                                            if (str_contains($nama, 'modul')) {
+                                                return 'MODUL';
+                                            }
+                                            if (str_contains($nama, 'majalah')) {
+                                                return 'MAJALAH SAHABAT biMBA';
+                                            }
+                                            if (str_contains($nama, 'sertifikat') || str_contains($nama, 'surat tanda')) {
+                                                return 'SERTIFIKAT';
+                                            }
 
-            return null;
-        })
-        ->filter()
-        ->unique()
-        ->values();
+                                            return null;
+                                        })
+                                        ->filter()
+                                        ->unique()
+                                        ->values();
 
-        if ($detected->count() === 1) {
-            // Semua item sama kategori
-            $kategoriJudul = $detected->first();
-        } 
-        elseif ($detected->count() > 1) {
-            // Cek apakah semuanya masih dalam grup Sertifikat (STA + STPB)
-            $allSertifikat = $detected->every(function ($val) {
-                return str_contains($val, 'SERTIFIKAT');
-            });
+                                        if ($detected->count() === 1) {
+                                            // Semua item sama kategori
+                                            $kategoriJudul = $detected->first();
+                                        } 
+                                        elseif ($detected->count() > 1) {
+                                            // Cek apakah semuanya masih dalam grup Sertifikat (STA + STPB)
+                                            $allSertifikat = $detected->every(function ($val) {
+                                                return str_contains($val, 'SERTIFIKAT');
+                                            });
 
-            if ($allSertifikat) {
-                $kategoriJudul = 'SERTIFIKAT';
-            }
-            // Kalau campuran Modul + Majalah + dll → biarkan kosong
-        }
-    }
-@endphp
+                                            if ($allSertifikat) {
+                                                $kategoriJudul = 'SERTIFIKAT';
+                                            }
+                                            // Kalau campuran Modul + Majalah + dll → biarkan kosong
+                                        }
+                                    }
+                                @endphp
 
-<div style="color: #000000; font-size:15px; font-weight:bold; margin-bottom:6px;">
-    Rekap Aktual Detail - {{ $stokisName }}
-    @if($kategoriJudul)
-        <span style="color:#000000; font-weight:bold;">| {{ $kategoriJudul }}</span>
-    @endif
-    <span style="color:#4f46e5; font-weight:bold;">{{ $rekapNo }}</span>
-</div>
+                                <div style="color: #000000; font-size:15px; font-weight:bold; margin-bottom:6px;">
+                                    Rekap Aktual Detail - {{ $stokisName }}
+                                    @if($kategoriJudul)
+                                        <span style="color:#000000; font-weight:bold;">| {{ $kategoriJudul }}</span>
+                                    @endif
+                                    <span style="color:#4f46e5; font-weight:bold;">{{ $rekapNo }}</span>
+                                </div>
 
                                 @if($firstDate)
                                 <div style="font-size:10.5px; color:#64748b; font-weight:bold; margin-bottom:1px;">
