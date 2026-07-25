@@ -273,9 +273,59 @@ tbody tr:nth-child(odd){
 
                             <!-- Judul -->
                             <td style="width:70%; border:none; text-align:center; vertical-align:middle; padding-bottom:6px;">
-                                <div style="font-size:15px; font-weight:bold; margin-bottom:6px;">
+                               @php
+                                    $kategoriJudul = '';
+
+                                    // 1. Cek dari request filter
+                                    if (request()->has('kategori') && !empty(request('kategori'))) {
+                                        $kat = strtolower(request('kategori'));
+
+                                        if (str_contains($kat, 'modul')) {
+                                            $kategoriJudul = 'MODUL';
+                                        } elseif (str_contains($kat, 'majalah')) {
+                                            $kategoriJudul = 'MAJALAH SAHABAT biMBA';
+                                        } elseif (str_contains($kat, 'sertifikat')) {
+                                            $kategoriJudul = 'SERTIFIKAT';
+                                        }
+                                    }
+
+                                    // 2. Fallback: deteksi dari data
+                                    if (empty($kategoriJudul) && isset($data) && $data->isNotEmpty()) {
+                                        $first = $data->first();
+
+                                        $sku  = strtoupper(trim($first->item_sku ?? $first->sku ?? $first->product?->label ?? ''));
+                                        $sku  = preg_replace('/[^A-Z0-9]/', '', $sku);
+
+                                        $nama = strtolower(trim(
+                                            $first->item_name 
+                                            ?? $first->nama_barang 
+                                            ?? $first->kategori 
+                                            ?? $first->kategori_order 
+                                            ?? $first->product?->kategori 
+                                            ?? ''
+                                        ));
+
+                                        if (str_contains($sku, 'STA') && !str_contains($sku, 'STPB')) {
+                                            $kategoriJudul = 'STA - SERTIFIKAT';
+                                        } elseif (str_contains($sku, 'STPB')) {
+                                            $kategoriJudul = 'STPB - SERTIFIKAT';
+                                        } elseif (str_contains($nama, 'modul')) {
+                                            $kategoriJudul = 'MODUL';
+                                        } elseif (str_contains($nama, 'majalah')) {
+                                            $kategoriJudul = 'MAJALAH SAHABAT biMBA';
+                                        } elseif (str_contains($nama, 'sertifikat') || str_contains($nama, 'surat tanda')) {
+                                            $kategoriJudul = 'SERTIFIKAT';
+                                        }
+                                    }
+                                @endphp
+
+                                <div style="color: #000000; font-size:15px; font-weight:bold; margin-bottom:6px;">
                                     Rekap Aktual Detail - {{ $stokisName }}
+                                    @if($kategoriJudul)
+                                    <span style="color:#000000; font-weight:bold;">| {{ $kategoriJudul }}</span>
+                                    @endif
                                     <span style="color:#4f46e5; font-weight:bold;">{{ $rekapNo }}</span>
+                                    
                                 </div>
 
                                 @if($firstDate)
