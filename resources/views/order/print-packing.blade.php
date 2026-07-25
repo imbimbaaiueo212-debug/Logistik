@@ -11,11 +11,11 @@
 
         body {
             font-family: "DejaVu Sans", sans-serif;
-            font-size: 9px;           /* Sedikit lebih kecil */
+            font-size: 9px;
             color: #1f2937;
             margin: 0;
             padding: 8px;
-            line-height: 1.35;
+            line-height: 1.3;
         }
 
         table {
@@ -24,71 +24,64 @@
             table-layout: fixed;
         }
 
-        th {
-            background: #e8eef7;
-            color: #111827;
+        th, td {
             border: 1px solid #0000003d;
-            padding: 6px 5px;
-            text-align: center;
-            vertical-align: middle;
-            font-size: 9.5px;
-            font-weight: bold;
-            line-height: 1.25;
-        }
-
-        td {
-            border: 1px solid #0000003d;
-            padding: 4px 4px;
-            font-size: 8.8px;
-            color: #374151;
             vertical-align: top;
-            line-height: 1.25;
             word-wrap: break-word;
         }
 
-        /* Zebra */
+        th {
+            background: #ffffff;
+            color: #111827;
+            padding: 5px 2px;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        td {
+            padding: 3px 2px;
+            font-size: 8.8px;
+            color: #374151;
+            line-height: 1.25;
+        }
+
         tbody tr:nth-child(even) {
             background: #fafafa;
         }
 
-        /* Header Group */
         .header1 th {
-            background: #dbeafe;
+            background: #ffffff;
             font-size: 9.5px;
-            padding: 6px 4px;
+            padding: 6px 2px;
         }
 
         .header2 th {
-            background: #eff6ff;
+            background: #ffffff;
             font-size: 9px;
-            padding: 4px 3px;
+            padding: 4px 2px;
         }
 
-        .header-cell {
-            padding: 6px 4px;
-            vertical-align: middle;
-            text-align: center;
-        }
+        /* ===== LEBAR KOLOM ===== */
+        .col-no         { width: 3%; }
+        .col-id         { width: 7%; }
+        .col-unit       { width: 14%; }
+        .col-kategori   { width: 12%; }
+        .col-estimasi   { width: 9%; }
+        .col-distribusi { width: 9%; }
+        .col-berat      { width: 9%; }
+        .col-berat1     { width: 9%; }
+        .col-koli       { width: 5%; }
+        .col-packing    { width: 9%; }
+        .col-catatan    { width: 30%; }
 
-        /* Column Width - DIOPTIMALKAN */
-        .col-no         { width: 28px; }
-        .col-id         { width: 58px; }
-        .col-unit       { width: 125px; }
-        .col-kategori   { width: 68px; }
-        .col-estimasi   { width: 72px; }
-        .col-distribusi { width: 68px; }
-        .col-berat      { width: 58px; }
-        .col-berat1     { width: 58px; }
-        .col-koli       { width: 48px; }
-        .col-packing    { width: 72px; }
-        .col-catatan    { width: 130px; }
+        .text-left   { text-align: left; }
+        .text-center { text-align: center; }
+        .font-bold   { font-weight: bold; }
 
-        .text-left  { text-align: left; }
-        .font-bold  { font-weight: bold; }
-
-        /* Footer */
         .footer {
-            margin-top: 1px;
+            margin-top: 10px;
             text-align: right;
             font-size: 8.5px;
             color: #6b7280;
@@ -114,13 +107,13 @@
             <th colspan="11" style="border:none; padding:0;">
                 <table style="width:100%; border:none;">
                     <tr>
-                        <td style="width:75%; text-align:center; font-size:14px; font-weight:bold; color:#1e3a8a;">
+                        <td style="width:75%; text-align:center; font-size:14px; font-weight:bold; color:#000000; border:none;">
                             Rekap Aktual Detail - Packing {{ $stokisName }}
-                            <span style="color:#4f46e5;">{{ $rekapNo }}</span>
+                            <span style="color:#000000;">{{ $rekapNo }}</span>
                         </td>
-                        <td style="width:25%; text-align:center;">
+                        <td style="width:25%; text-align:center; border:none;">
                             @if($firstDate)
-                                <div style="font-size:10px; color:#64748b;">Waktu Serah Terima</div>
+                                <div style="font-size:10px; color:#000000;">Waktu Serah Terima</div>
                                 <div style="font-size:10.5px; font-weight:bold;">
                                     {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
                                 </div>
@@ -133,192 +126,126 @@
     </table>
 
     <!-- TABEL UTAMA -->
-    <table>
+    <table style="width:100%; table-layout:fixed; border-collapse:collapse;">
+        <colgroup>
+            <col class="col-no">
+            <col class="col-id">
+            <col class="col-unit">
+            <col class="col-kategori">
+            <col class="col-estimasi">
+            <col class="col-distribusi">
+            <col class="col-berat">
+            <col class="col-berat1">
+            <col class="col-koli">
+            <col class="col-packing">
+            <col class="col-catatan">
+        </colgroup>
+
         <thead>
             <tr class="header1">
-                <th rowspan="2" class="col-no header-cell">NO</th>
-                <th colspan="3" class="header-cell">DETAIL ORDER</th>
-                <th rowspan="2" class="col-estimasi header-cell">ESTIMASI (WAKTU)</th>
-                <th rowspan="2" class="col-distribusi header-cell">DISTRIBUSI</th>
-                <th rowspan="2" class="col-berat header-cell">BERAT BIMBA SHOP</th>
-                <th rowspan="2" class="col-berat1 header-cell">BERAT AKTUAL</th>
-                <th rowspan="2" class="col-koli header-cell">JUMLAH KOLI</th>
-                <th rowspan="2" class="col-packing header-cell">NAMA PACKING</th>
-                <th rowspan="2" class="col-catatan header-cell">CATATAN</th>
+                <th rowspan="2" class="col-no">NO</th>
+                <th colspan="3">DETAIL ORDER</th>
+                <th rowspan="2" class="col-estimasi">Leadtime</th>
+                <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
+                <th rowspan="2" class="col-berat">BERAT BIMBA SHOP</th>
+                <th rowspan="2" class="col-berat1">BERAT AKTUAL</th>
+                <th rowspan="2" class="col-koli">JUMLAH KOLI</th>
+                <th rowspan="2" class="col-packing">NAMA PACKING</th>
+                <th rowspan="2" class="col-catatan">CATATAN</th>
             </tr>
-
             <tr class="header2">
-                <th class="col-id header-cell">ID ORDER</th>
-                <th class="col-unit header-cell">NAMA UNIT</th>
-                <th class="col-kategori header-cell">KATEGORI</th>
+                <th class="col-id">ID ORDER</th>
+                <th class="col-unit">NAMA UNIT</th>
+                <th class="col-kategori">KATEGORI</th>
             </tr>
         </thead>
 
         <tbody>
             @foreach($data as $item)
             <tr>
-                <td class="font-bold text-center">{{ $loop->iteration }}</td>
-                <td class="text-center">{{ $item->no_pl ?? '-' }}</td>
-                <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
-                <td class="text-center text-sm">
-    @php
-        /*
-        |--------------------------------------------------------------------------
-        | AMBIL SEMUA PRODUCT ID
-        |--------------------------------------------------------------------------
-        */
+                <td class="col-no font-bold text-center">{{ $loop->iteration }}</td>
+                <td class="col-id text-center">{{ $item->no_pl ?? '-' }}</td>
+                <td class="col-unit text-left">{{ $item->nama_unit ?? '-' }}</td>
 
-        $productIds = [];
+                <td class="col-kategori text-center">
+                    @php
+                        $productIds = [];
 
-        if (!empty($item->product_ids)) {
-            $decodedIds = is_array($item->product_ids)
-                ? $item->product_ids
-                : json_decode($item->product_ids, true);
+                        if (!empty($item->product_ids)) {
+                            $decodedIds = is_array($item->product_ids)
+                                ? $item->product_ids
+                                : json_decode($item->product_ids, true);
 
-            if (is_array($decodedIds)) {
-                $productIds = $decodedIds;
-            }
-        }
+                            if (is_array($decodedIds)) {
+                                $productIds = $decodedIds;
+                            }
+                        }
 
-        /*
-        |--------------------------------------------------------------------------
-        | FALLBACK PRODUCT ID UTAMA
-        |--------------------------------------------------------------------------
-        */
+                        if (empty($productIds) && !empty($item->product_id)) {
+                            $productIds = [$item->product_id];
+                        }
 
-        if (empty($productIds) && !empty($item->product_id)) {
-            $productIds = [$item->product_id];
-        }
+                        $products = collect();
+                        if (!empty($productIds)) {
+                            $products = \App\Models\Product::whereIn('id', $productIds)->get();
+                        }
 
-        /*
-        |--------------------------------------------------------------------------
-        | AMBIL SEMUA PRODUCT
-        |--------------------------------------------------------------------------
-        */
+                        if ($products->isEmpty() && $item->product) {
+                            $products = collect([$item->product]);
+                        }
 
-        $products = collect();
+                        $displayList = $products->map(function ($product) {
+                            $kategori = trim($product->kategori ?? '');
+                            $kategoriLower = strtolower($kategori);
 
-        if (!empty($productIds)) {
-            $products = \App\Models\Product::whereIn('id', $productIds)
-                ->get();
-        }
+                            $kategori = preg_replace('/\s*(biMBA|Bimba|AIUEO|Aiueo)\s*/i', ' ', $kategori);
+                            $kategori = preg_replace('/\s+/', ' ', trim($kategori));
 
-        /*
-        |--------------------------------------------------------------------------
-        | FALLBACK RELASI PRODUCT
-        |--------------------------------------------------------------------------
-        */
+                            $sku = trim($product->label ?? $product->kode ?? '');
 
-        if ($products->isEmpty() && $item->product) {
-            $products = collect([$item->product]);
-        }
+                            if (str_contains($kategoriLower, 'sertifikat')) {
+                                return ($sku ? $sku . ' - ' : '') . $kategori;
+                            }
 
-        /*
-        |--------------------------------------------------------------------------
-        | TAMPILKAN SKU TERLEBIH DAHULU, BARU KATEGORI
-        |--------------------------------------------------------------------------
-        */
+                            if (str_contains($kategoriLower, 'majalah')) {
+                                return ($sku ? $sku . ' - ' : '') . $kategori;
+                            }
 
-        $displayList = $products
-            ->map(function ($product) {
+                            return $kategori ?: 'Modul';
+                        })
+                        ->filter()
+                        ->unique()
+                        ->values();
 
-                $kategori = trim(
-                    $product->kategori ?? ''
-                );
+                        $kategoriDisplay = $displayList->implode(' | ');
 
-                $kategoriLower = strtolower($kategori);
+                        if (empty($kategoriDisplay)) {
+                            $kategoriDisplay = $item->kategori_order ?? 'Lainnya';
+                        }
+                    @endphp
 
-                /*
-                |--------------------------------------------------------------------------
-                | AMBIL SKU / LABEL
-                |--------------------------------------------------------------------------
-                */
+                    {{ $kategoriDisplay }}
+                </td>
 
-                $sku = trim(
-                    $product->label
-                    ?? $product->kode
-                    ?? ''
-                );
-
-                /*
-                |--------------------------------------------------------------------------
-                | KHUSUS SERTIFIKAT
-                |--------------------------------------------------------------------------
-                */
-
-                if (str_contains($kategoriLower, 'sertifikat')) {
-
-                    return ($sku ? $sku . ' - ' : '')
-                        . $kategori;
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | KHUSUS MAJALAH
-                |--------------------------------------------------------------------------
-                */
-
-                if (str_contains($kategoriLower, 'majalah')) {
-
-                    return ($sku ? $sku . ' - ' : '')
-                        . $kategori;
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | KATEGORI LAIN
-                |--------------------------------------------------------------------------
-                */
-
-                return $kategori;
-            })
-            ->filter()
-            ->unique()
-            ->values();
-
-        /*
-        |--------------------------------------------------------------------------
-        | GABUNG DENGAN |
-        |--------------------------------------------------------------------------
-        */
-
-        $kategoriDisplay = $displayList->implode(' | ');
-
-        /*
-        |--------------------------------------------------------------------------
-        | FALLBACK
-        |--------------------------------------------------------------------------
-        */
-
-        if (empty($kategoriDisplay)) {
-            $kategoriDisplay = $item->kategori_order ?? 'Lainnya';
-        }
-    @endphp
-
-    <div class="font-medium">
-        {{ $kategoriDisplay }}
-    </div>
-</td>
-                
-                <td class="text-center">
+                <td class="col-estimasi text-center">
                     {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}<br>
                     <span style="font-size:8px;">{{ $item->estimasi_hari ?? 0 }} Hari</span>
                 </td>
 
-                <td class="text-center">
+                <td class="col-distribusi text-center">
                     {{ $item->pengiriman ?? '-' }}<br>
                     <span style="font-size:8px;">{{ $item->service_pengiriman ?? '-' }}</span>
                 </td>
 
-                <td class="text-center">{{ (int)($item->order_weight ?? 0) }} g</td>
-                <td class="text-center"></td>
-                <td class="text-center"></td>
-                <td class="text-center"></td>
+                <td class="col-berat text-center">{{ (int)($item->order_weight ?? 0) }} g</td>
+                <td class="col-berat1 text-center"></td>
+                <td class="col-koli text-center"></td>
+                <td class="col-packing text-center"></td>
 
-                <td class="text-left" style="font-size:8.2px;">
+                <td class="col-catatan text-left" style="font-size:8.2px;">
                     @php
                         $catatan = $item->ket ?? $item->jakartaAktif?->catatan ?? '';
-                        echo Str::limit(trim($catatan), 70);
+                        echo \Illuminate\Support\Str::limit(trim($catatan), 70);
                     @endphp
                 </td>
             </tr>

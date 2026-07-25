@@ -111,7 +111,59 @@
 
             <!-- HEADER -->
              <div class="header" style="margin-bottom: 8px;">
-                <span class="header-title" style="font-size: 27px; line-height: 1;">PICKING LIST</span><br>
+                @php
+    $kategoriJudul = '';
+
+    if ($data->isNotEmpty()) {
+        $firstRow = $data->first();
+
+        // Ambil SKU & Nama Produk
+        $skuRaw = strtoupper(trim($firstRow->item_sku ?? $firstRow->sku ?? ''));
+        // Bersihkan SKU (hapus JKT, -, spasi berlebih)
+        $sku = preg_replace('/[^A-Z0-9]/', '', $skuRaw);
+
+        $nama = strtolower(trim(
+            $firstRow->item_name 
+            ?? $firstRow->nama_barang 
+            ?? $firstRow->kategori 
+            ?? $firstRow->kategori_order 
+            ?? ''
+        ));
+
+        // ===== PRIORITAS 1: Cek SKU (lebih fleksibel) =====
+        if (str_contains($sku, 'STA') && !str_contains($sku, 'STPB')) {
+            $kategoriJudul = 'STA';
+        } 
+        elseif (str_contains($sku, 'STPB')) {
+            $kategoriJudul = 'STPB';
+        }
+        // ===== PRIORITAS 2: Cek dari nama / kategori =====
+        elseif (str_contains($nama, 'modul')) {
+            $kategoriJudul = 'MODUL';
+        } 
+        elseif (str_contains($nama, 'majalah')) {
+            $kategoriJudul = 'MAJALAH SAHABAT biMBA';
+        } 
+        elseif (str_contains($nama, 'sertifikat') || str_contains($nama, 'surat tanda')) {
+            $kategoriJudul = 'SERTIFIKAT';
+        } 
+        elseif (str_contains($nama, 'seragam')) {
+            $kategoriJudul = 'SERAGAM';
+        }
+    }
+
+    // Fallback dari request
+    if (empty($kategoriJudul) && request()->has('kategori')) {
+        $kategoriJudul = strtoupper(request('kategori'));
+    }
+@endphp
+
+<span class="header-title" style="font-size: 20px; line-height: 1;">
+    PICKING LIST
+    @if($kategoriJudul)
+        <span style="font-size: 20px; color: #000000;">| {{ $kategoriJudul }}</span>
+    @endif
+</span><br>
                 <span style="font-size: 15px; font-weight: 600; margin-top: -8px; display: inline-block;">
                     {{ str_replace(['Stokis ', 'Stokis'], '', $item->nama_stokis ?? 'Jakarta Aktif') }}
                 </span>
@@ -151,7 +203,22 @@
                     @foreach($data as $index => $row)
                     <tr>
                         <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">{{ $index + 1 }}</td>
-                        <td style="text-align:left; vertical-align:top; padding-top:1px; padding-bottom:1px; padding-left:4px; line-height:1;">{{ $row->item_name ?? $row->nama_barang ?? '-' }}</td>
+                        <td style="text-align:left; vertical-align:top; padding-top:1px; padding-bottom:1px; padding-left:4px; line-height:1;">
+                            @php
+                                $namaProduk = $row->item_name ?? $row->nama_barang ?? '-';
+
+                                // Cek apakah ini majalah
+                                $isMajalah = str_contains(strtolower($namaProduk), 'majalah');
+
+                                // Hanya bersihkan jika majalah
+                                if ($isMajalah) {
+                                    $namaProduk = preg_replace('/\s*\([^)]*\)/', '', $namaProduk);
+                                    $namaProduk = trim($namaProduk);
+                                }
+                            @endphp
+
+                            {{ $namaProduk }}
+                        </td>
                         <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">
                             @php
                                 $sku = trim($row->item_sku ?? '');
