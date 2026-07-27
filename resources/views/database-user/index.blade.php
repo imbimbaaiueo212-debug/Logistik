@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database User - biMBA Logistik</title>
+    <title>Database - biMBA Logistik</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -21,7 +21,7 @@
                 <!-- Header -->
                 <div class="flex justify-between items-center mb-8">
                     <div>
-                        <h2 class="text-3xl font-bold text-gray-800">Database User</h2>
+                        <h2 class="text-3xl font-bold text-gray-800">DATABASE</h2>
                         <p class="text-gray-500 mt-1">Pusat Pengelolaan Data User & Kemitraan</p>
                     </div>
                     
@@ -38,8 +38,7 @@
                     <a href="{{ route('user.export') }}" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">👥</div>
-                            <h3 class="text-2xl font-semibold mb-2">Import User biMBA Shop</h3>
-                            <p class="text-gray-500 text-sm">Database User utama biMBA Shop</p>
+                            <h3 class="text-2xl font-semibold mb-2">User biMBA Shop</h3>
                         </div>
                     </a>
 
@@ -48,16 +47,35 @@
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">🏢</div>
                             <h3 class="text-2xl font-semibold mb-2">Unit Kemitraan</h3>
-                            <p class="text-gray-500 text-sm">Database Unit Kemitraan</p>
                         </div>
                     </a>
 
                     <!-- Card 3 -->
-                    <a href="{{ route('stokis.index') }}" class="group">
+                    <!-- <a href="{{ route('stokis.index') }}" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">🏬</div>
                             <h3 class="text-2xl font-semibold mb-2">Stokis Mitra</h3>
-                            <p class="text-gray-500 text-sm">Database Stokis Mitra</p>
+                        </div>
+                    </a> -->
+
+                    <a href="{{ route('pesanan-majalah.index') }}" class="group">
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
+                            <div class="text-5xl mb-4">🏬</div>
+                            <h3 class="text-2xl font-semibold mb-2">Korwil</h3>
+                        </div>
+                    </a>
+
+                    <a href="#" class="group">
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
+                            <div class="text-5xl mb-4">🏬</div>
+                            <h3 class="text-2xl font-semibold mb-2">Pinwil</h3>
+                        </div>
+                    </a>
+
+                    <a href="#" class="group">
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
+                            <div class="text-5xl mb-4">🏬</div>
+                            <h3 class="text-2xl font-semibold mb-2">PUW 1</h3>
                         </div>
                     </a>
 
@@ -76,7 +94,7 @@
                 <div class="mt-12 flex justify-center">
                     <a href="{{ route('home') }}" 
                        class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 px-8 py-3 rounded-2xl font-medium transition-all">
-                        ← Kembali ke Menu Utama
+                        Menu Utama
                     </a>
                 </div>
 

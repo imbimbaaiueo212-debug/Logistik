@@ -32,6 +32,7 @@ use App\Http\Controllers\UserExportController;
 use App\Http\Controllers\StokisMitraController;
 use App\Http\Controllers\UnitKemitraanUserExportController;
 use App\Http\Controllers\QcOutgoingController;
+use App\Http\Controllers\PesananMajalahController;
 use App\Http\Controllers\PackingController;
 use App\Http\Controllers\Majalah2026Controller;
 
@@ -490,4 +491,16 @@ Route::prefix('distribution-order')
         Route::get(
     '/realisasi/majalah/2026/{edisi}/diproses/{kategori}',
     [Majalah2026Controller::class, 'kategori']
-)->name('majalah.2026.kategori');
+        )->name('majalah.2026.kategori');
+
+// ======================= MAJALAH KORWIL =======================
+
+Route::resource(
+    'pesanan-majalah',
+    PesananMajalahController::class
+);
+
+Route::post(
+    '/pesanan-majalah/import',
+    [PesananMajalahController::class, 'import']
+)->name('pesanan-majalah.import');
