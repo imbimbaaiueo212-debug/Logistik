@@ -65,14 +65,14 @@
                         </div>
                     </a>
 
-                    <a href="#" class="group">
+                    <a href="{{ route('pesanan-majalah-kotamadya.index') }}" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">🏬</div>
                             <h3 class="text-2xl font-semibold mb-2">Pinwil</h3>
                         </div>
                     </a>
 
-                    <a href="#" class="group">
+                    <a href="{{ route('pesanan-majalah-puw1.index') }}" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">🏬</div>
                             <h3 class="text-2xl font-semibold mb-2">PUW 1</h3>

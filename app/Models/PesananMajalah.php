@@ -28,4 +28,8 @@ class PesananMajalah extends Model
             'pesanan_majalah_id'
         );
     }
+    public function kotamadya()
+{
+    return $this->hasMany(PesananMajalahKotamadya::class, 'pesanan_majalah_id');
+}
 }

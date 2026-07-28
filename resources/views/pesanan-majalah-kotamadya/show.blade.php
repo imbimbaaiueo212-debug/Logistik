@@ -4,25 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Pesanan Majalah - biMBA AIUEO Logistik</title>
+    <title>Detail Pesanan Majalah Kotamadya - biMBA AIUEO Logistik</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-        }
-
-        table {
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px 8px;
-            font-size: 0.85rem;
-        }
-
+        body { font-family: 'Poppins', sans-serif; }
+        table { border-collapse: collapse; }
+        th, td { padding: 10px 8px; font-size: 0.85rem; }
         th {
             background-color: #f1f5f9;
             font-weight: 600;
@@ -31,10 +21,7 @@
             top: 0;
             z-index: 10;
         }
-
-        tr:hover {
-            background-color: #f8fafc;
-        }
+        tr:hover { background-color: #f8fafc; }
     </style>
 </head>
 
@@ -50,16 +37,17 @@
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('pesanan-majalah.index') }}"
-                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <a href="{{ route('pesanan-majalah-kotamadya.index') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                     ← Kembali
                 </a>
             </div>
             <h1 class="text-3xl font-bold text-gray-800">
-                Detail Pesanan Majalah
+                Detail Pesanan Majalah Kotamadya
             </h1>
             <p class="text-gray-600 mt-1">
-                {{ $data->judul ?? 'Pesanan Majalah' }} — {{ $data->bulan ?? '-' }} {{ $data->tahun ?? '' }}
+                {{ $data->judul ?? 'Pesanan Majalah Kotamadya' }}
+                — {{ $data->bulan ?? '-' }} {{ $data->tahun ?? '' }}
             </p>
         </div>
     </div>
@@ -68,8 +56,8 @@
     {{-- ALERT --}}
     {{-- ========================================================= --}}
     @if(session('success'))
-        <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl">
-            <div class="flex items-center gap-2">
+        <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl whitespace-pre-line">
+            <div class="flex items-start gap-2">
                 <span>✅</span>
                 <span>{{ session('success') }}</span>
             </div>
@@ -118,25 +106,24 @@
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 class="text-lg font-bold text-gray-800">Daftar Unit</h2>
             <span class="text-sm text-gray-500">
-                Total Unit:
-                <strong>
-                    {{ $data->kabupaten->sum(fn($k) => $k->units->count()) }}
-                </strong>
+                Total Unit: <strong>{{ $totalUnits ?? 0 }}</strong>
+                &nbsp;|&nbsp;
+                Total Pesanan: <strong>{{ number_format($totalPesanan ?? 0, 0, ',', '.') }}</strong>
             </span>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
-               <thead>
+                <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
                         <th class="px-4 py-3 text-center">No</th>
-                        <th class="px-4 py-3">Nama Unit</th>
                         <th class="px-4 py-3">No Cabang</th>
-                        <th class="px-4 py-3 text-center hidden">Jumlah Pesanan</th>
-                        <th class="px-4 py-3 text-center">Jumlah Pesanan</th> {{-- ini yang ditampilkan (nilai bulat) --}}
+                        <th class="px-4 py-3">Nama Unit</th>
+                        
+                        <th class="px-4 py-3 text-center">Jumlah Pesanan</th>
                         <th class="px-4 py-3">Alamat Unit</th>
                         <th class="px-4 py-3">Telepon</th>
-                        <th class="px-4 py-3">Kabupaten</th>
+                        <th class="px-4 py-3">Kotamadya / Kabupaten</th>
                         <th class="px-4 py-3">Contact Person</th>
                     </tr>
                 </thead>
@@ -144,32 +131,25 @@
                 <tbody class="divide-y divide-gray-200">
                     @php $no = 1; @endphp
 
-                    @forelse($data->kabupaten as $kabupaten)
-                        @foreach($kabupaten->units as $unit)
+                    @forelse($data->kotamadya as $kotamadya)
+                        @foreach($kotamadya->units as $unit)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-3 text-center">{{ $no++ }}</td>
-                                <td class="px-4 py-3 font-medium">{{ $unit->nama_unit ?? '-' }}</td>
                                 <td class="px-4 py-3">{{ $unit->no_cabang ?? '-' }}</td>
-
-                                {{-- Nilai asli (disembunyikan) --}}
-                                <td class="px-4 py-3 text-center font-semibold hidden">
-                                    {{ $unit->jumlah_pesanan ?? 0 }}
-                                </td>
-
-                                {{-- Nilai yang sudah dibulatkan (yang terlihat) --}}
+                                <td class="px-4 py-3 font-medium">{{ $unit->nama_unit ?? '-' }}</td>
+                                
                                 <td class="px-4 py-3 text-center font-semibold">
-                                    {{ number_format(round($unit->jumlah_pesanan ?? 0), 0) }}
+                                    {{ number_format(round($unit->jumlah_pesanan ?? 0), 0, ',', '.') }}
                                 </td>
-
                                 <td class="px-4 py-3">{{ $unit->alamat_unit ?? '-' }}</td>
                                 <td class="px-4 py-3">{{ $unit->telepon ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $kabupaten->nama_kabupaten ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $kabupaten->contact_person ?? '-' }}</td>
+                                <td class="px-4 py-3">{{ $kotamadya->nama_kotamadya ?? '-' }}</td>
+                                <td class="px-4 py-3">{{ $kotamadya->contact_person ?? '-' }} {{ $kotamadya->telepon_contact_person ?? '-' }}</td>
                             </tr>
                         @endforeach
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-16 text-gray-500">
+                            <td colspan="8" class="text-center py-16 text-gray-500">
                                 <div class="text-4xl mb-3">📭</div>
                                 <p class="font-semibold">Belum ada data unit</p>
                                 <p class="text-sm mt-1">Silakan import Excel untuk mengisi data unit.</p>
@@ -185,7 +165,7 @@
 
 <script>
     function confirmDelete() {
-        if (confirm('Yakin ingin menghapus seluruh data periode pesanan majalah ini?\nSemua kabupaten dan unit di dalamnya juga akan ikut terhapus.')) {
+        if (confirm('Yakin ingin menghapus seluruh data periode ini?\nSemua Kotamadya dan unit di dalamnya juga akan ikut terhapus.')) {
             document.getElementById('deleteForm').submit();
         }
     }

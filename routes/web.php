@@ -35,6 +35,8 @@ use App\Http\Controllers\QcOutgoingController;
 use App\Http\Controllers\PesananMajalahController;
 use App\Http\Controllers\PackingController;
 use App\Http\Controllers\Majalah2026Controller;
+use App\Http\Controllers\PesananMajalahKotamadyaController;
+use App\Http\Controllers\PesananMajalahPuw1Controller;
 
 use App\Http\Controllers\DistributionOrderController;
 
@@ -504,3 +506,197 @@ Route::post(
     '/pesanan-majalah/import',
     [PesananMajalahController::class, 'import']
 )->name('pesanan-majalah.import');
+
+// ====================== MAJALAH PINWIL =========================
+/*
+|--------------------------------------------------------------------------
+| Pesanan Majalah Kotamadya
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('pesanan-majalah-kotamadya')
+    ->name('pesanan-majalah-kotamadya.')
+    ->group(function () {
+
+        // =========================================================
+        // DAFTAR KOTAMADYA / INDEX
+        // =========================================================
+        Route::get(
+            '/',
+            [PesananMajalahKotamadyaController::class, 'index']
+        )->name('index');
+
+
+        // =========================================================
+        // FORM TAMBAH KOTAMADYA
+        // =========================================================
+        Route::get(
+            '/create',
+            [PesananMajalahKotamadyaController::class, 'create']
+        )->name('create');
+
+
+        // =========================================================
+        // SIMPAN KOTAMADYA
+        // =========================================================
+        Route::post(
+            '/',
+            [PesananMajalahKotamadyaController::class, 'store']
+        )->name('store');
+
+
+        // =========================================================
+        // IMPORT EXCEL
+        // =========================================================
+        Route::post(
+            '/import',
+            [PesananMajalahKotamadyaController::class, 'import']
+        )->name('import');
+
+
+        // =========================================================
+        // HAPUS SELURUH PERIODE (baru)
+        // =========================================================
+        Route::delete(
+            '/periode/{id}',
+            [PesananMajalahKotamadyaController::class, 'destroyPeriode']
+        )->name('destroy-periode');
+
+
+        // =========================================================
+        // DETAIL KOTAMADYA + DAFTAR UNIT
+        // =========================================================
+        Route::get(
+            '/{id}',
+            [PesananMajalahKotamadyaController::class, 'show']
+        )->name('show');
+
+
+        // =========================================================
+        // FORM EDIT KOTAMADYA
+        // =========================================================
+        Route::get(
+            '/{id}/edit',
+            [PesananMajalahKotamadyaController::class, 'edit']
+        )->name('edit');
+
+
+        // =========================================================
+        // UPDATE KOTAMADYA
+        // =========================================================
+        Route::put(
+            '/{id}',
+            [PesananMajalahKotamadyaController::class, 'update']
+        )->name('update');
+
+
+        // =========================================================
+        // HAPUS KOTAMADYA
+        // =========================================================
+        Route::delete(
+            '/{id}',
+            [PesananMajalahKotamadyaController::class, 'destroy']
+        )->name('destroy');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UNIT KOTAMADYA
+        |--------------------------------------------------------------------------
+        */
+
+
+        // =========================================================
+        // TAMBAH UNIT KE KOTAMADYA
+        // =========================================================
+        Route::post(
+            '/{kotamadyaId}/unit',
+            [PesananMajalahKotamadyaController::class, 'storeUnit']
+        )->name('unit.store');
+
+
+        // =========================================================
+        // UPDATE UNIT
+        // =========================================================
+        Route::put(
+            '/unit/{unitId}',
+            [PesananMajalahKotamadyaController::class, 'updateUnit']
+        )->name('unit.update');
+
+
+        // =========================================================
+        // HAPUS UNIT
+        // =========================================================
+        Route::delete(
+            '/unit/{unitId}',
+            [PesananMajalahKotamadyaController::class, 'destroyUnit']
+        )->name('unit.destroy');
+
+    });
+
+  /*
+|--------------------------------------------------------------------------
+| Pesanan Majalah PUW1
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('pesanan-majalah-puw1')
+    ->name('pesanan-majalah-puw1.')
+    ->group(function () {
+
+        // Index
+        Route::get(
+            '/',
+            [PesananMajalahPuw1Controller::class, 'index']
+        )->name('index');
+
+
+        // Import Excel
+        Route::post(
+            '/import',
+            [PesananMajalahPuw1Controller::class, 'import']
+        )->name('import');
+
+
+        // Create
+        Route::get(
+            '/create',
+            [PesananMajalahPuw1Controller::class, 'create']
+        )->name('create');
+
+
+        // Store
+        Route::post(
+            '/',
+            [PesananMajalahPuw1Controller::class, 'store']
+        )->name('store');
+
+
+        // Show
+        Route::get(
+            '/{id}',
+            [PesananMajalahPuw1Controller::class, 'show']
+        )->name('show');
+
+
+        // Edit
+        Route::get(
+            '/{id}/edit',
+            [PesananMajalahPuw1Controller::class, 'edit']
+        )->name('edit');
+
+
+        // Update
+        Route::put(
+            '/{id}',
+            [PesananMajalahPuw1Controller::class, 'update']
+        )->name('update');
+
+
+        // Destroy
+        Route::delete(
+            '/{id}',
+            [PesananMajalahPuw1Controller::class, 'destroy']
+        )->name('destroy');
+
+    });
