@@ -19,113 +19,72 @@ class PesananMajalahPuw1Controller extends Controller
      * ============================================================
      */
     public function index(Request $request)
-    {
-        $query = PesananMajalahPuw1::query();
+{
+    $query = PesananMajalahPuw1::query();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER JUDUL
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('judul')) {
-
-            $query->where(
-                'judul',
-                'like',
-                '%' . $request->judul . '%'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER BULAN
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('bulan')) {
-
-            $query->where(
-                'bulan',
-                'like',
-                '%' . $request->bulan . '%'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER TAHUN
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('tahun')) {
-
-            $query->where(
-                'tahun',
-                $request->tahun
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER PERIODE
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('periode')) {
-
-            $query->where(
-                'periode',
-                'like',
-                '%' . $request->periode . '%'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DATA
-        |--------------------------------------------------------------------------
-        */
-
-        $data = $query
-            ->withCount('units')
-            ->withSum(
-                'units',
-                'jumlah_pesanan'
-            )
-            ->orderByDesc('tahun')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | PERIODE IMPORT
-        |--------------------------------------------------------------------------
-        */
-
-        $periodeImport =
-            $this->daftarPeriodeImport();
-
-
-        return view(
-            'pesanan-majalah-puw1.index',
-            compact(
-                'data',
-                'periodeImport'
-            )
-        );
+    if ($request->filled('judul')) {
+        $query->where('judul', 'like', '%' . $request->judul . '%');
     }
+
+    if ($request->filled('bulan')) {
+        $query->where('bulan', $request->bulan);
+    }
+
+    if ($request->filled('tahun')) {
+        $query->where('tahun', $request->tahun);
+    }
+
+    if ($request->filled('periode')) {
+        $query->where('periode', $request->periode);
+    }
+
+    $data = $query
+        ->withCount('units')
+        ->withSum('units', 'jumlah_pesanan')
+        ->orderByDesc('tahun')
+        ->orderByDesc('id')
+        ->paginate(20)
+        ->withQueryString();
+
+    // Data untuk Select2
+    $listJudul = PesananMajalahPuw1::select('judul')
+        ->whereNotNull('judul')
+        ->where('judul', '!=', '')
+        ->distinct()
+        ->orderBy('judul')
+        ->pluck('judul');
+
+    $listBulan = PesananMajalahPuw1::select('bulan')
+        ->whereNotNull('bulan')
+        ->where('bulan', '!=', '')
+        ->distinct()
+        ->orderBy('bulan')
+        ->pluck('bulan');
+
+    $listTahun = PesananMajalahPuw1::select('tahun')
+        ->whereNotNull('tahun')
+        ->distinct()
+        ->orderByDesc('tahun')
+        ->pluck('tahun');
+
+    $listPeriode = PesananMajalahPuw1::select('periode')
+        ->whereNotNull('periode')
+        ->where('periode', '!=', '')
+        ->distinct()
+        ->orderByDesc('periode')
+        ->pluck('periode');
+
+    $periodeImport = $this->daftarPeriodeImport();
+
+    return view('pesanan-majalah-puw1.index', compact(
+        'data',
+        'periodeImport',
+        'listJudul',
+        'listBulan',
+        'listTahun',
+        'listPeriode'
+    ));
+}
 
 
     /**
@@ -133,22 +92,60 @@ class PesananMajalahPuw1Controller extends Controller
      * SHOW
      * ============================================================
      */
-    public function show($id)
-    {
-        $data = PesananMajalahPuw1::with([
-            'units' => function ($query) {
+    public function show(Request $request, $id)
+{
+    $data = PesananMajalahPuw1::findOrFail($id);
 
-                $query->orderBy('no');
+    $unitsQuery = $data->units()->orderBy('no');
 
-            }
-        ])->findOrFail($id);
-
-
-        return view(
-            'pesanan-majalah-puw1.show',
-            compact('data')
-        );
+    // Filter Nama Unit
+    if ($request->filled('nama_unit')) {
+        $unitsQuery->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
     }
+
+    // Filter No Cabang
+    if ($request->filled('no_cabang')) {
+        $unitsQuery->where('no_cabang', $request->no_cabang);
+    }
+
+    // Filter Kabupaten / Kota
+    if ($request->filled('kabupaten_kota')) {
+        $unitsQuery->where('kabupaten_kota', $request->kabupaten_kota);
+    }
+
+    $units = $unitsQuery->get();
+
+    // Data untuk dropdown Select2
+    $listNamaUnit = $data->units()
+        ->select('nama_unit')
+        ->distinct()
+        ->orderBy('nama_unit')
+        ->pluck('nama_unit');
+
+    $listNoCabang = $data->units()
+        ->select('no_cabang')
+        ->whereNotNull('no_cabang')
+        ->where('no_cabang', '!=', '')
+        ->distinct()
+        ->orderBy('no_cabang')
+        ->pluck('no_cabang');
+
+    $listKabupaten = $data->units()
+        ->select('kabupaten_kota')
+        ->whereNotNull('kabupaten_kota')
+        ->where('kabupaten_kota', '!=', '')
+        ->distinct()
+        ->orderBy('kabupaten_kota')
+        ->pluck('kabupaten_kota');
+
+    return view('pesanan-majalah-puw1.show', compact(
+        'data',
+        'units',
+        'listNamaUnit',
+        'listNoCabang',
+        'listKabupaten'
+    ));
+}
 
 
     /**

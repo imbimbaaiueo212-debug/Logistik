@@ -250,54 +250,92 @@ class PesananMajalahController extends Controller
             );
     }
 
+/**
+ * ============================================================
+ * SHOW
+ * ============================================================
+ *
+ * Menampilkan detail satu periode + filter unit.
+ */
+public function show(Request $request, PesananMajalah $pesananMajalah)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD RELATIONSHIP
+    |--------------------------------------------------------------------------
+    */
+    $pesananMajalah->load([
+        'kabupaten' => function ($q) {
+            $q->orderBy('urutan');
+        },
+        'kabupaten.units' => function ($q) {
+            $q->orderBy('no');
+        },
+    ]);
 
-    /**
-     * ============================================================
-     * SHOW
-     * ============================================================
-     *
-     * Menampilkan detail satu periode.
-     */
-    public function show(
-        PesananMajalah $pesananMajalah
-    ) {
+    /*
+    |--------------------------------------------------------------------------
+    | KUMPULKAN SEMUA UNIT
+    |--------------------------------------------------------------------------
+    */
+    $allUnits = collect();
 
-        /*
-        |--------------------------------------------------------------------------
-        | LOAD RELATIONSHIP
-        |--------------------------------------------------------------------------
-        */
-
-        $pesananMajalah->load([
-
-            'kabupaten' => function ($q) {
-
-                $q->orderBy('urutan');
-
-            },
-
-            'kabupaten.units' => function ($q) {
-
-                $q->orderBy('no');
-
-            },
-
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | VIEW
-        |--------------------------------------------------------------------------
-        */
-
-        return view(
-            'pesanan-majalah.show',
-            [
-                'data' => $pesananMajalah
-            ]
-        );
+    foreach ($pesananMajalah->kabupaten as $kabupaten) {
+        foreach ($kabupaten->units as $unit) {
+            $unit->nama_kabupaten = $kabupaten->nama_kabupaten;
+            $unit->contact_person = $kabupaten->contact_person;
+            $allUnits->push($unit);
+        }
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | LIST UNIK UNTUK SELECT2
+    |--------------------------------------------------------------------------
+    */
+    $listNamaUnit   = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
+    $listNoCabang   = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
+    $listKabupaten  = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
+
+    /*
+    |--------------------------------------------------------------------------
+    | TERAPKAN FILTER
+    |--------------------------------------------------------------------------
+    */
+    $units = $allUnits;
+
+    if ($request->filled('nama_unit')) {
+        $units = $units->where('nama_unit', $request->nama_unit);
+    }
+
+    if ($request->filled('no_cabang')) {
+        $units = $units->where('no_cabang', $request->no_cabang);
+    }
+
+    if ($request->filled('kabupaten')) {
+        $units = $units->where('nama_kabupaten', $request->kabupaten);
+    }
+
+    $units = $units->values();
+
+    $totalUnits   = $units->count();
+    $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
+
+    /*
+    |--------------------------------------------------------------------------
+    | VIEW
+    |--------------------------------------------------------------------------
+    */
+    return view('pesanan-majalah.show', [
+        'data'          => $pesananMajalah,
+        'units'         => $units,
+        'totalUnits'    => $totalUnits,
+        'totalPesanan'  => $totalPesanan,
+        'listNamaUnit'  => $listNamaUnit,
+        'listNoCabang'  => $listNoCabang,
+        'listKabupaten' => $listKabupaten,
+    ]);
+}
 
 
     /**

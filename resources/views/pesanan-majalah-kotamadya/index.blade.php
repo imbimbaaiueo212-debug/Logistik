@@ -9,6 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
+    {{-- Select2 CSS --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
         body { font-family: 'Poppins', sans-serif; }
         table { border-collapse: collapse; }
@@ -23,6 +26,25 @@
         }
         tr:hover { background-color: #f8fafc; }
         .modal-open { overflow: hidden; }
+
+        /* Select2 sesuaikan dengan Tailwind */
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.75rem !important;
+            padding: 6px 12px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px !important;
+            color: #1f2937 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+        }
+        .select2-dropdown {
+            border-radius: 0.75rem !important;
+            border: 1px solid #d1d5db !important;
+        }
     </style>
 </head>
 
@@ -87,37 +109,65 @@
         </div>
     @endif
 
-    {{-- FILTER --}}
+    {{-- FILTER (Select2) --}}
     <div class="bg-white rounded-3xl shadow p-6 mb-8">
         <form method="GET" action="{{ route('pesanan-majalah-kotamadya.index') }}"
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
+            {{-- Judul --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Judul</label>
-                <input type="text" name="judul" value="{{ request('judul') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="Cari judul...">
+                <select name="judul" class="select2 w-full">
+                    <option value="">-- Semua Judul --</option>
+                    @foreach($listJudul as $judul)
+                        <option value="{{ $judul }}"
+                            {{ request('judul') == $judul ? 'selected' : '' }}>
+                            {{ $judul }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Bulan / Edisi --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Bulan / Edisi</label>
-                <input type="text" name="bulan" value="{{ request('bulan') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="Contoh: JULI M159">
+                <select name="bulan" class="select2 w-full">
+                    <option value="">-- Semua Bulan --</option>
+                    @foreach($listBulan as $bulan)
+                        <option value="{{ $bulan }}"
+                            {{ request('bulan') == $bulan ? 'selected' : '' }}>
+                            {{ $bulan }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Tahun --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-                <input type="number" name="tahun" value="{{ request('tahun') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="2026">
+                <select name="tahun" class="select2 w-full">
+                    <option value="">-- Semua Tahun --</option>
+                    @foreach($listTahun as $tahun)
+                        <option value="{{ $tahun }}"
+                            {{ request('tahun') == $tahun ? 'selected' : '' }}>
+                            {{ $tahun }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Periode --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
-                <input type="text" name="periode" value="{{ request('periode') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="2026-07">
+                <select name="periode" class="select2 w-full">
+                    <option value="">-- Semua Periode --</option>
+                    @foreach($listPeriode as $periode)
+                        <option value="{{ $periode }}"
+                            {{ request('periode') == $periode ? 'selected' : '' }}>
+                            {{ $periode }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="flex items-end gap-3 lg:col-span-4">
@@ -273,8 +323,20 @@
     </div>
 </div>
 
+{{-- jQuery + Select2 --}}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Select2
+    $('.select2').select2({
+        placeholder: 'Cari / pilih...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Modal Import
     const modal     = document.getElementById('importModal');
     const form      = document.getElementById('formImportMajalahKotamadya');
     const periode   = document.getElementById('periodeImport');

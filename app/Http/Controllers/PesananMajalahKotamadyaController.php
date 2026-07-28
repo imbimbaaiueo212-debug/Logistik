@@ -17,7 +17,10 @@ class PesananMajalahKotamadyaController extends Controller
     /**
      * INDEX – Daftar Periode (dari tabel pesanan_majalah)
      */
-    public function index(Request $request)
+    /**
+ * INDEX – Daftar Periode (dari tabel pesanan_majalah)
+ */
+public function index(Request $request)
 {
     $query = PesananMajalah::query()
         ->with(['kotamadya.units'])
@@ -25,16 +28,16 @@ class PesananMajalahKotamadyaController extends Controller
 
     // Filter
     if ($request->filled('judul')) {
-        $query->where('judul', 'like', '%' . $request->judul . '%');
+        $query->where('judul', $request->judul);
     }
     if ($request->filled('bulan')) {
-        $query->where('bulan', 'like', '%' . $request->bulan . '%');
+        $query->where('bulan', $request->bulan);
     }
     if ($request->filled('tahun')) {
         $query->where('tahun', $request->tahun);
     }
     if ($request->filled('periode')) {
-        $query->where('periode', 'like', '%' . $request->periode . '%');
+        $query->where('periode', $request->periode);
     }
 
     $data = $query
@@ -56,33 +59,89 @@ class PesananMajalahKotamadyaController extends Controller
         return $item;
     });
 
-    return view('pesanan-majalah-kotamadya.index', compact('data'));
+    // List unik untuk Select2 (dari semua data yang punya kotamadya)
+    $baseQuery = PesananMajalah::query()->whereHas('kotamadya');
+
+    $listJudul   = (clone $baseQuery)->select('judul')->distinct()->orderBy('judul')->pluck('judul')->filter();
+    $listBulan   = (clone $baseQuery)->select('bulan')->distinct()->orderBy('bulan')->pluck('bulan')->filter();
+    $listTahun   = (clone $baseQuery)->select('tahun')->distinct()->orderByDesc('tahun')->pluck('tahun')->filter();
+    $listPeriode = (clone $baseQuery)->select('periode')->distinct()->orderByDesc('periode')->pluck('periode')->filter();
+
+    return view('pesanan-majalah-kotamadya.index', compact(
+        'data',
+        'listJudul',
+        'listBulan',
+        'listTahun',
+        'listPeriode'
+    ));
 }
 
 
     /**
      * SHOW – Detail Periode + semua Kotamadya + Unit
      */
-    public function show($id)
-    {
-        $data = PesananMajalah::with([
-            'kotamadya' => function ($q) {
-                $q->orderBy('urutan')->orderBy('nama_kotamadya');
-            },
-            'kotamadya.units' => function ($q) {
-                $q->orderBy('no');
-            }
-        ])->findOrFail($id);
+    /**
+ * SHOW – Detail Periode + semua Kotamadya + Unit (dengan filter)
+ */
+public function show(Request $request, $id)
+{
+    $data = PesananMajalah::with([
+        'kotamadya' => function ($q) {
+            $q->orderBy('urutan')->orderBy('nama_kotamadya');
+        },
+        'kotamadya.units' => function ($q) {
+            $q->orderBy('no');
+        }
+    ])->findOrFail($id);
 
-        $totalUnits = $data->kotamadya->sum(fn ($k) => $k->units->count());
-        $totalPesanan = $data->kotamadya->sum(fn ($k) => $k->units->sum('jumlah_pesanan'));
-
-        return view('pesanan-majalah-kotamadya.show', compact(
-            'data',
-            'totalUnits',
-            'totalPesanan'
-        ));
+    // Ambil semua unit dari relasi
+    $allUnits = collect();
+    foreach ($data->kotamadya as $kotamadya) {
+        foreach ($kotamadya->units as $unit) {
+            // Tambahkan nama kotamadya ke object unit agar mudah difilter
+            $unit->nama_kotamadya = $kotamadya->nama_kotamadya;
+            $unit->contact_person = $kotamadya->contact_person;
+            $unit->telepon_contact_person = $kotamadya->telepon_contact_person;
+            $allUnits->push($unit);
+        }
     }
+
+    // List unik untuk Select2 (dari data asli, sebelum filter)
+    $listNamaUnit   = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
+    $listNoCabang   = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
+    $listKotamadya  = $allUnits->pluck('nama_kotamadya')->filter()->unique()->sort()->values();
+
+    // Terapkan filter
+    $units = $allUnits;
+
+    if ($request->filled('nama_unit')) {
+        $units = $units->where('nama_unit', $request->nama_unit);
+    }
+
+    if ($request->filled('no_cabang')) {
+        $units = $units->where('no_cabang', $request->no_cabang);
+    }
+
+    if ($request->filled('kotamadya')) {
+        $units = $units->where('nama_kotamadya', $request->kotamadya);
+    }
+
+    // Reset keys agar foreach rapi
+    $units = $units->values();
+
+    $totalUnits   = $units->count();
+    $totalPesanan = $units->sum('jumlah_pesanan');
+
+    return view('pesanan-majalah-kotamadya.show', compact(
+        'data',
+        'units',
+        'totalUnits',
+        'totalPesanan',
+        'listNamaUnit',
+        'listNoCabang',
+        'listKotamadya'
+    ));
+}
 
 
     /**

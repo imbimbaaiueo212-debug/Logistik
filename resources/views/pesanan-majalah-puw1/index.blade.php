@@ -9,6 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
+    {{-- Select2 CSS --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -18,8 +21,7 @@
             border-collapse: collapse;
         }
 
-        th,
-        td {
+        th, td {
             padding: 10px 6px;
             font-size: 0.8rem;
         }
@@ -37,6 +39,28 @@
         .modal-open {
             overflow: hidden;
         }
+
+        /* Select2 + Tailwind */
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.75rem !important;
+            padding: 6px 12px !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px !important;
+            color: #1f2937 !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+        }
+
+        .select2-dropdown {
+            border-radius: 0.75rem !important;
+            border: 1px solid #d1d5db !important;
+        }
     </style>
 </head>
 
@@ -46,9 +70,7 @@
 
 <div class="max-w-screen-2xl mx-auto px-6 py-6">
 
-    {{-- ========================================================= --}}
     {{-- HEADER --}}
-    {{-- ========================================================= --}}
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-3 mb-1">
@@ -76,9 +98,7 @@
         </div>
     </div>
 
-    {{-- ========================================================= --}}
     {{-- ALERT SUCCESS --}}
-    {{-- ========================================================= --}}
     @if(session('success'))
         <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl">
             <div class="flex items-center gap-2">
@@ -88,9 +108,7 @@
         </div>
     @endif
 
-    {{-- ========================================================= --}}
     {{-- ALERT ERROR --}}
-    {{-- ========================================================= --}}
     @if(session('error'))
         <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl">
             <div class="flex items-center gap-2">
@@ -100,56 +118,74 @@
         </div>
     @endif
 
-    {{-- ========================================================= --}}
-    {{-- FILTER --}}
-    {{-- ========================================================= --}}
+    {{-- FILTER (Select2) --}}
     <div class="bg-white rounded-3xl shadow p-6 mb-8">
         <form method="GET"
               action="{{ route('pesanan-majalah-puw1.index') }}"
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
+            {{-- Judul --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Judul
                 </label>
-                <input type="text"
-                       name="judul"
-                       value="{{ request('judul') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                       placeholder="Cari judul...">
+                <select name="judul" class="select2 w-full">
+                    <option value="">-- Semua Judul --</option>
+                    @foreach($listJudul as $judul)
+                        <option value="{{ $judul }}"
+                            {{ request('judul') == $judul ? 'selected' : '' }}>
+                            {{ $judul }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Bulan --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Bulan / Edisi
                 </label>
-                <input type="text"
-                       name="bulan"
-                       value="{{ request('bulan') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                       placeholder="Contoh: JULI M159">
+                <select name="bulan" class="select2 w-full">
+                    <option value="">-- Semua Bulan --</option>
+                    @foreach($listBulan as $bulan)
+                        <option value="{{ $bulan }}"
+                            {{ request('bulan') == $bulan ? 'selected' : '' }}>
+                            {{ $bulan }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Tahun --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Tahun
                 </label>
-                <input type="number"
-                       name="tahun"
-                       value="{{ request('tahun') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                       placeholder="2026">
+                <select name="tahun" class="select2 w-full">
+                    <option value="">-- Semua Tahun --</option>
+                    @foreach($listTahun as $tahun)
+                        <option value="{{ $tahun }}"
+                            {{ request('tahun') == $tahun ? 'selected' : '' }}>
+                            {{ $tahun }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Periode --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Periode
                 </label>
-                <input type="text"
-                       name="periode"
-                       value="{{ request('periode') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                       placeholder="2026-07">
+                <select name="periode" class="select2 w-full">
+                    <option value="">-- Semua Periode --</option>
+                    @foreach($listPeriode as $periode)
+                        <option value="{{ $periode }}"
+                            {{ request('periode') == $periode ? 'selected' : '' }}>
+                            {{ $periode }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="flex items-end gap-3 lg:col-span-4">
@@ -166,9 +202,7 @@
         </form>
     </div>
 
-    {{-- ========================================================= --}}
     {{-- TABLE --}}
-    {{-- ========================================================= --}}
     <div class="bg-white rounded-3xl shadow overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
@@ -224,7 +258,6 @@
                         </td>
 
                         <td class="px-4 py-4 text-center font-semibold text-green-700">
-                            {{-- Dibulatkan di tampilan, database tetap desimal --}}
                             {{ number_format(round((float) ($item->units_sum_jumlah_pesanan ?? 0)), 0, ',', '.') }}
                         </td>
                     </tr>
@@ -241,9 +274,7 @@
         </table>
     </div>
 
-    {{-- ========================================================= --}}
     {{-- PAGINATION --}}
-    {{-- ========================================================= --}}
     @if($data->count() > 0)
         <div class="mt-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm text-gray-600">
             <div>
@@ -257,9 +288,7 @@
 
 </div>
 
-{{-- ========================================================= --}}
 {{-- MODAL IMPORT --}}
-{{-- ========================================================= --}}
 <div id="importModal"
      class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
 
@@ -290,7 +319,6 @@
               class="p-6">
             @csrf
 
-            {{-- PERIODE --}}
             <div class="mb-5">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     Periode Pesanan Majalah
@@ -301,7 +329,6 @@
                         required
                         class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">-- Pilih Periode --</option>
-
                     @foreach($periodeImport as $periode)
                         <option value="{{ $periode['value'] }}">
                             {{ $periode['label'] }}
@@ -310,7 +337,6 @@
                 </select>
             </div>
 
-            {{-- FILE --}}
             <div class="mb-5">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     File Excel PUW1
@@ -345,8 +371,20 @@
     </div>
 </div>
 
+{{-- jQuery + Select2 --}}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Select2
+    $('.select2').select2({
+        placeholder: 'Cari / pilih...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Modal Import
     const modal     = document.getElementById('importModal');
     const form      = document.getElementById('formImportPuw1');
     const periode   = document.getElementById('periodeImport');

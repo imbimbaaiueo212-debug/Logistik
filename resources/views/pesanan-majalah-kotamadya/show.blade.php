@@ -9,6 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
+    {{-- Select2 CSS --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
         body { font-family: 'Poppins', sans-serif; }
         table { border-collapse: collapse; }
@@ -22,6 +25,25 @@
             z-index: 10;
         }
         tr:hover { background-color: #f8fafc; }
+
+        /* Select2 sesuaikan dengan Tailwind */
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.75rem !important;
+            padding: 6px 12px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px !important;
+            color: #1f2937 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+        }
+        .select2-dropdown {
+            border-radius: 0.75rem !important;
+            border: 1px solid #d1d5db !important;
+        }
     </style>
 </head>
 
@@ -100,6 +122,77 @@
     </div>
 
     {{-- ========================================================= --}}
+    {{-- FILTER UNIT (Select2) --}}
+    {{-- ========================================================= --}}
+    <div class="bg-white rounded-3xl shadow p-6 mb-6">
+        <form method="GET"
+              action="{{ route('pesanan-majalah-kotamadya.show', $data->id) }}"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            {{-- Nama Unit --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Nama Unit
+                </label>
+                <select name="nama_unit" class="select2 w-full">
+                    <option value="">-- Semua Unit --</option>
+                    @foreach($listNamaUnit as $nama)
+                        <option value="{{ $nama }}"
+                            {{ request('nama_unit') == $nama ? 'selected' : '' }}>
+                            {{ $nama }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- No Cabang --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    No Cabang
+                </label>
+                <select name="no_cabang" class="select2 w-full">
+                    <option value="">-- Semua No Cabang --</option>
+                    @foreach($listNoCabang as $cabang)
+                        <option value="{{ $cabang }}"
+                            {{ request('no_cabang') == $cabang ? 'selected' : '' }}>
+                            {{ $cabang }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Kotamadya / Kabupaten --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Kotamadya / Kabupaten
+                </label>
+                <select name="kotamadya" class="select2 w-full">
+                    <option value="">-- Semua Kotamadya --</option>
+                    @foreach($listKotamadya as $kota)
+                        <option value="{{ $kota }}"
+                            {{ request('kotamadya') == $kota ? 'selected' : '' }}>
+                            {{ $kota }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Tombol --}}
+            <div class="flex items-end gap-3">
+                <button type="submit"
+                        class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition">
+                    🔍 Filter
+                </button>
+
+                <a href="{{ route('pesanan-majalah-kotamadya.show', $data->id) }}"
+                   class="bg-gray-500 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-600 transition">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    {{-- ========================================================= --}}
     {{-- TABEL UNIT --}}
     {{-- ========================================================= --}}
     <div class="bg-white rounded-3xl shadow overflow-hidden">
@@ -119,7 +212,6 @@
                         <th class="px-4 py-3 text-center">No</th>
                         <th class="px-4 py-3">No Cabang</th>
                         <th class="px-4 py-3">Nama Unit</th>
-                        
                         <th class="px-4 py-3 text-center">Jumlah Pesanan</th>
                         <th class="px-4 py-3">Alamat Unit</th>
                         <th class="px-4 py-3">Telepon</th>
@@ -131,31 +223,41 @@
                 <tbody class="divide-y divide-gray-200">
                     @php $no = 1; @endphp
 
-                    @forelse($data->kotamadya as $kotamadya)
-                        @foreach($kotamadya->units as $unit)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-center">{{ $no++ }}</td>
-                                <td class="px-4 py-3">{{ $unit->no_cabang ?? '-' }}</td>
-                                <td class="px-4 py-3 font-medium">{{ $unit->nama_unit ?? '-' }}</td>
-                                
-                                <td class="px-4 py-3 text-center font-semibold">
-                                    {{ number_format(round($unit->jumlah_pesanan ?? 0), 0, ',', '.') }}
-                                </td>
-                                <td class="px-4 py-3">{{ $unit->alamat_unit ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $unit->telepon ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $kotamadya->nama_kotamadya ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $kotamadya->contact_person ?? '-' }} {{ $kotamadya->telepon_contact_person ?? '-' }}</td>
-                            </tr>
-                        @endforeach
+                    @forelse($units as $unit)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-center">{{ $no++ }}</td>
+                            <td class="px-4 py-3">{{ $unit->no_cabang ?? '-' }}</td>
+                            <td class="px-4 py-3 font-medium">{{ $unit->nama_unit ?? '-' }}</td>
+                            <td class="px-4 py-3 text-center font-semibold">
+                                {{ number_format(round($unit->jumlah_pesanan ?? 0), 0, ',', '.') }}
+                            </td>
+                            <td class="px-4 py-3">{{ $unit->alamat_unit ?? '-' }}</td>
+                            <td class="px-4 py-3">{{ $unit->telepon ?? '-' }}</td>
+                            <td class="px-4 py-3">{{ $unit->nama_kotamadya ?? '-' }}</td>
+                            <td class="px-4 py-3">
+                                {{ $unit->contact_person ?? '-' }}
+                                {{ $unit->telepon_contact_person ?? '' }}
+                            </td>
+                        </tr>
                     @empty
                         <tr>
                             <td colspan="8" class="text-center py-16 text-gray-500">
                                 <div class="text-4xl mb-3">📭</div>
-                                <p class="font-semibold">Belum ada data unit</p>
-                                <p class="text-sm mt-1">Silakan import Excel untuk mengisi data unit.</p>
+                                <p class="font-semibold">Tidak ada data unit</p>
+                                <p class="text-sm mt-1">Coba ubah filter atau import Excel.</p>
                             </td>
                         </tr>
                     @endforelse
+
+                    @if($units->count() > 0)
+                        <tr class="bg-gray-100 font-bold">
+                            <td colspan="3" class="px-4 py-3 text-right">TOTAL</td>
+                            <td class="px-4 py-3 text-center">
+                                {{ number_format(round($totalPesanan), 0, ',', '.') }}
+                            </td>
+                            <td colspan="4"></td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -163,12 +265,18 @@
 
 </div>
 
+{{-- jQuery + Select2 --}}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
-    function confirmDelete() {
-        if (confirm('Yakin ingin menghapus seluruh data periode ini?\nSemua Kotamadya dan unit di dalamnya juga akan ikut terhapus.')) {
-            document.getElementById('deleteForm').submit();
-        }
-    }
+    $(document).ready(function () {
+        $('.select2').select2({
+            placeholder: 'Cari / pilih...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
 </script>
 
 </body>
