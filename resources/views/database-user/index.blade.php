@@ -58,24 +58,11 @@
                         </div>
                     </a> -->
 
-                    <a href="{{ route('pesanan-majalah.index') }}" class="group">
+                    <a href="{{ route('ops2.index') }}" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">🏬</div>
-                            <h3 class="text-2xl font-semibold mb-2">Korwil</h3>
-                        </div>
-                    </a>
-
-                    <a href="{{ route('pesanan-majalah-kotamadya.index') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                            <div class="text-5xl mb-4">🏬</div>
-                            <h3 class="text-2xl font-semibold mb-2">Pinwil</h3>
-                        </div>
-                    </a>
-
-                    <a href="{{ route('pesanan-majalah-puw1.index') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                            <div class="text-5xl mb-4">🏬</div>
-                            <h3 class="text-2xl font-semibold mb-2">PUW 1</h3>
+                            <h3 class="text-2xl font-semibold mb-2">biMBA Operasional 2 (OPS2)</h3>
+                            <p class="text-gray-500 text-sm mt-1">KORWIL · PINWIL · JABODETABEK</p>
                         </div>
                     </a>
 

@@ -37,6 +37,7 @@ use App\Http\Controllers\PackingController;
 use App\Http\Controllers\Majalah2026Controller;
 use App\Http\Controllers\PesananMajalahKotamadyaController;
 use App\Http\Controllers\PesananMajalahPuw1Controller;
+use App\Http\Controllers\DatabaseUserController;
 
 use App\Http\Controllers\DistributionOrderController;
 
@@ -403,6 +404,7 @@ Route::prefix('database-user')
         Route::get('/', [App\Http\Controllers\DatabaseUserController::class, 'index'])
              ->name('index');
     });
+         Route::get('/ops2', [DatabaseUserController::class, 'ops2'])->name('ops2.index');
 
 // ====================== QC OUTGOING ======================
 Route::prefix('qc-outgoing')

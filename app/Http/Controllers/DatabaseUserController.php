@@ -8,6 +8,14 @@ class DatabaseUserController extends Controller
 {
     public function index()
     {
-        return view('database-user.index'); // sesuaikan dengan nama folder & file blade kamu
+        return view('database-user.index');
+    }
+
+    /**
+     * Halaman OPS2 – pilih wilayah (KORWIL / PINWIL / JABODETABEK)
+     */
+    public function ops2()
+    {
+        return view('ops2.index');
     }
 }
