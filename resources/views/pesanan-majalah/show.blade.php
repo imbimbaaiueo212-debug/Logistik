@@ -113,7 +113,7 @@
                 <p class="text-sm text-gray-500 mb-1">Tahun</p>
                 <p class="font-semibold text-gray-800">{{ $data->tahun ?? '-' }}</p>
             </div>
-           <div>
+            <div>
                 <p class="text-sm text-gray-500 mb-1">Periode</p>
                 <p class="font-semibold text-gray-800">
                     @php
@@ -149,7 +149,7 @@
     <div class="bg-white rounded-3xl shadow p-6 mb-6">
         <form method="GET"
               action="{{ route('pesanan-majalah.show', $data->id) }}"
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 
             {{-- Nama Unit --}}
             <div>
@@ -199,6 +199,22 @@
                 </select>
             </div>
 
+            {{-- Mitra Pengelola --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Mitra Pengelola
+                </label>
+                <select name="mitra_pengelolaan" class="select2 w-full">
+                    <option value="">-- Semua Mitra --</option>
+                    @foreach($listMitraPengelola as $mitra)
+                        <option value="{{ $mitra }}"
+                            {{ request('mitra_pengelolaan') == $mitra ? 'selected' : '' }}>
+                            {{ $mitra }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Tombol --}}
             <div class="flex items-end gap-3">
                 <button type="submit"
@@ -234,6 +250,7 @@
                         <th class="px-4 py-3 text-center">No</th>
                         <th class="px-4 py-3">Nama Unit</th>
                         <th class="px-4 py-3">No Cabang</th>
+                        <th class="px-4 py-3">Mitra Pengelola</th>
                         <th class="px-4 py-3 text-center">Jumlah Pesanan</th>
                         <th class="px-4 py-3">Alamat Unit</th>
                         <th class="px-4 py-3">Telepon</th>
@@ -250,6 +267,7 @@
                             <td class="px-4 py-3 text-center">{{ $no++ }}</td>
                             <td class="px-4 py-3 font-medium">{{ $unit->nama_unit ?? '-' }}</td>
                             <td class="px-4 py-3">{{ $unit->no_cabang ?? '-' }}</td>
+                            <td class="px-4 py-3">{{ $unit->mitra_pengelolaan ?? '-' }}</td>
                             <td class="px-4 py-3 text-center font-semibold">
                                 {{ number_format(round($unit->jumlah_pesanan ?? 0), 0, ',', '.') }}
                             </td>
@@ -260,7 +278,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-16 text-gray-500">
+                            <td colspan="9" class="text-center py-16 text-gray-500">
                                 <div class="text-4xl mb-3">📭</div>
                                 <p class="font-semibold">Tidak ada data unit</p>
                                 <p class="text-sm mt-1">Coba ubah filter atau import Excel.</p>
@@ -270,7 +288,7 @@
 
                     @if($units->count() > 0)
                         <tr class="bg-gray-100 font-bold">
-                            <td colspan="3" class="px-4 py-3 text-right">TOTAL</td>
+                            <td colspan="4" class="px-4 py-3 text-right">TOTAL</td>
                             <td class="px-4 py-3 text-center">
                                 {{ number_format(round($totalPesanan), 0, ',', '.') }}
                             </td>

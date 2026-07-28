@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PesananMajalah;
 use App\Imports\PesananMajalahImport;
+use App\Models\UnitKemitraan;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
@@ -190,13 +191,7 @@ class PesananMajalahController extends Controller
             );
     }
 
-/**
- * ============================================================
- * SHOW
- * ============================================================
- *
- * Menampilkan detail satu periode + filter unit.
- */
+
 public function show(Request $request, PesananMajalah $pesananMajalah)
 {
     /*
@@ -230,12 +225,49 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
 
     /*
     |--------------------------------------------------------------------------
+    | AMBIL DATA UNIT KEMITRAAN (match no_cabang ↔ no_cab)
+    |--------------------------------------------------------------------------
+    */
+    $noCabangs = $allUnits
+        ->pluck('no_cabang')
+        ->filter()
+        ->map(fn ($v) => trim($v))
+        ->unique()
+        ->values();
+
+    $unitKemitraanMap = UnitKemitraan::whereIn('no_cab', $noCabangs)
+        ->get()
+        ->keyBy(fn ($u) => trim($u->no_cab));
+
+    $allUnits = $allUnits->map(function ($unit) use ($unitKemitraanMap) {
+        $noCab = trim($unit->no_cabang ?? '');
+        $uk = $unitKemitraanMap->get($noCab);
+
+        if ($uk) {
+            $unit->mitra_pengelolaan   = $uk->mitra_pengelolaan ?? '-';
+            $unit->dari_unit_kemitraan = true;
+        } else {
+            $unit->mitra_pengelolaan   = '-';
+            $unit->dari_unit_kemitraan = false;
+        }
+
+        return $unit;
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | LIST UNIK UNTUK SELECT2
     |--------------------------------------------------------------------------
     */
-    $listNamaUnit   = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
-    $listNoCabang   = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
-    $listKabupaten  = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
+    $listNamaUnit = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
+    $listNoCabang = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
+    $listKabupaten = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
+    $listMitraPengelola = $allUnits
+        ->pluck('mitra_pengelolaan')
+        ->filter(fn ($v) => $v && $v !== '-')
+        ->unique()
+        ->sort()
+        ->values();
 
     /*
     |--------------------------------------------------------------------------
@@ -256,6 +288,10 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
         $units = $units->where('nama_kabupaten', $request->kabupaten);
     }
 
+    if ($request->filled('mitra_pengelolaan')) {
+        $units = $units->where('mitra_pengelolaan', $request->mitra_pengelolaan);
+    }
+
     $units = $units->values();
 
     $totalUnits   = $units->count();
@@ -267,13 +303,14 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
     |--------------------------------------------------------------------------
     */
     return view('pesanan-majalah.show', [
-        'data'          => $pesananMajalah,
-        'units'         => $units,
-        'totalUnits'    => $totalUnits,
-        'totalPesanan'  => $totalPesanan,
-        'listNamaUnit'  => $listNamaUnit,
-        'listNoCabang'  => $listNoCabang,
-        'listKabupaten' => $listKabupaten,
+        'data'               => $pesananMajalah,
+        'units'              => $units,
+        'totalUnits'         => $totalUnits,
+        'totalPesanan'       => $totalPesanan,
+        'listNamaUnit'       => $listNamaUnit,
+        'listNoCabang'       => $listNoCabang,
+        'listKabupaten'      => $listKabupaten,
+        'listMitraPengelola' => $listMitraPengelola,
     ]);
 }
 
