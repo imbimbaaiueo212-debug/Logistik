@@ -20,146 +20,86 @@ class PesananMajalahController extends Controller
      * Sekaligus mengirim daftar periode yang tersedia
      * untuk dropdown Import Excel.
      */
-    public function index(Request $request)
-    {
-        /*
-        |--------------------------------------------------------------------------
-        | QUERY DATA PERIODE
-        |--------------------------------------------------------------------------
-        */
+   public function index(Request $request)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | QUERY DATA PERIODE
+    |--------------------------------------------------------------------------
+    */
+    $query = PesananMajalah::query();
 
-        $query = PesananMajalah::query();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER JUDUL
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('judul')) {
-
-            $query->where(
-                'judul',
-                'like',
-                '%' . $request->input('judul') . '%'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER BULAN
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('bulan')) {
-
-            $query->where(
-                'bulan',
-                'like',
-                '%' . $request->input('bulan') . '%'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER TAHUN
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('tahun')) {
-
-            $query->where(
-                'tahun',
-                $request->input('tahun')
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER PERIODE
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->filled('periode')) {
-
-            $query->where(
-                'periode',
-                'like',
-                '%' . $request->input('periode') . '%'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DATA TABEL
-        |--------------------------------------------------------------------------
-        */
-
-        $data = $query
-            ->with([
-
-                'kabupaten' => function ($q) {
-
-                    $q->orderBy('urutan');
-
-                },
-
-                'kabupaten.units' => function ($q) {
-
-                    $q->orderBy('no');
-
-                },
-
-            ])
-            ->orderByDesc('tahun')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DAFTAR PERIODE UNTUK IMPORT
-        |--------------------------------------------------------------------------
-        |
-        | Contoh:
-        |
-        | Januari 2025
-        | Februari 2025
-        | ...
-        | Juli 2026
-        | ...
-        |
-        | Periode dipilih manual oleh user.
-        |
-        */
-
-        $periodeImport = $this->daftarPeriodeImport();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | VIEW
-        |--------------------------------------------------------------------------
-        */
-
-        return view(
-            'pesanan-majalah.index',
-            compact(
-                'data',
-                'periodeImport'
-            )
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | FILTER (exact match agar cocok dengan Select2)
+    |--------------------------------------------------------------------------
+    */
+    if ($request->filled('judul')) {
+        $query->where('judul', $request->input('judul'));
     }
+
+    if ($request->filled('bulan')) {
+        $query->where('bulan', $request->input('bulan'));
+    }
+
+    if ($request->filled('tahun')) {
+        $query->where('tahun', $request->input('tahun'));
+    }
+
+    if ($request->filled('periode')) {
+        $query->where('periode', $request->input('periode'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATA TABEL
+    |--------------------------------------------------------------------------
+    */
+    $data = $query
+        ->with([
+            'kabupaten' => function ($q) {
+                $q->orderBy('urutan');
+            },
+            'kabupaten.units' => function ($q) {
+                $q->orderBy('no');
+            },
+        ])
+        ->orderByDesc('tahun')
+        ->orderByDesc('id')
+        ->paginate(20)
+        ->withQueryString();
+
+    /*
+    |--------------------------------------------------------------------------
+    | LIST UNIK UNTUK SELECT2
+    |--------------------------------------------------------------------------
+    */
+    $listJudul   = PesananMajalah::select('judul')->distinct()->orderBy('judul')->pluck('judul')->filter();
+    $listBulan   = PesananMajalah::select('bulan')->distinct()->orderBy('bulan')->pluck('bulan')->filter();
+    $listTahun   = PesananMajalah::select('tahun')->distinct()->orderByDesc('tahun')->pluck('tahun')->filter();
+    $listPeriode = PesananMajalah::select('periode')->distinct()->orderByDesc('periode')->pluck('periode')->filter();
+
+    /*
+    |--------------------------------------------------------------------------
+    | DAFTAR PERIODE UNTUK IMPORT
+    |--------------------------------------------------------------------------
+    */
+    $periodeImport = $this->daftarPeriodeImport();
+
+    /*
+    |--------------------------------------------------------------------------
+    | VIEW
+    |--------------------------------------------------------------------------
+    */
+    return view('pesanan-majalah.index', compact(
+        'data',
+        'periodeImport',
+        'listJudul',
+        'listBulan',
+        'listTahun',
+        'listPeriode'
+    ));
+}
 
 
     /**

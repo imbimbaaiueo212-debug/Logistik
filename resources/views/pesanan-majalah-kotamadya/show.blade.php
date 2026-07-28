@@ -116,7 +116,30 @@
             </div>
             <div>
                 <p class="text-sm text-gray-500 mb-1">Periode</p>
-                <p class="font-semibold text-gray-800">{{ $data->periode ?? '-' }}</p>
+                <p class="font-semibold text-gray-800">
+                    @php
+                        $namaBulan = [
+                            1  => 'Januari',
+                            2  => 'Februari',
+                            3  => 'Maret',
+                            4  => 'April',
+                            5  => 'Mei',
+                            6  => 'Juni',
+                            7  => 'Juli',
+                            8  => 'Agustus',
+                            9  => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember',
+                        ];
+
+                        $periodeText = '-';
+                        if (!empty($data->periode) && preg_match('/^\d{4}-(\d{2})$/', $data->periode, $m)) {
+                            $periodeText = $namaBulan[(int) $m[1]] ?? $data->periode;
+                        }
+                    @endphp
+                    {{ $periodeText }}
+                </p>
             </div>
         </div>
     </div>

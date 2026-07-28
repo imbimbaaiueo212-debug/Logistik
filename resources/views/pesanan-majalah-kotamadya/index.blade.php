@@ -157,14 +157,37 @@
             </div>
 
             {{-- Periode --}}
+            {{-- Periode --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
                 <select name="periode" class="select2 w-full">
                     <option value="">-- Semua Periode --</option>
+                    @php
+                        $namaBulan = [
+                            1  => 'Januari',
+                            2  => 'Februari',
+                            3  => 'Maret',
+                            4  => 'April',
+                            5  => 'Mei',
+                            6  => 'Juni',
+                            7  => 'Juli',
+                            8  => 'Agustus',
+                            9  => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember',
+                        ];
+                    @endphp
                     @foreach($listPeriode as $periode)
+                        @php
+                            $label = $periode;
+                            if (preg_match('/^\d{4}-(\d{2})$/', $periode, $m)) {
+                                $label = $namaBulan[(int) $m[1]] ?? $periode;
+                            }
+                        @endphp
                         <option value="{{ $periode }}"
                             {{ request('periode') == $periode ? 'selected' : '' }}>
-                            {{ $periode }}
+                            {{ $label }}
                         </option>
                     @endforeach
                 </select>
@@ -220,7 +243,30 @@
 
                         <td class="px-4 py-4">{{ $item->bulan ?? '-' }}</td>
                         <td class="px-4 py-4 text-center">{{ $item->tahun ?? '-' }}</td>
-                        <td class="px-4 py-4 text-center">{{ $item->periode ?? '-' }}</td>
+                        <td class="px-4 py-4 text-center">
+                            @php
+                                $namaBulan = [
+                                    1  => 'Januari',
+                                    2  => 'Februari',
+                                    3  => 'Maret',
+                                    4  => 'April',
+                                    5  => 'Mei',
+                                    6  => 'Juni',
+                                    7  => 'Juli',
+                                    8  => 'Agustus',
+                                    9  => 'September',
+                                    10 => 'Oktober',
+                                    11 => 'November',
+                                    12 => 'Desember',
+                                ];
+
+                                $periodeText = '-';
+                                if (!empty($item->periode) && preg_match('/^\d{4}-(\d{2})$/', $item->periode, $m)) {
+                                    $periodeText = $namaBulan[(int) $m[1]] ?? $item->periode;
+                                }
+                            @endphp
+                            {{ $periodeText }}
+                        </td>
                         <td class="px-4 py-4 text-center font-medium">
                             {{ number_format($item->total_units ?? 0, 0, ',', '.') }}
                         </td>

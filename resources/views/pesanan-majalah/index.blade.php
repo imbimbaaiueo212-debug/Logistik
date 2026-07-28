@@ -9,21 +9,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
+    {{-- Select2 CSS --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-        }
-
-        table {
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 10px 6px;
-            font-size: 0.8rem;
-        }
-
+        body { font-family: 'Poppins', sans-serif; }
+        table { border-collapse: collapse; }
+        th, td { padding: 10px 6px; font-size: 0.8rem; }
         th {
             background-color: #f1f5f9;
             font-weight: 600;
@@ -32,13 +24,26 @@
             top: 0;
             z-index: 10;
         }
+        tr:hover { background-color: #f8fafc; }
+        .modal-open { overflow: hidden; }
 
-        tr:hover {
-            background-color: #f8fafc;
+        /* Select2 sesuaikan dengan Tailwind */
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.75rem !important;
+            padding: 6px 12px !important;
         }
-
-        .modal-open {
-            overflow: hidden;
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px !important;
+            color: #1f2937 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+        }
+        .select2-dropdown {
+            border-radius: 0.75rem !important;
+            border: 1px solid #d1d5db !important;
         }
     </style>
 </head>
@@ -53,28 +58,28 @@
     {{-- HEADER --}}
     {{-- ========================================================= --}}
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
-    <div>
-        <div class="flex items-center gap-3 mb-1">
-            <a href="{{ route('database-user.index') }}"
-               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                ← Kembali
-            </a>
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <a href="{{ route('database-user.index') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    ← Kembali
+                </a>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">
+                Pesanan Majalah
+            </h1>
+            <p class="text-gray-600 mt-1">
+                Daftar periode pesanan majalah. Klik judul untuk melihat detail data unit.
+            </p>
         </div>
-        <h1 class="text-3xl font-bold text-gray-800">
-            Pesanan Majalah
-        </h1>
-        <p class="text-gray-600 mt-1">
-            Daftar periode pesanan majalah. Klik judul untuk melihat detail data unit.
-        </p>
-    </div>
 
-    <div class="flex flex-wrap gap-3">
-        <button type="button" onclick="openImportModal()"
-            class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 transition flex items-center gap-2">
-            📥 Import Excel
-        </button>
+        <div class="flex flex-wrap gap-3">
+            <button type="button" onclick="openImportModal()"
+                class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 transition flex items-center gap-2">
+                📥 Import Excel
+            </button>
+        </div>
     </div>
-</div>
 
     {{-- ========================================================= --}}
     {{-- ALERT SUCCESS --}}
@@ -115,38 +120,88 @@
     @endif
 
     {{-- ========================================================= --}}
-    {{-- FILTER --}}
+    {{-- FILTER (Select2) --}}
     {{-- ========================================================= --}}
     <div class="bg-white rounded-3xl shadow p-6 mb-8">
         <form method="GET" action="{{ route('pesanan-majalah.index') }}"
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
+            {{-- Judul --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Judul</label>
-                <input type="text" name="judul" value="{{ request('judul') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="Cari judul...">
+                <select name="judul" class="select2 w-full">
+                    <option value="">-- Semua Judul --</option>
+                    @foreach($listJudul as $judul)
+                        <option value="{{ $judul }}"
+                            {{ request('judul') == $judul ? 'selected' : '' }}>
+                            {{ $judul }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Bulan / Edisi --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Bulan / Edisi</label>
-                <input type="text" name="bulan" value="{{ request('bulan') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="Contoh: JULI M159">
+                <select name="bulan" class="select2 w-full">
+                    <option value="">-- Semua Bulan --</option>
+                    @foreach($listBulan as $bulan)
+                        <option value="{{ $bulan }}"
+                            {{ request('bulan') == $bulan ? 'selected' : '' }}>
+                            {{ $bulan }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Tahun --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-                <input type="number" name="tahun" value="{{ request('tahun') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="2026">
+                <select name="tahun" class="select2 w-full">
+                    <option value="">-- Semua Tahun --</option>
+                    @foreach($listTahun as $tahun)
+                        <option value="{{ $tahun }}"
+                            {{ request('tahun') == $tahun ? 'selected' : '' }}>
+                            {{ $tahun }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
+            {{-- Periode --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
-                <input type="text" name="periode" value="{{ request('periode') }}"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500"
-                    placeholder="2026-07">
+                <select name="periode" class="select2 w-full">
+                    <option value="">-- Semua Periode --</option>
+                    @php
+                        $namaBulan = [
+                            1  => 'Januari',
+                            2  => 'Februari',
+                            3  => 'Maret',
+                            4  => 'April',
+                            5  => 'Mei',
+                            6  => 'Juni',
+                            7  => 'Juli',
+                            8  => 'Agustus',
+                            9  => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember',
+                        ];
+                    @endphp
+                    @foreach($listPeriode as $periode)
+                        @php
+                            $label = $periode;
+                            if (preg_match('/^\d{4}-(\d{2})$/', $periode, $m)) {
+                                $label = $namaBulan[(int) $m[1]] ?? $periode;
+                            }
+                        @endphp
+                        <option value="{{ $periode }}"
+                            {{ request('periode') == $periode ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="flex items-end gap-3 lg:col-span-4">
@@ -187,7 +242,6 @@
 
                 @forelse($data as $item)
                     @php
-                        // Hitung jumlah unit & total pesanan
                         $totalUnits = $item->kabupaten->sum(fn ($kab) => $kab->units->count());
                         $totalPesanan = $item->kabupaten->sum(fn ($kab) => $kab->units->sum('jumlah_pesanan'));
                     @endphp
@@ -195,7 +249,6 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-4 text-center">{{ $no++ }}</td>
 
-                        {{-- Judul digabung & bisa diklik --}}
                         <td class="px-4 py-4">
                             <a href="{{ route('pesanan-majalah.show', $item->id) }}"
                                class="font-semibold text-blue-700 hover:text-blue-900 hover:underline">
@@ -211,7 +264,31 @@
 
                         <td class="px-4 py-4">{{ $item->bulan ?? '-' }}</td>
                         <td class="px-4 py-4 text-center">{{ $item->tahun ?? '-' }}</td>
-                        <td class="px-4 py-4 text-center">{{ $item->periode ?? '-' }}</td>
+                        <td class="px-4 py-4 text-center">
+                            @php
+                                $namaBulan = [
+                                    1  => 'Januari',
+                                    2  => 'Februari',
+                                    3  => 'Maret',
+                                    4  => 'April',
+                                    5  => 'Mei',
+                                    6  => 'Juni',
+                                    7  => 'Juli',
+                                    8  => 'Agustus',
+                                    9  => 'September',
+                                    10 => 'Oktober',
+                                    11 => 'November',
+                                    12 => 'Desember',
+                                ];
+
+                                $periodeText = '-';
+                                if (!empty($item->periode) && preg_match('/^\d{4}-(\d{2})$/', $item->periode, $m)) {
+                                    $bulanAngka = (int) $m[1];
+                                    $periodeText = $namaBulan[$bulanAngka] ?? $item->periode;
+                                }
+                            @endphp
+                            {{ $periodeText }}
+                        </td>
                         <td class="px-4 py-4 text-center font-medium">{{ $totalUnits }}</td>
                         <td class="px-4 py-4 text-center font-semibold">{{ number_format($totalPesanan) }}</td>
                     </tr>
@@ -250,7 +327,6 @@
 <div id="importModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
 
-        {{-- HEADER --}}
         <div class="flex justify-between items-center px-6 py-5 border-b">
             <div>
                 <h2 class="text-xl font-bold text-gray-800">Import Pesanan Majalah</h2>
@@ -260,7 +336,6 @@
                 class="text-gray-500 hover:text-red-600 text-2xl font-bold">&times;</button>
         </div>
 
-        {{-- FORM --}}
         <form id="formImportMajalah"
             action="{{ route('pesanan-majalah.import') }}"
             method="POST"
@@ -268,7 +343,6 @@
             class="p-6">
             @csrf
 
-            {{-- PERIODE --}}
             <div class="mb-5">
                 <label for="periodeImport" class="block text-sm font-semibold text-gray-700 mb-2">
                     Periode Pesanan Majalah
@@ -297,7 +371,6 @@
                 </p>
             </div>
 
-            {{-- FILE --}}
             <div class="mb-5">
                 <label for="fileImportMajalah" class="block text-sm font-semibold text-gray-700 mb-2">
                     File Excel
@@ -312,7 +385,6 @@
                 </p>
             </div>
 
-            {{-- BUTTON --}}
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="closeImportModal()"
                     class="bg-gray-500 text-white px-5 py-3 rounded-xl font-semibold hover:bg-gray-600 transition">
@@ -328,15 +400,26 @@
     </div>
 </div>
 
+{{-- jQuery + Select2 --}}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Select2
+    $('.select2').select2({
+        placeholder: 'Cari / pilih...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Modal Import
     const modal     = document.getElementById('importModal');
     const form      = document.getElementById('formImportMajalah');
     const periode   = document.getElementById('periodeImport');
     const button    = document.getElementById('btnImportMajalah');
     const fileInput = document.getElementById('fileImportMajalah');
 
-    // Buka Modal
     window.openImportModal = function () {
         modal.classList.remove('hidden');
         document.body.classList.add('modal-open');
@@ -345,13 +428,11 @@ document.addEventListener('DOMContentLoaded', function () {
         button.innerHTML = '📥 Import Data';
     };
 
-    // Tutup Modal
     window.closeImportModal = function () {
         modal.classList.add('hidden');
         document.body.classList.remove('modal-open');
     };
 
-    // Validasi saat submit
     form.addEventListener('submit', function (event) {
         if (!periode.value) {
             event.preventDefault();
@@ -370,14 +451,12 @@ document.addEventListener('DOMContentLoaded', function () {
         button.innerHTML = '⏳ Sedang Import...';
     });
 
-    // Klik di luar modal
     modal.addEventListener('click', function (event) {
         if (event.target === modal) {
             closeImportModal();
         }
     });
 
-    // ESC untuk menutup
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
             closeImportModal();
