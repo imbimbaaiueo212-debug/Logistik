@@ -48,7 +48,7 @@
             </a>
         </div>
 
-       <div class="p-4 border-t bg-gray-50">
+       <div class="p-4 bg-gray-50">
     <a href="{{ route('home') }}" 
        class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 px-6 py-3 rounded-2xl font-medium transition-all w-fit mx-auto">
         ← Kembali

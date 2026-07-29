@@ -68,13 +68,13 @@ public function jakartaAktif(Request $request)
     $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 50;
 
     $data = $query
-        ->with(['casdana' => function ($q) {
-            $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
-        }])
-        ->selectRaw('*, payment_date')
-        ->latest('tgl_pesan')
-        ->paginate($perPage)
-        ->appends($request->query());
+    ->with(['casdana' => function ($q) {
+        $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
+    }])
+    ->selectRaw('*, payment_date')
+    ->orderBy('tgl_pesan', 'asc')   // ← dari tanggal terkecil ke terbesar
+    ->paginate($perPage)
+    ->appends($request->query());
 
     // =====================================================
     // DATA UNTUK DROPDOWN FILTER (Select2)
