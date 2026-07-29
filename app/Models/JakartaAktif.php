@@ -50,7 +50,8 @@ class JakartaAktif extends Model
         'printed_at',
         'picking_generated',   // baru
         'picking_id',          // baru (relasi ke picking)
-        'item_qty'
+        'item_qty',
+        'grup'
     ];
 
     protected $casts = [

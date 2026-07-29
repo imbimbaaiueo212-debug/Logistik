@@ -673,6 +673,20 @@
             </select>
         </div>
 
+        {{-- Group --}}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Group</label>
+            <select name="grup" id="filterGrup" class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
+                <option value="">Semua Group</option>
+                <option value="A" {{ request('grup') == 'A' ? 'selected' : '' }}>Group A</option>
+                <option value="B" {{ request('grup') == 'B' ? 'selected' : '' }}>Group B</option>
+                <option value="C" {{ request('grup') == 'C' ? 'selected' : '' }}>Group C</option>
+                <option value="D" {{ request('grup') == 'D' ? 'selected' : '' }}>Group D</option>
+                <option value="E" {{ request('grup') == 'E' ? 'selected' : '' }}>Group E</option>
+                <option value="F" {{ request('grup') == 'F' ? 'selected' : '' }}>Group F</option>
+            </select>
+        </div>
+
         {{-- Tombol --}}
         <div class="flex items-end gap-3 pt-6 lg:col-span-1 xl:col-span-1">
             <button type="submit"
@@ -715,6 +729,7 @@
                         <th class="text-left px-4 py-3">Status Bayar</th>
                         <th class="text-left px-4 py-3">Status biMBAShop</th>
                         <th class="text-center px-4 py-3">Tanggal Proses</th>
+                        <th class="text-center px-4 py-3">Group</th>
                         <th class="text-center px-4 py-3">Aksi</th>
                     </tr>
                 </thead>
@@ -844,6 +859,14 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
+                        <td class="px-4 py-3">
+                            @if(!empty($item->grup))
+                                <span class="badge-green">Group {{ $item->grup }}</span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+
                         <!-- Di dalam tabel, bagian Aksi -->
                     <td class="text-center px-4 py-3">
                         @if(!$isProcessed)

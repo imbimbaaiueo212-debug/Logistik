@@ -64,20 +64,25 @@ public function jakartaAktif(Request $request)
         $query->where('pesanan', 'like', '%' . $request->pesanan . '%');
     }
 
+    // === FILTER GROUP ===
+    if ($request->filled('grup')) {
+        $query->where('grup', $request->grup);
+    }
+
     $perPage = $request->get('per_page', 50);
     $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 50;
 
     $data = $query
-    ->with(['casdana' => function ($q) {
-        $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
-    }])
-    ->selectRaw('*, payment_date')
-    ->orderBy('tgl_pesan', 'asc')   // ← dari tanggal terkecil ke terbesar
-    ->paginate($perPage)
-    ->appends($request->query());
+        ->with(['casdana' => function ($q) {
+            $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
+        }])
+        ->selectRaw('*, payment_date')
+        ->orderBy('tgl_pesan', 'asc')
+        ->paginate($perPage)
+        ->appends($request->query());
 
     // =====================================================
-    // DATA UNTUK DROPDOWN FILTER (Select2)
+    // DATA UNTUK DROPDOWN FILTER
     // =====================================================
     $listStatusBayar = JakartaAktif::select('status_pembayaran')
         ->whereNotNull('status_pembayaran')
@@ -100,6 +105,13 @@ public function jakartaAktif(Request $request)
         ->orderBy('nama_unit')
         ->pluck('nama_unit');
 
+    $listGrup = JakartaAktif::select('grup')
+        ->whereNotNull('grup')
+        ->where('grup', '!=', '')
+        ->distinct()
+        ->orderBy('grup')
+        ->pluck('grup');
+
     $unitTidakPesan = $this->getUnitTidakPesanMajalah();
 
     return view('order.jakarta-aktif-index', compact(
@@ -107,7 +119,8 @@ public function jakartaAktif(Request $request)
         'unitTidakPesan',
         'listStatusBayar',
         'listPesanan',
-        'listNamaUnit'
+        'listNamaUnit',
+        'listGrup'
     ));
 }
 
@@ -2886,7 +2899,7 @@ public function syncPesananMajalahToJakartaAktif()
 
     try {
         // =====================================================
-        // A + B. KABUPATEN & KOTAMADYA
+        // A + B. KABUPATEN & KOTAMADYA → GROUP B
         // =====================================================
         foreach ($periodes as $periode) {
             $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
@@ -2899,7 +2912,8 @@ public function syncPesananMajalahToJakartaAktif()
                         $unit,
                         $edisi,
                         $kabupaten->nama_kabupaten ?? null,
-                        $kabupaten->contact_person ?? null
+                        $kabupaten->contact_person ?? null,
+                        'B' // Group B
                     );
 
                     $this->handleSyncResult($result, $created, $skipped, $skippedList, $errors);
@@ -2913,7 +2927,8 @@ public function syncPesananMajalahToJakartaAktif()
                         $unit,
                         $edisi,
                         $kotamadya->nama_kotamadya ?? null,
-                        $kotamadya->contact_person ?? null
+                        $kotamadya->contact_person ?? null,
+                        'B' // Group B
                     );
 
                     $this->handleSyncResult($result, $created, $skipped, $skippedList, $errors);
@@ -2922,7 +2937,7 @@ public function syncPesananMajalahToJakartaAktif()
         }
 
         // =====================================================
-        // C. PUW1
+        // C. PUW1 → GROUP B
         // =====================================================
         foreach ($periodesPuw1 as $periode) {
             $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
@@ -2933,7 +2948,8 @@ public function syncPesananMajalahToJakartaAktif()
                     $unit,
                     $edisi,
                     $unit->kabupaten_kota ?? null,
-                    $periode->contact_person ?? null
+                    $periode->contact_person ?? null,
+                    'B' // Group B
                 );
 
                 $this->handleSyncResult($result, $created, $skipped, $skippedList, $errors);
@@ -2994,7 +3010,7 @@ private function handleSyncResult($result, &$created, &$skipped, &$skippedList, 
 /**
  * Helper: buat 1 record Jakarta Aktif + Item dari 1 unit
  */
-private function createJakartaFromUnit($unit, string $edisi, $wilayah, $contactPerson)
+private function createJakartaFromUnit($unit, string $edisi, $wilayah, $contactPerson, string $group = 'B')
 {
     // Qty 0 → catat nama unit
     if (($unit->jumlah_pesanan ?? 0) <= 0) {
@@ -3080,11 +3096,11 @@ private function createJakartaFromUnit($unit, string $edisi, $wilayah, $contactP
             'service_pengiriman' => 'REGPACK',
             'estimasi_print_pl'  => null,
             'estimasi_persiapan' => null,
+            'grup'               => $group, // Group B untuk Korwil / Pinwil / PUW1
         ]);
 
         // =====================================================
         // CREATE ITEM (JakartaAktifItem)
-        // Cari product berdasarkan label exact dulu (M159, M160, dst)
         // =====================================================
 
         // Prioritas 1: label exact
@@ -3096,7 +3112,6 @@ private function createJakartaFromUnit($unit, string $edisi, $wilayah, $contactP
         }
 
         // Prioritas 3: nama mengandung nomor edisi
-        // M159 → cari "Edisi 159"
         if (!$product) {
             $nomor = preg_replace('/\D/', '', $edisi); // M159 → 159
             if ($nomor !== '') {
@@ -3106,8 +3121,6 @@ private function createJakartaFromUnit($unit, string $edisi, $wilayah, $contactP
                     ->first();
             }
         }
-
-        // JANGAN pakai fallback kategori Majalah (bisa kena M57 / edisi lama)
 
         JakartaAktifItem::create([
             'jakarta_aktif_id' => $jakarta->id,

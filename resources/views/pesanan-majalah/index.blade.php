@@ -349,22 +349,22 @@
                 </label>
 
                 <select id="periodeImport" name="periode" required
-                    class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">-- Pilih Periode --</option>
+        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+    <option value="">-- Pilih Periode --</option>
 
-                    @php
-                        $tanggalMulai = now()->startOfMonth();
-                    @endphp
+    @php
+        $tanggalMulai = now()->startOfYear(); // Januari 2026
+    @endphp
 
-                    @for($i = 0; $i <= 12; $i++)
-                        @php
-                            $tanggal = $tanggalMulai->copy()->addMonths($i);
-                            $value   = $tanggal->format('Y-m');
-                            $label   = $tanggal->translatedFormat('F Y');
-                        @endphp
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endfor
-                </select>
+    @for($i = 0; $i <= 23; $i++) {{-- 2 tahun ke depan --}}
+        @php
+            $tanggal = $tanggalMulai->copy()->addMonths($i);
+            $value   = $tanggal->format('Y-m');
+            $label   = $tanggal->translatedFormat('F Y');
+        @endphp
+        <option value="{{ $value }}">{{ $label }}</option>
+    @endfor
+</select>
 
                 <p class="text-xs text-gray-500 mt-2">
                     Pilih bulan dan tahun untuk data pesanan majalah yang akan diimport.
