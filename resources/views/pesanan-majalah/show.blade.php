@@ -72,27 +72,133 @@
             </p>
         </div>
     </div>
+    
 
     {{-- ========================================================= --}}
-    {{-- ALERT --}}
-    {{-- ========================================================= --}}
-    @if(session('success'))
-        <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl">
-            <div class="flex items-center gap-2">
-                <span>✅</span>
-                <span>{{ session('success') }}</span>
-            </div>
+{{-- ALERT --}}
+{{-- ========================================================= --}}
+@if(session('success'))
+    <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+            <span>✅</span>
+            <span>{{ session('success') }}</span>
         </div>
-    @endif
+    </div>
+@endif
 
-    @if(session('error'))
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl">
-            <div class="flex items-center gap-2">
-                <span>❌</span>
-                <span>{{ session('error') }}</span>
-            </div>
+@if(session('error'))
+    <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+            <span>❌</span>
+            <span>{{ session('error') }}</span>
         </div>
-    @endif
+    </div>
+@endif
+
+{{-- ========================================================= --}}
+{{-- TOMBOL MISMATCH (jika ada data) --}}
+{{-- ========================================================= --}}
+@php
+    $listMismatch = session('unit_nama_mismatch');
+    if (empty($listMismatch) && isset($mismatches) && $mismatches->count() > 0) {
+        $listMismatch = $mismatches->map(fn ($m) => [
+            'no_cab'      => $m->no_cab,
+            'nama_excel'  => $m->nama_excel,
+            'nama_master' => $m->nama_master,
+        ])->toArray();
+    }
+    $listMismatch = $listMismatch ?? [];
+@endphp
+
+@if(count($listMismatch) > 0)
+<div class="mb-6">
+    <button type="button"
+            onclick="document.getElementById('mismatchModal').classList.remove('hidden')"
+            class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow transition">
+        ⚠️ Nama Unit Tidak Match
+        <span class="bg-white text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">
+            {{ count($listMismatch) }}
+        </span>
+    </button>
+</div>
+@endif
+
+{{-- ========================================================= --}}
+{{-- MODAL MISMATCH --}}
+{{-- ========================================================= --}}
+@if(count($listMismatch) > 0)
+<div id="mismatchModal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+
+    {{-- Backdrop --}}
+    <div class="absolute inset-0 bg-black/40"
+         onclick="document.getElementById('mismatchModal').classList.add('hidden')"></div>
+
+    {{-- Panel --}}
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+
+        {{-- Header --}}
+        <div class="px-6 py-4 border-b border-orange-200 bg-orange-50 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">⚠️</span>
+                <div>
+                    <h3 class="font-bold text-orange-900 text-lg">Nama Unit Tidak Match</h3>
+                    <p class="text-sm text-orange-700">
+                        {{ count($listMismatch) }} unit tidak masuk ke data majalah
+                    </p>
+                </div>
+            </div>
+            <button type="button"
+                    onclick="document.getElementById('mismatchModal').classList.add('hidden')"
+                    class="text-orange-600 hover:text-orange-800 text-2xl leading-none font-bold px-2">
+                ×
+            </button>
+        </div>
+
+        {{-- Body (scrollable) --}}
+        <div class="overflow-y-auto flex-1 p-0">
+            <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-orange-100">
+                    <tr class="border-b border-orange-200">
+                        <th class="px-4 py-3 text-left text-orange-900">No</th>
+                        <th class="px-4 py-3 text-left text-orange-900">No Cab</th>
+                        <th class="px-4 py-3 text-left text-orange-900">Nama di Excel</th>
+                        <th class="px-4 py-3 text-left text-orange-900">Nama di Unit Kemitraan</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-orange-100">
+                    @foreach($listMismatch as $i => $m)
+                        <tr class="hover:bg-orange-50/60">
+                            <td class="px-4 py-3 text-gray-600">{{ $i + 1 }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-800">{{ $m['no_cab'] ?? '-' }}</td>
+                            <td class="px-4 py-3 text-red-600 font-medium">{{ $m['nama_excel'] ?? '-' }}</td>
+                            <td class="px-4 py-3 text-emerald-700 font-medium">{{ $m['nama_master'] ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Footer --}}
+        <div class="px-6 py-4 border-t border-orange-100 bg-gray-50 flex justify-end">
+            <button type="button"
+                    onclick="document.getElementById('mismatchModal').classList.add('hidden')"
+                    class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-semibold transition">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Auto buka modal jika baru dari import (ada flash session) --}}
+@if(session('unit_nama_mismatch'))
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('mismatchModal')?.classList.remove('hidden');
+    });
+</script>
+@endif
+@endif
 
     {{-- ========================================================= --}}
     {{-- INFO PERIODE --}}

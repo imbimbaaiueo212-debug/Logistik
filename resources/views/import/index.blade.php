@@ -37,14 +37,6 @@
                 </div>
             </a>
 
-            <a href="{{ route('ops2.index') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                            <div class="text-5xl mb-4">🏬</div>
-                            <h3 class="text-2xl font-semibold mb-2">Unit Operasional 2 (OPS2)</h3>
-                            <p class="text-gray-500 text-sm mt-1">KORWIL · PINWIL · JABODETABEK</p>
-                        </div>
-                    </a>
-
             <a href="{{ route('import.manual') }}" class="group">
                 <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
                     <div class="text-5xl mb-4">📝</div>

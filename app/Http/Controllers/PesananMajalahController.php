@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\PesananMajalah;
 use App\Imports\PesananMajalahImport;
 use App\Models\UnitKemitraan;
+use App\Models\ManualOrder;
+use App\Models\UnitNamaMismatch;
+use App\Models\JakartaAktif;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
@@ -194,25 +199,11 @@ class PesananMajalahController extends Controller
 
 public function show(Request $request, PesananMajalah $pesananMajalah)
 {
-    /*
-    |--------------------------------------------------------------------------
-    | LOAD RELATIONSHIP
-    |--------------------------------------------------------------------------
-    */
     $pesananMajalah->load([
-        'kabupaten' => function ($q) {
-            $q->orderBy('urutan');
-        },
-        'kabupaten.units' => function ($q) {
-            $q->orderBy('no');
-        },
+        'kabupaten' => fn ($q) => $q->orderBy('urutan'),
+        'kabupaten.units' => fn ($q) => $q->orderBy('no'),
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | KUMPULKAN SEMUA UNIT
-    |--------------------------------------------------------------------------
-    */
     $allUnits = collect();
 
     foreach ($pesananMajalah->kabupaten as $kabupaten) {
@@ -223,11 +214,6 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | AMBIL DATA UNIT KEMITRAAN (match no_cabang ↔ no_cab)
-    |--------------------------------------------------------------------------
-    */
     $noCabangs = $allUnits
         ->pluck('no_cabang')
         ->filter()
@@ -254,14 +240,9 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
         return $unit;
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | LIST UNIK UNTUK SELECT2
-    |--------------------------------------------------------------------------
-    */
-    $listNamaUnit = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
-    $listNoCabang = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
-    $listKabupaten = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
+    $listNamaUnit       = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
+    $listNoCabang       = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
+    $listKabupaten      = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
     $listMitraPengelola = $allUnits
         ->pluck('mitra_pengelolaan')
         ->filter(fn ($v) => $v && $v !== '-')
@@ -269,25 +250,17 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
         ->sort()
         ->values();
 
-    /*
-    |--------------------------------------------------------------------------
-    | TERAPKAN FILTER
-    |--------------------------------------------------------------------------
-    */
     $units = $allUnits;
 
     if ($request->filled('nama_unit')) {
         $units = $units->where('nama_unit', $request->nama_unit);
     }
-
     if ($request->filled('no_cabang')) {
         $units = $units->where('no_cabang', $request->no_cabang);
     }
-
     if ($request->filled('kabupaten')) {
         $units = $units->where('nama_kabupaten', $request->kabupaten);
     }
-
     if ($request->filled('mitra_pengelolaan')) {
         $units = $units->where('mitra_pengelolaan', $request->mitra_pengelolaan);
     }
@@ -297,11 +270,12 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
     $totalUnits   = $units->count();
     $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
 
-    /*
-    |--------------------------------------------------------------------------
-    | VIEW
-    |--------------------------------------------------------------------------
-    */
+    // Mismatch dari database
+    $mismatches = UnitNamaMismatch::where('pesanan_majalah_id', $pesananMajalah->id)
+        ->where('is_resolved', false)
+        ->orderBy('no_cab')
+        ->get();
+
     return view('pesanan-majalah.show', [
         'data'               => $pesananMajalah,
         'units'              => $units,
@@ -311,6 +285,7 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
         'listNoCabang'       => $listNoCabang,
         'listKabupaten'      => $listKabupaten,
         'listMitraPengelola' => $listMitraPengelola,
+        'mismatches'         => $mismatches,
     ]);
 }
 
@@ -479,195 +454,61 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
      *      ↓
      * Import Excel
      */
-    public function import(
-        Request $request
-    ) {
+    public function import(Request $request)
+{
+    $validated = $request->validate([
+        'periode' => ['required', 'date_format:Y-m'],
+        'file'    => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+    ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDASI INPUT
-        |--------------------------------------------------------------------------
-        */
+    $periodeValue = $validated['periode'];
+    $tanggal = Carbon::createFromFormat('Y-m', $periodeValue);
 
-        $validated = $request->validate([
+    $namaBulan = [
+        1  => 'Januari', 2  => 'Februari', 3  => 'Maret', 4  => 'April',
+        5  => 'Mei', 6  => 'Juni', 7  => 'Juli', 8  => 'Agustus',
+        9  => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
 
-            'periode' => [
-                'required',
-                'date_format:Y-m',
-            ],
+    $bulan = $namaBulan[(int) $tanggal->month];
+    $tahun = $tanggal->year;
 
-            'file' => [
-                'required',
-                'file',
-                'mimes:xlsx,xls,csv',
-                'max:10240',
-            ],
-
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | AMBIL PERIODE
-        |--------------------------------------------------------------------------
-        */
-
-        $periodeValue = $validated['periode'];
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | PARSE TANGGAL
-        |--------------------------------------------------------------------------
-        */
-
-        $tanggal = Carbon::createFromFormat(
-            'Y-m',
-            $periodeValue
+    try {
+        $pesananMajalah = PesananMajalah::firstOrCreate(
+            ['periode' => $periodeValue],
+            [
+                'judul' => 'Pesanan Majalah',
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+            ]
         );
 
+        $import = new PesananMajalahImport($pesananMajalah);
+        Excel::import($import, $validated['file']);
 
-        /*
-        |--------------------------------------------------------------------------
-        | NAMA BULAN INDONESIA
-        |--------------------------------------------------------------------------
-        |
-        | Tidak bergantung pada locale server.
-        |
-        */
-
-        $namaBulan = [
-
-            1  => 'Januari',
-            2  => 'Februari',
-            3  => 'Maret',
-            4  => 'April',
-            5  => 'Mei',
-            6  => 'Juni',
-            7  => 'Juli',
-            8  => 'Agustus',
-            9  => 'September',
-            10 => 'Oktober',
-            11 => 'November',
-            12 => 'Desember',
-
-        ];
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | BULAN DAN TAHUN
-        |--------------------------------------------------------------------------
-        */
-
-        $bulan = $namaBulan[
-            (int) $tanggal->month
-        ];
-
-        $tahun = $tanggal->year;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | PROSES IMPORT
-        |--------------------------------------------------------------------------
-        */
-
-        try {
-
-            /*
-            |--------------------------------------------------------------------------
-            | CARI ATAU BUAT PERIODE
-            |--------------------------------------------------------------------------
-            |
-            | Contoh:
-            |
-            | periode = 2026-07
-            |
-            | Jika sudah ada:
-            | gunakan data yang ada.
-            |
-            | Jika belum ada:
-            | buat data baru.
-            |
-            */
-
-            $pesananMajalah = PesananMajalah::firstOrCreate(
-
-                [
-                    'periode' => $periodeValue,
-                ],
-
-                [
-                    'judul' => 'Pesanan Majalah',
-                    'bulan' => $bulan,
-                    'tahun' => $tahun,
-                ]
-
+        $redirect = redirect()
+            ->route('pesanan-majalah.show', $pesananMajalah->id)
+            ->with(
+                'success',
+                'Data pesanan majalah periode ' . $bulan . ' ' . $tahun . ' berhasil diimport.'
             );
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | IMPORT FILE EXCEL
-            |--------------------------------------------------------------------------
-            */
-
-            Excel::import(
-
-                new PesananMajalahImport(
-                    $pesananMajalah
-                ),
-
-                $validated['file']
-
-            );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | REDIRECT KE DETAIL
-            |--------------------------------------------------------------------------
-            */
-
-            return redirect()
-                ->route(
-                    'pesanan-majalah.show',
-                    $pesananMajalah->id
-                )
-                ->with(
-
-                    'success',
-
-                    'Data pesanan majalah periode '
-                    . $bulan
-                    . ' '
-                    . $tahun
-                    . ' berhasil diimport.'
-
-                );
-
-
-        } catch (\Throwable $e) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | ERROR IMPORT
-            |--------------------------------------------------------------------------
-            */
-
-            return redirect()
-                ->route(
-                    'pesanan-majalah.index'
-                )
-                ->with(
-                    'error',
-                    'Import gagal: '
-                    . $e->getMessage()
-                );
-
+        if (!empty($import->mismatchList)) {
+            $unique = collect($import->mismatchList)
+                ->unique('no_cab')
+                ->values()
+                ->all();
+            $redirect->with('unit_nama_mismatch', $unique);
         }
+
+        return $redirect;
+
+    } catch (\Throwable $e) {
+        return redirect()
+            ->route('pesanan-majalah.index')
+            ->with('error', 'Import gagal: ' . $e->getMessage());
     }
+}
 
 
     /**
@@ -828,4 +669,133 @@ public function show(Request $request, PesananMajalah $pesananMajalah)
 
         return $periode;
     }
+    
+   public function kirimKeJakartaAktif(Request $request, PesananMajalah $pesananMajalah)
+{
+    $pesananMajalah->load(['kabupaten.units']);
+
+    $created = 0;
+    $skipped = 0;
+    $skippedList = [];
+    $errors = [];
+
+    // Ambil semua no_cabang untuk lookup mitra & nama unit
+    $allNoCab = collect();
+    foreach ($pesananMajalah->kabupaten as $kab) {
+        foreach ($kab->units as $unit) {
+            if ($unit->no_cabang) {
+                $allNoCab->push(trim($unit->no_cabang));
+            }
+        }
+    }
+
+    $unitKemitraanMap = UnitKemitraan::whereIn('no_cab', $allNoCab->unique())
+        ->get()
+        ->keyBy(fn ($u) => trim($u->no_cab));
+
+    $productName = 'Pesanan Majalah Edisi ' 
+        . ($pesananMajalah->judul ?? '') 
+        . ' bulan ' 
+        . ($pesananMajalah->bulan ?? '');
+
+    DB::beginTransaction();
+
+    try {
+        foreach ($pesananMajalah->kabupaten as $kabupaten) {
+            foreach ($kabupaten->units as $unit) {
+
+                if (($unit->jumlah_pesanan ?? 0) <= 0) {
+                    $skipped++;
+                    $skippedList[] = ($unit->nama_unit ?? 'Unit #'.$unit->id) . ' (qty=0)';
+                    continue;
+                }
+
+                $noCab = trim($unit->no_cabang ?? '');
+
+                // ID Pesan unik: pakai format PM-{periode}-{unit_id} agar tidak bentrok
+                // atau pakai no_cabang + periode
+                $idPesan = 'PM' . $pesananMajalah->id . '-' . $unit->id;
+
+                // Skip jika sudah ada
+                if (JakartaAktif::where('id_pesan', $idPesan)->exists()) {
+                    $skipped++;
+                    $skippedList[] = ($unit->nama_unit ?? $idPesan) . ' (sudah ada)';
+                    continue;
+                }
+
+                // Resolve nama unit dari UnitKemitraan
+                $namaUnit = $unit->nama_unit ?? '-';
+                $mitra    = null;
+                if ($noCab && $unitKemitraanMap->has($noCab)) {
+                    $uk = $unitKemitraanMap->get($noCab);
+                    if (!empty($uk->bimba_aiueo_unit)) {
+                        $namaUnit = $uk->bimba_aiueo_unit;
+                    }
+                    $mitra = $uk->mitra_pengelolaan ?? null;
+                }
+
+                $kirim = $unit->alamat_unit ?: $namaUnit;
+
+                try {
+                    JakartaAktif::create([
+                        'tgl_input'          => now()->format('Y-m-d'),
+                        'tgl_pesan'          => now(),
+                        'kirim'              => $kirim,
+                        'no_telpon'          => $unit->telepon ?? null,
+                        'alamat_kirim'       => $unit->alamat_unit ?? null,
+                        'kab_kota_provinsi'  => $kabupaten->nama_kabupaten ?? null,
+                        'ongkir'             => 0,
+                        'nama_unit'          => $namaUnit,
+                        'pesanan'            => $productName,
+                        'harga'              => 0,
+                        'berat'              => 0,
+                        'item_qty'           => (int) $unit->jumlah_pesanan,
+                        'total'              => 0,
+                        'jenis_bank'         => null,
+                        'status_pembayaran'  => 'MANUAL',
+                        'status_pesan'       => 'pending',
+                        'id_pesan'           => $idPesan,
+                        'status'             => 'aktif',
+                        'payment_date'       => null,
+                        'billing_last_name'  => $noCab ?: null,
+                        'billing_company'    => $mitra,
+                        'status_kirim'       => 'Diambil',
+                        'estimasi_print_pl'  => null,
+                        'estimasi_persiapan' => null,
+                    ]);
+
+                    $created++;
+                } catch (\Throwable $e) {
+                    $errors[] = ($unit->nama_unit ?? $idPesan) . ': ' . $e->getMessage();
+                    Log::error('Kirim ke Jakarta Aktif gagal', [
+                        'unit_id' => $unit->id,
+                        'error'   => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        DB::commit();
+
+        $message = "✅ Berhasil kirim <strong>{$created}</strong> unit ke Jakarta Aktif.";
+        if ($skipped > 0) {
+            $preview = implode(', ', array_slice($skippedList, 0, 5));
+            if (count($skippedList) > 5) $preview .= ' ...';
+            $message .= " Dilewati: {$skipped} → {$preview}";
+        }
+        if (count($errors) > 0) {
+            $message .= "<br>❌ Error: " . implode(' | ', array_slice($errors, 0, 3));
+        }
+
+        return redirect()
+            ->route('pesanan-majalah.show', $pesananMajalah->id)
+            ->with('success', $message);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return redirect()
+            ->back()
+            ->with('error', 'Gagal kirim ke Jakarta Aktif: ' . $e->getMessage());
+    }
+}
 }

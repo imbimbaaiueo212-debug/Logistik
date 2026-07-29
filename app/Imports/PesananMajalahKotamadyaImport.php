@@ -5,6 +5,8 @@ namespace App\Imports;
 use App\Models\PesananMajalah;
 use App\Models\PesananMajalahKotamadya;
 use App\Models\PesananMajalahUnitKotamadya;
+use App\Models\UnitKemitraan;
+use App\Models\UnitNamaMismatch;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -22,6 +24,9 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
 
     protected ?PesananMajalahKotamadya $currentKotamadya = null;
     protected array $urutanUnit = [];
+
+    /** @var array daftar mismatch (untuk flash session) */
+    public array $mismatchList = [];
 
     public function __construct(PesananMajalah $pesananMajalah)
     {
@@ -107,7 +112,7 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
                             no:            $this->toInteger($colA),
                             namaUnit:      $colB,
                             noCabang:      $colC,
-                            jumlahPesanan: $this->toDecimal($colD), // ← decimal
+                            jumlahPesanan: $this->toDecimal($colD),
                             alamatUnit:    $colE,
                             telepon:       $colF
                         );
@@ -153,7 +158,7 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
 
     /**
      * ============================================================
-     * HANDLE UNIT
+     * HANDLE UNIT + CEK MISMATCH
      * ============================================================
      */
     private function handleUnit(
@@ -175,6 +180,47 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
             $no = $this->urutanUnit[$this->currentKotamadya->id];
         }
 
+        // =====================================================
+        // CEK MISMATCH (sama seperti Kabupaten)
+        // =====================================================
+        $noCab = trim($noCabang ?? '');
+
+        if ($noCab !== '') {
+            $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+
+            if ($uk && !empty($uk->bimba_aiueo_unit)) {
+                $namaMaster = trim($uk->bimba_aiueo_unit);
+
+                if (!$this->isNamaUnitMirip($namaUnit, $namaMaster)) {
+                    // Simpan ke list flash
+                    $this->mismatchList[] = [
+                        'no_cab'      => $noCab,
+                        'nama_excel'  => $namaUnit,
+                        'nama_master' => $namaMaster,
+                    ];
+
+                    // Simpan ke database mismatch
+                    UnitNamaMismatch::updateOrCreate(
+                        [
+                            'no_cab'  => $noCab,
+                            'periode' => $this->pesananMajalah->periode,
+                            'sumber'  => 'import_kotamadya',
+                        ],
+                        [
+                            'nama_excel'         => $namaUnit,
+                            'nama_master'        => $namaMaster,
+                            'pesanan_majalah_id' => $this->pesananMajalah->id,
+                            'is_resolved'        => false,
+                        ]
+                    );
+
+                    $this->barisDilewati++;
+                    return; // TIDAK masuk pesanan_majalah_unit_kotamadya
+                }
+            }
+        }
+
+        // Nama match / no_cab tidak ada di master → lanjut simpan
         $query = PesananMajalahUnitKotamadya::where(
             'pesanan_majalah_kotamadya_id',
             $this->currentKotamadya->id
@@ -209,6 +255,61 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
     }
 
     /**
+     * Nama dianggap MIRIP hanya jika:
+     * - Sama persis setelah normalisasi
+     * - Sama setelah spasi dihilangkan (compact)
+     * - Similarity ≥ 95% ATAU Levenshtein ≤ 5%
+     *
+     * Extra angka/suffix seperti "04" → dianggap BERBEDA
+     */
+    protected function isNamaUnitMirip(string $namaA, string $namaB): bool
+    {
+        $norm = function (string $s): string {
+            $s = strtolower(trim($s));
+            $s = preg_replace('/[()\[\].,\-_\/\\\\]+/', ' ', $s);
+            $s = preg_replace('/\s+/', ' ', $s);
+            return trim($s);
+        };
+
+        $a = $norm($namaA);
+        $b = $norm($namaB);
+
+        if ($a === '' || $b === '' || $a === '-' || $b === '-') {
+            return true;
+        }
+
+        // 1. Exact match
+        if ($a === $b) {
+            return true;
+        }
+
+        // 2. Compact (tanpa spasi)
+        $ca = preg_replace('/\s+/', '', $a);
+        $cb = preg_replace('/\s+/', '', $b);
+
+        if ($ca !== '' && $cb !== '' && $ca === $cb) {
+            return true;
+        }
+
+        // 3. Similarity sangat tinggi
+        similar_text($a, $b, $percent);
+        if ($percent >= 95) {
+            return true;
+        }
+
+        // 4. Levenshtein relatif sangat kecil
+        $maxLen = max(mb_strlen($a), mb_strlen($b));
+        if ($maxLen > 0) {
+            $dist = levenshtein($a, $b);
+            if (($dist / $maxLen) <= 0.05) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * ============================================================
      * DETEKSI BARIS
      * ============================================================
@@ -235,7 +336,6 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
     {
         $combined = strtoupper(implode(' ', array_filter([$a, $b, $c, $d, $e])));
 
-        // Header kolom
         if (str_contains($combined, 'NAMA UNIT') || str_contains($combined, 'NO CABANG')) {
             return true;
         }
@@ -243,7 +343,6 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
             return true;
         }
 
-        // Baris TOTAL / subtotal
         if (
             str_contains($combined, 'TOTAL') ||
             str_contains($combined, 'JUMLAH') ||
@@ -253,7 +352,6 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
             return true;
         }
 
-        // Kolom NO
         if (in_array(strtoupper(trim($a ?? '')), ['NO.', 'NO'])) {
             return true;
         }
@@ -320,13 +418,10 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
         $nama    = null;
         $telepon = null;
 
-        // Format: Nama (08xxxxxxxxxx)
         if (preg_match('/\(([^)]+)\)/', $rest, $m)) {
             $telepon = $this->cleanPhone($m[1]);
             $nama    = trim(preg_replace('/\([^)]+\)/', '', $rest));
-        }
-        // Format: Nama 08xxxxxxxxxx
-        elseif (preg_match('/(.+?)\s+([\d\s\-\+]+)$/', $rest, $m)) {
+        } elseif (preg_match('/(.+?)\s+([\d\s\-\+]+)$/', $rest, $m)) {
             $nama    = trim($m[1]);
             $telepon = $this->cleanPhone($m[2]);
         } else {
@@ -356,11 +451,6 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
         return $value === '' ? null : $value;
     }
 
-    /**
-     * ============================================================
-     * PARSE ANGKA
-     * ============================================================
-     */
     private function toInteger($value): int
     {
         if ($value === null || $value === '') {
@@ -375,47 +465,29 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
         return is_numeric($value) ? (int) $value : 0;
     }
 
-    /**
-     * Parse decimal dengan support format Indonesia
-     * Contoh yang didukung:
-     * 55,2
-     * 55.2
-     * 1.234,56
-     * 1,234.56
-     * 1234,5
-     * 1234.5
-     */
     private function toDecimal($value): float
     {
         if ($value === null || $value === '') {
             return 0.0;
         }
 
-        // Sudah numeric (Excel kadang langsung kasih float)
         if (is_numeric($value)) {
             return round((float) $value, 2);
         }
 
         $value = trim((string) $value);
-        $value = str_replace(' ', '', $value); // hapus spasi
+        $value = str_replace(' ', '', $value);
 
-        // Kasus ada titik DAN koma
         if (str_contains($value, ',') && str_contains($value, '.')) {
-            // Cek posisi terakhir → yang lebih belakang adalah desimal
             if (strrpos($value, ',') > strrpos($value, '.')) {
-                // Format Indonesia: 1.234,56
                 $value = str_replace('.', '', $value);
                 $value = str_replace(',', '.', $value);
             } else {
-                // Format internasional: 1,234.56
                 $value = str_replace(',', '', $value);
             }
-        }
-        // Hanya ada koma → anggap desimal Indonesia
-        elseif (str_contains($value, ',')) {
+        } elseif (str_contains($value, ',')) {
             $value = str_replace(',', '.', $value);
         }
-        // Hanya ada titik → biarkan (sudah format internasional)
 
         return is_numeric($value) ? round((float) $value, 2) : 0.0;
     }

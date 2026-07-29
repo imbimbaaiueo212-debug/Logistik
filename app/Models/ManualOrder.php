@@ -42,6 +42,15 @@ class ManualOrder extends Model
         'shipping_postcode',
         'shipping_country',
         'source',
+        'order_id',
+        'no_cabang',
+        'mitra_pengelolaan',
+        'bimba_order_id',
+        'bimba_order_date',
+        'pesanan_majalah_id',
+        'pesanan_majalah_type',
+        'pesanan_majalah_unit_id',
+        'is_synced_bimba',
     ];
 
     protected $casts = [
@@ -54,5 +63,18 @@ class ManualOrder extends Model
         'order_weight' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'refunded_total' => 'decimal:2',
+        'bimba_order_date' => 'datetime',
+        'is_synced_bimba'  => 'boolean',
     ];
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($order) {
+            if (empty($order->order_id)) {
+                $lastId = self::max('id') ?? 0;
+                $order->order_id = str_pad($lastId + 1, 8, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 }

@@ -44,6 +44,11 @@
            class="{{ request()->routeIs('import.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
             Data Import
         </a>
+        
+        <a href="{{ route('order-manual.index') }}"
+            class="{{ request()->routeIs('order-manual.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
+            Order Manual
+        </a>
 
         <a href="{{ route('order.index') }}"
            class="{{ request()->routeIs('order.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">

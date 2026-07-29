@@ -38,6 +38,7 @@ use App\Http\Controllers\Majalah2026Controller;
 use App\Http\Controllers\PesananMajalahKotamadyaController;
 use App\Http\Controllers\PesananMajalahPuw1Controller;
 use App\Http\Controllers\DatabaseUserController;
+use App\Http\Controllers\OrderManualController;
 
 use App\Http\Controllers\DistributionOrderController;
 
@@ -192,6 +193,14 @@ Route::prefix('order')
     Route::get('/realisasi/print-ra-all', [OrderController::class, 'printRealisasiAll'])
         ->name('print-ra-all');
     });
+    Route::post('order/jakarta-aktif/sync-manual', [OrderController::class, 'syncManualToJakartaAktif'])
+    ->name('order.jakarta-aktif.sync-manual');
+    Route::post('pesanan-majalah/{pesananMajalah}/kirim-ke-jakarta-aktif', 
+    [PesananMajalahController::class, 'kirimKeJakartaAktif']
+)->name('pesanan-majalah.kirim-ke-jakarta-aktif');
+Route::post('order/jakarta-aktif/sync-pesanan-majalah', 
+    [OrderController::class, 'syncPesananMajalahToJakartaAktif']
+)->name('order.jakarta-aktif.sync-pesanan-majalah');
 
 // === PICKING ROUTES ===
 Route::prefix('picking')->name('picking.')->group(function () {
@@ -509,6 +518,10 @@ Route::post(
     [PesananMajalahController::class, 'import']
 )->name('pesanan-majalah.import');
 
+Route::post('pesanan-majalah/{pesananMajalah}/kirim-ke-manual', 
+    [PesananMajalahController::class, 'kirimKeManual']
+)->name('pesanan-majalah.kirim-ke-manual');
+
 // ====================== MAJALAH PINWIL =========================
 /*
 |--------------------------------------------------------------------------
@@ -702,3 +715,8 @@ Route::prefix('pesanan-majalah-puw1')
         )->name('destroy');
 
     });
+
+    // DATA ORDER MANUAL
+    Route::get('/order-manual', [OrderManualController::class, 'index'])
+    ->name('order-manual.index')
+    ->middleware('auth');

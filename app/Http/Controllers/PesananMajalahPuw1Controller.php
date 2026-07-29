@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PesananMajalahPuw1;
 use App\Models\PesananMajalahUnitPuw1;
 use App\Imports\PesananMajalahPuw1Import;
-
+use App\Models\UnitNamaMismatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -98,52 +98,45 @@ class PesananMajalahPuw1Controller extends Controller
 
     $unitsQuery = $data->units()->orderBy('no');
 
-    // Filter Nama Unit
     if ($request->filled('nama_unit')) {
         $unitsQuery->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
     }
-
-    // Filter No Cabang
     if ($request->filled('no_cabang')) {
         $unitsQuery->where('no_cabang', $request->no_cabang);
     }
-
-    // Filter Kabupaten / Kota
     if ($request->filled('kabupaten_kota')) {
         $unitsQuery->where('kabupaten_kota', $request->kabupaten_kota);
     }
 
     $units = $unitsQuery->get();
 
-    // Data untuk dropdown Select2
     $listNamaUnit = $data->units()
-        ->select('nama_unit')
-        ->distinct()
-        ->orderBy('nama_unit')
-        ->pluck('nama_unit');
+        ->select('nama_unit')->distinct()->orderBy('nama_unit')->pluck('nama_unit');
 
     $listNoCabang = $data->units()
         ->select('no_cabang')
-        ->whereNotNull('no_cabang')
-        ->where('no_cabang', '!=', '')
-        ->distinct()
-        ->orderBy('no_cabang')
-        ->pluck('no_cabang');
+        ->whereNotNull('no_cabang')->where('no_cabang', '!=', '')
+        ->distinct()->orderBy('no_cabang')->pluck('no_cabang');
 
     $listKabupaten = $data->units()
         ->select('kabupaten_kota')
-        ->whereNotNull('kabupaten_kota')
-        ->where('kabupaten_kota', '!=', '')
-        ->distinct()
-        ->orderBy('kabupaten_kota')
-        ->pluck('kabupaten_kota');
+        ->whereNotNull('kabupaten_kota')->where('kabupaten_kota', '!=', '')
+        ->distinct()->orderBy('kabupaten_kota')->pluck('kabupaten_kota');
+
+    // Mismatch PUW1 (by periode + sumber)
+    $mismatches = UnitNamaMismatch::where('periode', $data->periode)
+        ->where('sumber', 'import_puw1')
+        ->where('is_resolved', false)
+        ->orderBy('no_cab')
+        ->get();
 
     return view('pesanan-majalah-puw1.show', compact(
         'data',
         'units',
         'listNamaUnit',
         'listNoCabang',
-        'listKabupaten'
+        'listKabupaten',
+        'mismatches'
     ));
 }
 
@@ -346,162 +339,70 @@ class PesananMajalahPuw1Controller extends Controller
     }
 
 
-    /**
-     * ============================================================
-     * IMPORT EXCEL
-     * ============================================================
-     */
-    public function import(
-        Request $request
-    ) {
+    public function import(Request $request)
+{
+    $validated = $request->validate([
+        'periode' => ['required', 'date_format:Y-m'],
+        'file'    => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+    ]);
 
-        $validated = $request->validate([
+    $periodeValue = $validated['periode'];
+    $tanggal = Carbon::createFromFormat('Y-m', $periodeValue);
 
-            'periode' => [
-                'required',
-                'date_format:Y-m',
-            ],
+    $namaBulan = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
 
-            'file' => [
-                'required',
-                'file',
-                'mimes:xlsx,xls,csv',
-                'max:10240',
-            ],
+    $bulan = $namaBulan[(int) $tanggal->month];
+    $tahun = $tanggal->year;
 
-        ]);
+    try {
+        DB::beginTransaction();
 
+        $pesananMajalah = PesananMajalahPuw1::firstOrCreate(
+            ['periode' => $periodeValue],
+            [
+                'judul' => 'PESANAN MAJALAH SAHABAT biMBA PUW I',
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+            ]
+        );
 
-        $periodeValue =
-            $validated['periode'];
+        $import = new PesananMajalahPuw1Import($pesananMajalah);
+        Excel::import($import, $validated['file']);
 
+        DB::commit();
 
-        $tanggal =
-            Carbon::createFromFormat(
-                'Y-m',
-                $periodeValue
+        $redirect = redirect()
+            ->route('pesanan-majalah-puw1.show', $pesananMajalah->id)
+            ->with(
+                'success',
+                'Import berhasil. '
+                . 'Unit baru: ' . $import->unitBaru
+                . ' | Unit diperbarui: ' . $import->unitDiperbarui
+                . ' | Baris dilewati: ' . $import->barisDilewati
             );
 
-
-        $namaBulan = [
-
-            1  => 'Januari',
-            2  => 'Februari',
-            3  => 'Maret',
-            4  => 'April',
-            5  => 'Mei',
-            6  => 'Juni',
-            7  => 'Juli',
-            8  => 'Agustus',
-            9  => 'September',
-            10 => 'Oktober',
-            11 => 'November',
-            12 => 'Desember',
-
-        ];
-
-
-        $bulan =
-            $namaBulan[
-                (int) $tanggal->month
-            ];
-
-
-        $tahun =
-            $tanggal->year;
-
-
-        try {
-
-            DB::beginTransaction();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | CARI / BUAT PERIODE PUW1
-            |--------------------------------------------------------------------------
-            */
-
-            $pesananMajalah =
-                PesananMajalahPuw1::firstOrCreate(
-
-                    [
-                        'periode'
-                            => $periodeValue,
-                    ],
-
-                    [
-
-                        'judul'
-                            => 'PESANAN MAJALAH SAHABAT biMBA PUW I',
-
-                        'bulan'
-                            => $bulan,
-
-                        'tahun'
-                            => $tahun,
-
-                    ]
-
-                );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | IMPORT EXCEL
-            |--------------------------------------------------------------------------
-            */
-
-            $import =
-                new PesananMajalahPuw1Import(
-                    $pesananMajalah
-                );
-
-
-            Excel::import(
-                $import,
-                $validated['file']
-            );
-
-
-            DB::commit();
-
-
-            return redirect()
-                ->route(
-                    'pesanan-majalah-puw1.show',
-                    $pesananMajalah->id
-                )
-                ->with(
-                    'success',
-
-                    'Import berhasil. '
-                    . 'Unit baru: '
-                    . $import->unitBaru
-                    . ' | Unit diperbarui: '
-                    . $import->unitDiperbarui
-                    . ' | Baris dilewati: '
-                    . $import->barisDilewati
-
-                );
-
-
-        } catch (\Throwable $e) {
-
-            DB::rollBack();
-
-
-            return redirect()
-                ->route(
-                    'pesanan-majalah-puw1.index'
-                )
-                ->with(
-                    'error',
-                    'Import gagal: '
-                    . $e->getMessage()
-                );
+        if (!empty($import->mismatchList)) {
+            $unique = collect($import->mismatchList)
+                ->unique('no_cab')
+                ->values()
+                ->all();
+            $redirect->with('unit_nama_mismatch', $unique);
         }
+
+        return $redirect;
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        return redirect()
+            ->route('pesanan-majalah-puw1.index')
+            ->with('error', 'Import gagal: ' . $e->getMessage());
     }
+}
 
 
     /**

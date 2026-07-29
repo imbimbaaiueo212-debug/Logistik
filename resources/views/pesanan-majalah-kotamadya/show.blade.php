@@ -26,7 +26,6 @@
         }
         tr:hover { background-color: #f8fafc; }
 
-        /* Select2 sesuaikan dengan Tailwind */
         .select2-container .select2-selection--single {
             height: 42px !important;
             border: 1px solid #d1d5db !important;
@@ -53,9 +52,7 @@
 
 <div class="max-w-screen-2xl mx-auto px-6 py-6">
 
-    {{-- ========================================================= --}}
     {{-- HEADER --}}
-    {{-- ========================================================= --}}
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-3 mb-1">
@@ -74,9 +71,7 @@
         </div>
     </div>
 
-    {{-- ========================================================= --}}
-    {{-- ALERT --}}
-    {{-- ========================================================= --}}
+    {{-- ALERT SUCCESS / ERROR --}}
     @if(session('success'))
         <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl whitespace-pre-line">
             <div class="flex items-start gap-2">
@@ -95,9 +90,108 @@
         </div>
     @endif
 
-    {{-- ========================================================= --}}
+    {{-- TOMBOL MISMATCH (sama seperti Kabupaten) --}}
+    @php
+        $listMismatch = session('unit_nama_mismatch');
+        if (empty($listMismatch) && isset($mismatches) && $mismatches->count() > 0) {
+            $listMismatch = $mismatches->map(fn ($m) => [
+                'no_cab'      => $m->no_cab,
+                'nama_excel'  => $m->nama_excel,
+                'nama_master' => $m->nama_master,
+            ])->toArray();
+        }
+        $listMismatch = $listMismatch ?? [];
+    @endphp
+
+    @if(count($listMismatch) > 0)
+    <div class="mb-6">
+        <button type="button"
+                onclick="document.getElementById('mismatchModal').classList.remove('hidden')"
+                class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow transition">
+            ⚠️ Nama Unit Tidak Match
+            <span class="bg-white text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                {{ count($listMismatch) }}
+            </span>
+        </button>
+    </div>
+    @endif
+
+    {{-- MODAL MISMATCH --}}
+    @if(count($listMismatch) > 0)
+    <div id="mismatchModal"
+         class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+
+        {{-- Backdrop --}}
+        <div class="absolute inset-0 bg-black/40"
+             onclick="document.getElementById('mismatchModal').classList.add('hidden')"></div>
+
+        {{-- Panel --}}
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+
+            {{-- Header --}}
+            <div class="px-6 py-4 border-b border-orange-200 bg-orange-50 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">⚠️</span>
+                    <div>
+                        <h3 class="font-bold text-orange-900 text-lg">Nama Unit Tidak Match</h3>
+                        <p class="text-sm text-orange-700">
+                            {{ count($listMismatch) }} unit tidak masuk ke data majalah
+                        </p>
+                    </div>
+                </div>
+                <button type="button"
+                        onclick="document.getElementById('mismatchModal').classList.add('hidden')"
+                        class="text-orange-600 hover:text-orange-800 text-2xl leading-none font-bold px-2">
+                    ×
+                </button>
+            </div>
+
+            {{-- Body (scrollable) --}}
+            <div class="overflow-y-auto flex-1 p-0">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-orange-100">
+                        <tr class="border-b border-orange-200">
+                            <th class="px-4 py-3 text-left text-orange-900">No</th>
+                            <th class="px-4 py-3 text-left text-orange-900">No Cab</th>
+                            <th class="px-4 py-3 text-left text-orange-900">Nama di Excel</th>
+                            <th class="px-4 py-3 text-left text-orange-900">Nama di Unit Kemitraan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-orange-100">
+                        @foreach($listMismatch as $i => $m)
+                            <tr class="hover:bg-orange-50/60">
+                                <td class="px-4 py-3 text-gray-600">{{ $i + 1 }}</td>
+                                <td class="px-4 py-3 font-semibold text-gray-800">{{ $m['no_cab'] ?? '-' }}</td>
+                                <td class="px-4 py-3 text-red-600 font-medium">{{ $m['nama_excel'] ?? '-' }}</td>
+                                <td class="px-4 py-3 text-emerald-700 font-medium">{{ $m['nama_master'] ?? '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 py-4 border-t border-orange-100 bg-gray-50 flex justify-end">
+                <button type="button"
+                        onclick="document.getElementById('mismatchModal').classList.add('hidden')"
+                        class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-semibold transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Auto buka modal jika baru dari import --}}
+    @if(session('unit_nama_mismatch'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('mismatchModal')?.classList.remove('hidden');
+        });
+    </script>
+    @endif
+    @endif
+
     {{-- INFO PERIODE --}}
-    {{-- ========================================================= --}}
     <div class="bg-white rounded-3xl shadow p-6 mb-8">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Informasi Periode</h2>
 
@@ -119,20 +213,10 @@
                 <p class="font-semibold text-gray-800">
                     @php
                         $namaBulan = [
-                            1  => 'Januari',
-                            2  => 'Februari',
-                            3  => 'Maret',
-                            4  => 'April',
-                            5  => 'Mei',
-                            6  => 'Juni',
-                            7  => 'Juli',
-                            8  => 'Agustus',
-                            9  => 'September',
-                            10 => 'Oktober',
-                            11 => 'November',
-                            12 => 'Desember',
+                            1  => 'Januari', 2  => 'Februari', 3  => 'Maret', 4  => 'April',
+                            5  => 'Mei', 6  => 'Juni', 7  => 'Juli', 8  => 'Agustus',
+                            9  => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
                         ];
-
                         $periodeText = '-';
                         if (!empty($data->periode) && preg_match('/^\d{4}-(\d{2})$/', $data->periode, $m)) {
                             $periodeText = $namaBulan[(int) $m[1]] ?? $data->periode;
@@ -144,69 +228,53 @@
         </div>
     </div>
 
-    {{-- ========================================================= --}}
-    {{-- FILTER UNIT (Select2) --}}
-    {{-- ========================================================= --}}
+    {{-- FILTER UNIT --}}
     <div class="bg-white rounded-3xl shadow p-6 mb-6">
         <form method="GET"
               action="{{ route('pesanan-majalah-kotamadya.show', $data->id) }}"
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-            {{-- Nama Unit --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Unit
-                </label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Unit</label>
                 <select name="nama_unit" class="select2 w-full">
                     <option value="">-- Semua Unit --</option>
                     @foreach($listNamaUnit as $nama)
-                        <option value="{{ $nama }}"
-                            {{ request('nama_unit') == $nama ? 'selected' : '' }}>
+                        <option value="{{ $nama }}" {{ request('nama_unit') == $nama ? 'selected' : '' }}>
                             {{ $nama }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- No Cabang --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    No Cabang
-                </label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">No Cabang</label>
                 <select name="no_cabang" class="select2 w-full">
                     <option value="">-- Semua No Cabang --</option>
                     @foreach($listNoCabang as $cabang)
-                        <option value="{{ $cabang }}"
-                            {{ request('no_cabang') == $cabang ? 'selected' : '' }}>
+                        <option value="{{ $cabang }}" {{ request('no_cabang') == $cabang ? 'selected' : '' }}>
                             {{ $cabang }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- Kotamadya / Kabupaten --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Kotamadya / Kabupaten
-                </label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Kotamadya / Kabupaten</label>
                 <select name="kotamadya" class="select2 w-full">
                     <option value="">-- Semua Kotamadya --</option>
                     @foreach($listKotamadya as $kota)
-                        <option value="{{ $kota }}"
-                            {{ request('kotamadya') == $kota ? 'selected' : '' }}>
+                        <option value="{{ $kota }}" {{ request('kotamadya') == $kota ? 'selected' : '' }}>
                             {{ $kota }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- Tombol --}}
             <div class="flex items-end gap-3">
                 <button type="submit"
                         class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition">
                     🔍 Filter
                 </button>
-
                 <a href="{{ route('pesanan-majalah-kotamadya.show', $data->id) }}"
                    class="bg-gray-500 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-600 transition">
                     Reset
@@ -215,9 +283,7 @@
         </form>
     </div>
 
-    {{-- ========================================================= --}}
     {{-- TABEL UNIT --}}
-    {{-- ========================================================= --}}
     <div class="bg-white rounded-3xl shadow overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 class="text-lg font-bold text-gray-800">Daftar Unit</h2>

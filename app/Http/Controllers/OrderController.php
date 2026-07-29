@@ -11,10 +11,9 @@ use App\Models\PickingItem;      // Tambahkan
 use App\Models\JakartaAktifItem;
 use App\Models\Product;
 use App\Models\MatchingUserExport;
+use App\Models\PesananMajalah;
 use App\Models\UnitKemitraan;
-
 use App\Imports\JakartaAktifImport;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;   // Tambahkan
 use Illuminate\Support\Facades\DB;
@@ -36,7 +35,7 @@ public function jakartaAktif(Request $request)
 {
     $query = JakartaAktif::query();
 
-    // === FILTER (sama seperti sebelumnya) ===
+    // === FILTER ===
     if ($request->filled('id_pesan')) {
         $query->where('id_pesan', 'like', '%' . $request->id_pesan . '%');
     }
@@ -64,9 +63,6 @@ public function jakartaAktif(Request $request)
     if ($request->filled('pesanan')) {
         $query->where('pesanan', 'like', '%' . $request->pesanan . '%');
     }
-    if ($request->filled('end_date')) {
-        $query->whereDate('tgl_pesan', '<=', $request->end_date);
-    }
 
     $perPage = $request->get('per_page', 50);
     $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500]) ? $perPage : 50;
@@ -75,12 +71,110 @@ public function jakartaAktif(Request $request)
         ->with(['casdana' => function ($q) {
             $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer');
         }])
-        ->selectRaw('*, payment_date')           // Pastikan kolom ikut ter-load
+        ->selectRaw('*, payment_date')
         ->latest('tgl_pesan')
         ->paginate($perPage)
         ->appends($request->query());
 
-    return view('order.jakarta-aktif-index', compact('data'));
+    // =====================================================
+    // DATA UNTUK DROPDOWN FILTER (Select2)
+    // =====================================================
+    $listStatusBayar = JakartaAktif::select('status_pembayaran')
+        ->whereNotNull('status_pembayaran')
+        ->where('status_pembayaran', '!=', '')
+        ->distinct()
+        ->orderBy('status_pembayaran')
+        ->pluck('status_pembayaran');
+
+    $listPesanan = JakartaAktif::select('pesanan')
+        ->whereNotNull('pesanan')
+        ->where('pesanan', '!=', '')
+        ->distinct()
+        ->orderBy('pesanan')
+        ->pluck('pesanan');
+
+    $listNamaUnit = JakartaAktif::select('nama_unit')
+        ->whereNotNull('nama_unit')
+        ->where('nama_unit', '!=', '')
+        ->distinct()
+        ->orderBy('nama_unit')
+        ->pluck('nama_unit');
+
+    $unitTidakPesan = $this->getUnitTidakPesanMajalah();
+
+    return view('order.jakarta-aktif-index', compact(
+        'data',
+        'unitTidakPesan',
+        'listStatusBayar',
+        'listPesanan',
+        'listNamaUnit'
+    ));
+}
+
+/**
+ * Ambil daftar unit dari Pesanan Majalah yang qty = 0
+ */
+private function getUnitTidakPesanMajalah(): array
+{
+    $list = [];
+
+    // Kabupaten
+    $periodes = PesananMajalah::with(['kabupaten.units', 'kotamadya.units'])->get();
+
+    foreach ($periodes as $periode) {
+        foreach ($periode->kabupaten ?? [] as $kab) {
+            foreach ($kab->units ?? [] as $unit) {
+                if (($unit->jumlah_pesanan ?? 0) <= 0) {
+                    $list[] = [
+                        'nama'     => $unit->nama_unit ?? '-',
+                        'no_cab'   => trim($unit->no_cabang ?? ''),
+                        'wilayah'  => $kab->nama_kabupaten ?? '-',
+                        'sumber'   => 'Kabupaten',
+                        'periode'  => ($periode->bulan ?? '') . ' ' . ($periode->tahun ?? ''),
+                    ];
+                }
+            }
+        }
+
+        foreach ($periode->kotamadya ?? [] as $kota) {
+            foreach ($kota->units ?? [] as $unit) {
+                if (($unit->jumlah_pesanan ?? 0) <= 0) {
+                    $list[] = [
+                        'nama'     => $unit->nama_unit ?? '-',
+                        'no_cab'   => trim($unit->no_cabang ?? ''),
+                        'wilayah'  => $kota->nama_kotamadya ?? '-',
+                        'sumber'   => 'Kotamadya',
+                        'periode'  => ($periode->bulan ?? '') . ' ' . ($periode->tahun ?? ''),
+                    ];
+                }
+            }
+        }
+    }
+
+    // PUW1
+    $periodesPuw1 = \App\Models\PesananMajalahPuw1::with('units')->get();
+
+    foreach ($periodesPuw1 as $periode) {
+        foreach ($periode->units ?? [] as $unit) {
+            if (($unit->jumlah_pesanan ?? 0) <= 0) {
+                $list[] = [
+                    'nama'     => $unit->nama_unit ?? '-',
+                    'no_cab'   => trim($unit->no_cabang ?? ''),
+                    'wilayah'  => $unit->kabupaten_kota ?? '-',
+                    'sumber'   => 'PUW1',
+                    'periode'  => ($periode->bulan ?? '') . ' ' . ($periode->tahun ?? ''),
+                ];
+            }
+        }
+    }
+
+    // Unik berdasarkan no_cab + nama
+    $unique = collect($list)
+        ->unique(fn ($i) => $i['no_cab'] . '|' . $i['nama'])
+        ->values()
+        ->all();
+
+    return $unique;
 }
 
     // Import Manual
@@ -1620,36 +1714,55 @@ public function getModalData(Request $request)
 
     $data = JakartaAktif::whereIn('id', $ids)
         ->select([
-            'id', 
-            'id_pesan', 
-            'nama_unit', 
-            'status_pembayaran', 
-            'jenis_bank', 
-            'pesanan',           // ← Pastikan ini ada
+            'id',
+            'id_pesan',
+            'nama_unit',
+            'status_pembayaran',
+            'jenis_bank',
+            'pesanan',
             'status_kirim',
             'payment_date',
             'is_processed',
-            'processed_at'
+            'processed_at',
+            'ekspedisi',              // ← tambahkan
+            'service_pengiriman',     // ← tambahkan
         ])
         ->get()
         ->map(function ($item) {
             $vendor = $this->extractVendorFromSku($item->pesanan ?? '');
 
+            // Default khusus majalah MANUAL
+            $isManualMajalah = strtoupper(trim($item->status_pembayaran ?? '')) === 'MANUAL'
+                && (
+                    str_contains(strtolower($item->pesanan ?? ''), 'majalah')
+                    || preg_match('/\bM\d{2,4}\b/i', $item->pesanan ?? '')
+                );
+
+            $jasaKurir = $item->ekspedisi;
+            $service   = $item->service_pengiriman;
+
+            if ($isManualMajalah) {
+                $jasaKurir = $jasaKurir ?: 'Lion Parcel';
+                $service   = $service   ?: 'REGPACK';
+            }
+
             return [
-                'id'                  => $item->id,
-                'invoice'             => $item->id_pesan ?? '-',
-                'to_customer'         => $item->nama_unit ?? '-',
-                'pesanan'             => $item->pesanan ?? '-',     // ← TAMBAHKAN BARIS INI
-                'payment_date'        => $item->payment_date 
-                                        ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i') 
+                'id'                => $item->id,
+                'invoice'           => $item->id_pesan ?? '-',
+                'to_customer'       => $item->nama_unit ?? '-',
+                'pesanan'           => $item->pesanan ?? '-',
+                'payment_date'      => $item->payment_date
+                                        ? \Carbon\Carbon::parse($item->payment_date)->format('d/m/Y H:i')
                                         : '-',
-                'payment_channel'     => $item->jenis_bank ?? '-',
-                'status_pembayaran'   => $item->status_pembayaran ?? '-',
-                'status_kirim'        => $item->status_kirim ?? 'Dikirim',
-                'vendor'              => $vendor,
-                'is_processed'        => (bool) $item->is_processed,
-                'processed_at'        => $item->processed_at 
-                                        ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i') 
+                'payment_channel'   => $item->jenis_bank ?? '-',
+                'status_pembayaran' => $item->status_pembayaran ?? '-',
+                'status_kirim'      => $item->status_kirim ?? 'Dikirim',
+                'vendor'            => $vendor,
+                'jasa_kurir'        => $jasaKurir,          // ← kirim ke frontend
+                'service_kurir'     => $service,            // ← kirim ke frontend
+                'is_processed'      => (bool) $item->is_processed,
+                'processed_at'      => $item->processed_at
+                                        ? \Carbon\Carbon::parse($item->processed_at)->format('d/m/Y H:i')
                                         : null,
             ];
         });
@@ -2751,4 +2864,288 @@ private function resolveNamaUnit($billingCompany, $billingLastName, $defaultNama
     return $defaultNamaUnit ?: '-';
 }
 
+/**
+ * Sync semua data Pesanan Majalah (Kabupaten + Kotamadya + PUW1)
+ * langsung ke Jakarta Aktif
+ */
+public function syncPesananMajalahToJakartaAktif()
+{
+    $created     = 0;
+    $skipped     = 0;
+    $errors      = [];
+    $skippedList = [];
+
+    $periodes = PesananMajalah::with([
+        'kabupaten.units',
+        'kotamadya.units',
+    ])->get();
+
+    $periodesPuw1 = \App\Models\PesananMajalahPuw1::with('units')->get();
+
+    DB::beginTransaction();
+
+    try {
+        // =====================================================
+        // A + B. KABUPATEN & KOTAMADYA
+        // =====================================================
+        foreach ($periodes as $periode) {
+            $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
+            $edisi   = $this->extractEdisiMajalah($rawName);
+
+            // --- Kabupaten ---
+            foreach ($periode->kabupaten ?? [] as $kabupaten) {
+                foreach ($kabupaten->units ?? [] as $unit) {
+                    $result = $this->createJakartaFromUnit(
+                        $unit,
+                        $edisi,
+                        $kabupaten->nama_kabupaten ?? null,
+                        $kabupaten->contact_person ?? null
+                    );
+
+                    $this->handleSyncResult($result, $created, $skipped, $skippedList, $errors);
+                }
+            }
+
+            // --- Kotamadya ---
+            foreach ($periode->kotamadya ?? [] as $kotamadya) {
+                foreach ($kotamadya->units ?? [] as $unit) {
+                    $result = $this->createJakartaFromUnit(
+                        $unit,
+                        $edisi,
+                        $kotamadya->nama_kotamadya ?? null,
+                        $kotamadya->contact_person ?? null
+                    );
+
+                    $this->handleSyncResult($result, $created, $skipped, $skippedList, $errors);
+                }
+            }
+        }
+
+        // =====================================================
+        // C. PUW1
+        // =====================================================
+        foreach ($periodesPuw1 as $periode) {
+            $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
+            $edisi   = $this->extractEdisiMajalah($rawName);
+
+            foreach ($periode->units ?? [] as $unit) {
+                $result = $this->createJakartaFromUnit(
+                    $unit,
+                    $edisi,
+                    $unit->kabupaten_kota ?? null,
+                    $periode->contact_person ?? null
+                );
+
+                $this->handleSyncResult($result, $created, $skipped, $skippedList, $errors);
+            }
+        }
+
+        DB::commit();
+
+        $message = "✅ Sync Pesanan Majalah selesai.<br>"
+                 . "Berhasil masuk: <strong>{$created}</strong><br>"
+                 . "Dilewati (sudah ada / qty 0): <strong>{$skipped}</strong>";
+
+        if (count($skippedList) > 0) {
+            $uniqueNames = array_values(array_unique($skippedList));
+            $message .= "<br><br><strong>Unit tidak pesan (qty 0):</strong><br>"
+                     . "• " . implode('<br>• ', $uniqueNames);
+        }
+
+        if (count($errors) > 0) {
+            $message .= "<br><br>❌ Error (" . count($errors) . "):<br>"
+                     . "• " . implode('<br>• ', array_slice($errors, 0, 5));
+            if (count($errors) > 5) {
+                $message .= "<br>• ... dan " . (count($errors) - 5) . " error lainnya";
+            }
+        }
+
+        return redirect()
+            ->route('order.jakarta-aktif')
+            ->with('success', $message);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Sync Pesanan Majalah gagal: ' . $e->getMessage());
+
+        return redirect()
+            ->route('order.jakarta-aktif')
+            ->with('error', 'Gagal sync: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Helper hitung hasil createJakartaFromUnit
+ */
+private function handleSyncResult($result, &$created, &$skipped, &$skippedList, &$errors)
+{
+    if ($result === 'created') {
+        $created++;
+    } elseif ($result === 'skipped') {
+        $skipped++;
+    } elseif (is_array($result) && ($result['status'] ?? '') === 'skipped_qty0') {
+        $skipped++;
+        $skippedList[] = $result['nama'];
+    } else {
+        $errors[] = is_string($result) ? $result : 'Unknown error';
+    }
+}
+
+/**
+ * Helper: buat 1 record Jakarta Aktif + Item dari 1 unit
+ */
+private function createJakartaFromUnit($unit, string $edisi, $wilayah, $contactPerson)
+{
+    // Qty 0 → catat nama unit
+    if (($unit->jumlah_pesanan ?? 0) <= 0) {
+        return [
+            'status' => 'skipped_qty0',
+            'nama'   => ($unit->nama_unit ?? 'Unit #' . ($unit->id ?? '?'))
+                        . (!empty($unit->no_cabang) ? ' (' . trim($unit->no_cabang) . ')' : ''),
+        ];
+    }
+
+    $noCab = trim($unit->no_cabang ?? '');
+
+    // Cegah duplikat unit + edisi yang sama
+    $alreadyExists = JakartaAktif::where('status_pembayaran', 'MANUAL')
+        ->where('pesanan', $edisi)
+        ->where('billing_last_name', $noCab)
+        ->where('item_qty', (int) $unit->jumlah_pesanan)
+        ->exists();
+
+    if ($alreadyExists) {
+        return 'skipped';
+    }
+
+    // Resolve nama unit dari UnitKemitraan
+    $namaUnit = $unit->nama_unit ?? '-';
+    $mitra    = $unit->mitra_pengelolaan ?? null;
+
+    if ($noCab) {
+        $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+        if ($uk) {
+            if (!empty($uk->bimba_aiueo_unit)) {
+                $namaUnit = $uk->bimba_aiueo_unit;
+            }
+            $mitra = $uk->mitra_pengelolaan ?? $mitra;
+        }
+    }
+
+    $kirim = $unit->alamat_unit ?: $namaUnit;
+
+    // =====================================================
+    // ID PESAN 8 DIGIT AUTO
+    // =====================================================
+    $lastNumeric = JakartaAktif::whereRaw("id_pesan REGEXP '^[0-9]{8}$'")
+        ->orderByRaw('CAST(id_pesan AS UNSIGNED) DESC')
+        ->value('id_pesan');
+
+    $nextNumber = $lastNumeric ? ((int) $lastNumeric + 1) : 1;
+    $idPesan = str_pad($nextNumber, 8, '0', STR_PAD_LEFT);
+
+    while (JakartaAktif::where('id_pesan', $idPesan)->exists()) {
+        $nextNumber++;
+        $idPesan = str_pad($nextNumber, 8, '0', STR_PAD_LEFT);
+    }
+
+    try {
+        // =====================================================
+        // CREATE HEADER
+        // =====================================================
+        $jakarta = JakartaAktif::create([
+            'tgl_input'          => now()->format('Y-m-d'),
+            'tgl_pesan'          => now(),
+            'kirim'              => $kirim,
+            'no_telpon'          => $unit->telepon ?? null,
+            'alamat_kirim'       => $unit->alamat_unit ?? null,
+            'kab_kota_provinsi'  => $wilayah,
+            'ongkir'             => 0,
+            'nama_unit'          => $namaUnit,
+            'pesanan'            => $edisi,
+            'harga'              => 0,
+            'berat'              => 0,
+            'item_qty'           => (int) $unit->jumlah_pesanan,
+            'total'              => 0,
+            'jenis_bank'         => null,
+            'status_pembayaran'  => 'MANUAL',
+            'status_pesan'       => 'pending',
+            'id_pesan'           => $idPesan,
+            'status'             => 'aktif',
+            'payment_date'       => null,
+            'billing_last_name'  => $noCab ?: null,
+            'billing_company'    => $mitra,
+            'status_kirim'       => 'Dikirim',
+            'ekspedisi'          => 'Lion Parcel',
+            'service_pengiriman' => 'REGPACK',
+            'estimasi_print_pl'  => null,
+            'estimasi_persiapan' => null,
+        ]);
+
+        // =====================================================
+        // CREATE ITEM (JakartaAktifItem)
+        // Cari product berdasarkan label exact dulu (M159, M160, dst)
+        // =====================================================
+
+        // Prioritas 1: label exact
+        $product = Product::where('label', $edisi)->first();
+
+        // Prioritas 2: label mirip (M159-xxx)
+        if (!$product) {
+            $product = Product::where('label', 'like', $edisi . '%')->first();
+        }
+
+        // Prioritas 3: nama mengandung nomor edisi
+        // M159 → cari "Edisi 159"
+        if (!$product) {
+            $nomor = preg_replace('/\D/', '', $edisi); // M159 → 159
+            if ($nomor !== '') {
+                $product = Product::where('name', 'like', "%Edisi {$nomor}%")
+                    ->orWhere('name', 'like', "% {$nomor} %")
+                    ->orWhere('name', 'like', "%{$nomor})")
+                    ->first();
+            }
+        }
+
+        // JANGAN pakai fallback kategori Majalah (bisa kena M57 / edisi lama)
+
+        JakartaAktifItem::create([
+            'jakarta_aktif_id' => $jakarta->id,
+            'product_id'       => $product?->id,
+            'sku'              => $edisi,
+            'label'            => $product?->label ?? $edisi,
+            'nama_produk'      => $product?->name
+                                    ?? ('Majalah Sahabat biMBA ' . $edisi),
+            'qty'              => (int) $unit->jumlah_pesanan,
+            'harga'            => $product?->harga_jual ?? 0,
+            'subtotal'         => (($product?->harga_jual ?? 0) * (int) $unit->jumlah_pesanan),
+        ]);
+
+        return 'created';
+
+    } catch (\Throwable $e) {
+        Log::error("Gagal create JakartaAktif dari unit {$unit->id}: " . $e->getMessage());
+        return $e->getMessage();
+    }
+}
+
+/**
+ * Ambil kode edisi majalah → M159, M160, dst
+ */
+private function extractEdisiMajalah(?string $text): string
+{
+    if (empty($text)) {
+        return 'Majalah';
+    }
+
+    if (preg_match('/\bM\s*(\d{2,4})\b/i', $text, $m)) {
+        return 'M' . $m[1];
+    }
+
+    if (preg_match('/(?:edisi|bulan|juli|agustus|september|oktober|november|desember|januari|februari|maret|april|mei|juni)\s*[^\d]*(\d{3})\b/i', $text, $m)) {
+        return 'M' . $m[1];
+    }
+
+    return 'Majalah';
+}
 }

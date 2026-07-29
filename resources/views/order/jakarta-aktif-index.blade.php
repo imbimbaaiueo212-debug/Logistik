@@ -399,6 +399,75 @@
 
     <div class="max-w-screen-2xl mx-auto px-6 py-6">
 
+        {{-- FLASH MESSAGE --}}
+                @if(session('success'))
+                    <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-5 py-4 rounded-2xl">
+                        {!! session('success') !!}
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-2xl">
+                        {!! session('error') !!}
+                    </div>
+                @endif
+
+                {{-- UNIT TIDAK PESAN MAJALAH (selalu tampil) --}}
+                @if(!empty($unitTidakPesan) && count($unitTidakPesan) > 0)
+                <div class="mb-6 bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-2xl">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">⚠️</span>
+                        <div class="flex-1">
+                            <p class="font-semibold mb-2">
+                                Unit tidak pesan majalah (qty 0): 
+                                <span class="bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full text-sm">
+                                    {{ count($unitTidakPesan) }} unit
+                                </span>
+                            </p>
+                            <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 text-sm">
+                                @foreach($unitTidakPesan as $u)
+                                    <li>
+                                        • <strong>{{ $u['nama'] }}</strong>
+                                        @if(!empty($u['no_cab']))
+                                            <span class="text-amber-700">({{ $u['no_cab'] }})</span>
+                                        @endif
+                                        <span class="text-amber-600 text-xs">— {{ $u['wilayah'] }} / {{ $u['sumber'] }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('unit_nama_mismatch') && count(session('unit_nama_mismatch')) > 0)
+<div class="mb-6 bg-orange-50 border border-orange-300 text-orange-900 px-5 py-4 rounded-2xl">
+    <div class="flex items-start gap-3">
+        <span class="text-xl">⚠️</span>
+        <div class="flex-1">
+            <p class="font-semibold mb-2">
+                Nama unit beda (Excel Majalah vs Unit Kemitraan):
+                <span class="bg-orange-200 px-2 py-0.5 rounded-full text-sm">
+                    {{ count(session('unit_nama_mismatch')) }} unit
+                </span>
+            </p>
+            <p class="text-sm text-orange-700 mb-2">
+                Nama yang dipakai = dari <strong>Unit Kemitraan</strong>. Periksa data Excel jika salah.
+            </p>
+            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                @foreach(session('unit_nama_mismatch') as $m)
+                    <li class="bg-white/60 rounded-lg px-3 py-2 border border-orange-200">
+                        <strong>No Cab {{ $m['no_cab'] }}</strong><br>
+                        Excel: <span class="text-red-600">{{ $m['nama_excel'] }}</span><br>
+                        Master: <span class="text-emerald-700">{{ $m['nama_master'] }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</div>
+@endif
+
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <div>
@@ -434,6 +503,16 @@
 
                                     <span>🔄</span>
                                     <span>Sync JKT + Casdana</span>
+                                </button>
+                            </form>
+
+                            <form action="{{ route('order.jakarta-aktif.sync-pesanan-majalah') }}"
+                                method="POST"
+                                onsubmit="return confirm('Yakin Sync semua Pesanan Majalah (Kabupaten + Kotamadya + PUW1) ke Jakarta Aktif?')">
+                                @csrf
+                                <button type="submit" class="btn-action btn-sync" style="background:#be185d;">
+                                    <span>🔄</span>
+                                    <span>Sync Pesanan Majalah</span>
                                 </button>
                             </form>
 
@@ -500,13 +579,12 @@
         </div>
 
         <!-- Filter Section -->
-       <div class="bg-slate-100 rounded-3xl shadow p-6 mb-6">
-    <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
+<div class="bg-slate-100 rounded-3xl shadow p-6 mb-6">
+    <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
 
+        {{-- ID Pesan (tetap text) --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                ID Pesan
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ID Pesan</label>
             <input type="text"
                    name="id_pesan"
                    value="{{ request('id_pesan') }}"
@@ -514,10 +592,9 @@
                    placeholder="Cari ID Pesan...">
         </div>
 
+        {{-- Kirim (tetap text) --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Kirim
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kirim</label>
             <input type="text"
                    name="kirim"
                    value="{{ request('kirim') }}"
@@ -525,72 +602,85 @@
                    placeholder="Nama Penerima...">
         </div>
 
+        {{-- Pesanan (Select2) --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Pesanan
-            </label>
-            <input type="text"
-                   name="pesanan"
-                   value="{{ request('pesanan') }}"
-                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5"
-                   placeholder="Kategori Pesanan...">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Pesanan</label>
+            <select name="pesanan" id="filterPesanan" class="w-full">
+                <option value="">Semua Pesanan</option>
+                @foreach($listPesanan ?? [] as $p)
+                    <option value="{{ $p }}" {{ request('pesanan') == $p ? 'selected' : '' }}>
+                        {{ $p }}
+                    </option>
+                @endforeach
+            </select>
         </div>
 
+        {{-- Nama Unit (Select2) --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Nama Unit
-            </label>
-            <input type="text"
-                   name="nama_unit"
-                   value="{{ request('nama_unit') }}"
-                   class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5"
-                   placeholder="Nama Unit...">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Unit</label>
+            <select name="nama_unit" id="filterNamaUnit" class="w-full">
+                <option value="">Semua Unit</option>
+                @foreach($listNamaUnit ?? [] as $u)
+                    <option value="{{ $u }}" {{ request('nama_unit') == $u ? 'selected' : '' }}>
+                        {{ $u }}
+                    </option>
+                @endforeach
+            </select>
         </div>
 
+        {{-- Status Bayar (Select2) - BARU --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Dari Tanggal
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status Bayar</label>
+            <select name="status_pembayaran" id="filterStatusBayar" class="w-full">
+                <option value="">Semua Status</option>
+                @foreach($listStatusBayar ?? [] as $s)
+                    <option value="{{ $s }}" {{ request('status_pembayaran') == $s ? 'selected' : '' }}>
+                        {{ $s }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Dari Tanggal --}}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
             <input type="date"
                    name="start_date"
                    value="{{ request('start_date') }}"
                    class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
         </div>
 
+        {{-- Sampai Tanggal --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Sampai Tanggal
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
             <input type="date"
                    name="end_date"
                    value="{{ request('end_date') }}"
                    class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
         </div>
 
+        {{-- Per Page --}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Tampilkan
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
             <select name="per_page"
                     onchange="this.form.submit()"
                     class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
-
-                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                <option value="50"  {{ request('per_page') == 50  ? 'selected' : '' }}>50</option>
                 <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                 <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                 <option value="300" {{ request('per_page') == 300 ? 'selected' : '' }}>300</option>
-
+                <option value="500" {{ request('per_page') == 500 ? 'selected' : '' }}>500</option>
             </select>
         </div>
 
-        <div class="flex items-end gap-3 pt-6 lg:col-span-2">
+        {{-- Tombol --}}
+        <div class="flex items-end gap-3 pt-6 lg:col-span-1 xl:col-span-1">
             <button type="submit"
                     class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">
-                🔍 Terapkan Filter
+                🔍 Filter
             </button>
-
             <a href="{{ route('order.jakarta-aktif') }}"
-               class="text-gray-500 hover:text-red-600 px-4 py-2.5">
+               class="text-gray-500 hover:text-red-600 px-4 py-2.5 whitespace-nowrap">
                 Reset
             </a>
         </div>
@@ -880,6 +970,35 @@ let selectedIds = [];
         });
 
         setTimeout(checkProcessButtonVisibility, 1000);
+
+        $(document).ready(function() {
+    // ========== FILTER SELECT2 ==========
+    $('#filterPesanan, #filterNamaUnit, #filterStatusBayar').select2({
+        placeholder: 'Pilih / cari...',
+        allowClear: true,
+        width: '100%',
+        // supaya dropdown tidak terpotong di dalam card
+        dropdownParent: $('#filterForm').parent()
+    });
+
+    // Style select2 biar selaras dengan input lain
+    $('.select2-container .select2-selection--single').css({
+        'height': '42px',
+        'border-radius': '12px',
+        'border-color': '#d1d5db',
+        'padding-top': '6px'
+    });
+
+    checkFilterStatus();
+    checkProcessButtonVisibility();
+
+    $('input[name="start_date"], input[name="end_date"]').on('change', function() {
+        checkFilterStatus();
+        setTimeout(checkProcessButtonVisibility, 700);
+    });
+
+    setTimeout(checkProcessButtonVisibility, 1000);
+});
     });
 
     function processAllFilteredData() {
@@ -904,7 +1023,9 @@ let selectedIds = [];
             id_pesan: $('input[name="id_pesan"]').val() || '',
             kirim: $('input[name="kirim"]').val() || '',
             nama_unit: $('input[name="nama_unit"]').val() || '',
-            pesanan: $('input[name="pesanan"]').val() || ''
+            pesanan: $('input[name="pesanan"]').val() || '',
+            status_pembayaran: $('#filterStatusBayar').val() || ''   // ← tambahkan
+            
         },
             success: function(response) {
                 if (response.count === 0) {
@@ -933,50 +1054,83 @@ let selectedIds = [];
                 let html = '';
                 
                 items.forEach(item => {
-                    const isLocked = Boolean(item.is_processed);
-                    const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
+    const isLocked = Boolean(item.is_processed);
+    const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
 
-                    let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
+    // =====================================================
+    // DETEKSI MAJALAH MANUAL
+    // =====================================================
+    const statusBayar = (item.status_pembayaran || '').toUpperCase().trim();
+    const pesanan     = (item.pesanan || '').toString();
+    const isManualMajalah = statusBayar === 'MANUAL' && (
+        /M\d{2,4}/i.test(pesanan) ||
+        pesanan.toLowerCase().includes('majalah')
+    );
 
-                    if (isLocked) {
-                        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
-                        jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                        serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                        catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}</span>`;
-                    } else {
-                        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
+    let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
 
-                        jasaKurirHtml = `
-                            <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                                <option value="">Pilih atau ketik jasa kurir...</option>
-                                <option value="JNE">JNE</option>
-                                <option value="TIKI">TIKI</option>
-                                <option value="Lion Parcel">Lion Parcel</option>
-                            </select>`;
+    if (isLocked) {
+        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
+        jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
+        serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
+        catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}</span>`;
+    } else {
+        distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
 
-                        serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG / YES / CTC / dll">`;
+        // =====================================================
+        // DEFAULT OTOMATIS UNTUK MAJALAH MANUAL
+        // =====================================================
+        if (isManualMajalah) {
+            jasaKurirHtml = `
+                <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
+                    <option value="">Pilih atau ketik jasa kurir...</option>
+                    <option value="JNE">JNE</option>
+                    <option value="TIKI">TIKI</option>
+                    <option value="Lion Parcel" selected>Lion Parcel</option>
+                </select>`;
 
-                        catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
-                    }
+            serviceKurirHtml = `
+                <select class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
+                    <option value="">Pilih Service</option>
+                    <option value="REGPACK" selected>REGPACK</option>
+                    <option value="BOSPACK">BOSPACK</option>
+                    <option value="JAGOPACK">JAGOPACK</option>
+                    <option value="BIGPACK">BIGPACK</option>
+                </select>`;
+        } else {
+            // Default biasa (bukan majalah manual)
+            jasaKurirHtml = `
+                <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
+                    <option value="">Pilih atau ketik jasa kurir...</option>
+                    <option value="JNE">JNE</option>
+                    <option value="TIKI">TIKI</option>
+                    <option value="Lion Parcel">Lion Parcel</option>
+                </select>`;
 
-                    html += `
-                        <tr data-id="${item.id}" data-distribusi="${currentDistribusi}" 
-                            class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
-                            <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
-                            <td class="px-4 py-3 font-medium">${item.invoice}</td>
-                            <td class="px-4 py-3">${item.to_customer}</td>
-                            <td class="px-4 py-3 font-medium text-gray-700">
-            ${item.pesanan ? item.pesanan : '-'}
-        </td>
-                            <td class="px-4 py-3">${item.payment_date}</td>
-                            <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
-                            <td class="px-4 py-3">${distribusiHtml}</td>
-                            <td class="px-4 py-3">${jasaKurirHtml}</td>
-                            <td class="px-4 py-3" readonly>${serviceKurirHtml}</td>
-                            <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
-                            <td class="px-4 py-3">${catatanHtml}</td>
-                        </tr>`;
-                });
+            serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG / YES / CTC / dll">`;
+        }
+
+        catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
+    }
+
+    html += `
+        <tr data-id="${item.id}" data-distribusi="${currentDistribusi}"
+            class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
+            <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
+            <td class="px-4 py-3 font-medium">${item.invoice}</td>
+            <td class="px-4 py-3">${item.to_customer}</td>
+            <td class="px-4 py-3 font-medium text-gray-700">
+                ${item.pesanan ? item.pesanan : '-'}
+            </td>
+            <td class="px-4 py-3">${item.payment_date}</td>
+            <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
+            <td class="px-4 py-3">${distribusiHtml}</td>
+            <td class="px-4 py-3">${jasaKurirHtml}</td>
+            <td class="px-4 py-3">${serviceKurirHtml}</td>
+            <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
+            <td class="px-4 py-3">${catatanHtml}</td>
+        </tr>`;
+});
 
                 $('#modalTableBody').html(html);
                 $('#modalCount').text(`${items.length} data dipilih`);

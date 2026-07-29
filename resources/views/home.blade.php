@@ -37,6 +37,13 @@
                     </div>
                 </a>
 
+                 <a href="{{ route('order-manual.index') }}" class="group">
+                    <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">
+                        <div class="bg-yellow-100 w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-4">✍️</div>
+                        <h3 class="font-semibold text-lg">ORDER MANUAL</h3>
+                    </div>
+                </a>
+
                 <!-- Tambahkan menu lain sesuai kebutuhan -->
                 <a href="{{ route('order.index') }}" class="group">
                     <div class="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6 text-center">

@@ -19,7 +19,7 @@
     {{-- HEADER --}}
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-2">
-            <a href="{{ route('database-user.index') }}"
+            <a href="{{ route('order-manual.index') }}"
                class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 ← Kembali
             </a>

@@ -4,6 +4,8 @@ namespace App\Imports;
 
 use App\Models\PesananMajalahPuw1;
 use App\Models\PesananMajalahUnitPuw1;
+use App\Models\UnitKemitraan;
+use App\Models\UnitNamaMismatch;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToArray;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
@@ -16,6 +18,9 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
     public int $unitBaru = 0;
     public int $unitDiperbarui = 0;
     public int $barisDilewati = 0;
+
+    /** @var array daftar mismatch (untuk flash session) */
+    public array $mismatchList = [];
 
     public function __construct(PesananMajalahPuw1 $pesananMajalahPuw1)
     {
@@ -35,7 +40,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
 
             foreach ($rows as $index => $row) {
 
-                // Skip baris kosong
                 if (
                     empty($row) ||
                     count(array_filter($row, fn($v) => $v !== null && trim((string) $v) !== '')) === 0
@@ -43,23 +47,18 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                     continue;
                 }
 
-                // Gabungkan semua cell
                 $cells = array_map(fn($v) => trim((string) ($v ?? '')), $row);
 
                 $fullText = strtoupper(trim(implode(' ', array_filter($cells, fn($v) => $v !== ''))));
                 $rawFullText = trim(implode(' ', array_filter($cells, fn($v) => $v !== '')));
 
-                // =====================================================
                 // 1. JUDUL
-                // =====================================================
                 if ($judul === null && str_contains($fullText, 'PESANAN MAJALAH')) {
                     $judul = $rawFullText;
                     continue;
                 }
 
-                // =====================================================
                 // 2. PERIODE
-                // =====================================================
                 if (
                     str_contains($fullText, 'PERIODE BULAN') ||
                     preg_match('/\b(JANUARI|FEBRUARI|MARET|APRIL|MEI|JUNI|JULI|AGUSTUS|SEPTEMBER|OKTOBER|NOVEMBER|DESEMBER)\b.*\d{4}/i', $fullText)
@@ -71,9 +70,7 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                     continue;
                 }
 
-                // =====================================================
                 // 3. CONTACT PERSON
-                // =====================================================
                 if (str_contains($fullText, 'CONTACT PERSON')) {
                     if (preg_match('/contact\s*person\s*[:\-]?\s*(.*)$/i', $rawFullText, $m)) {
                         $sisa = trim($m[1]);
@@ -84,8 +81,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                     continue;
                 }
 
-                // Baris lanjutan contact person
-                // Contoh: "1. Ibu Syafa (0818 0617 5805), 2. Ibu Ayu (0896 2027 4935)"
                 if (
                     !is_numeric($this->clean($row[0] ?? null)) &&
                     !str_contains($fullText, 'NAMA UNIT') &&
@@ -100,9 +95,7 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                     continue;
                 }
 
-                // =====================================================
                 // 4. HEADER KOLOM
-                // =====================================================
                 $namaUnit = $this->clean($row[1] ?? null);
                 $namaUnitLower = strtolower((string) $namaUnit);
 
@@ -116,9 +109,7 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                     continue;
                 }
 
-                // =====================================================
                 // 5. TOTAL
-                // =====================================================
                 if (
                     str_contains($fullText, 'TOTAL') ||
                     $namaUnitLower === 'total'
@@ -127,9 +118,7 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                     continue;
                 }
 
-                // =====================================================
                 // 6. DATA UNIT
-                // =====================================================
                 $no        = $this->clean($row[0] ?? null);
                 $noCabang  = $this->clean($row[2] ?? null);
                 $kabupaten = $this->clean($row[3] ?? null);
@@ -137,10 +126,47 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                 $alamat    = $this->clean($row[5] ?? null);
                 $telepon   = $this->clean($row[6] ?? null);
 
-                // Nama unit wajib + kolom No harus angka
                 if (empty($namaUnit) || !is_numeric($no)) {
                     $this->barisDilewati++;
                     continue;
+                }
+
+                // =====================================================
+                // CEK MISMATCH
+                // =====================================================
+                $noCab = trim($noCabang ?? '');
+
+                if ($noCab !== '') {
+                    $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+
+                    if ($uk && !empty($uk->bimba_aiueo_unit)) {
+                        $namaMaster = trim($uk->bimba_aiueo_unit);
+
+                        if (!$this->isNamaUnitMirip($namaUnit, $namaMaster)) {
+                            $this->mismatchList[] = [
+                                'no_cab'      => $noCab,
+                                'nama_excel'  => $namaUnit,
+                                'nama_master' => $namaMaster,
+                            ];
+
+                            UnitNamaMismatch::updateOrCreate(
+                                [
+                                    'no_cab'  => $noCab,
+                                    'periode' => $this->pesananMajalahPuw1->periode,
+                                    'sumber'  => 'import_puw1',
+                                ],
+                                [
+                                    'nama_excel'         => $namaUnit,
+                                    'nama_master'        => $namaMaster,
+                                    'pesanan_majalah_id' => null, // PUW1 beda tabel
+                                    'is_resolved'        => false,
+                                ]
+                            );
+
+                            $this->barisDilewati++;
+                            continue; // TIDAK masuk pesanan_majalah_unit_puw1
+                        }
+                    }
                 }
 
                 $jumlahPesanan = $this->normalizeNumber($jumlah);
@@ -167,9 +193,7 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                 }
             }
 
-            // =====================================================
-            // PROSES CONTACT PERSON
-            // =====================================================
+            // CONTACT PERSON
             $contactPerson = null;
             $teleponContactPerson = null;
 
@@ -178,9 +202,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                 [$contactPerson, $teleponContactPerson] = $this->parseContactPerson($cpText);
             }
 
-            // =====================================================
-            // UPDATE HEADER
-            // =====================================================
             $updateData = array_filter([
                 'judul'                  => $judul,
                 'bulan'                  => $bulan,
@@ -197,26 +218,61 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
     }
 
     /**
-     * Parse Contact Person
-     * Contoh input:
-     * "1. Ibu Syafa (0818 0617 5805), 2. Ibu Ayu (0896 2027 4935)"
-     *
-     * Hasil:
-     * contact_person         = "Ibu Syafa, Ibu Ayu"
-     * telepon_contact_person = "081806175805, 089620274935"
+     * Nama dianggap MIRIP hanya jika exact / compact / similarity ≥ 95% / Levenshtein ≤ 5%
+     * Extra angka seperti "04" → dianggap BERBEDA
      */
+    protected function isNamaUnitMirip(string $namaA, string $namaB): bool
+    {
+        $norm = function (string $s): string {
+            $s = strtolower(trim($s));
+            $s = preg_replace('/[()\[\].,\-_\/\\\\]+/', ' ', $s);
+            $s = preg_replace('/\s+/', ' ', $s);
+            return trim($s);
+        };
+
+        $a = $norm($namaA);
+        $b = $norm($namaB);
+
+        if ($a === '' || $b === '' || $a === '-' || $b === '-') {
+            return true;
+        }
+
+        if ($a === $b) {
+            return true;
+        }
+
+        $ca = preg_replace('/\s+/', '', $a);
+        $cb = preg_replace('/\s+/', '', $b);
+
+        if ($ca !== '' && $cb !== '' && $ca === $cb) {
+            return true;
+        }
+
+        similar_text($a, $b, $percent);
+        if ($percent >= 95) {
+            return true;
+        }
+
+        $maxLen = max(mb_strlen($a), mb_strlen($b));
+        if ($maxLen > 0) {
+            $dist = levenshtein($a, $b);
+            if (($dist / $maxLen) <= 0.05) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function parseContactPerson(string $text): array
     {
         $text = trim($text);
-
-        // Hapus prefix "Contact Person :"
         $text = preg_replace('/^contact\s*person\s*[:\-]?\s*/i', '', $text);
         $text = trim($text);
 
         $names  = [];
         $phones = [];
 
-        // Pola utama: (angka.) Nama (telepon)
         preg_match_all(
             '/(?:\d+\.\s*)?([A-Za-z][A-Za-z\s\.]*?)\s*\(([^)]+)\)/u',
             $text,
@@ -236,7 +292,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
             }
         }
 
-        // Fallback: kalau regex utama gagal, coba pisah dengan koma
         if (empty($names) && $text !== '') {
             $parts = preg_split('/\s*,\s*/', $text);
 
@@ -257,7 +312,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                         $phones[] = $tel;
                     }
                 } else {
-                    // Tanpa telepon
                     $nama = preg_replace('/^\d+\.\s*/', '', $part);
                     $nama = trim($nama);
                     if ($nama !== '' && !is_numeric($nama)) {
@@ -273,9 +327,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
         ];
     }
 
-    /**
-     * Parse periode dari teks
-     */
     private function parsePeriode(string $text): array
     {
         $bulan = $tahun = $periode = null;
@@ -320,11 +371,6 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
         return $value === '' ? null : $value;
     }
 
-    /**
-     * Normalisasi angka (support format Indonesia)
-     * 134,4 → 134.4
-     * 1.234,56 → 1234.56
-     */
     private function normalizeNumber($value): float
     {
         if ($value === null || $value === '') {
@@ -339,11 +385,9 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
         $value = str_replace(' ', '', $value);
 
         if (str_contains($value, '.') && str_contains($value, ',')) {
-            // Format Indonesia: 1.234,56
             $value = str_replace('.', '', $value);
             $value = str_replace(',', '.', $value);
         } elseif (str_contains($value, ',')) {
-            // Hanya koma → desimal
             $value = str_replace(',', '.', $value);
         }
 

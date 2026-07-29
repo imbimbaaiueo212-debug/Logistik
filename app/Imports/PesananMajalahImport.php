@@ -5,6 +5,8 @@ namespace App\Imports;
 use App\Models\PesananMajalah;
 use App\Models\PesananMajalahKabupaten;
 use App\Models\PesananMajalahUnit;
+use App\Models\UnitKemitraan;
+use App\Models\UnitNamaMismatch;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
@@ -15,154 +17,138 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
     protected ?PesananMajalahKabupaten $kabupatenAktif = null;
     protected int $urutanKabupaten = 0;
 
+    /** @var array daftar mismatch (untuk flash session) */
+    public array $mismatchList = [];
+
     public function __construct(PesananMajalah $pesananMajalah)
     {
         $this->pesananMajalah = $pesananMajalah;
     }
 
     public function collection(Collection $rows)
-{
-    // =========================================================
-    // HAPUS DATA LAMA PERIODE INI (supaya re-import bersih)
-    // =========================================================
-    $kabupatenIds = PesananMajalahKabupaten::where(
-        'pesanan_majalah_id',
-        $this->pesananMajalah->id
-    )->pluck('id');
-
-    if ($kabupatenIds->isNotEmpty()) {
-        PesananMajalahUnit::whereIn(
-            'pesanan_majalah_kabupaten_id',
-            $kabupatenIds
-        )->delete();
-
-        PesananMajalahKabupaten::where(
+    {
+        // Hapus data lama periode ini
+        $kabupatenIds = PesananMajalahKabupaten::where(
             'pesanan_majalah_id',
             $this->pesananMajalah->id
-        )->delete();
-    }
+        )->pluck('id');
 
-    $this->kabupatenAktif = null;
-    $this->urutanKabupaten = 0;
+        if ($kabupatenIds->isNotEmpty()) {
+            PesananMajalahUnit::whereIn(
+                'pesanan_majalah_kabupaten_id',
+                $kabupatenIds
+            )->delete();
 
-    $judul   = null;
-    $bulan   = null;
-    $tahun   = null;
-    $periode = null;
-
-    foreach ($rows as $index => $row) {
-        $cells = $row->toArray();
-
-        $cells = array_map(function ($value) {
-            if ($value === null) return '';
-            return trim(preg_replace('/\s+/', ' ', (string) $value));
-        }, $cells);
-
-        // Skip baris kosong
-        if (empty(array_filter($cells, fn($v) => $v !== ''))) {
-            continue;
+            PesananMajalahKabupaten::where(
+                'pesanan_majalah_id',
+                $this->pesananMajalah->id
+            )->delete();
         }
 
-        $fullText = strtoupper(trim(implode(' ', array_filter($cells, fn($v) => $v !== ''))));
+        $this->kabupatenAktif  = null;
+        $this->urutanKabupaten = 0;
+        $this->mismatchList    = [];
 
-        // Skip baris TOTAL
-        if (str_contains($fullText, 'TOTAL')) {
-            continue;
-        }
+        $judul   = null;
+        $bulan   = null;
+        $tahun   = null;
+        $periode = null;
 
-        // =========================================================
-        // BARIS JUDUL
-        // =========================================================
-        if ($judul === null && str_contains($fullText, 'PESANAN MAJALAH')) {
-            $judul = trim(implode(' ', array_filter($cells, fn($v) => $v !== '')));
-            continue;
-        }
+        foreach ($rows as $index => $row) {
+            $cells = $row->toArray();
 
-        // =========================================================
-        // BARIS PERIODE
-        // =========================================================
-        if (
-            str_contains($fullText, 'PERIODE BULAN') ||
-            str_contains($fullText, 'JULI M') ||
-            preg_match('/\b(JANUARI|FEBRUARI|MARET|APRIL|MEI|JUNI|JULI|AGUSTUS|SEPTEMBER|OKTOBER|NOVEMBER|DESEMBER)\b.*\d{4}/i', $fullText)
-        ) {
-            $parsed  = $this->parsePeriode($fullText);
-            $bulan   = $parsed['bulan'] ?? $bulan;
-            $tahun   = $parsed['tahun'] ?? $tahun;
-            $periode = $parsed['periode'] ?? $periode;
-            continue;
-        }
+            $cells = array_map(function ($value) {
+                if ($value === null) return '';
+                return trim(preg_replace('/\s+/', ' ', (string) $value));
+            }, $cells);
 
-        // =========================================================
-        // DETEKSI KABUPATEN
-        // =========================================================
-        if (
-            preg_match('/^KABUPATEN\s+(.+)$/i', $fullText, $matches) ||
-            preg_match('/\bKAB(?:UPATEN)?\.?\s+([A-Z\s]+)$/i', $fullText, $matches)
-        ) {
-            $namaKabupaten = trim($matches[1]);
-            $namaKabupaten = preg_replace('/\s+(CONTACT|1\.|IBU|BAPAK).*$/i', '', $namaKabupaten);
-            $namaKabupaten = trim($namaKabupaten);
-
-            if ($namaKabupaten !== '') {
-                $this->urutanKabupaten++;
-
-                $this->kabupatenAktif = PesananMajalahKabupaten::create([
-                    'pesanan_majalah_id' => $this->pesananMajalah->id,
-                    'nama_kabupaten'     => $namaKabupaten,
-                    'contact_person'     => null,
-                    'urutan'             => $this->urutanKabupaten,
-                ]);
+            if (empty(array_filter($cells, fn ($v) => $v !== ''))) {
+                continue;
             }
-            continue;
+
+            $fullText = strtoupper(trim(implode(' ', array_filter($cells, fn ($v) => $v !== ''))));
+
+            if (str_contains($fullText, 'TOTAL')) {
+                continue;
+            }
+
+            // Judul
+            if ($judul === null && str_contains($fullText, 'PESANAN MAJALAH')) {
+                $judul = trim(implode(' ', array_filter($cells, fn ($v) => $v !== '')));
+                continue;
+            }
+
+            // Periode
+            if (
+                str_contains($fullText, 'PERIODE BULAN') ||
+                str_contains($fullText, 'JULI M') ||
+                preg_match('/\b(JANUARI|FEBRUARI|MARET|APRIL|MEI|JUNI|JULI|AGUSTUS|SEPTEMBER|OKTOBER|NOVEMBER|DESEMBER)\b.*\d{4}/i', $fullText)
+            ) {
+                $parsed  = $this->parsePeriode($fullText);
+                $bulan   = $parsed['bulan'] ?? $bulan;
+                $tahun   = $parsed['tahun'] ?? $tahun;
+                $periode = $parsed['periode'] ?? $periode;
+                continue;
+            }
+
+            // Kabupaten
+            if (
+                preg_match('/^KABUPATEN\s+(.+)$/i', $fullText, $matches) ||
+                preg_match('/\bKAB(?:UPATEN)?\.?\s+([A-Z\s]+)$/i', $fullText, $matches)
+            ) {
+                $namaKabupaten = trim($matches[1]);
+                $namaKabupaten = preg_replace('/\s+(CONTACT|1\.|IBU|BAPAK).*$/i', '', $namaKabupaten);
+                $namaKabupaten = trim($namaKabupaten);
+
+                if ($namaKabupaten !== '') {
+                    $this->urutanKabupaten++;
+
+                    $this->kabupatenAktif = PesananMajalahKabupaten::create([
+                        'pesanan_majalah_id' => $this->pesananMajalah->id,
+                        'nama_kabupaten'     => $namaKabupaten,
+                        'contact_person'     => null,
+                        'urutan'             => $this->urutanKabupaten,
+                    ]);
+                }
+                continue;
+            }
+
+            // Contact Person
+            if ($this->kabupatenAktif && (
+                preg_match('/CONTACT\s*PERSON\s*[:\-]?\s*(.+)$/i', $fullText, $matches) ||
+                preg_match('/\b(1\.\s*IBU.+|IBU\s+[A-Z]+.+\(.+\))/i', $fullText, $matches)
+            )) {
+                $cp = trim($matches[1] ?? $matches[0]);
+                $this->kabupatenAktif->update(['contact_person' => $cp]);
+                continue;
+            }
+
+            // Data Unit
+            if ($this->kabupatenAktif && $this->isUnitRow($cells, $fullText)) {
+                $this->importUnit($cells, $fullText);
+                continue;
+            }
         }
 
-        // =========================================================
-        // DETEKSI CONTACT PERSON
-        // =========================================================
-        if ($this->kabupatenAktif && (
-            preg_match('/CONTACT\s*PERSON\s*[:\-]?\s*(.+)$/i', $fullText, $matches) ||
-            preg_match('/\b(1\.\s*IBU.+|IBU\s+[A-Z]+.+\(.+\))/i', $fullText, $matches)
-        )) {
-            $cp = trim($matches[1] ?? $matches[0]);
-            $this->kabupatenAktif->update(['contact_person' => $cp]);
-            continue;
-        }
+        $updateData = array_filter([
+            'judul'   => $judul,
+            'bulan'   => $bulan,
+            'tahun'   => $tahun,
+            'periode' => $periode,
+        ], fn ($v) => $v !== null);
 
-        // =========================================================
-        // DATA UNIT
-        // =========================================================
-        if ($this->kabupatenAktif && $this->isUnitRow($cells, $fullText)) {
-            $this->importUnit($cells, $fullText);
-            continue;
+        if (!empty($updateData)) {
+            $this->pesananMajalah->update($updateData);
         }
     }
 
-    // Update header
-    $updateData = array_filter([
-        'judul'   => $judul,
-        'bulan'   => $bulan,
-        'tahun'   => $tahun,
-        'periode' => $periode,
-    ], fn($v) => $v !== null);
-
-    if (!empty($updateData)) {
-        $this->pesananMajalah->update($updateData);
-    }
-}
-
-    /**
-     * Cek apakah baris adalah data unit
-     */
     protected function isUnitRow(array $cells, string $fullText): bool
     {
-        // Cara 1: kolom pertama angka
         $no = trim($cells[0] ?? '');
         if ($no !== '' && is_numeric($no)) {
             return true;
         }
 
-        // Cara 2: fullText dimulai dengan angka
         if (preg_match('/^\d+\s*[A-Za-z]/', $fullText)) {
             return true;
         }
@@ -171,121 +157,187 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
     }
 
     /**
-     * Import data unit (mendukung data yang menempel)
+     * Jika nama beda → HANYA simpan mismatch, TIDAK masuk majalah
      */
     protected function importUnit(array $cells, string $fullText): void
-{
-    $no            = $this->cleanValue($cells[0] ?? null);
-    $namaUnit      = $this->cleanValue($cells[1] ?? null);
-    $noCabang      = $this->cleanValue($cells[2] ?? null);
-    $jumlahPesanan = $this->parseJumlah($cells[3] ?? null);
-    $alamat        = $this->cleanValue($cells[4] ?? null);
-    $telepon       = $this->cleanValue($cells[5] ?? null);
+    {
+        $no            = $this->cleanValue($cells[0] ?? null);
+        $namaUnit      = $this->cleanValue($cells[1] ?? null);
+        $noCabang      = $this->cleanValue($cells[2] ?? null);
+        $jumlahPesanan = $this->parseJumlah($cells[3] ?? null);
+        $alamat        = $this->cleanValue($cells[4] ?? null);
+        $telepon       = $this->cleanValue($cells[5] ?? null);
 
-    // Hanya pakai regex jika kolom rapi gagal (nama/no cabang kosong)
-    // JANGAN trigger hanya karena jumlah = 0
-    if (empty($namaUnit) || empty($noCabang)) {
+        if (empty($namaUnit) || empty($noCabang)) {
+            if (preg_match('/^(\d+)\s*([A-Za-z][A-Za-z\s\.]+?)\s*(\d{2,5})\s*(\d{1,4})\s*(.+?)\s*(0\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,5}.*)$/i', $fullText, $m)) {
+                $no            = $m[1];
+                $namaUnit      = trim($m[2]);
+                $noCabang      = $m[3];
+                $jumlahPesanan = (int) $m[4];
+                $alamat        = trim($m[5]);
+                $telepon       = trim($m[6]);
+            } elseif (preg_match('/^(\d+)\s*([A-Za-z].+?)\s+(\d{2,5})\s+(\d{1,4})\s+(.+)$/i', $fullText, $m)) {
+                $no            = $m[1];
+                $namaUnit      = trim($m[2]);
+                $noCabang      = $m[3];
+                $jumlahPesanan = (int) $m[4];
+                $sisa          = trim($m[5]);
 
-        if (preg_match('/^(\d+)\s*([A-Za-z][A-Za-z\s\.]+?)\s*(\d{2,5})\s*(\d{1,4})\s*(.+?)\s*(0\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,5}.*)$/i', $fullText, $m)) {
-            $no            = $m[1];
-            $namaUnit      = trim($m[2]);
-            $noCabang      = $m[3];
-            $jumlahPesanan = (int) $m[4];
-            $alamat        = trim($m[5]);
-            $telepon       = trim($m[6]);
-        }
-        elseif (preg_match('/^(\d+)\s*([A-Za-z].+?)\s+(\d{2,5})\s+(\d{1,4})\s+(.+)$/i', $fullText, $m)) {
-            $no            = $m[1];
-            $namaUnit      = trim($m[2]);
-            $noCabang      = $m[3];
-            $jumlahPesanan = (int) $m[4];
-            $sisa          = trim($m[5]);
-
-            if (preg_match('/(0\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,5}.*)$/', $sisa, $tel)) {
-                $telepon = trim($tel[1]);
-                $alamat  = trim(str_replace($telepon, '', $sisa));
-            } else {
-                $alamat = $sisa;
+                if (preg_match('/(0\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,5}.*)$/', $sisa, $tel)) {
+                    $telepon = trim($tel[1]);
+                    $alamat  = trim(str_replace($telepon, '', $sisa));
+                } else {
+                    $alamat = $sisa;
+                }
             }
         }
-    }
 
-    if (empty($namaUnit)) {
-        return;
-    }
+        if (empty($namaUnit)) {
+            return;
+        }
 
-    PesananMajalahUnit::create([
-        'pesanan_majalah_kabupaten_id' => $this->kabupatenAktif->id,
-        'no'                           => is_numeric($no) ? (int) $no : null,
-        'nama_unit'                    => $namaUnit,
-        'no_cabang'                    => $noCabang,
-        'jumlah_pesanan'               => $jumlahPesanan, // boleh 0
-        'alamat_unit'                  => $alamat,
-        'telepon'                      => $telepon,
-    ]);
-}
+        // =====================================================
+        // CEK MISMATCH
+        // =====================================================
+        $noCab = trim($noCabang ?? '');
+
+        if ($noCab !== '') {
+            $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+
+            if ($uk && !empty($uk->bimba_aiueo_unit)) {
+                $namaMaster = trim($uk->bimba_aiueo_unit);
+
+                if (!$this->isNamaUnitMirip($namaUnit, $namaMaster)) {
+                    $this->mismatchList[] = [
+                        'no_cab'      => $noCab,
+                        'nama_excel'  => $namaUnit,
+                        'nama_master' => $namaMaster,
+                    ];
+
+                    UnitNamaMismatch::updateOrCreate(
+                        [
+                            'no_cab'  => $noCab,
+                            'periode' => $this->pesananMajalah->periode,
+                            'sumber'  => 'import_kabupaten',
+                        ],
+                        [
+                            'nama_excel'         => $namaUnit,
+                            'nama_master'        => $namaMaster,
+                            'pesanan_majalah_id' => $this->pesananMajalah->id,
+                            'is_resolved'        => false,
+                        ]
+                    );
+
+                    return; // TIDAK masuk pesanan_majalah_units
+                }
+            }
+        }
+
+        // Nama match / no_cab tidak ada di master → masuk majalah
+        PesananMajalahUnit::create([
+            'pesanan_majalah_kabupaten_id' => $this->kabupatenAktif->id,
+            'no'                           => is_numeric($no) ? (int) $no : null,
+            'nama_unit'                    => $namaUnit,
+            'no_cabang'                    => $noCabang,
+            'jumlah_pesanan'               => $jumlahPesanan,
+            'alamat_unit'                  => $alamat,
+            'telepon'                      => $telepon,
+        ]);
+    }
 
     /**
- * Parse jumlah pesanan agar pure sama dengan Excel + pembulatan benar
- * Contoh:
- * 44,8 → 45
- * 44,5 → 45
- * 44,4 → 44
- * 33,6 → 34
+ * Nama dianggap MIRIP hanya jika:
+ * - Sama persis setelah normalisasi
+ * - Sama setelah spasi dihilangkan (compact)
+ * - Sangat mirip secara similarity (≥ 95%) ATAU jarak Levenshtein sangat kecil (≤ 5%)
+ *
+ * Extra angka/suffix seperti "04", "01", dll akan membuatnya BERBEDA.
  */
-/**
- * Parse jumlah pesanan - simpan nilai asli dari Excel (boleh desimal)
- */
-protected function parseJumlah($value): float
+protected function isNamaUnitMirip(string $namaA, string $namaB): bool
 {
-    if ($value === null || $value === '') {
-        return 0;
+    $norm = function (string $s): string {
+        $s = strtolower(trim($s));
+        // Hapus tanda baca, ganti jadi spasi
+        $s = preg_replace('/[()\[\].,\-_\/\\\\]+/', ' ', $s);
+        // Collapse spasi
+        $s = preg_replace('/\s+/', ' ', $s);
+        return trim($s);
+    };
+
+    $a = $norm($namaA);
+    $b = $norm($namaB);
+
+    // Kosong / strip dianggap match (biar tidak memblokir data aneh)
+    if ($a === '' || $b === '' || $a === '-' || $b === '-') {
+        return true;
     }
 
-    // Jika sudah angka murni (float/int dari Excel)
-    if (is_numeric($value)) {
-        return (float) $value;
+    // 1. Exact match setelah normalisasi
+    if ($a === $b) {
+        return true;
     }
 
-    $str = trim((string) $value);
+    // 2. Compact (tanpa spasi) exact
+    $ca = preg_replace('/\s+/', '', $a);
+    $cb = preg_replace('/\s+/', '', $b);
 
-    // Hapus karakter selain angka, koma, titik, dan minus
-    $str = preg_replace('/[^\d,.-]/', '', $str);
-
-    if ($str === '' || $str === '-' || $str === '.' || $str === ',') {
-        return 0;
+    if ($ca !== '' && $cb !== '' && $ca === $cb) {
+        return true;
     }
 
-    // Deteksi format Indonesia (koma sebagai desimal)
-    if (str_contains($str, ',')) {
-        // Hapus titik (pemisah ribuan)
-        $str = str_replace('.', '', $str);
-        // Ganti koma menjadi titik
-        $str = str_replace(',', '.', $str);
-    } else {
-        // Tidak ada koma
-        if (substr_count($str, '.') === 1) {
-            $parts = explode('.', $str);
-            // Jika setelah titik lebih dari 2 digit → anggap pemisah ribuan
-            if (strlen($parts[1]) > 2) {
+    // 3. Similarity sangat tinggi (≥ 95%)
+    similar_text($a, $b, $percent);
+    if ($percent >= 95) {
+        return true;
+    }
+
+    // 4. Levenshtein relatif sangat kecil (≤ 5% dari panjang terpanjang)
+    $maxLen = max(mb_strlen($a), mb_strlen($b));
+    if ($maxLen > 0) {
+        $dist = levenshtein($a, $b);
+        if (($dist / $maxLen) <= 0.05) {
+            return true;
+        }
+    }
+
+    // Selain itu → dianggap BERBEDA (mismatch)
+    return false;
+}
+
+    protected function parseJumlah($value): float
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $str = trim((string) $value);
+        $str = preg_replace('/[^\d,.-]/', '', $str);
+
+        if ($str === '' || $str === '-' || $str === '.' || $str === ',') {
+            return 0;
+        }
+
+        if (str_contains($str, ',')) {
+            $str = str_replace('.', '', $str);
+            $str = str_replace(',', '.', $str);
+        } else {
+            if (substr_count($str, '.') === 1) {
+                $parts = explode('.', $str);
+                if (strlen($parts[1]) > 2) {
+                    $str = str_replace('.', '', $str);
+                }
+            } else {
                 $str = str_replace('.', '', $str);
             }
-        } else {
-            // Banyak titik → pemisah ribuan
-            $str = str_replace('.', '', $str);
         }
+
+        return is_numeric($str) ? (float) $str : 0;
     }
 
-    if (is_numeric($str)) {
-        return (float) $str;
-    }
-
-    return 0;
-}
-
-    /**
-     * Parse periode
-     */
     protected function parsePeriode(string $text): array
     {
         $bulan = $tahun = $periode = null;
