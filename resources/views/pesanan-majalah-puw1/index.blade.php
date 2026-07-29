@@ -74,7 +74,7 @@
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('database-user.index') }}"
+                <a href="{{ route('ops2.index') }}"
                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                     ← Kembali
                 </a>
