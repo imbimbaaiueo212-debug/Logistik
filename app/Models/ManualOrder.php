@@ -51,7 +51,18 @@ class ManualOrder extends Model
         'pesanan_majalah_type',
         'pesanan_majalah_unit_id',
         'is_synced_bimba',
-    ];
+        'status_kirim',
+        'ekspedisi',
+        'service_pengiriman',
+        'is_processed',
+        'processed_at',
+        'payment_date',
+        'estimasi_print_pl',
+        'estimasi_persiapan',
+        'catatan',
+        'notes',
+        'grup',
+        ];
 
     protected $casts = [
         'order_date' => 'date',
@@ -77,4 +88,8 @@ class ManualOrder extends Model
             }
         });
     }
+    public function realisasi()
+{
+    return $this->hasMany(ManualRealisasi::class);
+}
 }

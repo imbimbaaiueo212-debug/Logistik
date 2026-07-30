@@ -14,6 +14,7 @@ class PesananMajalah extends Model
     protected $fillable = [
         'judul',
         'bulan',
+        'no_ps',
         'tahun',
         'periode',
     ];

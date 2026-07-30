@@ -227,6 +227,7 @@
                 <tr class="bg-gray-100 border-b-2 border-gray-300">
                     <th class="px-4 py-4 text-center">No</th>
                     <th class="px-4 py-4">Judul Pesanan</th>
+                    <th class="px-4 py-4">No PS</th>
                     <th class="px-4 py-4">Bulan / Edisi</th>
                     <th class="px-4 py-4 text-center">Tahun</th>
                     <th class="px-4 py-4 text-center">Periode</th>
@@ -242,16 +243,18 @@
 
                 @forelse($data as $item)
                     @php
-                        $totalUnits = $item->kabupaten->sum(fn ($kab) => $kab->units->count());
+                        $totalUnits   = $item->kabupaten->sum(fn ($kab) => $kab->units->count());
                         $totalPesanan = $item->kabupaten->sum(fn ($kab) => $kab->units->sum('jumlah_pesanan'));
                     @endphp
 
                     <tr class="hover:bg-gray-50">
+                        {{-- No --}}
                         <td class="px-4 py-4 text-center">{{ $no++ }}</td>
 
-                        <td class="px-4 py-4">
+                        {{-- Judul Pesanan --}}
+                        <td class="px-4 py-4 text-center">
                             <a href="{{ route('pesanan-majalah.show', $item->id) }}"
-                               class="font-semibold text-blue-700 hover:text-blue-900 hover:underline">
+                            class="font-semibold text-blue-700 hover:text-blue-900 hover:underline">
                                 {{ $item->judul ?? 'Tanpa Judul' }}
                                 @if($item->bulan)
                                     — {{ $item->bulan }}
@@ -262,8 +265,34 @@
                             </a>
                         </td>
 
-                        <td class="px-4 py-4">{{ $item->bulan ?? '-' }}</td>
-                        <td class="px-4 py-4 text-center">{{ $item->tahun ?? '-' }}</td>
+                        {{-- No PS (inline edit) --}}
+                        <td class="px-4 py-4">
+                            <div class="flex items-center gap-2">
+                                <input type="text"
+                                    class="no-ps-input w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
+                                    data-id="{{ $item->id }}"
+                                    value="{{ $item->no_ps ?? '' }}"
+                                    placeholder="No PS...">
+                                <button type="button"
+                                        class="btn-save-no-ps hidden bg-indigo-600 text-white text-xs px-2 py-1.5 rounded-lg hover:bg-indigo-700"
+                                        data-id="{{ $item->id }}">
+                                    Simpan
+                                </button>
+                                <span class="save-status text-xs hidden"></span>
+                            </div>
+                        </td>
+
+                        {{-- Bulan / Edisi --}}
+                        <td class="px-4 py-4 text-center">
+                            {{ $item->bulan ?? '-' }}
+                        </td>
+
+                        {{-- Tahun --}}
+                        <td class="px-4 py-4 text-center">
+                            {{ $item->tahun ?? '-' }}
+                        </td>
+
+                        {{-- Periode --}}
                         <td class="px-4 py-4 text-center">
                             @php
                                 $namaBulan = [
@@ -283,18 +312,26 @@
 
                                 $periodeText = '-';
                                 if (!empty($item->periode) && preg_match('/^\d{4}-(\d{2})$/', $item->periode, $m)) {
-                                    $bulanAngka = (int) $m[1];
+                                    $bulanAngka  = (int) $m[1];
                                     $periodeText = $namaBulan[$bulanAngka] ?? $item->periode;
                                 }
                             @endphp
                             {{ $periodeText }}
                         </td>
-                        <td class="px-4 py-4 text-center font-medium">{{ $totalUnits }}</td>
-                        <td class="px-4 py-4 text-center font-semibold">{{ number_format($totalPesanan) }}</td>
+
+                        {{-- Jumlah Unit --}}
+                        <td class="px-4 py-4 text-center font-medium">
+                            {{ $totalUnits }}
+                        </td>
+
+                        {{-- Total Pesanan --}}
+                        <td class="px-4 py-4 text-center font-semibold">
+                            {{ number_format($totalPesanan) }}
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center py-20 text-gray-500">
+                        <td colspan="8" class="text-center py-20 text-gray-500">
                             <div class="text-5xl mb-4">📚</div>
                             <p class="text-lg font-semibold">Belum Ada Data</p>
                             <p class="text-sm mt-1">Belum ada periode pesanan majalah.</p>
@@ -349,22 +386,22 @@
                 </label>
 
                 <select id="periodeImport" name="periode" required
-        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-    <option value="">-- Pilih Periode --</option>
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">-- Pilih Periode --</option>
 
-    @php
-        $tanggalMulai = now()->startOfYear(); // Januari 2026
-    @endphp
+                    @php
+                        $tanggalMulai = now()->startOfYear(); // Januari 2026
+                    @endphp
 
-    @for($i = 0; $i <= 23; $i++) {{-- 2 tahun ke depan --}}
-        @php
-            $tanggal = $tanggalMulai->copy()->addMonths($i);
-            $value   = $tanggal->format('Y-m');
-            $label   = $tanggal->translatedFormat('F Y');
-        @endphp
-        <option value="{{ $value }}">{{ $label }}</option>
-    @endfor
-</select>
+                    @for($i = 0; $i <= 23; $i++) {{-- 2 tahun ke depan --}}
+                        @php
+                            $tanggal = $tanggalMulai->copy()->addMonths($i);
+                            $value   = $tanggal->format('Y-m');
+                            $label   = $tanggal->translatedFormat('F Y');
+                        @endphp
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endfor
+                </select>
 
                 <p class="text-xs text-gray-500 mt-2">
                     Pilih bulan dan tahun untuk data pesanan majalah yang akan diimport.
@@ -462,6 +499,48 @@ document.addEventListener('DOMContentLoaded', function () {
             closeImportModal();
         }
     });
+});
+// Inline edit No PS
+$(document).on('input', '.no-ps-input', function () {
+    const row = $(this).closest('td');
+    row.find('.btn-save-no-ps').removeClass('hidden');
+    row.find('.save-status').addClass('hidden').text('');
+});
+
+$(document).on('click', '.btn-save-no-ps', function () {
+    const btn   = $(this);
+    const id    = btn.data('id');
+    const input = btn.closest('td').find('.no-ps-input');
+    const status = btn.closest('td').find('.save-status');
+    const noPs  = input.val().trim();
+
+    btn.prop('disabled', true).text('...');
+
+    $.ajax({
+        url: `/pesanan-majalah/${id}/update-no-ps`,
+        method: 'PATCH',
+        data: {
+            no_ps: noPs,
+            _token: '{{ csrf_token() }}'
+        },
+        success: function (res) {
+            btn.addClass('hidden').prop('disabled', false).text('Simpan');
+            status.removeClass('hidden text-red-600').addClass('text-emerald-600').text('✓ Tersimpan');
+            setTimeout(() => status.addClass('hidden'), 2000);
+        },
+        error: function () {
+            btn.prop('disabled', false).text('Simpan');
+            status.removeClass('hidden text-emerald-600').addClass('text-red-600').text('Gagal');
+        }
+    });
+});
+
+// Optional: simpan juga saat tekan Enter
+$(document).on('keydown', '.no-ps-input', function (e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        $(this).closest('td').find('.btn-save-no-ps').click();
+    }
 });
 </script>
 

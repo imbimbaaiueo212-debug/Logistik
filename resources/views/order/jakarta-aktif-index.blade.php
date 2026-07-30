@@ -413,7 +413,7 @@
                 @endif
 
                 {{-- UNIT TIDAK PESAN MAJALAH (selalu tampil) --}}
-                @if(!empty($unitTidakPesan) && count($unitTidakPesan) > 0)
+                <!--@if(!empty($unitTidakPesan) && count($unitTidakPesan) > 0)
                 <div class="mb-6 bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-2xl">
                     <div class="flex items-start gap-3">
                         <span class="text-xl">⚠️</span>
@@ -438,35 +438,35 @@
                         </div>
                     </div>
                 </div>
-                @endif
+                @endif-->
 
                 @if(session('unit_nama_mismatch') && count(session('unit_nama_mismatch')) > 0)
-<div class="mb-6 bg-orange-50 border border-orange-300 text-orange-900 px-5 py-4 rounded-2xl">
-    <div class="flex items-start gap-3">
-        <span class="text-xl">⚠️</span>
-        <div class="flex-1">
-            <p class="font-semibold mb-2">
-                Nama unit beda (Excel Majalah vs Unit Kemitraan):
-                <span class="bg-orange-200 px-2 py-0.5 rounded-full text-sm">
-                    {{ count(session('unit_nama_mismatch')) }} unit
-                </span>
-            </p>
-            <p class="text-sm text-orange-700 mb-2">
-                Nama yang dipakai = dari <strong>Unit Kemitraan</strong>. Periksa data Excel jika salah.
-            </p>
-            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                @foreach(session('unit_nama_mismatch') as $m)
-                    <li class="bg-white/60 rounded-lg px-3 py-2 border border-orange-200">
-                        <strong>No Cab {{ $m['no_cab'] }}</strong><br>
-                        Excel: <span class="text-red-600">{{ $m['nama_excel'] }}</span><br>
-                        Master: <span class="text-emerald-700">{{ $m['nama_master'] }}</span>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-</div>
-@endif
+                    <div class="mb-6 bg-orange-50 border border-orange-300 text-orange-900 px-5 py-4 rounded-2xl">
+                        <div class="flex items-start gap-3">
+                            <span class="text-xl">⚠️</span>
+                            <div class="flex-1">
+                                <p class="font-semibold mb-2">
+                                    Nama unit beda (Excel Majalah vs Unit Kemitraan):
+                                    <span class="bg-orange-200 px-2 py-0.5 rounded-full text-sm">
+                                        {{ count(session('unit_nama_mismatch')) }} unit
+                                    </span>
+                                </p>
+                                <p class="text-sm text-orange-700 mb-2">
+                                    Nama yang dipakai = dari <strong>Unit Kemitraan</strong>. Periksa data Excel jika salah.
+                                </p>
+                                <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    @foreach(session('unit_nama_mismatch') as $m)
+                                        <li class="bg-white/60 rounded-lg px-3 py-2 border border-orange-200">
+                                            <strong>No Cab {{ $m['no_cab'] }}</strong><br>
+                                            Excel: <span class="text-red-600">{{ $m['nama_excel'] }}</span><br>
+                                            Master: <span class="text-emerald-700">{{ $m['nama_master'] }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
@@ -506,7 +506,7 @@
                                 </button>
                             </form>
 
-                            <form action="{{ route('order.jakarta-aktif.sync-pesanan-majalah') }}"
+                            <!--<form action="{{ route('order.jakarta-aktif.sync-pesanan-majalah') }}"
                                 method="POST"
                                 onsubmit="return confirm('Yakin Sync semua Pesanan Majalah (Kabupaten + Kotamadya + PUW1) ke Jakarta Aktif?')">
                                 @csrf
@@ -514,7 +514,7 @@
                                     <span>🔄</span>
                                     <span>Sync Pesanan Majalah</span>
                                 </button>
-                            </form>
+                            </form>-->
 
                     </div>
 
@@ -729,7 +729,7 @@
                         <th class="text-left px-4 py-3">Status Bayar</th>
                         <th class="text-left px-4 py-3">Status biMBAShop</th>
                         <th class="text-center px-4 py-3">Tanggal Proses</th>
-                        <th class="text-center px-4 py-3">Group</th>
+                        <!--<th class="text-center px-4 py-3">Group</th>-->
                         <th class="text-center px-4 py-3">Aksi</th>
                     </tr>
                 </thead>
@@ -760,7 +760,32 @@
                         @endphp
                     <tr class="{{ $isProcessed ? 'processed-row' : '' }} hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
-                        <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span>{{ $item->nama_unit ?? '-' }}</span>
+
+                                @php
+                                    $noCabItem = trim($item->billing_last_name ?? '');
+                                    $isMismatch = (
+                                        ($item->catatan ?? '') === 'NAMA_MISMATCH'
+                                        || (!empty($noCabItem) && isset($mismatchNoCab[$noCabItem]))
+                                    );
+                                @endphp
+
+                                @if($isMismatch)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200"
+                                        title="Nama unit beda dengan Unit Kemitraan">
+                                        ⚠️ Mismatch
+                                    </span>
+                                @endif
+
+                                @if(!empty($item->grup))
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                                        Group {{ $item->grup }}
+                                    </span>
+                                @endif
+                            </div>
+                        </td>
                         <td class="px-4 py-3">{{ $item->billing_last_name ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $item->kab_kota_provinsi ?? '-' }}</td>
@@ -859,13 +884,13 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
+                        <!--<td class="px-4 py-3">
                             @if(!empty($item->grup))
                                 <span class="badge-green">Group {{ $item->grup }}</span>
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
-                        </td>
+                        </td>-->
 
                         <!-- Di dalam tabel, bagian Aksi -->
                     <td class="text-center px-4 py-3">

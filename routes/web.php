@@ -59,14 +59,14 @@ Route::resource('users', UserController::class);
 Route::get('/users/{id}/reset-password', [UserController::class, 'resetForm'])->name('users.reset.form');
 Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset');
 
-// ====================== IMPORT BIMBASHOP ======================
+// ====================== ORDER MANUAL ===============
 Route::prefix('import')
     ->name('import.')
     ->middleware('auth')
     ->group(function () {
 
         Route::get('/', [ImportController::class, 'index'])->name('index');
-        
+
         // Bimbashop
         Route::get('/bimbashop', [ImportController::class, 'bimbashop'])->name('bimbashop');
         Route::post('/bimbashop', [ImportController::class, 'bimbashopStore'])->name('bimbashop.store');
@@ -77,10 +77,50 @@ Route::prefix('import')
         // Casdana
         Route::get('/casdana', [ImportController::class, 'casdana'])->name('casdana');
         Route::post('/casdana', [ImportController::class, 'casdanaStore'])->name('casdana.store');
-        // Route edit & delete Casdana (bisa ditambahkan nanti)
         Route::get('/casdana/{id}/edit', [ImportController::class, 'casdanaEdit'])->name('casdana.edit');
         Route::put('/casdana/{id}', [ImportController::class, 'casdanaUpdate'])->name('casdana.update');
         Route::delete('/casdana/{id}', [ImportController::class, 'casdanaDestroy'])->name('casdana.destroy');
+
+        // =====================================================
+        // MANUAL
+        // =====================================================
+        Route::get('/manual', [ImportController::class, 'manual'])->name('manual');
+        Route::post('/manual', [ImportController::class, 'manualImport'])->name('manual.store'); // import excel
+        Route::get('/manual/create', [ImportController::class, 'manualCreate'])->name('manual.create');
+        Route::post('/manual/store', [ImportController::class, 'manualStore'])->name('manual.store.single'); // optional single create
+        Route::get('/manual/{id}/edit', [ImportController::class, 'manualEdit'])->name('manual.edit');
+        Route::put('/manual/{id}', [ImportController::class, 'manualUpdate'])->name('manual.update');
+        Route::delete('/manual/{id}', [ImportController::class, 'manualDestroy'])->name('manual.destroy');
+
+        // Bulk proses Manual (sama konsep Jakarta Aktif)
+        Route::get('/manual/filtered-ids', [ImportController::class, 'getManualFilteredIds'])
+            ->name('manual.filtered-ids');
+
+        Route::post('/manual/get-modal-data', [ImportController::class, 'getManualModalData'])
+            ->name('manual.get-modal-data');
+
+        Route::post('/manual/bulk-action', [ImportController::class, 'bulkActionManual'])
+            ->name('manual.bulk-action');
+
+        // Sync Pesanan Majalah → Manual
+        Route::post('/sync-pesanan-majalah', [ImportController::class, 'syncPesananMajalahToJakartaAktif'])
+            ->name('sync-pesanan-majalah');
+
+            // di dalam group import.
+        Route::get('/manual-printed', [ImportController::class, 'manualPrinted'])
+            ->name('manual-printed');
+
+        Route::get('/manual-printed/print-pdf', [ImportController::class, 'printManualRealisasiPdf'])
+            ->name('manual-printed.pdf');
+
+        Route::get('/manual-printed/picking/{id}', [ImportController::class, 'printManualPickingList'])
+            ->name('manual-printed.picking');
+
+        Route::get('/manual-printed/picking-pdf/{id}', [ImportController::class, 'printManualPickingListPdf'])
+            ->name('manual-printed.picking-pdf');
+
+        Route::delete('/manual-printed/{id}', [ImportController::class, 'deleteManualRealisasi'])
+            ->name('manual-printed.destroy');
     });
 
 // === ORDER ROUTES ===
@@ -521,6 +561,8 @@ Route::post(
 Route::post('pesanan-majalah/{pesananMajalah}/kirim-ke-manual', 
     [PesananMajalahController::class, 'kirimKeManual']
 )->name('pesanan-majalah.kirim-ke-manual');
+Route::patch('/pesanan-majalah/{id}/update-no-ps', [\App\Http\Controllers\PesananMajalahController::class, 'updateNoPs'])
+    ->name('pesanan-majalah.update-no-ps');
 
 // ====================== MAJALAH PINWIL =========================
 /*

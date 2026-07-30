@@ -196,11 +196,12 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
             return;
         }
 
-        // =====================================================
-        // CEK MISMATCH
-        // =====================================================
         $noCab = trim($noCabang ?? '');
+        $namaFinal = $namaUnit; // default: pakai nama dari Excel
 
+        // =====================================================
+        // CEK MISMATCH → TETAP SIMPAN UNIT + CATAT MISMATCH
+        // =====================================================
         if ($noCab !== '') {
             $uk = UnitKemitraan::where('no_cab', $noCab)->first();
 
@@ -208,6 +209,7 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
                 $namaMaster = trim($uk->bimba_aiueo_unit);
 
                 if (!$this->isNamaUnitMirip($namaUnit, $namaMaster)) {
+                    // 1. Catat mismatch
                     $this->mismatchList[] = [
                         'no_cab'      => $noCab,
                         'nama_excel'  => $namaUnit,
@@ -228,16 +230,22 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
                         ]
                     );
 
-                    return; // TIDAK masuk pesanan_majalah_units
+                    // 2. Tetap pakai nama master (atau ganti ke $namaUnit kalau mau tetap Excel)
+                    $namaFinal = $namaMaster;
+                } else {
+                    // Nama mirip → pakai nama master
+                    $namaFinal = $namaMaster;
                 }
             }
         }
 
-        // Nama match / no_cab tidak ada di master → masuk majalah
+        // =====================================================
+        // SELALU SIMPAN UNIT (match maupun tidak match)
+        // =====================================================
         PesananMajalahUnit::create([
             'pesanan_majalah_kabupaten_id' => $this->kabupatenAktif->id,
             'no'                           => is_numeric($no) ? (int) $no : null,
-            'nama_unit'                    => $namaUnit,
+            'nama_unit'                    => $namaFinal,
             'no_cabang'                    => $noCabang,
             'jumlah_pesanan'               => $jumlahPesanan,
             'alamat_unit'                  => $alamat,

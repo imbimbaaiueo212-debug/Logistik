@@ -229,6 +229,25 @@ class PesananMajalahController extends Controller
             $import = new PesananMajalahImport($pesananMajalah);
             Excel::import($import, $validated['file']);
 
+            // =====================================================
+            // SIMPAN MISMATCH KE DATABASE (penyimpanan ke-2)
+            // =====================================================
+            if (!empty($import->mismatchList)) {
+                foreach ($import->mismatchList as $m) {
+                    UnitNamaMismatch::updateOrCreate(
+                        [
+                            'pesanan_majalah_id' => $pesananMajalah->id,
+                            'no_cab'             => $m['no_cab'] ?? null,
+                        ],
+                        [
+                            'nama_excel'   => $m['nama_excel'] ?? null,
+                            'nama_master'  => $m['nama_master'] ?? null,
+                            'is_resolved'  => false,
+                        ]
+                    );
+                }
+            }
+
             $redirect = redirect()
                 ->route('pesanan-majalah.show', $pesananMajalah->id)
                 ->with('success', "Data pesanan majalah periode {$bulan} {$tahun} berhasil diimport.");
@@ -246,7 +265,6 @@ class PesananMajalahController extends Controller
                 ->with('error', 'Import gagal: ' . $e->getMessage());
         }
     }
-
     private function daftarPeriodeImport(): array
     {
         $periode = [];
@@ -399,4 +417,21 @@ class PesananMajalahController extends Controller
                 ->with('error', 'Gagal kirim ke Jakarta Aktif: ' . $e->getMessage());
         }
     }
+    public function updateNoPs(Request $request, $id)
+{
+    $request->validate([
+        'no_ps' => 'nullable|string|max:50',
+    ]);
+
+    $item = \App\Models\PesananMajalah::findOrFail($id);
+    $item->update([
+        'no_ps' => $request->no_ps,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'No PS berhasil disimpan',
+        'no_ps'   => $item->no_ps,
+    ]);
+}   
 }

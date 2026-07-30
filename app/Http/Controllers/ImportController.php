@@ -6,6 +6,18 @@ use App\Imports\BimbashopImport;
 use App\Models\ManualOrder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ManualOrderImport;        // ← Tambahkan ini
+use App\Models\PesananMajalah;
+use App\Models\PesananMajalahPuw1;
+use App\Models\UnitNamaMismatch;
+use App\Models\ManualRealisasi;
+use App\Models\ManualPicking;
+use App\Models\ManualPickingItem;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Product;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use App\Models\UnitKemitraan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Models\BimbashopOrder;
 use App\Models\CasdanaTransaction;
@@ -248,37 +260,434 @@ public function casdanaStore(Request $request)
         return view('import.casdana-edit', compact('transaction'));
     }
 
-    // === MANUAL PEMESANAN ===
     public function manual(Request $request)
-    {
-        $query = ManualOrder::query();
+{
+    $query = ManualOrder::query();
 
-        if ($request->filled('order_id')) {
-            $query->where('order_id', 'like', '%' . $request->order_id . '%');
-        }
-        if ($request->filled('customer_name')) {
-            $query->where('customer_name', 'like', '%' . $request->customer_name . '%');
-        }
-        if ($request->filled('product_name')) {
-            $query->where('product_name', 'like', '%' . $request->product_name . '%');
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('start_date')) {
-            $query->whereDate('order_date', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $query->whereDate('order_date', '<=', $request->end_date);
-        }
-
-        $perPage = $request->get('per_page', 25);
-        $perPage = in_array($perPage, [5,10,25,50,100,200,500]) ? $perPage : 25;
-
-        $manualOrders = $query->latest()->paginate($perPage)->appends($request->query());
-
-        return view('import.manual.index', compact('manualOrders'));
+    if ($request->filled('order_id')) {
+        $query->where('order_id', 'like', '%' . $request->order_id . '%');
     }
+    if ($request->filled('customer_name')) {
+        $query->where('customer_name', 'like', '%' . $request->customer_name . '%');
+    }
+    if ($request->filled('product_name')) {
+        $query->where('product_name', 'like', '%' . $request->product_name . '%');
+    }
+    if ($request->filled('product_sku')) {
+        $query->where('product_sku', 'like', '%' . $request->product_sku . '%');
+    }
+    if ($request->filled('payment_method')) {
+        $query->where('payment_method', $request->payment_method);
+    }
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+    if ($request->filled('start_date')) {
+        $query->whereDate('order_date', '>=', $request->start_date);
+    }
+    if ($request->filled('end_date')) {
+        $query->whereDate('order_date', '<=', $request->end_date);
+    }
+
+    $perPage = $request->get('per_page', 25);
+    $perPage = in_array((int) $perPage, [5, 10, 25, 50, 100, 200, 500]) ? (int) $perPage : 25;
+
+    $manualOrders = $query
+        ->orderBy('order_date', 'asc')
+        ->paginate($perPage)
+        ->appends($request->query());
+
+    $mismatchMap = UnitNamaMismatch::where('is_resolved', false)
+        ->get()
+        ->keyBy(fn ($m) => trim((string) $m->no_cab))
+        ->map(fn ($m) => [
+            'nama_excel'  => $m->nama_excel,
+            'nama_master' => $m->nama_master,
+        ])
+        ->all();
+
+    return view('import.manual.index', compact('manualOrders', 'mismatchMap'));
+}
+
+// =========================================================
+// FILTERED IDS (untuk bulk – hanya yang belum diproses)
+// =========================================================
+public function getManualFilteredIds(Request $request)
+{
+    $query = ManualOrder::query()->where('is_processed', 0);
+
+    if ($request->filled('start_date')) {
+        $query->whereDate('order_date', '>=', $request->start_date);
+    }
+    if ($request->filled('end_date')) {
+        $query->whereDate('order_date', '<=', $request->end_date);
+    }
+    if ($request->filled('order_id')) {
+        $query->where('order_id', 'like', '%' . $request->order_id . '%');
+    }
+    if ($request->filled('customer_name')) {
+        $query->where('customer_name', 'like', '%' . $request->customer_name . '%');
+    }
+    if ($request->filled('product_name')) {
+        $query->where('product_name', 'like', '%' . $request->product_name . '%');
+    }
+    if ($request->filled('product_sku')) {
+        $query->where('product_sku', 'like', '%' . $request->product_sku . '%');
+    }
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    $ids = $query->pluck('id');
+
+    return response()->json([
+        'ids'   => $ids->values(),
+        'count' => $ids->count(),
+    ]);
+}
+
+public function getManualModalData(Request $request)
+{
+    $ids = $request->input('ids', []);
+
+    if (empty($ids)) {
+        return response()->json([]);
+    }
+
+    // Ambil map mismatch (sama seperti di method manual)
+    $mismatchMap = UnitNamaMismatch::where('is_resolved', false)
+        ->get()
+        ->keyBy(fn ($m) => trim((string) $m->no_cab))
+        ->map(fn ($m) => [
+            'nama_excel'  => $m->nama_excel,
+            'nama_master' => $m->nama_master,
+        ])
+        ->all();
+
+    $data = ManualOrder::whereIn('id', $ids)
+        ->get()
+        ->map(function ($item) use ($mismatchMap) {
+            $isManualMajalah = true;
+
+            $jasaKurir = $item->ekspedisi;
+            $service   = $item->service_pengiriman;
+
+            if ($isManualMajalah) {
+                $jasaKurir = $jasaKurir ?: 'Lion Parcel';
+                $service   = $service   ?: 'REGPACK';
+            }
+
+            $statusKirim = $item->status_kirim
+                ?: (($item->ship_total ?? 0) > 0 ? 'Dikirim' : 'Diambil');
+
+            // ===== Mismatch =====
+            $noCab     = trim($item->billing_last_name ?? '');
+            $mismatch  = $mismatchMap[$noCab] ?? null;
+            $isMismatch = $mismatch
+                || str_contains($item->catatan ?? '', 'NAMA_MISMATCH')
+                || str_contains($item->notes ?? '', 'NAMA_MISMATCH');
+
+            return [
+                'id'                => $item->id,
+                'invoice'           => $item->order_id ?? '-',
+                'to_customer'       => $item->customer_name ?? '-',
+                'pesanan'           => $item->product_name ?? $item->product_sku ?? '-',
+                'payment_date'      => $item->payment_date
+                    ? Carbon::parse($item->payment_date)->format('d/m/Y H:i')
+                    : null,
+                'payment_channel'   => $item->payment_method ?? 'manual',
+                'status_pembayaran' => 'MANUAL',
+                'status_kirim'      => $statusKirim,
+                'vendor'            => 'Manual / Majalah',
+                'jasa_kurir'        => $jasaKurir,
+                'service_kurir'     => $service,
+                'grup'              => $item->grup ?? null,
+                'is_processed'      => (bool) $item->is_processed,
+                'processed_at'      => $item->processed_at
+                    ? Carbon::parse($item->processed_at)->format('d/m/Y H:i')
+                    : null,
+
+                // ===== Data mismatch untuk modal =====
+                'is_mismatch'       => (bool) $isMismatch,
+                'nama_excel'        => $mismatch['nama_excel'] ?? null,
+                'nama_master'       => $mismatch['nama_master'] ?? null,
+            ];
+        });
+
+    return response()->json($data);
+}
+
+// =========================================================
+// BULK ACTION (sama konsep jakarta-aktif, tanpa RealisasiAktif)
+// =========================================================
+public function bulkActionManual(Request $request)
+{
+    $action  = $request->input('action');
+    $perItem = $request->input('per_item');
+
+    if ($action !== 'processed' || empty($perItem)) {
+        return redirect()->back()->with('error', 'Data tidak valid.');
+    }
+
+    $updates = json_decode($perItem, true);
+
+    if (empty($updates)) {
+        return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $now = Carbon::now('Asia/Jakarta');
+    $successCount = 0;
+
+    foreach ($updates as $update) {
+        $id = $update['id'] ?? null;
+        if (!$id) {
+            continue;
+        }
+
+        $order = ManualOrder::find($id);
+        if (!$order || $order->is_processed) {
+            continue;
+        }
+
+        $statusKirim  = $update['status_kirim'] ?? $order->status_kirim ?? 'Dikirim';
+        $jasaKurir    = $update['jasa_kurir'] ?? $order->ekspedisi;
+        $serviceKurir = $update['service_kurir'] ?? $order->service_pengiriman;
+        $catatanBaru  = $update['catatan'] ?? null;
+
+        // =====================================================
+        // ESTIMASI
+        // =====================================================
+        $paymentDate = $order->payment_date
+            ? Carbon::parse($order->payment_date)
+            : ($order->order_date ? Carbon::parse($order->order_date) : null);
+
+        $estimasiPrintPl   = $order->estimasi_print_pl
+            ? Carbon::parse($order->estimasi_print_pl)
+            : null;
+
+        $estimasiPersiapan = $order->estimasi_persiapan
+            ? Carbon::parse($order->estimasi_persiapan)
+            : null;
+
+        if ($paymentDate && !$estimasiPrintPl) {
+            $estimasiPrintPl = $paymentDate->hour < 12
+                ? $paymentDate->copy()
+                : $paymentDate->copy()->addDay();
+
+            while (
+                $estimasiPrintPl->isSunday()
+                || $this->isHolidayManual($estimasiPrintPl)
+            ) {
+                $estimasiPrintPl->addDay();
+            }
+
+            $estimasiPersiapan = $this->addBusinessDaysManual($estimasiPrintPl, 2);
+        }
+
+        $catatan = $order->catatan ?? '';
+        if ($catatanBaru) {
+            $catatan .= "\n\nDi proses bulk pada "
+                . $now->format('d/m/Y H:i')
+                . ': '
+                . trim($catatanBaru);
+        }
+
+        // =====================================================
+        // DETEKSI KATEGORI (Modul / Majalah / Sertifikat)
+        // =====================================================
+        $namaBarang = trim($order->product_name ?? $order->product_sku ?? '');
+        $namaLower  = strtolower($namaBarang);
+        $skuUpper   = strtoupper(trim($order->product_sku ?? ''));
+
+        if (
+            str_contains($namaLower, 'majalah')
+            || preg_match('/\bM\d{2,4}\b/i', $namaBarang)
+            || preg_match('/\bM\d{2,4}\b/', $skuUpper)
+        ) {
+            $kategoriOrder = 'Majalah';
+            $namaStokis    = 'Manual / Majalah';
+        } elseif (
+            str_contains($namaLower, 'sertifikat')
+            || str_contains($skuUpper, 'STA')
+            || str_contains($skuUpper, 'STPB')
+        ) {
+            $kategoriOrder = 'Sertifikat';
+            $namaStokis    = 'Manual / Sertifikat';
+        } else {
+            $kategoriOrder = 'Modul';
+            $namaStokis    = 'Manual / Modul';
+        }
+
+        try {
+            DB::transaction(function () use (
+                $order,
+                $now,
+                $statusKirim,
+                $jasaKurir,
+                $serviceKurir,
+                $estimasiPrintPl,
+                $estimasiPersiapan,
+                $paymentDate,
+                $catatan,
+                $namaBarang,
+                $kategoriOrder,
+                $namaStokis,
+                &$successCount
+            ) {
+                // =================================================
+                // 1. UPDATE MANUAL ORDER
+                // =================================================
+                $order->update([
+                    'is_processed'       => 1,
+                    'processed_at'       => $now,
+                    'status_kirim'       => $statusKirim,
+                    'ekspedisi'          => $jasaKurir,
+                    'service_pengiriman' => $serviceKurir,
+                    'estimasi_print_pl'  => $estimasiPrintPl,
+                    'estimasi_persiapan' => $estimasiPersiapan,
+                    'payment_date'       => $order->payment_date ?? $paymentDate,
+                    'status'             => 'pending',
+                    'catatan'            => $catatan,
+                ]);
+
+                // =================================================
+                // 2. CEK SUDAH ADA REALISASI
+                // =================================================
+                if (ManualRealisasi::where('manual_order_id', $order->id)->exists()) {
+                    $successCount++;
+                    return;
+                }
+
+                $estimasiHari = null;
+                if ($paymentDate && $estimasiPersiapan) {
+                    $estimasiHari = Carbon::parse($paymentDate)
+                        ->diffInDays(Carbon::parse($estimasiPersiapan));
+                }
+
+                // =================================================
+                // 3. CREATE MANUAL REALISASI
+                // =================================================
+                $realisasi = ManualRealisasi::create([
+                    'manual_order_id'    => $order->id,
+                    'no_pl'              => $order->order_id,
+                    'no_ps'              => $order->no_ps,   // ← TAMBAHKAN
+                    'tgl_turun_pl'       => $order->order_date,
+                    'nama_unit'          => $order->customer_name,
+                    'billing_last_name'  => $order->billing_last_name,
+                    'billing_company'    => $order->billing_first_name,
+                    'pengiriman'         => $jasaKurir
+                        ?: ($statusKirim === 'Diambil' ? 'Diambil' : '-'),
+                    'service_pengiriman' => $serviceKurir,
+                    'nama_barang'        => $namaBarang ?: '-',
+                    'kategori_order'     => $kategoriOrder,
+                    'tgl_bayar'          => $order->payment_date,   // null = Pending
+                    'jumlah_bayar'       => $order->total ?? 0,
+                    'order_weight'       => $order->order_weight ?? 0,
+                    'nama_stokis'        => $namaStokis,
+                    'tgl_estimasi'       => $estimasiPersiapan,
+                    'estimasi_hari'      => $estimasiHari,
+                    'penyebut'           => $order->customer_name,
+                    'pengambil'          => $statusKirim === 'Diambil' ? 'Ambil Sendiri' : null,
+                    'ket'                => $catatan,
+                    'is_processed'       => true,
+                    'grup'               => $order->grup,
+                ]);
+
+                // =================================================
+                // 4. CREATE MANUAL PICKING
+                // =================================================
+                $picking = ManualPicking::create([
+                    'manual_realisasi_id'      => $realisasi->id,
+                    'manual_order_id'          => $order->id,
+                    'no_pl'                    => $order->order_id,
+                    'kategori_order'           => $kategoriOrder,
+                    'tgl_order'                => $order->order_date
+                        ? Carbon::parse($order->order_date)->toDateString()
+                        : now()->toDateString(),
+                    'tgl_picking'              => now()->toDateString(),
+                    'payment_date'             => $order->payment_date ?? $order->order_date,
+                    'waktu_estimasi_persiapan' => $estimasiPersiapan
+                        ? Carbon::parse($estimasiPersiapan)->toDateString()
+                        : now()->toDateString(),
+                    'jam_picking'              => now()->format('H:i:s'),
+                    'id_pesan'                 => $order->order_id,
+                    'vendor'                   => $namaStokis,
+                    'nama_unit'                => $order->customer_name,
+                    'billing_last_name'        => $order->billing_last_name,
+                    'billing_company'          => $order->billing_first_name,
+                    'kirim'                    => $order->shipping_address_1,
+                    'no_telpon'                => $order->phone,
+                    'alamat_kirim'             => $order->shipping_address_1,
+                    'kab_kota_provinsi'        => $order->shipping_city,
+                    'ekspedisi'                => $jasaKurir,
+                    'service_pengiriman'       => $serviceKurir,
+                    'pesanan'                  => $namaBarang,
+                    'total'                    => $order->total ?? 0,
+                    'berat'                    => $order->order_weight ?? 0,
+                    'total_item'               => 1,
+                    'total_qty'                => (int) ($order->qty ?? 1),
+                    'status'                   => 'completed',
+                    'printed_at'               => now(),
+                    'created_by'               => Auth::id(),
+                    'catatan'                  => 'Auto Generate dari Manual Proses',
+                    'grup'                     => $order->grup,    // ← TAMBAHKAN
+                ]);
+
+                // =================================================
+                // 5. CREATE PICKING ITEM
+                // =================================================
+                ManualPickingItem::create([
+                    'manual_picking_id' => $picking->id,
+                    'product_id'        => null,
+                    'item_name'         => $order->product_name ?? '-',
+                    'item_sku'          => $order->product_sku ?? '-',
+                    'item_qty'          => (int) ($order->qty ?? 1),
+                    'qty_picked'        => 0,
+                    'cek'               => false,
+                ]);
+
+                $successCount++;
+            });
+        } catch (\Throwable $e) {
+            Log::error('bulkActionManual gagal untuk order #' . $id . ': ' . $e->getMessage());
+        }
+    }
+
+    return redirect()
+        ->route('import.manual')
+        ->with('success', "{$successCount} data berhasil diproses!");
+}
+
+// =========================================================
+// HELPER (sama seperti OrderController)
+// =========================================================
+private function addBusinessDaysManual(Carbon $startDate, int $days = 2): Carbon
+{
+    $date  = $startDate->copy();
+    $added = 0;
+
+    while ($added < $days) {
+        $date->addDay();
+        if ($date->isSunday() || $this->isHolidayManual($date)) {
+            continue;
+        }
+        $added++;
+    }
+
+    return $date;
+}
+
+private function isHolidayManual($date): bool
+{
+    $holidays = [
+        '2026-01-01', '2026-01-16', '2026-02-17', '2026-03-19',
+        '2026-03-21', '2026-03-22', '2026-04-03', '2026-04-05',
+        '2026-05-01', '2026-05-14', '2026-05-27', '2026-06-01',
+        '2026-06-16', '2026-08-17', '2026-12-25',
+    ];
+
+    return in_array($date->format('Y-m-d'), $holidays);
+}
 
     /**
      * Import Excel Manual Pemesanan
@@ -375,4 +784,587 @@ public function casdanaStore(Request $request)
         return redirect()->route('import.manual')
                          ->with('success', '✅ Data berhasil dihapus');
     }
+
+    /**
+ * Sync Pesanan Majalah (Kabupaten + Kotamadya + PUW1)
+ * → Manual Order
+ */
+public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diubah ke Manual
+{
+    $created     = 0;
+    $skipped     = 0;
+    $errors      = [];
+    $skippedList = [];
+
+    $periodes = PesananMajalah::with([
+        'kabupaten.units',
+        'kotamadya.units',
+    ])->get();
+
+    $periodesPuw1 = PesananMajalahPuw1::with('units')->get();
+
+    DB::beginTransaction();
+
+    try {
+        // =====================================================
+        // A + B. KABUPATEN & KOTAMADYA → GROUP B
+        // =====================================================
+        foreach ($periodes as $periode) {
+            $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
+            $edisi   = $this->extractEdisiMajalah($rawName);
+
+            // --- Kabupaten ---
+            foreach ($periode->kabupaten ?? [] as $kabupaten) {
+                foreach ($kabupaten->units ?? [] as $unit) {
+                    $result = $this->createManualOrderFromUnit(
+                        $unit,
+                        $edisi,
+                        $kabupaten->nama_kabupaten ?? null,
+                        $kabupaten->contact_person ?? null,
+                        'B',
+                        $periode->no_ps ?? null
+                    );
+                    $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors);
+                }
+            }
+
+            // --- Kotamadya ---
+            foreach ($periode->kotamadya ?? [] as $kotamadya) {
+                foreach ($kotamadya->units ?? [] as $unit) {
+                    $result = $this->createManualOrderFromUnit(
+                        $unit,
+                        $edisi,
+                        $kotamadya->nama_kotamadya ?? null,
+                        $kotamadya->contact_person ?? null,
+                        'B',
+                        $periode->no_ps ?? null
+                    );
+                    $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors);
+                }
+            }
+        }
+
+        // =====================================================
+        // C. PUW1 → GROUP B
+        // =====================================================
+        foreach ($periodesPuw1 as $periode) {
+            $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
+            $edisi   = $this->extractEdisiMajalah($rawName);
+
+            foreach ($periode->units ?? [] as $unit) {
+                $result = $this->createManualOrderFromUnit(
+                    $unit,
+                    $edisi,
+                    $unit->kabupaten_kota ?? null,
+                    $periode->contact_person ?? null,
+                    'B',
+                    $periode->no_ps ?? null
+                );
+                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors);
+            }
+        }
+
+        DB::commit();
+
+        $message = "✅ Sync Pesanan Majalah ke Manual selesai.<br>"
+                 . "Berhasil masuk: <strong>{$created}</strong><br>"
+                 . "Dilewati (sudah ada / qty 0): <strong>{$skipped}</strong>";
+
+        if (count($skippedList) > 0) {
+            $uniqueNames = array_values(array_unique($skippedList));
+            $message .= "<br><br><strong>Unit tidak pesan (qty 0):</strong><br>"
+                     . "• " . implode('<br>• ', $uniqueNames);
+        }
+
+        if (count($errors) > 0) {
+            $message .= "<br><br>❌ Error (" . count($errors) . "):<br>"
+                     . "• " . implode('<br>• ', array_slice($errors, 0, 5));
+            if (count($errors) > 5) {
+                $message .= "<br>• ... dan " . (count($errors) - 5) . " error lainnya";
+            }
+        }
+
+        return redirect()
+            ->route('import.manual')
+            ->with('success', $message);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Sync Pesanan Majalah ke Manual gagal: ' . $e->getMessage());
+
+        return redirect()
+            ->route('import.manual')
+            ->with('error', 'Gagal sync: ' . $e->getMessage());
+    }
+}
+
+private function handleManualSyncResult($result, &$created, &$skipped, &$skippedList, &$errors)
+{
+    if ($result === 'created') {
+        $created++;
+    } elseif ($result === 'skipped') {
+        $skipped++;
+    } elseif (is_array($result) && ($result['status'] ?? '') === 'skipped_qty0') {
+        $skipped++;
+        $skippedList[] = $result['nama'];
+    } else {
+        $errors[] = is_string($result) ? $result : 'Unknown error';
+    }
+}
+
+/**
+ * Buat 1 record Manual Order dari 1 unit Pesanan Majalah
+ */
+private function createManualOrderFromUnit(
+    $unit,
+    string $edisi,
+    $wilayah = null,
+    $contactPerson = null,
+    string $group = 'B',
+    $noPs = null                    // ← dari pesanan_majalah.no_ps
+) {
+    if (($unit->jumlah_pesanan ?? 0) <= 0) {
+        return [
+            'status' => 'skipped_qty0',
+            'nama'   => ($unit->nama_unit ?? 'Unit #' . ($unit->id ?? '?'))
+                        . (!empty($unit->no_cabang) ? ' (' . trim($unit->no_cabang) . ')' : ''),
+        ];
+    }
+
+    $noCab = trim($unit->no_cabang ?? '');
+    $qty   = (int) $unit->jumlah_pesanan;
+
+    $existing = ManualOrder::where('product_sku', $edisi)
+        ->where('billing_last_name', $noCab)
+        ->where('qty', $qty)
+        ->where('status', 'pending')
+        ->first();
+
+    if ($existing) {
+        return 'skipped';
+    }
+
+    // =====================================================
+    // NAMA: prioritaskan Excel dari UnitNamaMismatch
+    // =====================================================
+    $namaDariUnit = trim($unit->nama_unit ?? '-');
+    $namaUnit     = $namaDariUnit;
+    $mitra        = $unit->mitra_pengelolaan ?? null;
+    $isMismatch   = false;
+
+    if ($noCab !== '') {
+        $mismatch = UnitNamaMismatch::where('no_cab', $noCab)
+            ->where('is_resolved', false)
+            ->latest('id')
+            ->first();
+
+        if ($mismatch && !empty($mismatch->nama_excel)) {
+            $namaUnit   = trim($mismatch->nama_excel);
+            $isMismatch = true;
+        }
+
+        $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+
+        if ($uk) {
+            if (!empty($uk->bimba_aiueo_unit)) {
+                $namaMaster = trim($uk->bimba_aiueo_unit);
+
+                if (strcasecmp($namaUnit, $namaMaster) !== 0) {
+                    $isMismatch = true;
+
+                    UnitNamaMismatch::updateOrCreate(
+                        [
+                            'no_cab'  => $noCab,
+                            'periode' => now()->format('Y-m'),
+                            'sumber'  => 'sync_manual_majalah',
+                        ],
+                        [
+                            'nama_excel'  => $namaUnit,
+                            'nama_master' => $namaMaster,
+                            'is_resolved' => false,
+                        ]
+                    );
+                } elseif (strcasecmp($namaDariUnit, $namaMaster) === 0 && $mismatch) {
+                    $namaUnit   = trim($mismatch->nama_excel);
+                    $isMismatch = true;
+                }
+            }
+
+            $mitra = $uk->mitra_pengelolaan ?? $mitra;
+        }
+    }
+
+    // =====================================================
+    // Generate Order ID (angka saja 6 digit: 000001)
+    // =====================================================
+    $lastId = ManualOrder::whereRaw("order_id REGEXP '^[0-9]{6}$'")
+        ->orderByRaw('CAST(order_id AS UNSIGNED) DESC')
+        ->value('order_id');
+
+    $nextNumber = $lastId ? ((int) $lastId + 1) : 1;
+    $orderId    = str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+
+    while (ManualOrder::where('order_id', $orderId)->exists()) {
+        $nextNumber++;
+        $orderId = str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+    }
+
+    try {
+        ManualOrder::create([
+            'order_id'            => $orderId,
+            'order_date'          => now(),
+            'customer_name'       => $namaUnit,
+            'phone'               => $unit->telepon ?? null,
+
+            'product_sku'         => $edisi,
+            'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
+            'qty'                 => $qty,
+            'price'               => 0,
+            'total'               => 0,
+
+            'ship_total'          => 0,
+            'order_weight'        => 0,
+            'discount_total'      => 0,
+            'refunded_total'      => 0,
+
+            'payment_method'      => 'manual',
+            'status'              => 'pending',
+            'grup'                => $group,
+
+            'billing_first_name'  => $mitra,
+            'billing_last_name'   => $noCab ?: null,
+
+            'shipping_first_name' => $namaUnit,
+            'shipping_last_name'  => $noCab ?: null,
+            'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
+            'shipping_address_2'  => null,
+            'shipping_city'       => $wilayah,
+
+            'status_kirim'        => 'Dikirim',
+            'ekspedisi'           => 'Lion Parcel',
+            'service_pengiriman'  => 'REGPACK',
+            'is_processed'        => false,
+            'payment_date'        => null,
+
+            'no_ps'               => $noPs,   // ← dari pesanan_majalah
+
+            'notes'               => $isMismatch
+                ? 'NAMA_MISMATCH | Sync dari Pesanan Majalah'
+                : 'Sync dari Pesanan Majalah',
+            'catatan'             => $isMismatch
+                ? 'NAMA_MISMATCH | Sync dari Pesanan Majalah'
+                : 'Sync dari Pesanan Majalah',
+        ]);
+
+        return 'created';
+
+    } catch (\Throwable $e) {
+        Log::error("Gagal create ManualOrder dari unit {$unit->id}: " . $e->getMessage());
+        return $e->getMessage();
+    }
+}
+
+private function extractEdisiMajalah(?string $text): string
+{
+    if (empty($text)) {
+        return 'Majalah';
+    }
+
+    if (preg_match('/\bM\s*(\d{2,4})\b/i', $text, $m)) {
+        return 'M' . $m[1];
+    }
+
+    if (preg_match('/(?:edisi|bulan|juli|agustus|september|oktober|november|desember|januari|februari|maret|april|mei|juni)\s*[^\d]*(\d{3})\b/i', $text, $m)) {
+        return 'M' . $m[1];
+    }
+
+    return 'Majalah';
+}
+
+// =========================================================
+// MENU MANUAL PRINTED (Rekap Aktual Manual)
+// =========================================================
+public function manualPrinted(Request $request)
+{
+    $query = ManualRealisasi::query();
+
+    if ($request->filled('id_pesan')) {
+        $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
+    }
+
+    if ($request->filled('nama_unit')) {
+        $query->where('nama_unit', 'like', '%' . $request->nama_unit . '%');
+    }
+
+    if ($request->filled('start_date')) {
+        $query->whereDate('tgl_turun_pl', '>=', $request->start_date);
+    }
+
+    if ($request->filled('end_date')) {
+        $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
+    }
+
+    if ($request->filled('kategori')) {
+        $query->where('kategori_order', $request->kategori);
+    }
+
+    $perPage = $request->get('per_page', 30);
+
+    $data = (clone $query)
+        ->with(['picking', 'manualOrder'])
+        ->orderBy('tgl_turun_pl')
+        ->orderBy('created_at')
+        ->paginate($perPage)
+        ->appends($request->query());
+
+    $allData = (clone $query)
+        ->with(['picking', 'manualOrder'])
+        ->orderBy('tgl_turun_pl')
+        ->orderBy('created_at')
+        ->get();
+
+    // Assign rekap_number per tanggal (sama konsep jakarta)
+    if ($allData->isNotEmpty()) {
+        foreach ($allData->groupBy(function ($item) {
+            return Carbon::parse($item->tgl_turun_pl)->toDateString();
+        }) as $tanggal => $rows) {
+
+            $rekapNumber = $this->generateManualRekapNumber($tanggal);
+
+            ManualRealisasi::whereIn('id', $rows->pluck('id'))
+                ->whereNull('rekap_number')
+                ->update([
+                    'rekap_number' => $rekapNumber,
+                    'updated_at'   => now(),
+                ]);
+
+            foreach ($rows as $row) {
+                $row->rekap_number = $rekapNumber;
+            }
+        }
+    }
+
+    $groupedData = $allData->groupBy(function ($item) {
+        return Carbon::parse($item->tgl_turun_pl)->toDateString();
+    });
+
+    // Map mismatch untuk ditampilkan di view
+    $mismatchMap = UnitNamaMismatch::where('is_resolved', false)
+        ->get()
+        ->keyBy(fn ($m) => trim((string) $m->no_cab))
+        ->map(fn ($m) => [
+            'nama_excel'  => $m->nama_excel,
+            'nama_master' => $m->nama_master,
+        ])
+        ->all();
+
+    return view('import.manual-printed', [
+        'data'         => $data,
+        'groupedData'  => $groupedData,
+        'mismatchMap'  => $mismatchMap,
+    ]);
+}
+
+// =========================================================
+// HAPUS REALISASI MANUAL
+// =========================================================
+public function deleteManualRealisasi($id)
+{
+    $item = ManualRealisasi::findOrFail($id);
+    $item->delete();
+
+    return redirect()
+        ->route('import.manual-printed')
+        ->with('success', '✅ Data berhasil dihapus dari Manual Realisasi!');
+}
+
+// =========================================================
+// PRINT REKAP PDF
+// =========================================================
+public function printManualRealisasiPdf(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = ManualRealisasi::whereIn('id', $ids)
+        ->with(['manualOrder', 'picking'])
+        ->get();
+
+    // Hanya yang picking sudah ada / sudah dicetak picking (opsional)
+    $filteredData = $data->filter(function ($item) {
+        return $item->picking !== null;
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang siap dicetak (Picking belum dibuat).');
+    }
+
+    // Tandai sudah print
+    if ($request->boolean('mark_printed')) {
+        ManualRealisasi::whereIn('id', $filteredData->pluck('id'))
+            ->whereNull('printed_at')
+            ->update([
+                'printed_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    $filteredData = ManualRealisasi::whereIn('id', $filteredData->pluck('id'))
+        ->with(['manualOrder', 'picking'])
+        ->get()
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $firstDate = optional($filteredData->first())->tgl_turun_pl;
+    $docNumber = $this->generateManualRekapNumber($firstDate);
+
+    $pdf = Pdf::loadView('import.manual-printed-pdf', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream(
+        'Manual-RA-' . now()->format('d-m-Y_H-i') . '.pdf'
+    );
+}
+
+// =========================================================
+// PRINT PICKING LIST (HTML)
+// =========================================================
+public function printManualPickingList($id)
+{
+    $main = ManualRealisasi::with([
+        'picking',
+        'picking.pickingItems',
+        'manualOrder',
+    ])->findOrFail($id);
+
+    if (!$main->picking_printed_at) {
+        $main->update(['picking_printed_at' => now()]);
+    }
+
+    if (!$main->picking) {
+        return back()->with('error', 'Picking belum dibuat.');
+    }
+
+    $items = $main->picking
+        ->pickingItems
+        ->sortBy('item_sku')
+        ->values();
+
+    return view('import.manual-picking-list', [
+        'item'              => $main,
+        'picking'           => $main->picking,
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name,
+        'billing_company'   => $main->billing_company,
+        'kategori_order'    => $main->kategori_order,
+    ]);
+}
+
+// =========================================================
+// PRINT PICKING LIST PDF
+// =========================================================
+public function printManualPickingListPdf($id)
+{
+    $main = ManualRealisasi::with('picking.pickingItems')->findOrFail($id);
+
+    if (!$main->picking_printed_at) {
+        $main->update(['picking_printed_at' => now()]);
+    }
+
+    $picking = $main->picking;
+
+    if (!$picking) {
+        abort(404, 'Picking data not found');
+    }
+
+    $items = $picking->pickingItems()
+        ->orderBy('item_sku')
+        ->get()
+        ->transform(function ($item) {
+            $item->item_name = preg_replace('/\s+/', ' ', trim($item->item_name));
+            return $item;
+        });
+
+    $pdf = Pdf::loadView('import.manual-picking-list-pdf', [
+        'item'              => $main,
+        'picking'           => $picking,
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name,
+        'billing_company'   => $main->billing_company,
+        'kategori_order'    => $main->kategori_order,
+    ]);
+
+    $pdf->setPaper('A5', 'portrait');
+    $pdf->setOptions([
+        'margin-top'           => 8,
+        'margin-right'         => 6,
+        'margin-bottom'        => 18,
+        'margin-left'          => 6,
+        'isHtml5ParserEnabled' => true,
+        'isPhpEnabled'         => true,
+    ]);
+
+    $filename = 'Manual_Picking_' . ($main->no_pl ?? 'unknown')
+        . '_' . ($main->kategori_order ?? '')
+        . '_' . now()->format('Ymd_His') . '.pdf';
+
+    return $pdf->stream($filename);
+}
+
+// =========================================================
+// GENERATE REKAP NUMBER MANUAL
+// =========================================================
+private function generateManualRekapNumber($tanggal = null)
+{
+    if (!$tanggal) {
+        $tanggal = Carbon::now('Asia/Jakarta')->toDateString();
+    }
+
+    $tanggal = Carbon::parse($tanggal)->toDateString();
+
+    $existing = ManualRealisasi::whereDate('tgl_turun_pl', $tanggal)
+        ->whereNotNull('rekap_number')
+        ->value('rekap_number');
+
+    if ($existing) {
+        return $existing;
+    }
+
+    $lastNumber = ManualRealisasi::whereNotNull('rekap_number')
+        ->max(DB::raw("CAST(REPLACE(rekap_number, '#M', '') AS UNSIGNED)"));
+
+    // Format beda dari JKT: #M0001
+    $next = ($lastNumber ?? 0) + 1;
+
+    return '#M' . str_pad($next, 4, '0', STR_PAD_LEFT);
+}
 }
