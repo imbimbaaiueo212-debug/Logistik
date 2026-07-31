@@ -358,7 +358,7 @@
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             @if($paymentDate)
-                                {{ $paymentDate->format('d/m/Y H:i') }}
+                                {{ $paymentDate->format('d/m/Y') }}
                             @else
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                                     Pending
@@ -369,7 +369,7 @@
                             @if($estimasiPrint)
                                 <span class="inline-block px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap
                                     {{ $jamPrint <= 24 ? 'badge-green' : ($jamPrint <= 48 ? 'badge-red' : 'badge-black') }}">
-                                    {{ $estimasiPrint->format('d/m/Y H:i') }}
+                                    {{ $estimasiPrint->format('d/m/Y') }}
                                 </span>
                             @else
                                 <span class="text-gray-400">-</span>
@@ -379,7 +379,7 @@
                             @if($estimasiPersiapan)
                                 <span class="inline-block px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap
                                     {{ $jamPersiapan <= 72 ? 'badge-green' : ($jamPersiapan <= 96 ? 'badge-red' : 'badge-black') }}">
-                                    {{ $estimasiPersiapan->format('d/m/Y H:i') }}
+                                    {{ $estimasiPersiapan->format('d/m/Y') }}
                                 </span>
                             @else
                                 <span class="text-gray-400">-</span>

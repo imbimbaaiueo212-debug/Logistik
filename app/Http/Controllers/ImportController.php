@@ -102,6 +102,14 @@ class ImportController extends Controller
 
             Log::info("Import berhasil: " . $originalName);
 
+            // === SYNC MANUAL ===
+            try {
+                $result = $this->syncManualFromBimbashopCasdana();
+                Log::info("Sync Manual dari Bimbashop/Casdana: " . json_encode($result));
+            } catch (\Throwable $e) {
+                Log::error("Sync Manual gagal: " . $e->getMessage());
+            }
+
             return redirect()->route('import.bimbashop')
                              ->with('success', '✅ Data biMBA Shop berhasil diimport! File: ' . $originalName);
 
@@ -230,6 +238,14 @@ public function casdanaStore(Request $request)
         Excel::import(new \App\Imports\CasdanaImport, $file);
 
         Log::info("Import Casdana berhasil: " . $originalName);
+        // === SYNC MANUAL ===
+
+        try {
+            $result = $this->syncManualFromBimbashopCasdana();
+            Log::info("Sync Manual dari Bimbashop/Casdana: " . json_encode($result));
+        } catch (\Throwable $e) {
+            Log::error("Sync Manual gagal: " . $e->getMessage());
+        }
 
         return redirect()->route('import.casdana')
                          ->with('success', '✅ Data Casdana berhasil diimport! File: ' . $originalName);
@@ -455,11 +471,18 @@ public function bulkActionManual(Request $request)
         $catatanBaru  = $update['catatan'] ?? null;
 
         // =====================================================
-        // ESTIMASI
+        // PAYMENT DATE ASLI (hanya dari Bimbashop/Casdana)
+        // null = Pending
         // =====================================================
-        $paymentDate = $order->payment_date
+        $realPaymentDate = $order->payment_date
             ? Carbon::parse($order->payment_date)
-            : ($order->order_date ? Carbon::parse($order->order_date) : null);
+            : null;
+
+        // =====================================================
+        // ESTIMASI (boleh pakai order_date sebagai acuan hitung)
+        // =====================================================
+        $baseDate = $realPaymentDate
+            ?? ($order->order_date ? Carbon::parse($order->order_date) : null);
 
         $estimasiPrintPl   = $order->estimasi_print_pl
             ? Carbon::parse($order->estimasi_print_pl)
@@ -469,10 +492,10 @@ public function bulkActionManual(Request $request)
             ? Carbon::parse($order->estimasi_persiapan)
             : null;
 
-        if ($paymentDate && !$estimasiPrintPl) {
-            $estimasiPrintPl = $paymentDate->hour < 12
-                ? $paymentDate->copy()
-                : $paymentDate->copy()->addDay();
+        if ($baseDate && !$estimasiPrintPl) {
+            $estimasiPrintPl = $baseDate->hour < 12
+                ? $baseDate->copy()
+                : $baseDate->copy()->addDay();
 
             while (
                 $estimasiPrintPl->isSunday()
@@ -527,7 +550,7 @@ public function bulkActionManual(Request $request)
                 $serviceKurir,
                 $estimasiPrintPl,
                 $estimasiPersiapan,
-                $paymentDate,
+                $realPaymentDate,
                 $catatan,
                 $namaBarang,
                 $kategoriOrder,
@@ -536,6 +559,7 @@ public function bulkActionManual(Request $request)
             ) {
                 // =================================================
                 // 1. UPDATE MANUAL ORDER
+                //    payment_date TIDAK diubah jika masih null
                 // =================================================
                 $order->update([
                     'is_processed'       => 1,
@@ -545,7 +569,7 @@ public function bulkActionManual(Request $request)
                     'service_pengiriman' => $serviceKurir,
                     'estimasi_print_pl'  => $estimasiPrintPl,
                     'estimasi_persiapan' => $estimasiPersiapan,
-                    'payment_date'       => $order->payment_date ?? $paymentDate,
+                    // payment_date tetap seperti aslinya (null = Pending)
                     'status'             => 'pending',
                     'catatan'            => $catatan,
                 ]);
@@ -559,8 +583,8 @@ public function bulkActionManual(Request $request)
                 }
 
                 $estimasiHari = null;
-                if ($paymentDate && $estimasiPersiapan) {
-                    $estimasiHari = Carbon::parse($paymentDate)
+                if ($realPaymentDate && $estimasiPersiapan) {
+                    $estimasiHari = $realPaymentDate
                         ->diffInDays(Carbon::parse($estimasiPersiapan));
                 }
 
@@ -570,7 +594,7 @@ public function bulkActionManual(Request $request)
                 $realisasi = ManualRealisasi::create([
                     'manual_order_id'    => $order->id,
                     'no_pl'              => $order->order_id,
-                    'no_ps'              => $order->no_ps,   // ← TAMBAHKAN
+                    'no_ps'              => $order->no_ps,
                     'tgl_turun_pl'       => $order->order_date,
                     'nama_unit'          => $order->customer_name,
                     'billing_last_name'  => $order->billing_last_name,
@@ -580,7 +604,7 @@ public function bulkActionManual(Request $request)
                     'service_pengiriman' => $serviceKurir,
                     'nama_barang'        => $namaBarang ?: '-',
                     'kategori_order'     => $kategoriOrder,
-                    'tgl_bayar'          => $order->payment_date,   // null = Pending
+                    'tgl_bayar'          => $realPaymentDate,   // null = Pending
                     'jumlah_bayar'       => $order->total ?? 0,
                     'order_weight'       => $order->order_weight ?? 0,
                     'nama_stokis'        => $namaStokis,
@@ -600,12 +624,13 @@ public function bulkActionManual(Request $request)
                     'manual_realisasi_id'      => $realisasi->id,
                     'manual_order_id'          => $order->id,
                     'no_pl'                    => $order->order_id,
+                    'no_ps'                    => $order->no_ps,   // ← TAMBAHKAN
                     'kategori_order'           => $kategoriOrder,
                     'tgl_order'                => $order->order_date
                         ? Carbon::parse($order->order_date)->toDateString()
                         : now()->toDateString(),
                     'tgl_picking'              => now()->toDateString(),
-                    'payment_date'             => $order->payment_date ?? $order->order_date,
+                    'payment_date'             => $realPaymentDate,   // null jika belum bayar
                     'waktu_estimasi_persiapan' => $estimasiPersiapan
                         ? Carbon::parse($estimasiPersiapan)->toDateString()
                         : now()->toDateString(),
@@ -630,7 +655,7 @@ public function bulkActionManual(Request $request)
                     'printed_at'               => now(),
                     'created_by'               => Auth::id(),
                     'catatan'                  => 'Auto Generate dari Manual Proses',
-                    'grup'                     => $order->grup,    // ← TAMBAHKAN
+                    'grup'                     => $order->grup,
                 ]);
 
                 // =================================================
@@ -792,6 +817,7 @@ private function isHolidayManual($date): bool
 public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diubah ke Manual
 {
     $created     = 0;
+    $updated     = 0;
     $skipped     = 0;
     $errors      = [];
     $skippedList = [];
@@ -813,54 +839,66 @@ public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diub
             $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
             $edisi   = $this->extractEdisiMajalah($rawName);
 
-            // --- Kabupaten ---
+            // --- Kabupaten (Korwil) ---
             foreach ($periode->kabupaten ?? [] as $kabupaten) {
                 foreach ($kabupaten->units ?? [] as $unit) {
+                    $wilayah = !empty($kabupaten->nama_kabupaten)
+                        ? 'KABUPATEN ' . strtoupper(trim($kabupaten->nama_kabupaten))
+                        : null;
+
                     $result = $this->createManualOrderFromUnit(
                         $unit,
                         $edisi,
-                        $kabupaten->nama_kabupaten ?? null,
+                        $wilayah,
                         $kabupaten->contact_person ?? null,
                         'B',
                         $periode->no_ps ?? null
                     );
-                    $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors);
+                    $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
                 }
             }
 
-            // --- Kotamadya ---
+            // --- Kotamadya (Pinwil) ---
             foreach ($periode->kotamadya ?? [] as $kotamadya) {
                 foreach ($kotamadya->units ?? [] as $unit) {
+                    $wilayah = !empty($kotamadya->nama_kotamadya)
+                        ? 'KOTAMADYA ' . strtoupper(trim($kotamadya->nama_kotamadya))
+                        : null;
+
                     $result = $this->createManualOrderFromUnit(
                         $unit,
                         $edisi,
-                        $kotamadya->nama_kotamadya ?? null,
+                        $wilayah,
                         $kotamadya->contact_person ?? null,
                         'B',
                         $periode->no_ps ?? null
                     );
-                    $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors);
+                    $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
                 }
             }
         }
 
         // =====================================================
-        // C. PUW1 → GROUP B
+        // C. PUW1 (Jabodetabek) → GROUP B
         // =====================================================
         foreach ($periodesPuw1 as $periode) {
             $rawName = ($periode->judul ?? '') . ' ' . ($periode->bulan ?? '');
             $edisi   = $this->extractEdisiMajalah($rawName);
 
             foreach ($periode->units ?? [] as $unit) {
+                $wilayah = !empty($unit->kabupaten_kota)
+                    ? 'JABODETABEK ' . strtoupper(trim($unit->kabupaten_kota))
+                    : 'JABODETABEK';
+
                 $result = $this->createManualOrderFromUnit(
                     $unit,
                     $edisi,
-                    $unit->kabupaten_kota ?? null,
+                    $wilayah,
                     $periode->contact_person ?? null,
                     'B',
                     $periode->no_ps ?? null
                 );
-                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors);
+                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
             }
         }
 
@@ -868,6 +906,7 @@ public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diub
 
         $message = "✅ Sync Pesanan Majalah ke Manual selesai.<br>"
                  . "Berhasil masuk: <strong>{$created}</strong><br>"
+                 . "Berhasil di-update (no_ps): <strong>{$updated}</strong><br>"
                  . "Dilewati (sudah ada / qty 0): <strong>{$skipped}</strong>";
 
         if (count($skippedList) > 0) {
@@ -898,10 +937,16 @@ public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diub
     }
 }
 
-private function handleManualSyncResult($result, &$created, &$skipped, &$skippedList, &$errors)
+private function handleManualSyncResult($result, &$created, &$skipped, &$skippedList, &$errors, &$updated = null)
 {
     if ($result === 'created') {
         $created++;
+    } elseif ($result === 'updated') {
+        if ($updated !== null) {
+            $updated++;
+        } else {
+            $skipped++; // fallback kalau tidak pakai counter updated
+        }
     } elseif ($result === 'skipped') {
         $skipped++;
     } elseif (is_array($result) && ($result['status'] ?? '') === 'skipped_qty0') {
@@ -915,13 +960,16 @@ private function handleManualSyncResult($result, &$created, &$skipped, &$skipped
 /**
  * Buat 1 record Manual Order dari 1 unit Pesanan Majalah
  */
+/**
+ * Buat 1 record Manual Order dari 1 unit Pesanan Majalah
+ */
 private function createManualOrderFromUnit(
     $unit,
     string $edisi,
     $wilayah = null,
     $contactPerson = null,
     string $group = 'B',
-    $noPs = null                    // ← dari pesanan_majalah.no_ps
+    $noPs = null
 ) {
     if (($unit->jumlah_pesanan ?? 0) <= 0) {
         return [
@@ -940,7 +988,24 @@ private function createManualOrderFromUnit(
         ->where('status', 'pending')
         ->first();
 
+    // =====================================================
+    // JIKA SUDAH ADA → update no_ps (jika kosong / berbeda)
+    // lalu sync ke Realisasi + Picking
+    // =====================================================
     if ($existing) {
+        $needUpdate = empty($existing->no_ps) || ($noPs !== null && $existing->no_ps !== $noPs);
+
+        if ($needUpdate && $noPs !== null) {
+            try {
+                $existing->update(['no_ps' => $noPs]);
+                $this->syncNoPsToRelated($existing, $noPs);   // ikut update Realisasi & Picking
+                return 'updated';
+            } catch (\Throwable $e) {
+                Log::error("Gagal update no_ps ManualOrder #{$existing->id}: " . $e->getMessage());
+                return $e->getMessage();
+            }
+        }
+
         return 'skipped';
     }
 
@@ -1009,6 +1074,14 @@ private function createManualOrderFromUnit(
         $orderId = str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
 
+    // =====================================================
+    // NOTES: mismatch + contact person kabupaten
+    // =====================================================
+    $notesText = ($isMismatch ? 'NAMA_MISMATCH | ' : '') . 'Sync dari Pesanan Majalah';
+    if (!empty($contactPerson)) {
+        $notesText .= ' | CP: ' . $contactPerson;
+    }
+
     try {
         ManualOrder::create([
             'order_id'            => $orderId,
@@ -1046,14 +1119,10 @@ private function createManualOrderFromUnit(
             'is_processed'        => false,
             'payment_date'        => null,
 
-            'no_ps'               => $noPs,   // ← dari pesanan_majalah
+            'no_ps'               => $noPs,
 
-            'notes'               => $isMismatch
-                ? 'NAMA_MISMATCH | Sync dari Pesanan Majalah'
-                : 'Sync dari Pesanan Majalah',
-            'catatan'             => $isMismatch
-                ? 'NAMA_MISMATCH | Sync dari Pesanan Majalah'
-                : 'Sync dari Pesanan Majalah',
+            'notes'               => $notesText,
+            'catatan'             => $notesText,
         ]);
 
         return 'created';
@@ -1195,7 +1264,7 @@ public function printManualRealisasiPdf(Request $request)
 
     // Hanya yang picking sudah ada / sudah dicetak picking (opsional)
     $filteredData = $data->filter(function ($item) {
-        return $item->picking !== null;
+    return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
@@ -1292,8 +1361,10 @@ public function printManualPickingList($id)
 // =========================================================
 public function printManualPickingListPdf($id)
 {
-    $main = ManualRealisasi::with('picking.pickingItems')->findOrFail($id);
-
+    $main = ManualRealisasi::with([
+    'picking.pickingItems',
+    'manualOrder',
+    ])->findOrFail($id);
     if (!$main->picking_printed_at) {
         $main->update(['picking_printed_at' => now()]);
     }
@@ -1366,5 +1437,445 @@ private function generateManualRekapNumber($tanggal = null)
     $next = ($lastNumber ?? 0) + 1;
 
     return '#M' . str_pad($next, 4, '0', STR_PAD_LEFT);
+}
+
+/**
+ * Sync Manual Order dari Bimbashop + Casdana
+ * - Ganti order_id Manual yang auto menjadi order_id asli
+ * - Isi payment_date jika Casdana SETTLED/SUCCESS
+ * - Matching: billing_last_name (no_cab) + product_sku (edisi majalah)
+ */
+public function syncManualFromBimbashopCasdana()
+{
+    $updated = 0;
+    $skippedNoCasdana = 0;
+    $skippedNoMatch   = 0;
+
+    // =====================================================
+    // 1. Ambil semua order Bimbashop yang punya item Majalah
+    // =====================================================
+    $majalahOrders = BimbashopOrder::where(function ($q) {
+            $q->where('item_sku', 'like', 'M%')
+              ->orWhere('item_name', 'like', '%Majalah%')
+              ->orWhere('item_name', 'like', '%Sahabat biMBA%');
+        })
+        ->get()
+        ->groupBy('order_id');
+
+    foreach ($majalahOrders as $orderId => $items) {
+
+        // =================================================
+        // 2. Cari Casdana (buang prefix "ID" jika ada)
+        // =================================================
+        $casdana = CasdanaTransaction::where(function ($q) use ($orderId) {
+                $q->where('invoice_number', $orderId)
+                  ->orWhere('invoice_number', 'ID' . $orderId)
+                  ->orWhere('invoice_number', 'like', '%' . $orderId . '%');
+            })
+            ->latest('id')
+            ->first();
+
+        $paymentDate = null;
+        $isPaid = false;
+
+        if ($casdana) {
+            $status = strtoupper(trim($casdana->status ?? ''));
+            if (in_array($status, ['SUCCESS', 'SETTLED'])) {
+                $paymentDate = $casdana->payment_date;
+                $isPaid = true;
+            }
+        } else {
+            $skippedNoCasdana++;
+        }
+
+        // =================================================
+        // 3. Ambil daftar no_cab + edisi majalah dari order ini
+        // =================================================
+        $matches = [];
+
+        foreach ($items as $item) {
+            $noCab = trim($item->billing_last_name ?? '');
+            if ($noCab === '') continue;
+
+            // Normalisasi no_cab (buang leading zero untuk matching fleksibel)
+            $noCabNormalized = ltrim($noCab, '0') ?: '0';
+
+            // Ekstrak edisi dari SKU (M159-BDG1 → M159)
+            $sku = strtoupper(trim($item->item_sku ?? ''));
+            $edisi = null;
+
+            if (preg_match('/\b(M\d{2,4})\b/i', $sku, $m)) {
+                $edisi = strtoupper($m[1]);
+            } elseif (preg_match('/\b(M\d{2,4})\b/i', $item->item_name ?? '', $m)) {
+                $edisi = strtoupper($m[1]);
+            }
+
+            if (!$edisi) continue;
+
+            $matches[] = [
+                'no_cab'  => $noCab,
+                'no_cab_n' => $noCabNormalized,
+                'edisi'   => $edisi,
+            ];
+        }
+
+        if (empty($matches)) {
+            $skippedNoMatch++;
+            continue;
+        }
+
+        // =================================================
+        // 4. Cari ManualOrder yang cocok
+        // =================================================
+        foreach ($matches as $match) {
+
+            $manualOrders = ManualOrder::where(function ($q) use ($match) {
+                    $q->where('billing_last_name', $match['no_cab'])
+                      ->orWhere('billing_last_name', $match['no_cab_n'])
+                      ->orWhereRaw("TRIM(LEADING '0' FROM billing_last_name) = ?", [$match['no_cab_n']]);
+                })
+                ->where(function ($q) use ($match) {
+                    $q->where('product_sku', $match['edisi'])
+                      ->orWhere('product_sku', 'like', $match['edisi'] . '%')
+                      ->orWhere('product_name', 'like', '%' . $match['edisi'] . '%');
+                })
+                // Hanya yang masih pakai order_id otomatis (6 digit) atau belum punya payment
+                ->where(function ($q) {
+                    $q->whereRaw("order_id REGEXP '^[0-9]{6}$'")
+                      ->orWhereNull('payment_date');
+                })
+                ->get();
+
+            foreach ($manualOrders as $manual) {
+
+                // Skip jika sudah sama order_id-nya
+                if ($manual->order_id == $orderId && $manual->payment_date) {
+                    continue;
+                }
+
+                DB::transaction(function () use ($manual, $orderId, $paymentDate, $isPaid, &$updated) {
+
+                    $oldOrderId = $manual->order_id;
+
+                    // 1. Update ManualOrder
+                    $manual->update([
+                        'order_id'     => $orderId,
+                        'payment_date' => $isPaid ? $paymentDate : $manual->payment_date,
+                        'status'       => $isPaid ? 'completed' : $manual->status,
+                        'catatan'      => ($manual->catatan ?? '') 
+                            . "\n[SYNC] order_id diubah dari {$oldOrderId} → {$orderId} pada " 
+                            . now()->format('d/m/Y H:i'),
+                    ]);
+
+                    // 2. Update ManualRealisasi
+                    ManualRealisasi::where('manual_order_id', $manual->id)
+                        ->update([
+                            'no_pl'     => $orderId,
+                            'tgl_bayar' => $isPaid ? $paymentDate : DB::raw('tgl_bayar'),
+                        ]);
+
+                    // 3. Update ManualPicking
+                    ManualPicking::where('manual_order_id', $manual->id)
+                        ->update([
+                            'no_pl'        => $orderId,
+                            'id_pesan'     => $orderId,
+                            'payment_date' => $isPaid ? $paymentDate : DB::raw('payment_date'),
+                        ]);
+
+                    $updated++;
+                });
+            }
+        }
+    }
+
+    return [
+        'updated'            => $updated,
+        'skipped_no_casdana' => $skippedNoCasdana,
+        'skipped_no_match'   => $skippedNoMatch,
+    ];
+}
+/**
+ * Print QC Manual - Hanya data yang picking list sudah selesai
+ */
+public function printManualQC(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = ManualRealisasi::whereIn('id', $ids)
+        ->with(['manualOrder', 'picking'])
+        ->get();
+
+    // Hanya yang Picking List sudah dicetak
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak untuk QC.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $docNumber = $this->generateManualRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $pdf = Pdf::loadView('import.manual-print-qc', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('Manual-QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Pemesanan (RA Picking) Manual
+ */
+public function printManualPemesanan(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = ManualRealisasi::whereIn('id', $ids)
+        ->with(['manualOrder', 'picking'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $groupedData = $filteredData->groupBy(function ($item) {
+        return Carbon::parse($item->tgl_turun_pl)->toDateString();
+    });
+
+    $docNumber = $this->generateManualRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $pdf = Pdf::loadView('import.manual-print-pemesanan', [
+        'data'        => $filteredData,
+        'groupedData' => $groupedData,
+        'docNumber'   => $docNumber,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('Manual-RA-Pemesanan-Picking-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Packing Manual - Hanya data yang picking list sudah selesai
+ */
+public function printManualPacking(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = ManualRealisasi::whereIn('id', $ids)
+        ->with(['manualOrder', 'picking'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak untuk Packing.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $docNumber = $this->generateManualRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $pdf = Pdf::loadView('import.manual-print-packing', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('Manual-Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Distribusi / Ekspedisi Manual - Hanya data yang picking list sudah selesai
+ */
+public function printManualEkspedisi(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = ManualRealisasi::whereIn('id', $ids)
+        ->with(['manualOrder', 'picking'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak untuk Distribusi.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $docNumber = $this->generateManualRekapNumber(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $pdf = Pdf::loadView('import.manual-print-ekspedisi', [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('Manual-Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Update no_ps ke ManualOrder + Realisasi + Picking terkait
+ */
+private function syncNoPsToRelated(ManualOrder $order, ?string $noPs = null): void
+{
+    $noPs = $noPs !== null ? $noPs : $order->no_ps;
+
+    // 1. Update ManualOrder sendiri (jika beda)
+    if ($order->no_ps !== $noPs) {
+        $order->update(['no_ps' => $noPs]);
+    }
+
+    // 2. Update semua Realisasi dari order ini
+    ManualRealisasi::where('manual_order_id', $order->id)
+        ->update(['no_ps' => $noPs]);
+
+    // 3. Update semua Picking dari order ini
+    ManualPicking::where('manual_order_id', $order->id)
+        ->update(['no_ps' => $noPs]);
+}
+
+/**
+ * Backfill no_ps dari ManualOrder → Realisasi & Picking
+ * untuk data yang sudah diproses
+ */
+public function syncNoPsManualExisting()
+{
+    $updated = 0;
+
+    ManualOrder::whereNotNull('no_ps')
+        ->where('no_ps', '!=', '')
+        ->chunkById(200, function ($orders) use (&$updated) {
+            foreach ($orders as $order) {
+                $this->syncNoPsToRelated($order, $order->no_ps);
+                $updated++;
+            }
+        });
+
+    return redirect()
+        ->route('import.manual')
+        ->with('success', "✅ no_ps tersinkron ke Realisasi/Picking: {$updated} order");
 }
 }

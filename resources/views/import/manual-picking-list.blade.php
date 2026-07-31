@@ -161,6 +161,10 @@
             </span><br>
             <span style="font-size: 15px; font-weight: 600; margin-top: -8px; display: inline-block;">
                 {{ str_replace(['Stokis ', 'Stokis'], '', $item->nama_stokis ?? 'Manual / Majalah') }}
+                @if(!empty($item->grup))
+                    <span style="font-size:13px; font-weight:bold; color:#555;">(Group {{ $item->grup }})</span>
+                @endif
+                | {{ $item->no_ps ?? '-' }}
             </span>
         </div>
 
@@ -168,32 +172,55 @@
         <table style="width:100%; border:none; border-collapse:collapse; margin-bottom:10px;">
             <tr>
                 <td style="width:60%; border:none; vertical-align:top;">
-                    <strong>{{ $no_pl ?? $item->no_pl ?? '-' }}</strong><br>
-                    PayDate:
-                    <strong>
-                        @if($item->tgl_bayar)
-                            {{ \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') }}
-                        @else
-                            Pending
-                        @endif
-                    </strong><br>
-                    Estimasi:
-                    <strong>
-                        {{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-' }}
-                    </strong><br>
-                    <strong>{{ $item->nama_unit ?? '-' }}</strong>
-                    @if(!empty($item->grup))
-                        <span style="font-size:11px; color:#555;">(Group {{ $item->grup }})</span>
+                    <strong>{{ $no_pl ?? $item->no_pl ?? '-' }}</strong>
+                    @if(!empty($item->no_ps))
+                        | No. PS: <strong>{{ $item->no_ps }}</strong>
                     @endif
                     <br>
-                    <strong>{{ $item->pengiriman ?? '-' }} | {{ $item->service_pengiriman ?? '-' }}</strong>
-                    {{ $data->count() }} | {{ $data->sum('item_qty') ?? $data->sum('qty') ?? $data->count() }}
-                </td>
 
-                <td style="text-align:center; vertical-align:top; width:20%;">
-                    <strong style="font-size: 15px;">PARAF</strong><br><br>
+                    <strong>{{ $item->nama_unit ?? '-' }}</strong><br>
+
+                    {{-- Telepon unit --}}
+                    @if(!empty($item->manualOrder?->phone))
+                        Telp: {{ $item->manualOrder->phone }}<br>
+                    @endif
+
+                    {{-- Alamat (tanpa shipping_city) --}}
+                    @php
+                        $alamat = trim(implode(', ', array_filter([
+                            $item->manualOrder?->shipping_address_1,
+                            $item->manualOrder?->shipping_address_2,
+                        ])));
+                    @endphp
+                    @if($alamat !== '')
+                        {{ $alamat }}<br>
+                    @endif
+
+                    {{-- Wilayah (dari shipping_city) --}}
+                    @if(!empty($item->manualOrder?->shipping_city))
+                        Wilayah: <strong>{{ $item->manualOrder->shipping_city }}</strong><br>
+                    @endif
+
+
+                    {{-- Contact person --}}
+                    @php
+                        $cp = null;
+                        $rawNotes = $item->manualOrder?->notes ?? $item->manualOrder?->catatan ?? '';
+                        if (preg_match('/\bCP:\s*(.+)$/u', $rawNotes, $m)) {
+                            $cp = trim($m[1]);
+                        }
+                    @endphp
+                    @if(!empty($cp))
+                        CP: {{ $cp }}<br>
+                    @endif
+
+                    <strong>{{ $item->pengiriman ?? '-' }} | {{ $item->service_pengiriman ?? '-' }}</strong>
+                    {{ $data->count() }} | {{ $data->sum('item_qty') ?: $data->sum('qty') ?: $data->count() }}
                 </td>
-            </tr>
+    <td style="text-align:center; vertical-align:top; width:20%;">
+        <strong style="font-size: 15px;">PARAF</strong><br><br>
+    </td>
+</tr>
         </table>
 
         {{-- TABEL PRODUK --}}

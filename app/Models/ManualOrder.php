@@ -62,6 +62,7 @@ class ManualOrder extends Model
         'catatan',
         'notes',
         'grup',
+        'no_ps',
         ];
 
     protected $casts = [

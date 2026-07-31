@@ -62,36 +62,22 @@
 
             {{-- HEADER UTAMA --}}
             <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-800">Rekap Aktual Manual</h1>
-                    <p class="text-gray-600">Data Manual Realisasi yang sudah diproses</p>
-                </div>
+    <div>
+        <h1 class="text-3xl font-bold text-gray-800">Rekap Aktual Manual</h1>
+        <p class="text-gray-600">Data Manual Realisasi yang sudah diproses</p>
+    </div>
 
-                <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border flex-wrap">
-            <a href="{{ route('import.manual') }}"
-            class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">
-                ← Kembali
-            </a>
+            <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border flex-wrap">
+                <a href="{{ route('import.manual') }}"
+                class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">
+                    ← Kembali
+                </a>
 
-            <a href="{{ route('import.manual-printed') }}"
-            class="px-6 py-3 rounded-3xl font-medium transition-all {{ !request('kategori') ? 'bg-slate-700 text-white shadow-sm' : 'hover:bg-gray-100' }}">
-                Semua
-            </a>
-
-            <a href="{{ route('import.manual-printed') }}?kategori=Modul"
-            class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Modul' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
-                🟢 Modul
-            </a>
-
-            <a href="{{ route('import.manual-printed') }}?kategori=Majalah"
-            class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Majalah' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
-                🔵 Majalah
-            </a>
-
-            <a href="{{ route('import.manual-printed') }}?kategori=Sertifikat"
-            class="px-6 py-3 rounded-3xl font-medium transition-all {{ request('kategori') === 'Sertifikat' ? 'bg-red-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
-                🔴 Sertifikat
-            </a>
+                <a href="{{ route('import.manual-printed') }}?kategori=Majalah"
+                class="px-6 py-3 rounded-3xl font-medium transition-all bg-blue-600 text-white shadow-sm">
+                    🔵 Majalah
+                </a>
+            </div>
         </div>
     </div>
 
@@ -134,7 +120,7 @@
                         <span class="text-indigo-600 font-semibold ml-2">
                             {{ $first->rekap_number ?? '#M0001' }}
                             @if($first->no_ps)
-                                / PS-{{ $first->no_ps }}
+                                / {{ $first->no_ps }}
                             @endif
                         </span>
                     </div>
@@ -301,6 +287,7 @@
                         </button>
                     </div>
                 @endif
+                
             </div>
         </div>
     @empty
@@ -356,23 +343,22 @@ function printPerDate(tanggal, type) {
     let url = '';
 
     switch (type) {
-        case 'prising':
-            url = `{{ route('import.manual-printed.pdf') }}?ids=${ids}&mark_printed=true`;
-            break;
-        case 'pemesanan':
-            url = `{{ route('import.manual-printed.pdf') }}?ids=${ids}`; // sementara pakai PDF yang sama
-            break;
-        case 'qc':
-            url = `{{ route('import.manual-printed.pdf') }}?ids=${ids}`;
-            break;
-        case 'packing':
-            url = `{{ route('import.manual-printed.pdf') }}?ids=${ids}`;
-            break;
-        case 'ekspedisi':
-            url = `{{ route('import.manual-printed.pdf') }}?ids=${ids}`;
-            break;
-    }
-
+    case 'prising':
+        url = `{{ route('import.manual-printed.pdf') }}?ids=${ids}&mark_printed=true`;
+        break;
+    case 'pemesanan':
+        url = `{{ route('import.manual-print-pemesanan') }}?ids=${ids}`;
+        break;
+    case 'qc':
+        url = `{{ route('import.manual-print-qc') }}?ids=${ids}`;
+        break;
+    case 'packing':
+        url = `{{ route('import.manual-print-packing') }}?ids=${ids}`;
+        break;
+    case 'ekspedisi':
+        url = `{{ route('import.manual-print-ekspedisi') }}?ids=${ids}`;
+        break;
+}
     if (url) {
         window.open(url, '_blank');
         setTimeout(() => location.reload(), 1200);

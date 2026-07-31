@@ -35,6 +35,7 @@ class ManualRealisasi extends Model
         'printed_at',
         'picking_printed_at',
         'grup',
+        'no_ps',
     ];
 
     protected $casts = [
