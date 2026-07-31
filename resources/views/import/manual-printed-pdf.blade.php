@@ -206,23 +206,23 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
 
     <!-- TANDA TANGAN -->
     <tr>
-        <td colspan="3" style="border:1px solid #374151; padding:10px 8px;">
-            <table style="width:100%; border:none; border-collapse:collapse;">
-                <tr>
-                    @foreach(['Pricing','Picking','Checking','Packing','Finishing'] as $bagian)
-                    <td style="border:none; text-align:center; vertical-align:top;">
-                        <div style="font-size:9.5px; font-weight:bold; margin-bottom:35px;">
-                            {{ $bagian }}
-                        </div>
-                        <div style="font-size:8px; font-weight:bold; white-space:nowrap;">
-                            Nama __________ &nbsp;&nbsp; Tgl __________
-                        </div>
-                    </td>
-                    @endforeach
-                </tr>
-            </table>
-        </td>
-    </tr>
+    <td colspan="3" style="border:1px solid #374151; padding:4px 6px 8px 6px;">
+        <table style="width:100%; border:none; border-collapse:collapse;">
+            <tr>
+                @foreach(['PRICING','PICKING','QC OUTGOING','PACKING','EKSPEDISI'] as $bagian)
+                <td style="border:none; text-align:center; vertical-align:top; padding:0;">
+                    <div style="font-size:9.5px; font-weight:bold; margin:0 0 28px 0; line-height:1.2;">
+                        {{ $bagian }}
+                    </div>
+                    <div style="font-size:8px; font-weight:bold; white-space:nowrap;">
+                        Nama __________ &nbsp;&nbsp; Tgl __________
+                    </div>
+                </td>
+                @endforeach
+            </tr>
+        </table>
+    </td>
+</tr>
 </table>
 
 <!-- TABEL UTAMA -->
