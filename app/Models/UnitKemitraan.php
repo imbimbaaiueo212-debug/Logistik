@@ -14,9 +14,9 @@ class UnitKemitraan extends Model
 
     protected $primaryKey = 'id_record';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
-    protected $keyType = 'string';
+    protected $keyType = 'int';
     
     // Jika primary key bukan integer/auto-increment
     // public $incrementing = true;

@@ -498,7 +498,6 @@
                         <th class="px-4 py-3 text-left w-40">Distribusi <span class="text-red-500">*</span></th>
                         <th class="px-4 py-3 text-left min-w-[220px]">Jasa Kurir <span class="text-red-500">*</span></th>
                         <th class="px-4 py-3 text-left min-w-[190px]">Service</th>
-                        <th class="px-4 py-3 text-left w-44">Vendor</th>
                         <th class="px-4 py-3 text-left min-w-[220px]">Catatan</th>
                     </tr>
                 </thead>
@@ -733,7 +732,6 @@ function loadModalData() {
                         <td class="px-4 py-3">${distribusiHtml}</td>
                         <td class="px-4 py-3">${jasaKurirHtml}</td>
                         <td class="px-4 py-3">${serviceKurirHtml}</td>
-                        <td class="px-4 py-3 font-medium text-indigo-700">${item.vendor}</td>
                         <td class="px-4 py-3">${catatanHtml}</td>
                     </tr>`;
             });
@@ -905,6 +903,22 @@ function executeBulkAction() {
 function clearSelection() {
     selectedIds = [];
     checkProcessButtonVisibility();
+}
+/**
+ * Ambil hanya bagian catatan yang boleh ditampilkan
+ * (hilangkan CP: ... dan NAMA_MISMATCH)
+ */
+function getVisibleCatatan(fullNotes) {
+    if (!fullNotes) return '';
+
+    return fullNotes
+        // hapus "CP: IBU AMEL (...)" beserta pemisah |
+        .replace(/(?:^|\|\s*)CP:\s*[^|]+(?:\s*\|\s*)?/gi, '')
+        // hapus NAMA_MISMATCH jika ada di depan
+        .replace(/^NAMA_MISMATCH\s*\|\s*/i, '')
+        // bersihkan sisa pemisah di ujung
+        .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
+        .trim();
 }
 </script>
 </body>

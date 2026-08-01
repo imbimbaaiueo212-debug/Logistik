@@ -227,53 +227,58 @@ class UnitKemitraanController extends Controller
 
         $file = $request->file('import_file');
 
-        Log::info('Mulai Import Besar', [
+        Log::info('========== MULAI IMPORT UnitKemitraan ==========', [
             'filename' => $file->getClientOriginalName(),
-            'size' => round($file->getSize() / (1024 * 1024), 2) . ' MB'
+            'size_mb'  => round($file->getSize() / (1024 * 1024), 2),
+            'mime'     => $file->getMimeType(),
+            'user'     => auth()->user()->name ?? 'guest',
         ]);
 
-        // Import Excel
-        Excel::import(new UnitKemitraanImport, $file);
+        $import = new \App\Imports\UnitKemitraanImport();
 
-        // Update Status Pengelolaan & Mitra Pengelolaan
-                // Update Status Pengelolaan & Mitra Pengelolaan
-        UnitKemitraan::chunk(500, function ($units) {
+        // Jalankan import
+        Excel::import($import, $file);
 
-            foreach ($units as $unit) {
+        $summary = $import->getSummary();
 
-                $status = strtoupper(trim($unit->status ?? ''));
+        Log::info('========== HASIL IMPORT SELESAI ==========', $summary);
 
-                // Status Pengelolaan
-                if (in_array($status, [
-                    'MM','MM 1','AKTIF 1','MK','MK 1','MK RINDA','MKU','MKU 1','UNIT AKTIF'
-                ])) {
-                    $unit->status_pengelolaan = 'Unit Aktif';
-                } elseif (str_contains($status, 'PASIF') || str_contains($status, 'Unit PASIF')) {
-                    $unit->status_pengelolaan = 'Unit Pasif';
-                } else {
-                    $unit->status_pengelolaan = null;
-                }
+        // Buat pesan yang jelas
+        $message = sprintf(
+            'Import selesai. Berhasil: %d | Gagal: %d | Dilewati: %d',
+            $summary['success'],
+            $summary['failed'],
+            $summary['skipped']
+        );
 
-                // Mitra Pengelolaan - Logic Baru
-                $unit->mitra_pengelolaan = $this->getMitraPengelolaan($unit->status);
+        if ($summary['failed'] > 0) {
+            return redirect()
+                ->route('unit-kemitraan.index')
+                ->with('warning', $message)
+                ->with('import_errors', $summary['failed_rows']);
+        }
 
-                $unit->save();
-            }
-        });
+        if ($summary['success'] === 0 && $summary['skipped'] === 0) {
+            return redirect()
+                ->route('unit-kemitraan.index')
+                ->with('error', 'Tidak ada data yang berhasil diimport. Cek format file atau header Excel.');
+        }
 
         return redirect()
             ->route('unit-kemitraan.index')
-            ->with('success', '✅ Import berhasil dan Status Pengelolaan otomatis diperbarui.');
+            ->with('success', $message);
 
-    } catch (\Exception $e) {
-
-        Log::error('Import Error Besar', [
+    } catch (\Throwable $e) {
+        Log::error('Import UnitKemitraan FATAL', [
             'message' => $e->getMessage(),
-            'line' => $e->getLine(),
+            'line'    => $e->getLine(),
+            'file'    => $e->getFile(),
+            'trace'   => $e->getTraceAsString(),
         ]);
 
-        return redirect()->back()
-            ->with('error', '❌ Gagal: ' . $e->getMessage());
+        return redirect()
+            ->back()
+            ->with('error', '❌ Gagal total: ' . $e->getMessage());
     }
 }
 

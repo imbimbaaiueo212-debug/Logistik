@@ -1073,14 +1073,17 @@ private function createManualOrderFromUnit(
         $nextNumber++;
         $orderId = str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
-
     // =====================================================
     // NOTES: mismatch + contact person kabupaten
     // =====================================================
-    $notesText = ($isMismatch ? 'NAMA_MISMATCH | ' : '') . 'Sync dari Pesanan Majalah';
-    if (!empty($contactPerson)) {
-        $notesText .= ' | CP: ' . $contactPerson;
+    $parts = [];
+    if ($isMismatch) {
+        $parts[] = 'NAMA_MISMATCH';
     }
+    if (!empty($contactPerson)) {
+        $parts[] = 'CP: ' . $contactPerson;
+    }
+    $notesText = implode(' | ', $parts);
 
     try {
         ManualOrder::create([

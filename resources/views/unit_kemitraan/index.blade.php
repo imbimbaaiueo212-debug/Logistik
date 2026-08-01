@@ -42,6 +42,40 @@
             </div>
         </div>
 
+        {{-- ==================== NOTIFIKASI ==================== --}}
+@if(session('success'))
+    <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-2xl">
+        <strong>✅ Berhasil!</strong> {{ session('success') }}
+    </div>
+@endif
+
+@if(session('warning'))
+    <div class="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-2xl">
+        <strong>⚠️ Perhatian!</strong> {{ session('warning') }}
+        
+        @if(session('import_errors'))
+            <div class="mt-3 text-sm">
+                <p class="font-semibold mb-1">Detail error:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    @foreach(session('import_errors') as $err)
+                        <li>
+                            No Cab: <strong>{{ $err['no_cab'] }}</strong> 
+                            (ID: {{ $err['id_record'] }}) → {{ $err['reason'] }}
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-2xl">
+        <strong>❌ Gagal!</strong> {{ session('error') }}
+    </div>
+@endif
+{{-- ==================== END NOTIFIKASI ==================== --}}
+
         
         <!-- ==================== FORM IMPORT ==================== -->
         <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8">

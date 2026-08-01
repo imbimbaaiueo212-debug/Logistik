@@ -116,6 +116,23 @@
                     <div>
                         <span class="font-bold text-lg">
                             Rekap Aktual Manual - {{ $first->kategori_order ?? 'Majalah' }}
+                            @php
+                                // Ambil nama edisi (contoh: M159)
+                                $edisi = $first->manualOrder?->product_sku
+                                    ?? $first->product_sku
+                                    ?? null;
+
+                                // Kalau tidak ada, coba ekstrak dari nama_barang
+                                if (!$edisi && !empty($first->nama_barang)) {
+                                    // Ambil kata terakhir (biasanya kode edisi)
+                                    $parts = explode(' ', trim($first->nama_barang));
+                                    $edisi = end($parts);
+                                }
+                            @endphp
+
+                            @if($edisi)
+                                ({{ $edisi }})
+                            @endif
                         </span>
                         <span class="text-indigo-600 font-semibold ml-2">
                             {{ $first->rekap_number ?? '#M0001' }}
@@ -228,15 +245,33 @@
                                 </td>
                                 <td class="text-center text-xs">
                                     @php
-                                        $catatan = $item->manualOrder?->catatan ?? $item->ket ?? '';
-                                        $display = preg_replace('/^Di proses bulk pada .*?: /i', '', trim($catatan));
+                                        $catatan = $item->manualOrder?->catatan 
+                                                ?? $item->manualOrder?->notes 
+                                                ?? $item->ket 
+                                                ?? '';
+
+                                        // 1. Hapus baris yang hanya berisi CP:
+                                        $display = preg_replace('/^CP:.*$/mi', '', $catatan);
+
+                                        // 2. Hapus NAMA_MISMATCH (jika ada di baris sendiri)
+                                        $display = preg_replace('/^NAMA_MISMATCH.*$/mi', '', $display);
+
+                                        // 3. Hapus prefix "Di proses bulk pada ... :" (case-insensitive)
+                                        $display = preg_replace('/Di\s+proses\s+bulk\s+pada\s+[\d\/:\s]+[:\s]*/i', '', $display);
+
+                                        // 4. Bersihkan sisa baris kosong, pipe, dan spasi berlebih
+                                        $display = preg_replace('/[\r\n]+/', ' ', $display);
+                                        $display = preg_replace('/\s*\|\s*/', ' ', $display);
+                                        $display = trim(preg_replace('/\s+/', ' ', $display));
                                     @endphp
-                                    @if($display)
+
+                                    @if($display !== '')
                                         <span class="inline-block bg-gray-100 px-3 py-1 rounded-md">{{ strtoupper($display) }}</span>
                                     @else
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
+
                                 <td class="text-center">
                                     <button type="button"
                                             onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
