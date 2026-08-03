@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\UnitKemitraan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Imports\UnitKemitraanImport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -231,7 +232,7 @@ class UnitKemitraanController extends Controller
             'filename' => $file->getClientOriginalName(),
             'size_mb'  => round($file->getSize() / (1024 * 1024), 2),
             'mime'     => $file->getMimeType(),
-            'user'     => auth()->user()->name ?? 'guest',
+            'user' => Auth::user()->name ?? 'guest',
         ]);
 
         $import = new \App\Imports\UnitKemitraanImport();

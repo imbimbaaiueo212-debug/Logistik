@@ -82,90 +82,94 @@ class PesananMajalahController extends Controller
     }
 
     public function show(Request $request, PesananMajalah $pesananMajalah)
-    {
-        $pesananMajalah->load([
-            'kabupaten' => fn ($q) => $q->orderBy('urutan'),
-            'kabupaten.units' => fn ($q) => $q->orderBy('no'),
-        ]);
+{
+    $pesananMajalah->load([
+        'kabupaten' => fn ($q) => $q->orderBy('urutan'),
+        'kabupaten.units' => fn ($q) => $q->orderBy('no'),
+    ]);
 
-        $allUnits = collect();
+    $allUnits = collect();
 
-        foreach ($pesananMajalah->kabupaten as $kabupaten) {
-            foreach ($kabupaten->units as $unit) {
-                $unit->nama_kabupaten = $kabupaten->nama_kabupaten;
-                $unit->contact_person = $kabupaten->contact_person;
-                $allUnits->push($unit);
-            }
+    foreach ($pesananMajalah->kabupaten as $kabupaten) {
+        foreach ($kabupaten->units as $unit) {
+            $unit->nama_kabupaten = $kabupaten->nama_kabupaten;
+            $unit->contact_person = $kabupaten->contact_person;
+            $allUnits->push($unit);
         }
-
-        $noCabangs = $allUnits
-            ->pluck('no_cabang')
-            ->filter()
-            ->map(fn ($v) => trim($v))
-            ->unique()
-            ->values();
-
-        $unitKemitraanMap = UnitKemitraan::whereIn('no_cab', $noCabangs)
-            ->get()
-            ->keyBy(fn ($u) => trim($u->no_cab));
-
-        $allUnits = $allUnits->map(function ($unit) use ($unitKemitraanMap) {
-            $noCab = trim($unit->no_cabang ?? '');
-            $uk = $unitKemitraanMap->get($noCab);
-
-            $unit->mitra_pengelolaan   = $uk->mitra_pengelolaan ?? '-';
-            $unit->dari_unit_kemitraan = (bool) $uk;
-
-            return $unit;
-        });
-
-        $listNamaUnit       = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
-        $listNoCabang       = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
-        $listKabupaten      = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
-        $listMitraPengelola = $allUnits
-            ->pluck('mitra_pengelolaan')
-            ->filter(fn ($v) => $v && $v !== '-')
-            ->unique()
-            ->sort()
-            ->values();
-
-        $units = $allUnits;
-
-        if ($request->filled('nama_unit')) {
-            $units = $units->where('nama_unit', $request->nama_unit);
-        }
-        if ($request->filled('no_cabang')) {
-            $units = $units->where('no_cabang', $request->no_cabang);
-        }
-        if ($request->filled('kabupaten')) {
-            $units = $units->where('nama_kabupaten', $request->kabupaten);
-        }
-        if ($request->filled('mitra_pengelolaan')) {
-            $units = $units->where('mitra_pengelolaan', $request->mitra_pengelolaan);
-        }
-
-        $units = $units->values();
-
-        $totalUnits   = $units->count();
-        $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
-
-        $mismatches = UnitNamaMismatch::where('pesanan_majalah_id', $pesananMajalah->id)
-            ->where('is_resolved', false)
-            ->orderBy('no_cab')
-            ->get();
-
-        return view('pesanan-majalah.show', [
-            'data'               => $pesananMajalah,
-            'units'              => $units,
-            'totalUnits'         => $totalUnits,
-            'totalPesanan'       => $totalPesanan,
-            'listNamaUnit'       => $listNamaUnit,
-            'listNoCabang'       => $listNoCabang,
-            'listKabupaten'      => $listKabupaten,
-            'listMitraPengelola' => $listMitraPengelola,
-            'mismatches'         => $mismatches,
-        ]);
     }
+
+    // Ambil no_cabang & normalisasi (hilangkan leading zero)
+    $noCabangs = $allUnits
+        ->pluck('no_cabang')
+        ->filter()
+        ->map(fn ($v) => ltrim(trim($v), '0') ?: '0')
+        ->unique()
+        ->values();
+
+    // Query ke UnitKemitraan pakai versi ber-padding 5 digit
+    $noCabangsPadded = $noCabangs->map(fn ($v) => str_pad($v, 5, '0', STR_PAD_LEFT));
+
+    $unitKemitraanMap = UnitKemitraan::whereIn('no_cab', $noCabangsPadded)
+        ->get()
+        ->keyBy(fn ($u) => ltrim(trim($u->no_cab), '0') ?: '0'); // key tanpa leading zero
+
+    $allUnits = $allUnits->map(function ($unit) use ($unitKemitraanMap) {
+        $noCab = ltrim(trim($unit->no_cabang ?? ''), '0') ?: '0';
+        $uk = $unitKemitraanMap->get($noCab);
+
+        $unit->mitra_pengelolaan   = $uk?->mitra_pengelolaan ?: '-';
+        $unit->dari_unit_kemitraan = (bool) $uk;
+
+        return $unit;
+    });
+
+    $listNamaUnit       = $allUnits->pluck('nama_unit')->filter()->unique()->sort()->values();
+    $listNoCabang       = $allUnits->pluck('no_cabang')->filter()->unique()->sort()->values();
+    $listKabupaten      = $allUnits->pluck('nama_kabupaten')->filter()->unique()->sort()->values();
+    $listMitraPengelola = $allUnits
+        ->pluck('mitra_pengelolaan')
+        ->filter(fn ($v) => $v && $v !== '-')
+        ->unique()
+        ->sort()
+        ->values();
+
+    $units = $allUnits;
+
+    if ($request->filled('nama_unit')) {
+        $units = $units->where('nama_unit', $request->nama_unit);
+    }
+    if ($request->filled('no_cabang')) {
+        $units = $units->where('no_cabang', $request->no_cabang);
+    }
+    if ($request->filled('kabupaten')) {
+        $units = $units->where('nama_kabupaten', $request->kabupaten);
+    }
+    if ($request->filled('mitra_pengelolaan')) {
+        $units = $units->where('mitra_pengelolaan', $request->mitra_pengelolaan);
+    }
+
+    $units = $units->values();
+
+    $totalUnits   = $units->count();
+    $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
+
+    $mismatches = UnitNamaMismatch::where('pesanan_majalah_id', $pesananMajalah->id)
+        ->where('is_resolved', false)
+        ->orderBy('no_cab')
+        ->get();
+
+    return view('pesanan-majalah.show', [
+        'data'               => $pesananMajalah,
+        'units'              => $units,
+        'totalUnits'         => $totalUnits,
+        'totalPesanan'       => $totalPesanan,
+        'listNamaUnit'       => $listNamaUnit,
+        'listNoCabang'       => $listNoCabang,
+        'listKabupaten'      => $listKabupaten,
+        'listMitraPengelola' => $listMitraPengelola,
+        'mismatches'         => $mismatches,
+    ]);
+}
 
     public function edit(PesananMajalah $pesananMajalah)
     {

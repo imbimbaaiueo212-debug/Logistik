@@ -12,15 +12,20 @@ class UnitKemitraan extends Model
 
     protected $table = 'unit_kemitraan';
 
+    /**
+     * Primary key adalah id_record
+     */
     protected $primaryKey = 'id_record';
 
-    public $incrementing = true;
+    /**
+     * Bukan auto-increment (karena isinya seperti MG5114)
+     */
+    public $incrementing = false;
 
-    protected $keyType = 'int';
-    
-    // Jika primary key bukan integer/auto-increment
-    // public $incrementing = true;
-    // protected $keyType = 'int';
+    /**
+     * Tipe primary key adalah string
+     */
+    protected $keyType = 'string';
 
     protected $fillable = [
         'id_record',
@@ -158,40 +163,38 @@ class UnitKemitraan extends Model
     ];
 
     protected $casts = [
-        'tgl_akta' => 'date',
-        'awal' => 'date',
-        'akhir' => 'date',
-        'perpanjang' => 'date',
-        'tutup' => 'date',
-        'tanggal' => 'date',
-        'awal_kontrak' => 'date',           // meski tipe string di DB
-        'akhir_kontrak' => 'date',
-        'awal_kontrak__' => 'date',
+        'tgl_akta'        => 'date',
+        'awal'            => 'date',
+        'akhir'           => 'date',
+        'perpanjang'      => 'date',
+        'tutup'           => 'date',
+        'tanggal'         => 'date',
+        'awal_kontrak'    => 'date',
+        'akhir_kontrak'   => 'date',
+        'awal_kontrak__'  => 'date',
         'akhir_kontrak__' => 'date',
-        'tanggal_update' => 'datetime',
-        'tanggal_update__' => 'datetime',
-        'last_updated' => 'datetime',
-        'koordinat_s' => 'decimal:8',
-        'koordinat_e' => 'decimal:8',
-        'nilai_lisensi' => 'decimal:2',
-        'persen_mitra' => 'decimal:2',
-        'persen_ypai' => 'decimal:2',
-        'sisa_3' => 'decimal:2',
-        'sisa_1' => 'decimal:2',
-        'sisa_2' => 'decimal:2',
-        'sisa_4' => 'decimal:2',
-        'sisa_f' => 'decimal:2',
-        'sisa' => 'string',
-        'sisa_rr' => 'decimal:2',
+        'tanggal_update'  => 'datetime',
+        'tanggal_update__'=> 'datetime',
+        'last_updated'    => 'datetime',
+
+        'nilai_lisensi'   => 'decimal:2',
+        'persen_mitra'    => 'decimal:2',
+        'persen_ypai'     => 'decimal:2',
+        'sisa_3'          => 'decimal:2',
+        'sisa_1'          => 'decimal:2',
+        'sisa_2'          => 'decimal:2',
+        'sisa_4'          => 'decimal:2',
+        'sisa_f'          => 'decimal:2',
+        'sisa_rr'         => 'decimal:2',
         'lampiran_jarak_stokis_1' => 'decimal:2',
         'lampiran_jarak_stokis_2' => 'decimal:2',
     ];
 
-public function matchingUserExport()
-{
-    return $this->hasOne(MatchingUserExport::class, 'unit_kemitraan_id', 'id_record');
-}
-
-    // Opsional: Jika ingin mengatur kolom yang tidak boleh di-mass assignment
-    // protected $guarded = ['id_record'];
+    /**
+     * Relasi ke MatchingUserExport
+     */
+    public function matchingUserExport()
+    {
+        return $this->hasOne(MatchingUserExport::class, 'unit_kemitraan_id', 'id_record');
+    }
 }

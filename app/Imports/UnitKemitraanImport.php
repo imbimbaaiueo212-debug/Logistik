@@ -5,7 +5,6 @@ namespace App\Imports;
 use App\Models\UnitKemitraan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
@@ -76,22 +75,23 @@ class UnitKemitraanImport implements
     }
 
     private function cleanIdRecord($value)
-{
-    // Biarkan null jika benar-benar kosong
-    if ($value === null) {
-        return null;
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '' || $value === '-' || $value === '?' || strtolower($value) === 'null') {
+            return null;
+        }
+
+        if ($value === '0') {
+            return null;
+        }
+
+        return $value;
     }
-
-    $value = trim((string) $value);
-
-    // Kalau setelah di-trim kosong atau hanya tanda strip, biarkan null
-    if ($value === '' || $value === '-' || $value === '?') {
-        return null;
-    }
-
-    // Kembalikan nilai asli dari Excel (termasuk "0" jika memang 0 di Excel)
-    return $value;
-}
 
     private function cleanPhone($value)
     {
@@ -110,63 +110,52 @@ class UnitKemitraanImport implements
     }
 
     private function extractNumber($value)
-{
-    if ($value === null) {
-        return null;
-    }
-
-    $value = trim((string) $value);
-
-    // Langsung null jika kosong atau tanda strip
-    if ($value === '' || $value === '-' || $value === '?' || strtolower($value) === 'null') {
-        return null;
-    }
-
-    // Hilangkan karakter yang tidak perlu
-    $value = str_replace(['%', ' '], '', $value);
-    $value = str_replace('.', '', $value);   // hapus titik ribuan
-    $value = str_replace(',', '.', $value);  // koma jadi titik
-
-    // Hanya izinkan angka, titik, dan minus
-    $value = preg_replace('/[^0-9.\-]/', '', $value);
-
-    // Kalau setelah dibersihkan masih kosong atau bukan angka
-    if ($value === '' || $value === '-' || $value === '.' || !is_numeric($value)) {
-        return null;
-    }
-
-    $number = (float) $value;
-
-    // Proteksi angka ekstrem (mencegah out of range)
-    if (abs($number) > 9999999999) {
-        return null;
-    }
-
-    return $number;
-}
-
-    /**
-     * Versi aman untuk kolom jarak (mencegah Out of range)
-     */
-    private function toSafeDecimal($value)
     {
-        if ($value === null || trim((string)$value) === '') {
+        if ($value === null) {
             return null;
         }
 
-        // Kalau mengandung huruf / simbol aneh → null
-        if (preg_match('/[a-zA-Z°\'\"kmKM]/', (string)$value)) {
+        $value = trim((string) $value);
+
+        if ($value === '' || $value === '-' || $value === '?' || strtolower($value) === 'null') {
+            return null;
+        }
+
+        $value = str_replace(['%', ' '], '', $value);
+        $value = str_replace('.', '', $value);
+        $value = str_replace(',', '.', $value);
+        $value = preg_replace('/[^0-9.\-]/', '', $value);
+
+        if ($value === '' || $value === '-' || $value === '.' || !is_numeric($value)) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        if (abs($number) > 9999999999) {
+            return null;
+        }
+
+        return $number;
+    }
+
+    private function toSafeDecimal($value)
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        if (preg_match('/[a-zA-Z°\'\"kmKM]/', (string) $value)) {
             return null;
         }
 
         $number = $this->extractNumber($value);
 
-        // Proteksi angka ekstrem
         if ($number === null || abs($number) > 999999 || abs($number) < 0.0001) {
             return null;
         }
 
-        return round($number, 4); // maksimal 4 digit di belakang koma
+        return round($number, 4);
     }
 
     private function parseDate($value)
@@ -188,7 +177,6 @@ class UnitKemitraanImport implements
             }
 
             $value = trim($value);
-
             $formats = ['d/m/Y', 'd-M-y', 'd-M-Y', 'd-m-Y', 'Y-m-d'];
 
             foreach ($formats as $format) {
@@ -264,6 +252,26 @@ class UnitKemitraanImport implements
         return 'YPAI';
     }
 
+    /**
+     * Cek apakah ada perbedaan data
+     */
+    private function hasChanges(UnitKemitraan $existing, array $data): bool
+    {
+        foreach ($data as $key => $newValue) {
+            $oldValue = $existing->getAttribute($key);
+
+            // Samakan null & string kosong
+            $old = ($oldValue === null || $oldValue === '') ? null : (string) $oldValue;
+            $new = ($newValue === null || $newValue === '') ? null : (string) $newValue;
+
+            if ($old !== $new) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // =========================================================
     // MODEL
     // =========================================================
@@ -276,15 +284,20 @@ class UnitKemitraanImport implements
             $idRecordRaw = $row[0] ?? null;
             $noCabRaw    = $row[1] ?? null;
 
-            $isIdEmpty = ($idRecordRaw === null || trim((string)$idRecordRaw) === '' || trim((string)$idRecordRaw) === '-');
-            $isNoCabEmpty = ($noCabRaw === null || trim((string)$noCabRaw) === '' || trim((string)$noCabRaw) === '-');
+            $isIdEmpty    = ($idRecordRaw === null || trim((string) $idRecordRaw) === '' || trim((string) $idRecordRaw) === '-');
+            $isNoCabEmpty = ($noCabRaw === null || trim((string) $noCabRaw) === '' || trim((string) $noCabRaw) === '-');
 
             if ($isIdEmpty && $isNoCabEmpty) {
                 $this->skippedCount++;
                 return null;
             }
 
-            $noCab = $this->clean($noCabRaw);
+            $noCab = $this->clean($noCabRaw !== null ? (string) $noCabRaw : null);
+
+            // Paksa 5 digit jika numerik (jaga leading zero)
+            if ($noCab !== null && ctype_digit($noCab)) {
+                $noCab = str_pad($noCab, 5, '0', STR_PAD_LEFT);
+            }
 
             if (empty($noCab)) {
                 $this->skippedCount++;
@@ -401,10 +414,8 @@ class UnitKemitraanImport implements
                 'len_perubahan_unit'       => $this->clean($row[85] ?? null),
                 'no_cab_bimba_unit'        => $this->clean($row[86] ?? null),
 
-                // ===== YANG DIPERBAIKI =====
                 'lampiran_jarak_stokis_1'  => $this->toSafeDecimal($row[87] ?? null),
                 'lampiran_jarak_stokis_2'  => $this->toSafeDecimal($row[88] ?? null),
-                // ============================
 
                 'keterangan_stokis_1'      => $this->clean($row[89] ?? null),
                 'keterangan_stokis_2'      => $this->clean($row[90] ?? null),
@@ -442,12 +453,24 @@ class UnitKemitraanImport implements
                 'mitra_pengelolaan'        => $this->getMitraPengelolaan($status),
             ];
 
-            UnitKemitraan::updateOrCreate(
-                ['no_cab' => $noCab],
-                $data
-            );
+            // =====================================================
+            // LOGIKA: INSERT / UPDATE / SKIP
+            // =====================================================
+            $existing = UnitKemitraan::where('no_cab', $noCab)->first();
 
-            $this->successCount++;
+            if ($existing) {
+                if ($this->hasChanges($existing, $data)) {
+                    $existing->update($data);
+                    $this->successCount++;
+                } else {
+                    // Tidak ada perubahan → skip
+                    $this->skippedCount++;
+                }
+            } else {
+                // Data baru
+                UnitKemitraan::create($data);
+                $this->successCount++;
+            }
 
         } catch (Throwable $e) {
             $this->failedCount++;
@@ -486,7 +509,7 @@ class UnitKemitraanImport implements
                     'success'     => $this->successCount,
                     'failed'      => $this->failedCount,
                     'skipped'     => $this->skippedCount,
-                    'failed_rows' => array_slice($this->failedRows, 0, 20), // batasi agar log tidak terlalu besar
+                    'failed_rows' => array_slice($this->failedRows, 0, 20),
                 ]);
             },
         ];

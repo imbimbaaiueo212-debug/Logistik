@@ -77,15 +77,16 @@
 
     <!-- LOGO -->
     <div class="p-6 border-b border-blue-700 flex items-center justify-between">
-        <div x-show="open">
-            <h1 class="text-xl font-bold">biMBA</h1>
-            <p class="text-blue-200 text-xs">Logistik</p>
-        </div>
-
-        <button @click="toggle()">
-            <i class="fas fa-bars"></i>
-        </button>
+    <div x-show="open">
+        <img src="{{ asset('assets/img/logotulisan.png') }}" 
+             alt="biMBA Logistik" 
+             class="h-9 w-auto object-contain">
     </div>
+
+    <button @click="toggle()">
+        <i class="fas fa-bars"></i>
+    </button>
+</div>
 
     <!-- MENU -->
     <div class="flex-1 px-2 py-4 overflow-y-auto">

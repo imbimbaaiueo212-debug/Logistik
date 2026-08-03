@@ -12,16 +12,10 @@
 
     <!-- Left Side: Logo -->
     <div class="flex items-center">
-        <h1 class="text-3xl font-bold tracking-[-0.04em] leading-none"
-            style="font-family: 'Fredoka', sans-serif;">
-            <span style="color:#000e8e;">b</span>
-            <span style="color:#000e8e;">i</span>
-            <span style="color:#f44040;">M</span>
-            <span style="color:#000e8e;">B</span>
-            <span style="color:#000e8e;">A</span>
-            <span style="color:#1e40af;">-AIUEO</span>
-        </h1>
-    </div>
+    <img src="{{ asset('assets/img/logotulisan.png') }}" 
+         alt="biMBA-AIUEO" 
+         class="h-10 w-auto object-contain">
+</div>
 
     <!-- Center: Menu -->
     <div class="flex items-center gap-8 text-sm font-medium">
