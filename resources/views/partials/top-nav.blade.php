@@ -12,7 +12,7 @@
 
     <!-- Left Side: Logo -->
     <div class="flex items-center">
-    <img src="{{ asset('assets/img/logotulisan.png') }}" 
+    <img src="/template/assets/img/logotulisan.png" 
          alt="biMBA-AIUEO" 
          class="h-10 w-auto object-contain">
 </div>

@@ -77,11 +77,11 @@
 
     <!-- LOGO -->
     <div class="p-6 border-b border-blue-700 flex items-center justify-between">
-    <div x-show="open">
-        <img src="{{ asset('assets/img/logotulisan.png') }}" 
-             alt="biMBA Logistik" 
-             class="h-9 w-auto object-contain">
-    </div>
+    <div class="flex items-center">
+    <img src="/template/assets/img/logotulisan.png" 
+         alt="biMBA-AIUEO" 
+         class="h-10 w-auto object-contain">
+</div>
 
     <button @click="toggle()">
         <i class="fas fa-bars"></i>
