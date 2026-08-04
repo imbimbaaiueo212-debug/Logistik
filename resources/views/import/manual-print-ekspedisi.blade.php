@@ -245,17 +245,18 @@
 
                 <td class="col-catatan text-left" style="font-size:8.8px;">
                     @php
-                        $catatan = $item->ket
+                        $raw = $item->ket
                             ?? $item->manualOrder?->catatan
                             ?? '';
 
-                        $catatan = preg_replace(
-                            '/Di proses bulk pada \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:?\s*/i',
-                            '',
-                            $catatan
-                        );
+                        $catatan = '-';
 
-                        echo \Illuminate\Support\Str::limit(trim($catatan), 80);
+                        // Ambil hanya catatan yang ditulis saat bulk
+                        if (preg_match('/Di proses bulk pada \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:?\s*:?\s*(.+)$/is', $raw, $m)) {
+                            $catatan = trim($m[1]);
+                        }
+
+                        echo \Illuminate\Support\Str::limit($catatan ?: '-', 80);
                     @endphp
                 </td>
             </tr>
