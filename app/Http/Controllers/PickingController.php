@@ -243,7 +243,7 @@ class PickingController extends Controller
         ->update(['picking_generated' => false]);
 
     // Hapus Picking
-    $picking->items()->delete();
+   $picking->pickingItems()->delete();
     $picking->delete();
 
     return redirect()->back()
@@ -303,8 +303,8 @@ public function updateStatus(Request $request)
             'status_persiapan' => 'required|in:Belum,Sudah',
         ]);
 
-        $picking = Picking::with(['items','jakartaAktif'])
-            ->findOrFail($request->id);
+        $picking = Picking::with(['pickingItems','jakartaAktif'])
+    ->findOrFail($request->id);
 
         $picking->status_persiapan = $request->status_persiapan;
 
