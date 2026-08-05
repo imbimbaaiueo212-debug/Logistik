@@ -25,38 +25,46 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    
-                    <!-- Jakarta Aktif -->
-                    <a href="{{ route('picking.jakarta.aktif') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">📦</div>
-                            <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
-                            <p class="text-gray-500 text-sm">Picking List Jakarta Aktif</p>
-                        </div>
-                    </a>
+    
+                <!-- Jakarta Aktif -->
+                <a href="{{ route('picking.jakarta.aktif') }}" class="group">
+                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                        <div class="text-5xl mb-4">📦</div>
+                        <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
+                        <p class="text-gray-500 text-sm">Picking List Jakarta Aktif</p>
+                    </div>
+                </a>
 
-                    <a href="#" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">📦</div>
-                            <h3 class="text-2xl font-semibold mb-2">Jakarta Pasif</h3>
-                        </div>
-                    </a>
+                <a href="#" class="group">
+                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                        <div class="text-5xl mb-4">📦</div>
+                        <h3 class="text-2xl font-semibold mb-2">Jakarta Pasif</h3>
+                    </div>
+                </a>
 
-                    <a href="#" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">📦</div>
-                            <h3 class="text-2xl font-semibold mb-2">InterVio (DLC)</h3>
-                        </div>
-                    </a>
+                <a href="#" class="group">
+                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                        <div class="text-5xl mb-4">📦</div>
+                        <h3 class="text-2xl font-semibold mb-2">InterVio (DLC)</h3>
+                    </div>
+                </a>
 
-                    <a href="#" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">📦</div>
-                            <h3 class="text-2xl font-semibold mb-2">English biMBA Talk</h3>
-                        </div>
-                    </a>
+                <a href="#" class="group">
+                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                        <div class="text-5xl mb-4">📦</div>
+                        <h3 class="text-2xl font-semibold mb-2">English biMBA Talk</h3>
+                    </div>
+                </a>
 
-                </div>
+                <!-- Order Manual -->
+                <a href="{{ route('picking.order-manual') }}" class="group">
+                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                        <div class="text-5xl mb-4">📝</div>
+                        <h3 class="text-2xl font-semibold mb-2">Order Manual</h3>
+                    </div>
+                </a>
+
+            </div>
 
                 <!-- Tombol Kembali -->
                 <div class="mt-10 flex justify-center">

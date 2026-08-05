@@ -375,4 +375,67 @@ QcOutgoing::updateOrCreate(
     }
 }
 
+public function orderManual(Request $request)
+{
+    $query = \App\Models\ManualPicking::with(['manualRealisasi', 'pickingItems']);
+
+    // Filter Kategori
+    if ($request->filled('kategori')) {
+        $query->where('kategori_order', $request->kategori);
+    }
+
+    // Filter No PL / ID Pesan
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('no_pl', $search)
+              ->orWhere('id_pesan', $search);
+        });
+    }
+
+    // Filter Nama Unit
+    if ($request->filled('nama_unit')) {
+        $query->where('nama_unit', $request->nama_unit);
+    }
+
+    // Filter Grup
+    if ($request->filled('grup')) {
+        $query->where('grup', $request->grup);
+    }
+
+    // Filter Tanggal
+    if ($request->filled('start_date')) {
+        $query->whereDate('tgl_order', '>=', $request->start_date);
+    }
+
+    if ($request->filled('end_date')) {
+        $query->whereDate('tgl_order', '<=', $request->end_date);
+    }
+
+    $data = $query->orderBy('created_at', 'desc')
+                  ->paginate(20)
+                  ->appends($request->query());
+
+    // ===== Data untuk Select2 =====
+    $noPlList = \App\Models\ManualPicking::whereNotNull('no_pl')
+        ->where('no_pl', '!=', '')
+        ->distinct()
+        ->orderBy('no_pl')
+        ->pluck('no_pl');
+
+    $namaUnitList = \App\Models\ManualPicking::whereNotNull('nama_unit')
+        ->where('nama_unit', '!=', '')
+        ->distinct()
+        ->orderBy('nama_unit')
+        ->pluck('nama_unit');
+
+    $grupList = \App\Models\ManualPicking::whereNotNull('grup')
+        ->where('grup', '!=', '')
+        ->distinct()
+        ->orderBy('grup')
+        ->pluck('grup');
+
+    return view('picking.order-manual', compact('data', 'noPlList', 'namaUnitList', 'grupList'));
+}
+
 }

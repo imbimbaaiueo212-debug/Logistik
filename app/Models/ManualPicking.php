@@ -65,4 +65,11 @@ class ManualPicking extends Model
     {
         return $this->belongsTo(ManualOrder::class);
     }
+    public function manualRealisasi()
+    {
+        return $this->belongsTo(
+            ManualRealisasi::class,
+            'manual_realisasi_id'
+        );
+    }
 }

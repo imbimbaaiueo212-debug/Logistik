@@ -294,10 +294,10 @@ class UnitKemitraanImport implements
 
             $noCab = $this->clean($noCabRaw !== null ? (string) $noCabRaw : null);
 
-            // Paksa 5 digit jika numerik (jaga leading zero)
-            if ($noCab !== null && ctype_digit($noCab)) {
-                $noCab = str_pad($noCab, 5, '0', STR_PAD_LEFT);
-            }
+            // HAPUS / COMMENT bagian ini:
+            // if ($noCab !== null && ctype_digit($noCab)) {
+            //     $noCab = str_pad($noCab, 5, '0', STR_PAD_LEFT);
+            // }
 
             if (empty($noCab)) {
                 $this->skippedCount++;

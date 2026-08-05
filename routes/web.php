@@ -285,6 +285,8 @@ Route::prefix('picking')->name('picking.')->group(function () {
         ->name('pic.update');
     Route::post('/status/update', [PickingController::class, 'updateStatus'])
         ->name('status.update');
+   Route::get('/order-manual', [PickingController::class, 'orderManual'])
+    ->name('order-manual');
 });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
