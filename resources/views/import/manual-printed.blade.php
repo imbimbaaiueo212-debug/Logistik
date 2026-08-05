@@ -168,7 +168,7 @@
                         <tr class="header2">
                             <th class="col-id">ID ORDER</th>
                             <th class="col-unit">NAMA UNIT</th>
-                            <th class="col-kategori">KATEGORI</th>
+                            <th class="col-kategori">GROUP</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -243,34 +243,75 @@
                                     <div>{{ $item->pengiriman ?? '-' }}</div>
                                     <div class="text-xs text-gray-500">{{ $item->service_pengiriman ?? '-' }}</div>
                                 </td>
-                                <td class="text-center text-xs">
-                                    @php
-                                        $catatan = $item->manualOrder?->catatan 
-                                                ?? $item->manualOrder?->notes 
-                                                ?? $item->ket 
-                                                ?? '';
+                                {{-- CATATAN (bisa diedit) --}}
+                                    <td class="text-center text-xs relative" style="min-width: 180px;">
+    @php
+        $raw = $item->manualOrder?->catatan 
+            ?? $item->manualOrder?->notes 
+            ?? $item->ket 
+            ?? '';
 
-                                        // 1. Hapus baris yang hanya berisi CP:
-                                        $display = preg_replace('/^CP:.*$/mi', '', $catatan);
+        // === Bersihkan catatan sistem ===
+        $lines = preg_split('/\r\n|\r|\n/', $raw);
+        $cleanLines = [];
 
-                                        // 2. Hapus NAMA_MISMATCH (jika ada di baris sendiri)
-                                        $display = preg_replace('/^NAMA_MISMATCH.*$/mi', '', $display);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
 
-                                        // 3. Hapus prefix "Di proses bulk pada ... :" (case-insensitive)
-                                        $display = preg_replace('/Di\s+proses\s+bulk\s+pada\s+[\d\/:\s]+[:\s]*/i', '', $display);
+            // Skip baris sistem
+            if (preg_match('/^CP\s*:/i', $line)) continue;
+            if (preg_match('/NAMA_MISMATCH/i', $line)) continue;
+            if (preg_match('/Di\s+proses\s+bulk\s+pada/i', $line)) continue;
+            if (preg_match('/^[\|\s\-]+$/', $line)) continue;
 
-                                        // 4. Bersihkan sisa baris kosong, pipe, dan spasi berlebih
-                                        $display = preg_replace('/[\r\n]+/', ' ', $display);
-                                        $display = preg_replace('/\s*\|\s*/', ' ', $display);
-                                        $display = trim(preg_replace('/\s+/', ' ', $display));
-                                    @endphp
+            // Jika ada "CP:" di tengah baris, potong dari situ
+            if (preg_match('/^(.*?)\s*\|?\s*CP\s*:.*$/i', $line, $m)) {
+                $line = trim($m[1]);
+                if ($line === '' || preg_match('/^[\|\s\-]+$/', $line)) continue;
+            }
 
-                                    @if($display !== '')
-                                        <span class="inline-block bg-gray-100 px-3 py-1 rounded-md">{{ strtoupper($display) }}</span>
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
+            $cleanLines[] = $line;
+        }
+
+        $display = implode(' ', $cleanLines);
+        $display = trim(preg_replace('/\s+/', ' ', $display));
+        $display = trim(preg_replace('/\s*\|\s*/', ' ', $display));
+    @endphp
+
+    <div class="catatan-display group relative" data-id="{{ $item->id }}">
+        <div class="flex items-center justify-center gap-1">
+            <span class="catatan-text inline-block {{ $display !== '' ? 'bg-gray-100 px-3 py-1 rounded-md' : 'text-gray-400' }}">
+                {{ $display !== '' ? strtoupper($display) : '-' }}
+            </span>
+            <button type="button"
+                    onclick="editCatatan(this)"
+                    class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-800 p-1"
+                    title="Edit catatan">
+                <i class="fa-solid fa-pen-to-square text-sm"></i>
+            </button>
+        </div>
+    </div>
+
+    {{-- Form edit - hanya isi catatan yang sudah bersih --}}
+    <div class="catatan-edit hidden mt-1" data-id="{{ $item->id }}">
+        <textarea rows="2"
+                  class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  placeholder="Tulis catatan...">{{ $display }}</textarea>
+        <div class="flex gap-1 mt-1.5 justify-center">
+            <button type="button"
+                    onclick="saveCatatan(this, {{ $item->id }})"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-lg font-medium">
+                Simpan
+            </button>
+            <button type="button"
+                    onclick="cancelEditCatatan(this)"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded-lg">
+                Batal
+            </button>
+        </div>
+    </div>
+</td>
 
                                 <td class="text-center">
                                     <button type="button"
@@ -440,6 +481,101 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 });
+function editCatatan(btn) {
+    const cell = btn.closest('td');
+    const display = cell.querySelector('.catatan-display');
+    const edit = cell.querySelector('.catatan-edit');
+
+    display.classList.add('hidden');
+    edit.classList.remove('hidden');
+
+    // Focus ke textarea
+    const textarea = edit.querySelector('textarea');
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+function cancelEditCatatan(btn) {
+    const cell = btn.closest('td');
+    const display = cell.querySelector('.catatan-display');
+    const edit = cell.querySelector('.catatan-edit');
+
+    edit.classList.add('hidden');
+    display.classList.remove('hidden');
+}
+
+function saveCatatan(btn, id) {
+    const cell = btn.closest('td');
+    const textarea = cell.querySelector('textarea');
+    const catatan = textarea.value.trim();
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    fetch(`{{ url('/import/manual-printed') }}/${id}/catatan`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ catatan: catatan })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Update tampilan
+            const textSpan = cell.querySelector('.catatan-text');
+            const cleaned = cleanCatatanDisplay(catatan);
+
+            if (cleaned) {
+                textSpan.className = 'catatan-text inline-block bg-gray-100 px-3 py-1 rounded-md';
+                textSpan.textContent = cleaned.toUpperCase();
+            } else {
+                textSpan.className = 'catatan-text inline-block text-gray-400';
+                textSpan.textContent = '-';
+            }
+
+            // Tutup mode edit
+            cancelEditCatatan(btn);
+
+            // Optional: toast sederhana
+            showToast('Catatan berhasil disimpan');
+        } else {
+            alert(data.message || 'Gagal menyimpan catatan');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Terjadi kesalahan saat menyimpan');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = 'Simpan';
+    });
+}
+
+// Helper: bersihkan catatan untuk tampilan (sama logic PHP)
+function cleanCatatanDisplay(text) {
+    if (!text) return '';
+    let display = text;
+    display = display.replace(/^CP:.*$/gmi, '');
+    display = display.replace(/^NAMA_MISMATCH.*$/gmi, '');
+    display = display.replace(/Di\s+proses\s+bulk\s+pada\s+[\d\/:\s]+[:\s]*/gi, '');
+    display = display.replace(/[\r\n]+/g, ' ');
+    display = display.replace(/\s*\|\s*/g, ' ');
+    display = display.replace(/\s+/g, ' ').trim();
+    return display;
+}
+
+function showToast(message) {
+    // Toast sederhana
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
 </script>
 </body>
 </html>

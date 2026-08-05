@@ -156,14 +156,14 @@
     if (empty($kategoriJudul) && request()->has('kategori')) {
         $kategoriJudul = strtoupper(request('kategori'));
     }
-@endphp
+                    @endphp
 
-<span class="header-title" style="font-size: 20px; line-height: 1;">
-    PICKING LIST
-    @if($kategoriJudul)
-        <span style="font-size: 20px; color: #000000;">| {{ $kategoriJudul }}</span>
-    @endif
-</span><br>
+                    <span class="header-title" style="font-size: 20px; line-height: 1;">
+                        PICKING LIST
+                        @if($kategoriJudul)
+                            <span style="font-size: 20px; color: #000000;">| {{ $kategoriJudul }}</span>
+                        @endif
+                    </span><br>
                 <span style="font-size: 15px; font-weight: 600; margin-top: -8px; display: inline-block;">
                     {{ str_replace(['Stokis ', 'Stokis'], '', $item->nama_stokis ?? 'Jakarta Aktif') }}
                 </span>

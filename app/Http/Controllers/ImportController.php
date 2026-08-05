@@ -1881,4 +1881,38 @@ public function syncNoPsManualExisting()
         ->route('import.manual')
         ->with('success', "✅ no_ps tersinkron ke Realisasi/Picking: {$updated} order");
 }
+
+/**
+ * Update catatan Manual Realisasi (dari halaman index)
+ */
+public function updateManualCatatan(Request $request, $id)
+{
+    $request->validate([
+        'catatan' => 'nullable|string|max:2000',
+    ]);
+
+    $realisasi = ManualRealisasi::with('manualOrder')->findOrFail($id);
+
+    $catatan = trim($request->catatan ?? '');
+
+    DB::transaction(function () use ($realisasi, $catatan) {
+        // Update ket di ManualRealisasi
+        $realisasi->update([
+            'ket' => $catatan ?: null,
+        ]);
+
+        // Update juga di ManualOrder (sumber utama)
+        if ($realisasi->manualOrder) {
+            $realisasi->manualOrder->update([
+                'catatan' => $catatan ?: null,
+            ]);
+        }
+    });
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Catatan berhasil diperbarui',
+        'catatan' => $catatan,
+    ]);
+}
 }

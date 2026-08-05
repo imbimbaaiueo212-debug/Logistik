@@ -107,36 +107,41 @@ Route::prefix('import')
             ->name('sync-pesanan-majalah');
 
         // =====================================================
-        // MANUAL PRINTED
-        // =====================================================
-        Route::get('/manual-printed', [ImportController::class, 'manualPrinted'])
-            ->name('manual-printed');
+// MANUAL PRINTED
+// =====================================================
+Route::get('/manual-printed', [ImportController::class, 'manualPrinted'])
+    ->name('manual-printed');
 
-        Route::get('/manual-printed/print-pdf', [ImportController::class, 'printManualRealisasiPdf'])
-            ->name('manual-printed.pdf');
+Route::get('/manual-printed/print-pdf', [ImportController::class, 'printManualRealisasiPdf'])
+    ->name('manual-printed.pdf');
 
-        Route::get('/manual-printed/picking/{id}', [ImportController::class, 'printManualPickingList'])
-            ->name('manual-printed.picking');
+Route::get('/manual-printed/picking/{id}', [ImportController::class, 'printManualPickingList'])
+    ->name('manual-printed.picking');
 
-        Route::get('/manual-printed/picking-pdf/{id}', [ImportController::class, 'printManualPickingListPdf'])
-            ->name('manual-printed.picking-pdf');
+Route::get('/manual-printed/picking-pdf/{id}', [ImportController::class, 'printManualPickingListPdf'])
+    ->name('manual-printed.picking-pdf');
 
-        Route::delete('/manual-printed/{id}', [ImportController::class, 'deleteManualRealisasi'])
-            ->name('manual-printed.destroy');
+Route::delete('/manual-printed/{id}', [ImportController::class, 'deleteManualRealisasi'])
+    ->name('manual-printed.destroy');
 
-        // Cetak lanjutan
-        Route::get('/manual-printed/pemesanan', [ImportController::class, 'printManualPemesanan'])
-            ->name('manual-print-pemesanan');
+// Update catatan
+Route::post('/manual-printed/{id}/catatan', [ImportController::class, 'updateManualCatatan'])
+    ->name('manual-printed.update-catatan');
 
-        Route::get('/manual-printed/qc', [ImportController::class, 'printManualQC'])
-            ->name('manual-print-qc');
+// Cetak lanjutan
+Route::get('/manual-printed/pemesanan', [ImportController::class, 'printManualPemesanan'])
+    ->name('manual-print-pemesanan');
 
-        Route::get('/manual-printed/packing', [ImportController::class, 'printManualPacking'])
-            ->name('manual-print-packing');
+Route::get('/manual-printed/qc', [ImportController::class, 'printManualQC'])
+    ->name('manual-print-qc');
 
-        Route::get('/manual-printed/ekspedisi', [ImportController::class, 'printManualEkspedisi'])
-            ->name('manual-print-ekspedisi');
-            Route::post('/manual/sync-no-ps', [ImportController::class, 'syncNoPsManualExisting'])
+Route::get('/manual-printed/packing', [ImportController::class, 'printManualPacking'])
+    ->name('manual-print-packing');
+
+Route::get('/manual-printed/ekspedisi', [ImportController::class, 'printManualEkspedisi'])
+    ->name('manual-print-ekspedisi');
+
+Route::post('/manual/sync-no-ps', [ImportController::class, 'syncNoPsManualExisting'])
     ->name('manual.sync-no-ps');
     });
 

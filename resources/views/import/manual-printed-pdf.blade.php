@@ -318,23 +318,27 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
             </td>
 
             {{-- CATATAN --}}
-            <td class="text-center" style="font-size:8.8px;">
-                @php
-                    $raw = $item->ket
-                        ?? $item->manualOrder?->catatan
-                        ?? '';
+           {{-- CATATAN --}}
+                <td class="text-center" style="font-size:8.8px;">
+                    @php
+                        $raw = $item->ket
+                            ?? $item->manualOrder?->catatan
+                            ?? $item->manualOrder?->notes
+                            ?? '';
 
-                    $catatan = '-';
+                        // Bersihkan (sama seperti di index)
+                        $display = preg_replace('/^CP:.*$/mi', '', $raw);
+                        $display = preg_replace('/^NAMA_MISMATCH.*$/mi', '', $display);
+                        $display = preg_replace('/Di\s+proses\s+bulk\s+pada\s+[\d\/:\s]+[:\s]*/i', '', $display);
+                        $display = preg_replace('/[\r\n]+/', ' ', $display);
+                        $display = preg_replace('/\s*\|\s*/', ' ', $display);
+                        $display = trim(preg_replace('/\s+/', ' ', $display));
 
-                    // Ambil hanya catatan yang ditulis saat bulk
-                    if (preg_match('/Di proses bulk pada \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:?\s*:?\s*(.+)$/is', $raw, $m)) {
-                        $catatan = trim($m[1]);
-                    }
+                        $catatan = $display !== '' ? strtoupper($display) : '-';
+                    @endphp
 
-                    // Jika tidak ada catatan bulk, biarkan kosong (-)
-                    echo \Illuminate\Support\Str::limit($catatan ?: '-', 65);
-                @endphp
-            </td>
+                    {{ \Illuminate\Support\Str::limit($catatan, 65) }}
+                </td>
 
             {{-- STATUS PRINT --}}
             <td class="text-center">

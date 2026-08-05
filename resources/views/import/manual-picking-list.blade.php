@@ -173,9 +173,6 @@
             <tr>
                 <td style="width:60%; border:none; vertical-align:top;">
                     <strong>{{ $no_pl ?? $item->no_pl ?? '-' }}</strong>
-                    @if(!empty($item->no_ps))
-                        | No. PS: <strong>{{ $item->no_ps }}</strong>
-                    @endif
                     <br>
 
                     <strong>{{ $item->nama_unit ?? '-' }}</strong><br>

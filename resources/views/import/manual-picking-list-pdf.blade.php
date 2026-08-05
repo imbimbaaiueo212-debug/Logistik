@@ -163,6 +163,10 @@
         </div>
         <div class="header-sub">
             {{ str_replace(['Stokis ', 'Stokis'], '', $item->nama_stokis ?? 'Manual') }}
+             @if(!empty($item->grup))
+                    <span style="font-size:13px; font-weight:bold; color:#555;">(Group {{ $item->grup }})</span>
+                @endif
+                | {{ $item->no_ps ?? '-' }}
         </div>
     </div>
 
@@ -171,9 +175,6 @@
         <tr>
             <td class="info-left">
                 <strong>{{ $no_pl ?? $item->no_pl ?? '-' }}</strong>
-                @if(!empty($item->no_ps))
-                    | No. PS: <strong>{{ $item->no_ps }}</strong>
-                @endif
                 <br>
 
                 <strong>{{ $item->nama_unit ?? '-' }}</strong><br>
