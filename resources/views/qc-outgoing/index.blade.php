@@ -25,16 +25,18 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-5 gap-6">
 
+                    <!-- Jakarta Aktif -->
                     <a href="{{ route('qc-outgoing.jakarta-aktif') }}" class="group">
-                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                        <div class="text-5xl mb-4">📦</div>
-                        <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
-                        <p class="text-gray-500 text-sm">QC Outgoing Jakarta Aktif</p>
-                    </div>
-                </a>
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
+                            <div class="text-5xl mb-4">📦</div>
+                            <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
+                            <p class="text-gray-500 text-sm">QC Outgoing Jakarta Aktif</p>
+                        </div>
+                    </a>
 
+                    <!-- Jakarta Pasif -->
                     <a href="#" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">📦</div>
@@ -43,6 +45,7 @@
                         </div>
                     </a>
 
+                    <!-- InterVio (DLC) -->
                     <a href="#" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">📦</div>
@@ -51,11 +54,21 @@
                         </div>
                     </a>
 
+                    <!-- English biMBA Talk -->
                     <a href="#" class="group">
                         <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                             <div class="text-5xl mb-4">📦</div>
                             <h3 class="text-2xl font-semibold mb-2">English biMBA Talk</h3>
                             <p class="text-gray-500 text-sm">QC Outgoing EBT</p>
+                        </div>
+                    </a>
+
+                    <!-- ===== ORDER MANUAL (BARU) ===== -->
+                    <a href="{{ route('qc-outgoing.order-manual') }}" class="group">
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full border-2 border-indigo-100 hover:border-indigo-400">
+                            <div class="text-5xl mb-4">📋</div>
+                            <h3 class="text-2xl font-semibold mb-2">Order Manual</h3>
+                            <p class="text-gray-500 text-sm">QC Outgoing dari Picking Manual</p>
                         </div>
                     </a>
 

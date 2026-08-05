@@ -72,4 +72,13 @@ class ManualPicking extends Model
             'manual_realisasi_id'
         );
     }
+    public function manualQcOutgoing()
+{
+    return $this->hasOne(ManualQcOutgoing::class);
+}
+public function product()
+{
+    return $this->belongsTo(\App\Models\Product::class, 'product_id'); 
+    // sesuaikan foreign key jika nama kolomnya berbeda (misal: barang_id, item_id, dll)
+}
 }

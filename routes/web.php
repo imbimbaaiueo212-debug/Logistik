@@ -266,8 +266,8 @@ Route::prefix('picking')->name('picking.')->group(function () {
     Route::post('/store', [PickingController::class, 'store'])->name('store');
     
     // Edit & Update
-    Route::get('/{id}/edit', [PickingController::class, 'edit'])->name('edit');           // ← Tambahkan ini
-    Route::put('/{id}', [PickingController::class, 'update'])->name('update');           // ← Tambahkan ini
+    Route::get('/{id}/edit', [PickingController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [PickingController::class, 'update'])->name('update');
     
     // Generate Massal
     Route::post('/generate-all', [PickingController::class, 'generateAll'])->name('generate-all');
@@ -278,15 +278,23 @@ Route::prefix('picking')->name('picking.')->group(function () {
     // Jakarta Aktif
     Route::get('/jakarta/aktif', [PickingController::class, 'jakartaAktif'])->name('jakarta.aktif');
     
-    // Checklist
-    Route::post('/checklist/update', [PickingController::class, 'updateChecklist'])
-         ->name('checklist.update');   // ini sudah benar
-    Route::post('/pic/update', [PickingController::class, 'updatePic'])
-        ->name('pic.update');
-    Route::post('/status/update', [PickingController::class, 'updateStatus'])
-        ->name('status.update');
-   Route::get('/order-manual', [PickingController::class, 'orderManual'])
-    ->name('order-manual');
+    // Checklist, PIC, Status (Normal)
+    Route::post('/checklist/update', [PickingController::class, 'updateChecklist'])->name('checklist.update');
+    Route::post('/pic/update', [PickingController::class, 'updatePic'])->name('pic.update');
+    Route::post('/status/update', [PickingController::class, 'updateStatus'])->name('status.update');
+
+    // Order Manual (list)
+    Route::get('/order-manual', [PickingController::class, 'orderManual'])->name('order-manual');
+
+    // ===== MANUAL PICKING (BARU) =====
+    Route::post('/manual/checklist', [PickingController::class, 'updateChecklistManual'])
+         ->name('manual.checklist.update');
+
+    Route::post('/manual/status', [PickingController::class, 'updateStatusManual'])
+         ->name('manual.status.update');
+
+    Route::post('/manual/pic', [PickingController::class, 'updatePicManual'])
+         ->name('manual.pic.update');
 });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
@@ -488,6 +496,8 @@ Route::prefix('qc-outgoing')
 
         Route::post('/store', [App\Http\Controllers\QcOutgoingController::class, 'qcStore'])
              ->name('store');
+        Route::get('/order-manual', [QcOutgoingController::class, 'orderManual'])
+            ->name('order-manual');
     });
 
 //ORDER MANUAL

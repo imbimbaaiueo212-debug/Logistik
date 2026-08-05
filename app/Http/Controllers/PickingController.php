@@ -438,4 +438,99 @@ public function orderManual(Request $request)
     return view('picking.order-manual', compact('data', 'noPlList', 'namaUnitList', 'grupList'));
 }
 
+// ==================== MANUAL PICKING ====================
+
+public function updateChecklistManual(Request $request)
+{
+    try {
+        $picking = \App\Models\ManualPicking::findOrFail($request->id);
+        $checked = $request->boolean('checked');
+
+        if ($checked) {
+            $picking->tgl_terima  = now();
+            $picking->tgl_picking = now()->toDateString();
+        } else {
+            $picking->tgl_terima        = null;
+            $picking->tgl_picking       = null;
+            $picking->status_persiapan  = 'Belum';
+        }
+
+        $picking->save();
+
+        return response()->json(['success' => true]);
+
+    } catch (\Throwable $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+public function updatePicManual(Request $request)
+{
+    $request->validate([
+        'id'  => 'required|exists:manual_pickings,id',
+        'pic' => 'nullable|in:Asep,Arif,Rama,Riky',
+    ]);
+
+    $picking = \App\Models\ManualPicking::findOrFail($request->id);
+    $picking->pic = $request->pic;
+    $picking->save();
+
+    return response()->json(['success' => true]);
+}
+
+public function updateStatusManual(Request $request)
+{
+    DB::beginTransaction();
+
+    try {
+        $request->validate([
+            'id'               => 'required|exists:manual_pickings,id',
+            'status_persiapan' => 'required|in:Belum,Sudah',
+        ]);
+
+        $picking = \App\Models\ManualPicking::with('pickingItems')
+            ->findOrFail($request->id);
+
+        $picking->status_persiapan = $request->status_persiapan;
+
+        if (!$picking->tgl_picking) {
+            $picking->tgl_picking = now()->toDateString();
+        }
+
+        $picking->save();
+
+        // ===== SAAT STATUS = SUDAH → BUAT QC MANUAL =====
+        if ($request->status_persiapan === 'Sudah') {
+
+            \App\Models\ManualQcOutgoing::updateOrCreate(
+                [
+                    'manual_picking_id' => $picking->id,
+                ],
+                [
+                    'manual_picking_id' => $picking->id,
+                    'no_pl'             => $picking->no_pl,
+                    'nama_unit'         => $picking->nama_unit,
+                    'grup'              => $picking->grup,
+                    'kategori_order'    => $picking->kategori_order ?? $picking->pesanan,
+                    'status_qc'         => 'Pending',
+                    'tgl_qc'            => now(),
+                    'created_by'        => Auth::id(),
+                ]
+            );
+        }
+
+        DB::commit();
+
+        return response()->json(['success' => true]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
 }

@@ -339,12 +339,9 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <script>
+   <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ===============================
-    // INIT SELECT2 (semua filter)
-    // ===============================
     const select2Config = {
         allowClear: true,
         width: '100%',
@@ -354,24 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    $('#filter-search').select2({
-        ...select2Config,
-        placeholder: '-- Semua --'
-    });
-
-    $('#filter-nama-unit').select2({
-        ...select2Config,
-        placeholder: '-- Semua Unit --'
-    });
-
-    $('#filter-grup').select2({
-        ...select2Config,
-        placeholder: '-- Semua Grup --'
-    });
-
-    // ===============================
-    // Fungsi lain (checklist, status, pic) tetap sama
-    // ===============================
+    $('#filter-search').select2({ ...select2Config, placeholder: '-- Semua --' });
+    $('#filter-nama-unit').select2({ ...select2Config, placeholder: '-- Semua Unit --' });
+    $('#filter-grup').select2({ ...select2Config, placeholder: '-- Semua Grup --' });
 
     function formatTanggalHariIni() {
         return new Date().toLocaleDateString('id-ID', {
@@ -425,12 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
         row.classList.toggle('processed-row', completed);
     }
 
-    // Checklist
+    // Checklist - MANUAL
     document.querySelectorAll('.checklist-item').forEach(chk => {
         chk.addEventListener('change', async function () {
             const row = this.closest('tr');
             try {
-                await postData('{{ route("picking.checklist.update") }}', {
+                await postData('{{ route("picking.manual.checklist.update") }}', {
                     id: this.dataset.id,
                     checked: this.checked
                 });
@@ -449,12 +431,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Status
+    // Status - MANUAL
     document.querySelectorAll('.status-select').forEach(select => {
         select.addEventListener('change', async function () {
             const row = this.closest('tr');
             try {
-                await postData('{{ route("picking.status.update") }}', {
+                await postData('{{ route("picking.manual.status.update") }}', {
                     id: this.dataset.id,
                     status_persiapan: this.value
                 });
@@ -472,12 +454,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // PIC
+    // PIC - MANUAL
     document.querySelectorAll('.pic-select').forEach(select => {
         select.addEventListener('change', async function () {
             const row = this.closest('tr');
             try {
-                await postData('{{ route("picking.pic.update") }}', {
+                await postData('{{ route("picking.manual.pic.update") }}', {
                     id: this.dataset.id,
                     pic: this.value
                 });
