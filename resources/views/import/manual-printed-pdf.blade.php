@@ -199,7 +199,7 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
                 STATUS RA & PL (PDF)
             </div>
             <div style="font-size:14px; font-weight:bold; color:{{ $allPrinted ? '#10b981' : '#ef4444' }};">
-                &#10003; {{ $allPrinted ? 'PRINT' : 'BELUM' }}
+                 {{ $allPrinted ? 'PRINT' : 'BELUM' }}
             </div>
         </td>
     </tr>
@@ -341,11 +341,15 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
                 </td>
 
             {{-- STATUS PRINT --}}
-            <td class="text-center">
+            <td class="text-center" style="vertical-align:middle;">
                 @if($item->picking_printed_at)
-                    <span style="color:#16a34a; font-weight:bold; font-size:8px;">PL OK</span>
+                    <div style="font-size:10px; font-weight:bold; color:#10b981;">
+                        &#10003;
+                    </div>
                 @else
-                    <span style="color:#dc2626; font-weight:bold; font-size:8px;">BELUM</span>
+                    <div style="font-size:10px; font-weight:bold; color:#ef4444;">
+                        &#10003; BELUM
+                    </div>
                 @endif
             </td>
         </tr>

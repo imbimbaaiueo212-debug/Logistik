@@ -243,21 +243,44 @@
 
                 <td class="col-cek text-center"></td>
 
-                <td class="col-catatan text-left" style="font-size:8.8px;">
+               <td class="col-catatan text-left" style="font-size:8.8px;">
                     @php
                         $raw = $item->ket
                             ?? $item->manualOrder?->catatan
+                            ?? $item->manualOrder?->notes
                             ?? '';
 
-                        $catatan = '-';
+                        // === Bersihkan catatan sistem ===
+                        $lines = preg_split('/\r\n|\r|\n/', $raw);
+                        $cleanLines = [];
 
-                        // Ambil hanya catatan yang ditulis saat bulk
-                        if (preg_match('/Di proses bulk pada \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:?\s*:?\s*(.+)$/is', $raw, $m)) {
-                            $catatan = trim($m[1]);
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+                            if ($line === '') continue;
+
+                            // Skip baris sistem
+                            if (preg_match('/^CP\s*:/i', $line)) continue;
+                            if (preg_match('/NAMA_MISMATCH/i', $line)) continue;
+                            if (preg_match('/Di\s+proses\s+bulk\s+pada/i', $line)) continue;
+                            if (preg_match('/^[\|\s\-]+$/', $line)) continue;
+
+                            // Jika ada "CP:" di tengah baris, potong dari situ
+                            if (preg_match('/^(.*?)\s*\|?\s*CP\s*:.*$/i', $line, $m)) {
+                                $line = trim($m[1]);
+                                if ($line === '' || preg_match('/^[\|\s\-]+$/', $line)) continue;
+                            }
+
+                            $cleanLines[] = $line;
                         }
 
-                        echo \Illuminate\Support\Str::limit($catatan ?: '-', 80);
+                        $display = implode(' ', $cleanLines);
+                        $display = trim(preg_replace('/\s+/', ' ', $display));
+                        $display = trim(preg_replace('/\s*\|\s*/', ' ', $display));
+
+                        $catatan = $display !== '' ? strtoupper($display) : '-';
                     @endphp
+
+                    {{ \Illuminate\Support\Str::limit($catatan, 80) }}
                 </td>
             </tr>
             @endforeach
