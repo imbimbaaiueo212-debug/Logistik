@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\BeforeImport;
 use Maatwebsite\Excel\Events\AfterImport;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Throwable;
@@ -32,15 +33,21 @@ class UnitKemitraanImport implements
     public int $failedCount  = 0;
     public int $skippedCount = 0;
     public array $failedRows = [];
+    private int $rowCounter  = 0;
+
+    public function __construct()
+    {
+        Log::info('=== UnitKemitraanImport CONSTRUCTOR dipanggil ===');
+    }
 
     public function batchSize(): int
     {
-        return 300;
+        return 200;
     }
 
     public function chunkSize(): int
     {
-        return 300;
+        return 200;
     }
 
     public function startRow(): int
@@ -173,12 +180,13 @@ class UnitKemitraanImport implements
             }
 
             $value = trim((string) $value);
-            $formats = ['d/m/Y', 'd-M-y', 'd-M-Y', 'd-m-Y', 'Y-m-d', 'd-M-y'];
+            $formats = ['d/m/Y', 'd-M-y', 'd-M-Y', 'd-m-Y', 'Y-m-d', 'd-M-y', 'd/m/Y H:i:s', 'Y-m-d H:i:s'];
 
             foreach ($formats as $format) {
                 try {
                     return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
                 } catch (Throwable $e) {
+                    // continue
                 }
             }
 
@@ -252,35 +260,28 @@ class UnitKemitraanImport implements
      * Jika baris masih 1 kolom (delimiter tidak terbaca), pecah manual
      */
     private function normalizeRow(array $row): array
-{
-    // kalau csv masih menjadi satu kolom
-    if (count($row) === 1 && is_string($row[0]) && str_contains($row[0], ';')) {
-        $row = str_getcsv($row[0], ';', '"', '\\');
-    }
-
-    // reindex
-    $row = array_values($row);
-
-    // hilangkan karakter BOM
-    foreach ($row as $k => $v) {
-
-        if (is_string($v)) {
-
-            $v = preg_replace('/^\xEF\xBB\xBF/', '', $v);
-
-            // ubah nbsp menjadi spasi biasa
-            $v = str_replace("\xc2\xa0", ' ', $v);
-
-            // hapus karakter control
-            $v = preg_replace('/[\x00-\x1F\x7F]/u', '', $v);
-
-            $row[$k] = trim($v);
+    {
+        // fallback kalau csv masih menjadi satu kolom
+        if (count($row) <= 3 && isset($row[0]) && is_string($row[0]) && str_contains($row[0], ';')) {
+            $row = str_getcsv($row[0], ';', '"', '\\');
         }
-    }
 
-    // pastikan jumlah kolom selalu cukup
-    return array_pad($row,150,null);
-}
+        // reindex
+        $row = array_values($row);
+
+        // hilangkan karakter BOM & control
+        foreach ($row as $k => $v) {
+            if (is_string($v)) {
+                $v = preg_replace('/^\xEF\xBB\xBF/', '', $v);
+                $v = str_replace(["\xc2\xa0", "\x00"], ' ', $v);
+                $v = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v);
+                $row[$k] = trim($v);
+            }
+        }
+
+        // pastikan jumlah kolom selalu cukup
+        return array_pad($row, 150, null);
+    }
 
     // =========================================================
     // MODEL
@@ -288,20 +289,28 @@ class UnitKemitraanImport implements
 
     public function model(array $row)
     {
-        try {
-            $row = $this->normalizeRow($row);
-            if (count($row) < 131) {
+        $this->rowCounter++;
 
-            Log::warning('Jumlah kolom tidak sesuai',[
-                'jumlah' => count($row),
-                'row' => $row,
+        // Debug log 5 baris pertama + setiap 500 baris
+        if ($this->rowCounter <= 5 || $this->rowCounter % 500 === 0) {
+            Log::info("Processing row #{$this->rowCounter}", [
+                'jumlah_kolom_raw' => count($row),
+                'sample' => [
+                    0 => $row[0] ?? null,
+                    1 => $row[1] ?? null, // ID Record
+                    2 => $row[2] ?? null, // No Cab
+                    3 => $row[3] ?? null,
+                    4 => $row[4] ?? null, // Status
+                ]
             ]);
-
-            return null;
         }
 
-            $idRecordRaw = $row[0] ?? null;
-            $noCabRaw    = $row[1] ?? null;
+        try {
+            $row = $this->normalizeRow($row);
+
+            // Karena ada kolom "Header" di paling kiri → semua index +1
+            $idRecordRaw = $row[1] ?? null;
+            $noCabRaw    = $row[2] ?? null;
 
             $idRecord = $this->cleanIdRecord($idRecordRaw);
 
@@ -311,12 +320,8 @@ class UnitKemitraanImport implements
                 $noCab = (string) (int) preg_replace('/[^0-9]/', '', $noCab);
             }
 
-            if (empty($noCab) && empty($idRecord)) {
-                $this->skippedCount++;
-                return null;
-            }
-
-            if (empty($noCab)) {
+            // Skip baris template / kosong
+            if (empty($noCab) || $noCab === '*' || str_contains((string) $idRecordRaw, '*')) {
                 $this->skippedCount++;
                 return null;
             }
@@ -325,160 +330,160 @@ class UnitKemitraanImport implements
                 $idRecord = 'AUTO-' . $noCab;
             }
 
-            $status = $this->clean($row[3] ?? null);
+            $status = $this->clean($row[4] ?? null);
 
             $data = [
                 'id_record'        => $idRecord,
                 'no_cab'           => $noCab,
-                'bimba_aiueo_unit' => $this->clean($row[2] ?? null),
+                'bimba_aiueo_unit' => $this->clean($row[3] ?? null),
                 'status'           => $status,
-                'ops'              => $this->clean($row[4] ?? null),
-                'no_telp_unit'     => $this->cleanPhone($row[5] ?? null),
-                'email_unit'       => $this->clean($row[6] ?? null),
-                'alamat_unit'      => $this->clean($row[7] ?? null),
-                'rt'               => $this->clean($row[8] ?? null),
-                'rw'               => $this->clean($row[9] ?? null),
-                'provinsi'         => $this->clean($row[10] ?? null),
-                'kab_kota'         => $this->clean($row[11] ?? null),
-                'kecamatan'        => $this->clean($row[12] ?? null),
-                'kel_desa'         => $this->clean($row[13] ?? null),
-                'kode_pos'         => $this->clean($row[14] ?? null),
-                'titik_koordinat'  => $this->clean($row[15] ?? null),
-                'koordinat_s'      => $this->clean($row[16] ?? null),
-                'koordinat_e'      => $this->clean($row[17] ?? null),
+                'ops'              => $this->clean($row[5] ?? null),
+                'no_telp_unit'     => $this->cleanPhone($row[6] ?? null),
+                'email_unit'       => $this->clean($row[7] ?? null),
+                'alamat_unit'      => $this->clean($row[8] ?? null),
+                'rt'               => $this->clean($row[9] ?? null),
+                'rw'               => $this->clean($row[10] ?? null),
+                'provinsi'         => $this->clean($row[11] ?? null),
+                'kab_kota'         => $this->clean($row[12] ?? null),
+                'kecamatan'        => $this->clean($row[13] ?? null),
+                'kel_desa'         => $this->clean($row[14] ?? null),
+                'kode_pos'         => $this->clean($row[15] ?? null),
+                'titik_koordinat'  => $this->clean($row[16] ?? null),
+                'koordinat_s'      => $this->clean($row[17] ?? null),
+                'koordinat_e'      => $this->clean($row[18] ?? null),
 
-                'no_induk_mitra'   => $this->clean($row[18] ?? null),
-                'nama_mitra'       => $this->clean($row[19] ?? null),
-                'email'            => $this->clean($row[20] ?? null),
-                'no_hp'            => $this->cleanPhone($row[21] ?? null),
-                'foto'             => $this->clean($row[22] ?? null),
+                'no_induk_mitra'   => $this->clean($row[19] ?? null),
+                'nama_mitra'       => $this->clean($row[20] ?? null),
+                'email'            => $this->clean($row[21] ?? null),
+                'no_hp'            => $this->cleanPhone($row[22] ?? null),
+                'foto'             => $this->clean($row[23] ?? null),
 
-                'bank'             => $this->clean($row[23] ?? null),
-                'no_rekening'      => $this->clean($row[24] ?? null),
-                'atas_nama'        => $this->clean($row[25] ?? null),
+                'bank'             => $this->clean($row[24] ?? null),
+                'no_rekening'      => $this->clean($row[25] ?? null),
+                'atas_nama'        => $this->clean($row[26] ?? null),
 
-                'no_akta'          => $this->clean($row[26] ?? null),
-                'tgl_akta'         => $this->parseDate($row[27] ?? null),
-                'nilai_lisensi'    => $this->extractNumber($row[28] ?? null),
-                'persen_mitra'     => $this->extractNumber($row[29] ?? null),
-                'persen_ypai'      => $this->extractNumber($row[30] ?? null),
+                'no_akta'          => $this->clean($row[27] ?? null),
+                'tgl_akta'         => $this->parseDate($row[28] ?? null),
+                'nilai_lisensi'    => $this->extractNumber($row[29] ?? null),
+                'persen_mitra'     => $this->extractNumber($row[30] ?? null),
+                'persen_ypai'      => $this->extractNumber($row[31] ?? null),
 
-                'awal'             => $this->parseDate($row[31] ?? null),
-                'akhir'            => $this->parseDate($row[32] ?? null),
-                'perpanjang'       => $this->parseDate($row[33] ?? null),
-                'tutup'            => $this->parseDate($row[34] ?? null),
+                'awal'             => $this->parseDate($row[32] ?? null),
+                'akhir'            => $this->parseDate($row[33] ?? null),
+                'perpanjang'       => $this->parseDate($row[34] ?? null),
+                'tutup'            => $this->parseDate($row[35] ?? null),
 
-                'jmp'                  => $this->clean($row[35] ?? null),
-                'lpm'                  => $this->clean($row[36] ?? null),
-                'pengembalian'         => $this->clean($row[37] ?? null),
-                'tanggal'              => $this->parseDate($row[38] ?? null),
-                'va_bca'               => $this->clean($row[39] ?? null),
-                'va_mandiri_royalti'   => $this->clean($row[40] ?? null),
-                'va_mandiri_lisensi'   => $this->clean($row[41] ?? null),
-                'marketing'            => $this->clean($row[42] ?? null),
-                'koorwil_kpk_sos'      => $this->clean($row[43] ?? null),
+                'jmp'                  => $this->clean($row[36] ?? null),
+                'lpm'                  => $this->clean($row[37] ?? null),
+                'pengembalian'         => $this->clean($row[38] ?? null),
+                'tanggal'              => $this->parseDate($row[39] ?? null),
+                'va_bca'               => $this->clean($row[40] ?? null),
+                'va_mandiri_royalti'   => $this->clean($row[41] ?? null),
+                'va_mandiri_lisensi'   => $this->clean($row[42] ?? null),
+                'marketing'            => $this->clean($row[43] ?? null),
+                'koorwil_kpk_sos'      => $this->clean($row[44] ?? null),
 
-                'detail'           => $this->clean($row[44] ?? null),
-                'note'             => $this->clean($row[45] ?? null),
-                'updated_by'       => $this->clean($row[46] ?? null) ?? 'Import System',
-                'last_updated'     => $this->parseDate($row[47] ?? null),
-                'history'          => $this->clean($row[48] ?? null),
-                'valid'            => $this->clean($row[49] ?? null),
-                'level_user'       => $this->clean($row[50] ?? null),
+                'detail'           => $this->clean($row[45] ?? null),
+                'note'             => $this->clean($row[46] ?? null),
+                'updated_by'       => $this->clean($row[47] ?? null) ?? 'Import System',
+                'last_updated'     => $this->parseDate($row[48] ?? null),
+                'history'          => $this->clean($row[49] ?? null),
+                'valid'            => $this->clean($row[50] ?? null),
+                'level_user'       => $this->clean($row[51] ?? null),
 
-                'sisa_3'           => $this->extractNumber($row[51] ?? null),
-                'sisa_1'           => $this->extractNumber($row[52] ?? null),
-                'sisa_2'           => $this->extractNumber($row[53] ?? null),
-                'sisa_4'           => $this->extractNumber($row[54] ?? null),
-                'sisa_f'           => $this->extractNumber($row[55] ?? null),
-                'masa_kontrak'     => $this->clean($row[56] ?? null),
-                'sisa'             => $this->clean($row[57] ?? null),
-                'sisa_rr'          => $this->extractNumber($row[58] ?? null),
+                'sisa_3'           => $this->extractNumber($row[52] ?? null),
+                'sisa_1'           => $this->extractNumber($row[53] ?? null),
+                'sisa_2'           => $this->extractNumber($row[54] ?? null),
+                'sisa_4'           => $this->extractNumber($row[55] ?? null),
+                'sisa_f'           => $this->extractNumber($row[56] ?? null),
+                'masa_kontrak'     => $this->clean($row[57] ?? null),
+                'sisa'             => $this->clean($row[58] ?? null),
+                'sisa_rr'          => $this->extractNumber($row[59] ?? null),
 
-                'no'                       => $this->clean($row[59] ?? null),
-                'lokasi_'                  => $this->clean($row[60] ?? null),
-                'kategori_perubahan'       => $this->clean($row[61] ?? null),
-                'awal_kontrak'             => $this->parseDate($row[62] ?? null),
-                'akhir_kontrak'            => $this->parseDate($row[63] ?? null),
-                'pdf'                      => $this->clean($row[64] ?? null),
-                'update_pdf'               => $this->clean($row[65] ?? null),
-                'last_updated_'            => $this->parseDate($row[66] ?? null),
-                'version'                  => $this->clean($row[67] ?? null),
-                'related_pengajuan_perubahans' => $this->clean($row[68] ?? null),
+                'no'                       => $this->clean($row[60] ?? null),
+                'lokasi_'                  => $this->clean($row[61] ?? null),
+                'kategori_perubahan'       => $this->clean($row[62] ?? null),
+                'awal_kontrak'             => $this->parseDate($row[63] ?? null),
+                'akhir_kontrak'            => $this->parseDate($row[64] ?? null),
+                'pdf'                      => $this->clean($row[65] ?? null),
+                'update_pdf'               => $this->clean($row[66] ?? null),
+                'last_updated_'            => $this->parseDate($row[67] ?? null),
+                'version'                  => $this->clean($row[68] ?? null),
+                'related_pengajuan_perubahans' => $this->clean($row[69] ?? null),
 
-                'awal_'                    => $this->parseDate($row[69] ?? null),
-                'awal_kontrak_'            => $this->parseDate($row[70] ?? null),
-                'awal_tanda'               => $this->parseDate($row[71] ?? null),
-                'akhir_tanda'              => $this->parseDate($row[72] ?? null),
-                'perpanjangan_tanda'       => $this->parseDate($row[73] ?? null),
-                'tutup_tanda'              => $this->parseDate($row[74] ?? null),
+                'awal_'                    => $this->parseDate($row[70] ?? null),
+                'awal_kontrak_'            => $this->parseDate($row[71] ?? null),
+                'awal_tanda'               => $this->parseDate($row[72] ?? null),
+                'akhir_tanda'              => $this->parseDate($row[73] ?? null),
+                'perpanjangan_tanda'       => $this->parseDate($row[74] ?? null),
+                'tutup_tanda'              => $this->parseDate($row[75] ?? null),
 
-                'vendor_stokis_1'          => $this->clean($row[75] ?? null),
-                'vendor_stokis_2'          => $this->clean($row[76] ?? null),
-                'sisa_summary'             => $this->clean($row[77] ?? null),
-                'notifikasi_sisa_kontrak_lisensi' => $this->clean($row[78] ?? null),
-                'alamat_saat_ini'          => $this->clean($row[79] ?? null),
-                'related_pengajuan_perubahans_by_no_cab' => $this->clean($row[80] ?? null),
-                'alamat_mitra'             => $this->clean($row[81] ?? null),
-                'nama_mitra_tanda'         => $this->clean($row[82] ?? null),
-                'no_hp_mitra'              => $this->cleanPhone($row[83] ?? null),
-                'email_mitra'              => $this->clean($row[84] ?? null),
+                'vendor_stokis_1'          => $this->clean($row[76] ?? null),
+                'vendor_stokis_2'          => $this->clean($row[77] ?? null),
+                'sisa_summary'             => $this->clean($row[78] ?? null),
+                'notifikasi_sisa_kontrak_lisensi' => $this->clean($row[79] ?? null),
+                'alamat_saat_ini'          => $this->clean($row[80] ?? null),
+                'related_pengajuan_perubahans_by_no_cab' => $this->clean($row[81] ?? null),
+                'alamat_mitra'             => $this->clean($row[82] ?? null),
+                'nama_mitra_tanda'         => $this->clean($row[83] ?? null),
+                'no_hp_mitra'              => $this->cleanPhone($row[84] ?? null),
+                'email_mitra'              => $this->clean($row[85] ?? null),
 
-                'len_perubahan_unit'       => $this->clean($row[85] ?? null),
-                'no_cab_bimba_unit'        => $this->clean($row[86] ?? null),
-                'lampiran_jarak_stokis_1'  => $this->toSafeDecimal($row[87] ?? null),
-                'lampiran_jarak_stokis_2'  => $this->toSafeDecimal($row[88] ?? null),
-                'keterangan_stokis_1'      => $this->clean($row[89] ?? null),
-                'keterangan_stokis_2'      => $this->clean($row[90] ?? null),
-                'kirim_email_lisensi'      => $this->clean($row[91] ?? null),
+                'len_perubahan_unit'       => $this->clean($row[86] ?? null),
+                'no_cab_bimba_unit'        => $this->clean($row[87] ?? null),
+                'lampiran_jarak_stokis_1'  => $this->toSafeDecimal($row[88] ?? null),
+                'lampiran_jarak_stokis_2'  => $this->toSafeDecimal($row[89] ?? null),
+                'keterangan_stokis_1'      => $this->clean($row[90] ?? null),
+                'keterangan_stokis_2'      => $this->clean($row[91] ?? null),
+                'kirim_email_lisensi'      => $this->clean($row[92] ?? null),
 
-                'pdf_'                     => $this->clean($row[92] ?? null),
-                'update_pdf_'              => $this->clean($row[93] ?? null),
-                'last_updated__'           => $this->parseDate($row[94] ?? null),
-                'version_'                 => $this->clean($row[95] ?? null),
-                'awal_kontrak__'           => $this->parseDate($row[96] ?? null),
-                'akhir_kontrak__'          => $this->parseDate($row[97] ?? null),
+                'pdf_'                     => $this->clean($row[93] ?? null),
+                'update_pdf_'              => $this->clean($row[94] ?? null),
+                'last_updated__'           => $this->parseDate($row[95] ?? null),
+                'version_'                 => $this->clean($row[96] ?? null),
+                'awal_kontrak__'           => $this->parseDate($row[97] ?? null),
+                'akhir_kontrak__'          => $this->parseDate($row[98] ?? null),
 
-                'jakarta'                  => $this->clean($row[98] ?? null),
-                'tanggal_update'           => $this->parseDate($row[99] ?? null),
-                'tanggal_update__'         => $this->parseDate($row[100] ?? null),
-                'masa_kontrak_____'        => $this->clean($row[101] ?? null),
-                'jika_maka'                => $this->clean($row[102] ?? null),
-                'related_perpanjang_kontraks' => $this->clean($row[103] ?? null),
+                'jakarta'                  => $this->clean($row[99] ?? null),
+                'tanggal_update'           => $this->parseDate($row[100] ?? null),
+                'tanggal_update__'         => $this->parseDate($row[101] ?? null),
+                'masa_kontrak_____'        => $this->clean($row[102] ?? null),
+                'jika_maka'                => $this->clean($row[103] ?? null),
+                'related_perpanjang_kontraks' => $this->clean($row[104] ?? null),
 
-                'cabang_unit_bimba'        => $this->clean($row[104] ?? null),
-                'status_ops_unit_bimba'    => $this->clean($row[105] ?? null),
-                'status_ops_vendor_1'      => $this->clean($row[106] ?? null),
-                'status_ops_vendor_2'      => $this->clean($row[107] ?? null),
+                'cabang_unit_bimba'        => $this->clean($row[105] ?? null),
+                'status_ops_unit_bimba'    => $this->clean($row[106] ?? null),
+                'status_ops_vendor_1'      => $this->clean($row[107] ?? null),
+                'status_ops_vendor_2'      => $this->clean($row[108] ?? null),
 
-                'dokumen_tambahan_1'       => $this->clean($row[108] ?? null),
-                'dokumen_tambahan_2'       => $this->clean($row[109] ?? null),
-                'dokumen_tambahan_3'       => $this->clean($row[110] ?? null),
+                'dokumen_tambahan_1'       => $this->clean($row[109] ?? null),
+                'dokumen_tambahan_2'       => $this->clean($row[110] ?? null),
+                'dokumen_tambahan_3'       => $this->clean($row[111] ?? null),
 
-                'akun_facebook'            => $this->clean($row[111] ?? null),
-                'akun_instagram'           => $this->clean($row[112] ?? null),
-                'akun_media_sosial_unit_bimba_aiueo' => $this->clean($row[113] ?? null),
+                'akun_facebook'            => $this->clean($row[112] ?? null),
+                'akun_instagram'           => $this->clean($row[113] ?? null),
+                'akun_media_sosial_unit_bimba_aiueo' => $this->clean($row[114] ?? null),
 
                 // MEMO
-                'status_unit'          => $this->clean($row[114] ?? null),
-                'pdf_memo'             => $this->clean($row[115] ?? null),
-                'update_pdf_memo'      => $this->clean($row[116] ?? null),
-                'last_updated_memo'    => $this->parseDate($row[117] ?? null),
-                'version_memo'         => $this->clean($row[118] ?? null),
-                'kirim_email_memo'     => $this->clean($row[119] ?? null),
-                'tgl_kirim_email_memo' => $this->parseDate($row[120] ?? null),
+                'status_unit'          => $this->clean($row[115] ?? null),
+                'pdf_memo'             => $this->clean($row[116] ?? null),
+                'update_pdf_memo'      => $this->clean($row[117] ?? null),
+                'last_updated_memo'    => $this->parseDate($row[118] ?? null),
+                'version_memo'         => $this->clean($row[119] ?? null),
+                'kirim_email_memo'     => $this->clean($row[120] ?? null),
+                'tgl_kirim_email_memo' => $this->parseDate($row[121] ?? null),
 
                 // MARKETING & ALAMAT MITRA
-                'nama_marketing_'      => $this->clean($row[121] ?? null),
-                'no_rumah'             => $this->clean($row[122] ?? null),
-                'rt_mitra'             => $this->clean($row[123] ?? null),
-                'rw_mitra'             => $this->clean($row[124] ?? null),
-                'kel_mitra'            => $this->clean($row[125] ?? null),
-                'kec_mitra'            => $this->clean($row[126] ?? null),
-                'kota_mitra'           => $this->clean($row[127] ?? null),
-                'provinsi_mitra'       => $this->clean($row[128] ?? null),
-                'kode_pos_mitra'       => $this->clean($row[129] ?? null),
-                'email_marketing_'     => $this->clean($row[130] ?? null),
+                'nama_marketing_'      => $this->clean($row[122] ?? null),
+                'no_rumah'             => $this->clean($row[123] ?? null),
+                'rt_mitra'             => $this->clean($row[124] ?? null),
+                'rw_mitra'             => $this->clean($row[125] ?? null),
+                'kel_mitra'            => $this->clean($row[126] ?? null),
+                'kec_mitra'            => $this->clean($row[127] ?? null),
+                'kota_mitra'           => $this->clean($row[128] ?? null),
+                'provinsi_mitra'       => $this->clean($row[129] ?? null),
+                'kode_pos_mitra'       => $this->clean($row[130] ?? null),
+                'email_marketing_'     => $this->clean($row[131] ?? null),
 
                 'status_pengelolaan'   => $this->getStatusPengelolaan($status),
                 'mitra_pengelolaan'    => $this->getMitraPengelolaan($status),
@@ -503,17 +508,29 @@ class UnitKemitraanImport implements
 
         } catch (Throwable $e) {
             $this->failedCount++;
+
             $this->failedRows[] = [
-                'no_cab'    => $row[1] ?? '-',
-                'id_record' => $row[0] ?? '-',
+                'no_cab'    => $row[2] ?? '-',
+                'id_record' => $row[1] ?? '-',
                 'reason'    => $e->getMessage(),
             ];
 
-            Log::error('UnitKemitraan Import Error', [
-                'no_cab'    => $row[1] ?? null,
-                'id_record' => $row[0] ?? null,
-                'message'   => $e->getMessage(),
-                'line'      => $e->getLine(),
+            Log::error('UnitKemitraan Import Error row #' . $this->rowCounter, [
+                'no_cab'       => $row[2] ?? null,
+                'id_record'    => $row[1] ?? null,
+                'message'      => $e->getMessage(),
+                'line'         => $e->getLine(),
+                'file'         => $e->getFile(),
+                'jumlah_kolom' => count($row),
+                'sample' => [
+                    1  => $row[1]  ?? null,
+                    2  => $row[2]  ?? null,
+                    16 => $row[16] ?? null,
+                    18 => $row[18] ?? null,
+                    29 => $row[29] ?? null,
+                    30 => $row[30] ?? null,
+                    31 => $row[31] ?? null,
+                ],
             ]);
         }
 
@@ -526,18 +543,26 @@ class UnitKemitraanImport implements
         Log::error('UnitKemitraan Import onError', [
             'message' => $e->getMessage(),
             'line'    => $e->getLine(),
+            'trace'   => $e->getTraceAsString(),
         ]);
     }
 
     public function registerEvents(): array
     {
         return [
+            BeforeImport::class => function () {
+                Log::info('========== UnitKemitraan Import MULAI ==========', [
+                    'memory' => round(memory_get_usage(true) / 1024 / 1024, 2) . ' MB',
+                ]);
+            },
             AfterImport::class => function () {
                 Log::info('========== UnitKemitraan Import SELESAI ==========', [
-                    'success'     => $this->successCount,
-                    'failed'      => $this->failedCount,
-                    'skipped'     => $this->skippedCount,
-                    'failed_rows' => array_slice($this->failedRows, 0, 20),
+                    'success'              => $this->successCount,
+                    'failed'               => $this->failedCount,
+                    'skipped'              => $this->skippedCount,
+                    'total_rows_processed' => $this->rowCounter,
+                    'failed_rows_sample'   => array_slice($this->failedRows, 0, 15),
+                    'memory_peak'          => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
                 ]);
             },
         ];
@@ -549,6 +574,7 @@ class UnitKemitraanImport implements
             'success'     => $this->successCount,
             'failed'      => $this->failedCount,
             'skipped'     => $this->skippedCount,
+            'total_rows'  => $this->rowCounter,
             'failed_rows' => $this->failedRows,
         ];
     }

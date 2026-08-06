@@ -13,21 +13,25 @@ class UnitKemitraan extends Model
     protected $table = 'unit_kemitraan';
 
     /**
-     * Primary key adalah id_record
+     * Primary key adalah id_record (contoh: MG2420, MG5114)
      */
     protected $primaryKey = 'id_record';
 
     /**
-     * Bukan auto-increment (karena isinya seperti MG5114)
+     * Bukan auto-increment
      */
     public $incrementing = false;
 
     /**
-     * Tipe primary key adalah string
+     * Tipe primary key string
      */
     protected $keyType = 'string';
 
+    /**
+     * Kolom yang boleh diisi mass-assignment
+     */
     protected $fillable = [
+        // Identitas Unit
         'id_record',
         'no_cab',
         'bimba_aiueo_unit',
@@ -47,28 +51,32 @@ class UnitKemitraan extends Model
         'koordinat_s',
         'koordinat_e',
 
+        // Data Mitra
         'no_induk_mitra',
         'nama_mitra',
         'email',
         'no_hp',
         'foto',
 
+        // Rekening
         'bank',
         'no_rekening',
         'atas_nama',
-        
 
+        // Akta & Lisensi
         'no_akta',
         'tgl_akta',
         'nilai_lisensi',
         'persen_mitra',
         'persen_ypai',
 
+        // Periode Kontrak
         'awal',
         'akhir',
         'perpanjang',
         'tutup',
 
+        // Pembayaran & VA
         'jmp',
         'lpm',
         'pengembalian',
@@ -79,6 +87,7 @@ class UnitKemitraan extends Model
         'marketing',
         'koorwil_kpk_sos',
 
+        // Catatan & Update
         'detail',
         'note',
         'updated_by',
@@ -87,6 +96,7 @@ class UnitKemitraan extends Model
         'valid',
         'level_user',
 
+        // Sisa Kontrak
         'sisa_3',
         'sisa_1',
         'sisa_2',
@@ -96,18 +106,19 @@ class UnitKemitraan extends Model
         'sisa',
         'sisa_rr',
 
+        // Perubahan & Kontrak
         'no',
         'lokasi_',
         'kategori_perubahan',
         'awal_kontrak',
         'akhir_kontrak',
-
         'pdf',
         'update_pdf',
         'last_updated_',
         'version',
         'related_pengajuan_perubahans',
 
+        // Tanda / Alias
         'awal_',
         'awal_kontrak_',
         'awal_tanda',
@@ -115,11 +126,11 @@ class UnitKemitraan extends Model
         'perpanjangan_tanda',
         'tutup_tanda',
 
+        // Vendor / Stokis
         'vendor_stokis_1',
         'vendor_stokis_2',
         'sisa_summary',
         'notifikasi_sisa_kontrak_lisensi',
-
         'alamat_saat_ini',
         'related_pengajuan_perubahans_by_no_cab',
         'alamat_mitra',
@@ -127,6 +138,7 @@ class UnitKemitraan extends Model
         'no_hp_mitra',
         'email_mitra',
 
+        // Lampiran & Email
         'len_perubahan_unit',
         'no_cab_bimba_unit',
         'lampiran_jarak_stokis_1',
@@ -135,32 +147,42 @@ class UnitKemitraan extends Model
         'keterangan_stokis_2',
         'kirim_email_lisensi',
 
+        // PDF & Version tambahan
         'pdf_',
         'update_pdf_',
         'last_updated__',
         'version_',
         'awal_kontrak__',
         'akhir_kontrak__',
+
+        // Update Jakarta
         'jakarta',
         'tanggal_update',
         'tanggal_update__',
         'masa_kontrak_____',
         'jika_maka',
         'related_perpanjang_kontraks',
+
+        // Status Ops
         'cabang_unit_bimba',
         'status_ops_unit_bimba',
         'status_ops_vendor_1',
         'status_ops_vendor_2',
 
+        // Dokumen Tambahan
         'dokumen_tambahan_1',
         'dokumen_tambahan_2',
         'dokumen_tambahan_3',
 
+        // Media Sosial
         'akun_facebook',
         'akun_instagram',
         'akun_media_sosial_unit_bimba_aiueo',
+
+        // Pengelolaan (hasil mapping)
         'status_pengelolaan',
         'mitra_pengelolaan',
+
         // Memo
         'status_unit',
         'pdf_memo',
@@ -170,9 +192,8 @@ class UnitKemitraan extends Model
         'kirim_email_memo',
         'tgl_kirim_email_memo',
 
-        // Marketing
+        // Marketing & Alamat Mitra Detail
         'nama_marketing_',
-        // Alamat Mitra
         'no_rumah',
         'rt_mitra',
         'rw_mitra',
@@ -181,37 +202,51 @@ class UnitKemitraan extends Model
         'kota_mitra',
         'provinsi_mitra',
         'kode_pos_mitra',
-
-        // Email Marketing
         'email_marketing_',
-        ];
+    ];
 
+    /**
+     * Casting tipe data
+     * Semua date diganti ke datetime agar lebih toleran terhadap format Y-m-d H:i:s
+     */
     protected $casts = [
-        'tgl_akta'        => 'date',
-        'awal'            => 'date',
-        'akhir'           => 'date',
-        'perpanjang'      => 'date',
-        'tutup'           => 'date',
-        'tanggal'         => 'date',
-        'awal_kontrak'    => 'date',
-        'akhir_kontrak'   => 'date',
-        'awal_kontrak__'  => 'date',
-        'akhir_kontrak__' => 'date',
-        'tanggal_update'  => 'datetime',
-        'tanggal_update__'=> 'datetime',
-        'last_updated'    => 'datetime',
+        // Tanggal / Waktu
+        'tgl_akta'              => 'datetime',
+        'awal'                  => 'datetime',
+        'akhir'                 => 'datetime',
+        'perpanjang'            => 'datetime',
+        'tutup'                 => 'datetime',
+        'tanggal'               => 'datetime',
+        'awal_kontrak'          => 'datetime',
+        'akhir_kontrak'         => 'datetime',
+        'awal_'                 => 'datetime',
+        'awal_kontrak_'         => 'datetime',
+        'awal_tanda'            => 'datetime',
+        'akhir_tanda'           => 'datetime',
+        'perpanjangan_tanda'    => 'datetime',
+        'tutup_tanda'           => 'datetime',
+        'awal_kontrak__'        => 'datetime',
+        'akhir_kontrak__'       => 'datetime',
+        'last_updated'          => 'datetime',
+        'last_updated_'         => 'datetime',
+        'last_updated__'        => 'datetime',
+        'last_updated_memo'     => 'datetime',
+        'tanggal_update'        => 'datetime',
+        'tanggal_update__'      => 'datetime',
+        'tgl_kirim_email_memo'  => 'datetime',
 
-        'nilai_lisensi'   => 'decimal:2',
-        'persen_mitra'    => 'decimal:2',
-        'persen_ypai'     => 'decimal:2',
-        'sisa_3'          => 'decimal:2',
-        'sisa_1'          => 'decimal:2',
-        'sisa_2'          => 'decimal:2',
-        'sisa_4'          => 'decimal:2',
-        'sisa_f'          => 'decimal:2',
-        'sisa_rr'         => 'decimal:2',
-        'lampiran_jarak_stokis_1' => 'decimal:2',
-        'lampiran_jarak_stokis_2' => 'decimal:2',
+        // Decimal
+        'nilai_lisensi'             => 'decimal:2',
+        'persen_mitra'              => 'decimal:2',
+        'persen_ypai'               => 'decimal:2',
+        'sisa_3'                    => 'decimal:2',
+        'sisa_1'                    => 'decimal:2',
+        'sisa_2'                    => 'decimal:2',
+        'sisa_4'                    => 'decimal:2',
+        'sisa_f'                    => 'decimal:2',
+        'sisa_rr'                   => 'decimal:2',
+        'lampiran_jarak_stokis_1'   => 'decimal:4',
+        'lampiran_jarak_stokis_2'   => 'decimal:4',
     ];
 
     /**
@@ -220,5 +255,19 @@ class UnitKemitraan extends Model
     public function matchingUserExport()
     {
         return $this->hasOne(MatchingUserExport::class, 'unit_kemitraan_id', 'id_record');
+    }
+
+    /**
+     * Scope contoh (opsional)
+     */
+    public function scopeAktif($query)
+    {
+        return $query->where('ops', 'Active')
+                     ->orWhere('status_pengelolaan', 'Unit Aktif');
+    }
+
+    public function scopeClosed($query)
+    {
+        return $query->where('ops', 'Closed');
     }
 }

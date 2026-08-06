@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Imports\UnitKemitraanImport;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
+
 
 class UnitKemitraanController extends Controller
 {
@@ -218,68 +220,67 @@ class UnitKemitraanController extends Controller
 
    public function import(Request $request)
 {
-    $request->validate([
-        'import_file' => 'required|mimes:xlsx,xls,csv|max:51200',
-    ]);
+    Log::info('======= MASUK METHOD import() =======');
+
+    ini_set('memory_limit', '512M');
+    set_time_limit(600);
 
     try {
-        set_time_limit(900);
-        ini_set('memory_limit', '1024M');
-
-        $file = $request->file('import_file');
-
-        Log::info('========== MULAI IMPORT UnitKemitraan ==========', [
-            'filename' => $file->getClientOriginalName(),
-            'size_mb'  => round($file->getSize() / (1024 * 1024), 2),
-            'mime'     => $file->getMimeType(),
-            'user' => Auth::user()->name ?? 'guest',
+        $request->validate([
+            'import_file' => 'required|file|max:30720',   // ← sesuaikan nama field
         ]);
+
+        $file = $request->file('import_file');            // ← sesuaikan
+
+        if (!$file || !$file->isValid()) {
+            return response()->json(['message' => 'File tidak valid'], 422);
+        }
+
+        $path = $file->getRealPath();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        Log::info('File diterima', [
+            'original_name' => $file->getClientOriginalName(),
+            'size'          => $file->getSize(),
+            'mime'          => $file->getMimeType(),
+            'extension'     => $extension,
+        ]);
+
+        if (!in_array($extension, ['csv', 'txt', 'xlsx', 'xls'])) {
+            return response()->json(['message' => 'Format file tidak didukung'], 422);
+        }
 
         $import = new \App\Imports\UnitKemitraanImport();
 
-        // Jalankan import
-        Excel::import($import, $file);
+        // Karena file kamu CSV dengan delimiter ;, paksa CSV
+        // Kalau nanti ada Excel (.xlsx) juga, bisa deteksi extension
+        if (in_array($extension, ['csv', 'txt'])) {
+            Excel::import($import, $path, null, \Maatwebsite\Excel\Excel::CSV);
+        } else {
+            Excel::import($import, $path); // untuk xlsx/xls
+        }
 
         $summary = $import->getSummary();
 
-        Log::info('========== HASIL IMPORT SELESAI ==========', $summary);
+        Log::info('Import selesai', $summary);
 
-        // Buat pesan yang jelas
-        $message = sprintf(
-            'Import selesai. Berhasil: %d | Gagal: %d | Dilewati: %d',
-            $summary['success'],
-            $summary['failed'],
-            $summary['skipped']
+        return redirect()->back()->with('success', 
+            "Import berhasil! Success: {$summary['success']}, Failed: {$summary['failed']}, Skipped: {$summary['skipped']}"
         );
 
-        if ($summary['failed'] > 0) {
-            return redirect()
-                ->route('unit-kemitraan.index')
-                ->with('warning', $message)
-                ->with('import_errors', $summary['failed_rows']);
-        }
+        // atau kalau mau JSON:
+        // return response()->json(['message' => 'Import berhasil', 'summary' => $summary]);
 
-        if ($summary['success'] === 0 && $summary['skipped'] === 0) {
-            return redirect()
-                ->route('unit-kemitraan.index')
-                ->with('error', 'Tidak ada data yang berhasil diimport. Cek format file atau header Excel.');
-        }
-
-        return redirect()
-            ->route('unit-kemitraan.index')
-            ->with('success', $message);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return back()->withErrors($e->errors())->withInput();
 
     } catch (\Throwable $e) {
-        Log::error('Import UnitKemitraan FATAL', [
+        Log::error('Import GAGAL TOTAL', [
             'message' => $e->getMessage(),
             'line'    => $e->getLine(),
-            'file'    => $e->getFile(),
-            'trace'   => $e->getTraceAsString(),
         ]);
 
-        return redirect()
-            ->back()
-            ->with('error', '❌ Gagal total: ' . $e->getMessage());
+        return back()->with('error', 'Import gagal: ' . $e->getMessage());
     }
 }
 
