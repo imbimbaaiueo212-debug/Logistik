@@ -1057,19 +1057,29 @@ private function createManualOrderFromUnit(
     }
 
     // =====================================================
-    // Generate Order ID (angka saja 6 digit: 000001)
-    // =====================================================
-    $lastId = ManualOrder::whereRaw("order_id REGEXP '^[0-9]{6}$'")
-        ->orderByRaw('CAST(order_id AS UNSIGNED) DESC')
-        ->value('order_id');
+// Generate Order ID (format: B0001, B0002, ...)
+// =====================================================
+$prefix = 'B';
 
-    $nextNumber = $lastId ? ((int) $lastId + 1) : 1;
-    $orderId    = str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+$lastId = ManualOrder::where('order_id', 'like', $prefix . '%')
+    ->whereRaw("order_id REGEXP '^{$prefix}[0-9]{4}$'")
+    ->orderByRaw("CAST(SUBSTRING(order_id, 2) AS UNSIGNED) DESC")
+    ->value('order_id');
 
-    while (ManualOrder::where('order_id', $orderId)->exists()) {
-        $nextNumber++;
-        $orderId = str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
-    }
+$nextNumber = 1;
+
+if ($lastId) {
+    // Ambil angka di belakang prefix (contoh: B0042 → 42)
+    $nextNumber = (int) substr($lastId, 1) + 1;
+}
+
+$orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT); // B0001
+
+// Jaga-jaga kalau sudah ada (race condition)
+while (ManualOrder::where('order_id', $orderId)->exists()) {
+    $nextNumber++;
+    $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+}
 
     // =====================================================
 // NOTES: mismatch + contact person kabupaten
@@ -1339,9 +1349,6 @@ public function printManualRealisasiPdf(Request $request)
     );
 }
 
-// =========================================================
-// PRINT PICKING LIST (HTML)
-// =========================================================
 public function printManualPickingList($id)
 {
     $main = ManualRealisasi::with([
@@ -1363,10 +1370,35 @@ public function printManualPickingList($id)
         ->sortBy('item_sku')
         ->values();
 
+    // =====================================================
+    // HITUNG JUMLAH LEMBAR (qty ÷ 200)
+    // =====================================================
+    $maxQtyPerSheet = 200;
+
+    // Coba beberapa kemungkinan nama field qty
+    $totalQty = $items->sum(function ($item) {
+        return (float) (
+            $item->item_qty 
+            ?? $item->qty 
+            ?? $item->quantity 
+            ?? 0
+        );
+    });
+
+    $jumlahLembar = $totalQty <= 0 
+        ? 1 
+        : (int) ceil($totalQty / $maxQtyPerSheet);
+
+    // Debug sementara (bisa dihapus nanti)
+    // dd($totalQty, $jumlahLembar);
+
     return view('import.manual-picking-list', [
         'item'              => $main,
         'picking'           => $main->picking,
         'data'              => $items,
+        'jumlah_lembar'     => $jumlahLembar,   // ← PASTIKAN INI ADA
+        'total_qty'         => $totalQty,
+        'max_qty_per_sheet' => $maxQtyPerSheet,
         'no_pl'             => $main->no_pl,
         'tgl_order'         => $main->tgl_turun_pl,
         'billing_last_name' => $main->billing_last_name,
@@ -1378,12 +1410,13 @@ public function printManualPickingList($id)
 // =========================================================
 // PRINT PICKING LIST PDF
 // =========================================================
-public function printManualPickingListPdf($id)
+public function printManualPickingListPdf(Request $request, $id)
 {
     $main = ManualRealisasi::with([
-    'picking.pickingItems',
-    'manualOrder',
+        'picking.pickingItems',
+        'manualOrder',
     ])->findOrFail($id);
+
     if (!$main->picking_printed_at) {
         $main->update(['picking_printed_at' => now()]);
     }
@@ -1402,6 +1435,27 @@ public function printManualPickingListPdf($id)
             return $item;
         });
 
+    // =====================================================
+    // HITUNG JUMLAH LEMBAR (qty ÷ 200)
+    // =====================================================
+    $maxQtyPerSheet = 200;
+
+    $totalQty = $items->sum(function ($item) {
+        return (float) ($item->item_qty ?? $item->qty ?? 0);
+    });
+
+    $jumlahLembar = $totalQty <= 0
+        ? 1
+        : (int) ceil($totalQty / $maxQtyPerSheet);
+
+    // =====================================================
+    // ORIENTASI (portrait / landscape)
+    // =====================================================
+    $orientation = strtolower($request->get('orientation', 'portrait'));
+    if (!in_array($orientation, ['portrait', 'landscape'])) {
+        $orientation = 'portrait';
+    }
+
     $pdf = Pdf::loadView('import.manual-picking-list-pdf', [
         'item'              => $main,
         'picking'           => $picking,
@@ -1411,9 +1465,13 @@ public function printManualPickingListPdf($id)
         'billing_last_name' => $main->billing_last_name,
         'billing_company'   => $main->billing_company,
         'kategori_order'    => $main->kategori_order,
+        'jumlah_lembar'     => $jumlahLembar,
+        'total_qty'         => $totalQty,
+        'orientation'       => $orientation,
     ]);
 
-    $pdf->setPaper('A5', 'portrait');
+    $pdf->setPaper('A5', $orientation);
+
     $pdf->setOptions([
         'margin-top'           => 8,
         'margin-right'         => 6,

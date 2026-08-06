@@ -5,50 +5,71 @@
     <title>PICKING LIST - {{ $no_pl ?? $item->no_pl ?? '-' }}</title>
     <style>
         @page {
-            size: A5 portrait;
-            margin: 4mm 5mm 12mm 5mm;
+            size: A5 {{ $orientation ?? 'portrait' }};
+            /* sedikit lebih lega agar scale 110-120% jarang ke-potong */
+            margin: {{ ($orientation ?? 'portrait') === 'landscape' ? '7mm' : '5mm 6mm 12mm 6mm' }};
         }
 
         * {
             box-sizing: border-box;
         }
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px;
-            color: #333;
-            line-height: 1.3;
+        html, body {
+            height: 100%;
             margin: 0;
             padding: 0;
         }
 
-        .container {
-            width: 100%;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333;
+            line-height: 1.35;
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '14px' : '11px' }};
+
+            /* ===== CENTER CONTENT ===== */
+            display: flex;
+            justify-content: center;   /* horizontal center */
+            align-items: flex-start;   /* mulai dari atas (bisa diganti center kalau mau vertikal juga) */
         }
 
+        /* ===== CONTAINER ===== */
+        .container {
+            width: 98%;               /* buffer untuk scale */
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* ===== HEADER ===== */
         .header {
-            border-bottom: 1px solid #000;
-            margin-bottom: 6px;
-            padding-bottom: 4px;
+            border-bottom: 1.5px solid #000;
+            margin-bottom: {{ ($orientation ?? 'portrait') === 'landscape' ? '10px' : '6px' }};
+            padding-bottom: {{ ($orientation ?? 'portrait') === 'landscape' ? '6px' : '4px' }};
+            text-align: left;
         }
 
         .header-title {
-            font-size: 16px;
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '22px' : '16px' }};
             font-weight: bold;
             line-height: 1.2;
         }
 
         .header-sub {
-            font-size: 13px;
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '15px' : '13px' }};
             font-weight: 600;
-            margin-top: 1px;
+            margin-top: 2px;
+        }
+
+        .paraf-lembar {
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '14px' : '11px' }};
+            font-weight: bold;
+            margin-top: {{ ($orientation ?? 'portrait') === 'landscape' ? '6px' : '4px' }};
         }
 
         /* ===== INFO TABLE ===== */
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6px;
+            margin-bottom: {{ ($orientation ?? 'portrait') === 'landscape' ? '12px' : '6px' }};
         }
 
         .info-table td {
@@ -58,54 +79,79 @@
         }
 
         .info-left {
-            width: 78%;
-            font-size: 11px;
-            line-height: 1.35;
+            width: 72%;
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '14px' : '11px' }};
+            line-height: 1.4;
         }
 
         .info-right {
-            width: 22%;
+            width: 28%;
             text-align: right;
         }
 
         .paraf-box {
-            width: 85px;
-            height: 68px;
-            border: 1px solid #333;
+            width: {{ ($orientation ?? 'portrait') === 'landscape' ? '110px' : '85px' }};
+            height: {{ ($orientation ?? 'portrait') === 'landscape' ? '85px' : '68px' }};
+            border: 1.5px solid #333;
             text-align: center;
             display: inline-block;
         }
 
         .paraf-label {
-            font-size: 11px;
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '14px' : '11px' }};
             font-weight: bold;
-            padding-top: 3px;
+            padding-top: 5px;
         }
 
         /* ===== TABEL PRODUK ===== */
         .product-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 4px;
+            margin-top: 6px;
+            table-layout: fixed; /* mencegah overflow horizontal */
         }
 
         .product-table th,
         .product-table td {
             border: 1px solid #333;
-            padding: 3px 4px;
-            font-size: 11px;
-            vertical-align: top;
+            padding: {{ ($orientation ?? 'portrait') === 'landscape' ? '8px 7px' : '3px 4px' }};
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '14px' : '11px' }};
+            vertical-align: middle;
+            word-wrap: break-word;
         }
 
         .product-table th {
             background-color: #f4f4f4;
             font-weight: bold;
             text-align: center;
-            padding: 4px 3px;
+            padding: {{ ($orientation ?? 'portrait') === 'landscape' ? '8px 6px' : '4px 3px' }};
         }
 
         .center { text-align: center; }
         .left   { text-align: left; }
+
+        /* ===== FOOTER ===== */
+        .footer-bar {
+            margin-top: {{ ($orientation ?? 'portrait') === 'landscape' ? '12px' : '10px' }};
+            padding-top: 5px;
+            border-top: 1px solid #ccc;
+            font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '11px' : '9px' }};
+            color: #555;
+            width: 100%;
+            overflow: hidden; /* clear float */
+        }
+
+        .footer-bar .right {
+            float: right;
+        }
+
+        /* Optional: pastikan warna tetap muncul saat print */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
     </style>
 </head>
 <body>
@@ -163,10 +209,13 @@
         </div>
         <div class="header-sub">
             {{ str_replace(['Stokis ', 'Stokis'], '', $item->nama_stokis ?? 'Manual') }}
-             @if(!empty($item->grup))
-                    <span style="font-size:13px; font-weight:bold; color:#555;">(Group {{ $item->grup }})</span>
-                @endif
-                | {{ $item->no_ps ?? '-' }}
+            @if(!empty($item->grup))
+                <span style="font-weight:bold; color:#555;">(Group {{ $item->grup }})</span>
+            @endif
+            | {{ $item->no_ps ?? '-' }}
+        </div>
+        <div class="paraf-lembar">
+            {{ $jumlah_lembar ?? 1 }} Lembar
         </div>
     </div>
 
@@ -209,7 +258,7 @@
                 @endif
 
                 <strong>{{ $item->pengiriman ?? '-' }} | {{ $item->service_pengiriman ?? '-' }}</strong>
-                {{ $data->count() }} | {{ $data->sum('item_qty') ?: $data->sum('qty') ?: $data->count() }}
+                &nbsp; {{ $data->count() }} | {{ $data->sum('item_qty') ?: $data->sum('qty') ?: $data->count() }}
             </td>
 
             <td class="info-right">
@@ -226,9 +275,9 @@
             <tr>
                 <th width="6%">NO</th>
                 <th>NAMA PRODUK</th>
-                <th width="16%">SKU</th>
-                <th width="8%">QTY</th>
-                <th width="9%">CEK</th>
+                <th width="{{ ($orientation ?? 'portrait') === 'landscape' ? '17%' : '16%' }}">SKU</th>
+                <th width="{{ ($orientation ?? 'portrait') === 'landscape' ? '10%' : '8%' }}">QTY</th>
+                <th width="{{ ($orientation ?? 'portrait') === 'landscape' ? '10%' : '9%' }}">CEK</th>
             </tr>
         </thead>
         <tbody>
@@ -258,25 +307,17 @@
         </tbody>
     </table>
 
+    {{-- ================= FOOTER ================= --}}
+    <div class="footer-bar">
+        <span>
+            No. Order: {{ $no_pl ?? $item->no_pl ?? '-' }}
+            | Dicetak: {{ now()->format('d/m/Y H:i') }}
+            | {{ $jumlah_lembar ?? 1 }} Lembar
+        </span>
+        <span class="right">1 / 1</span>
+    </div>
+
 </div>
-
-{{-- FOOTER via DomPDF page_script --}}
-<script type="text/php">
-if (isset($pdf)) {
-    $noOrder  = "{{ $no_pl ?? $item->no_pl ?? '-' }}";
-    $printed  = "{{ now()->format('d/m/Y H:i') }}";
-
-    $pdf->page_script(function ($pageNumber, $pageCount, $canvas, $fontMetrics) use ($noOrder, $printed) {
-        $font = $fontMetrics->getFont("Arial", "normal");
-
-        // Kiri bawah
-        $canvas->text(18, 575, "No. Order: {$noOrder} | Dicetak: {$printed}", $font, 8);
-
-        // Kanan bawah
-        $canvas->text(390, 575, "{$pageNumber} / {$pageCount}", $font, 8);
-    });
-}
-</script>
 
 </body>
 </html>

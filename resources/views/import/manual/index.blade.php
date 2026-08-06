@@ -489,7 +489,7 @@
                 <thead class="bg-gray-50 sticky">
                     <tr class="divide-x divide-gray-200">
                         <th class="px-4 py-3 text-left w-24">Status</th>
-                        <th class="px-4 py-3 text-left w-32">Invoice</th>
+                        <th class="px-4 py-3 text-left w-32">ID Pesan</th>
                         <th class="px-4 py-3 text-left min-w-[240px]">To Customer</th>
                         <th class="px-4 py-3 text-left w-40">Kategori Pesanan</th>
                         <th class="px-4 py-3 text-left w-28">Group</th>   {{-- ← TAMBAHKAN --}}

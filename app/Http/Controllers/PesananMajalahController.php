@@ -153,10 +153,16 @@ class PesananMajalahController extends Controller
     $totalUnits   = $units->count();
     $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
 
+    // ===== PERBAIKAN: unique berdasarkan no_cab =====
     $mismatches = UnitNamaMismatch::where('pesanan_majalah_id', $pesananMajalah->id)
         ->where('is_resolved', false)
         ->orderBy('no_cab')
-        ->get();
+        ->get()
+        ->unique(function ($item) {
+            // normalisasi supaya 01002 dan 1002 dianggap sama
+            return ltrim(trim((string) $item->no_cab), '0') ?: '0';
+        })
+        ->values();
 
     return view('pesanan-majalah.show', [
         'data'               => $pesananMajalah,
@@ -202,73 +208,93 @@ class PesananMajalahController extends Controller
     }
 
     public function import(Request $request)
-    {
-        $validated = $request->validate([
-            'periode' => ['required', 'date_format:Y-m'],
-            'file'    => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
-        ]);
+{
+    $validated = $request->validate([
+        'periode' => ['required', 'date_format:Y-m'],
+        'file'    => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+    ]);
 
-        $periodeValue = $validated['periode'];
-        $tanggal = Carbon::createFromFormat('Y-m', $periodeValue);
+    $periodeValue = $validated['periode'];
+    $tanggal = Carbon::createFromFormat('Y-m', $periodeValue);
 
-        $namaBulan = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
-        ];
+    $namaBulan = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
 
-        $bulan = $namaBulan[(int) $tanggal->month];
-        $tahun = $tanggal->year;
+    $bulan = $namaBulan[(int) $tanggal->month];
+    $tahun = $tanggal->year;
 
-        try {
-            $pesananMajalah = PesananMajalah::firstOrCreate(
-                ['periode' => $periodeValue],
-                [
-                    'judul' => 'Pesanan Majalah',
-                    'bulan' => $bulan,
-                    'tahun' => $tahun,
-                ]
-            );
+    try {
+        $pesananMajalah = PesananMajalah::firstOrCreate(
+            ['periode' => $periodeValue],
+            [
+                'judul' => 'Pesanan Majalah',
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+            ]
+        );
 
-            $import = new PesananMajalahImport($pesananMajalah);
-            Excel::import($import, $validated['file']);
+        $import = new PesananMajalahImport($pesananMajalah);
+        Excel::import($import, $validated['file']);
 
-            // =====================================================
-            // SIMPAN MISMATCH KE DATABASE (penyimpanan ke-2)
-            // =====================================================
-            if (!empty($import->mismatchList)) {
-                foreach ($import->mismatchList as $m) {
-                    UnitNamaMismatch::updateOrCreate(
-                        [
-                            'pesanan_majalah_id' => $pesananMajalah->id,
-                            'no_cab'             => $m['no_cab'] ?? null,
-                        ],
-                        [
-                            'nama_excel'   => $m['nama_excel'] ?? null,
-                            'nama_master'  => $m['nama_master'] ?? null,
-                            'is_resolved'  => false,
-                        ]
-                    );
-                }
+        // =====================================================
+        // SIMPAN MISMATCH (unik berdasarkan no_cab)
+        // =====================================================
+        $uniqueMismatches = collect();
+
+        if (!empty($import->mismatchList)) {
+            $uniqueMismatches = collect($import->mismatchList)
+                ->map(function ($m) {
+                    // Normalisasi no_cab (hilangkan leading zero)
+                    $noCab = $m['no_cab'] ?? null;
+                    if ($noCab !== null && $noCab !== '') {
+                        $noCab = ltrim(trim((string) $noCab), '0') ?: '0';
+                    }
+
+                    return [
+                        'no_cab'      => $noCab,
+                        'nama_excel'  => $m['nama_excel'] ?? null,
+                        'nama_master' => $m['nama_master'] ?? null,
+                    ];
+                })
+                ->filter(fn ($m) => !empty($m['no_cab'])) // buang yang no_cab kosong
+                ->unique('no_cab')
+                ->values();
+
+            foreach ($uniqueMismatches as $m) {
+                UnitNamaMismatch::updateOrCreate(
+                    [
+                        'pesanan_majalah_id' => $pesananMajalah->id,
+                        'no_cab'             => $m['no_cab'],
+                    ],
+                    [
+                        'nama_excel'  => $m['nama_excel'],
+                        'nama_master' => $m['nama_master'],
+                        'is_resolved' => false,
+                    ]
+                );
             }
-
-            $redirect = redirect()
-                ->route('pesanan-majalah.show', $pesananMajalah->id)
-                ->with('success', "Data pesanan majalah periode {$bulan} {$tahun} berhasil diimport.");
-
-            if (!empty($import->mismatchList)) {
-                $unique = collect($import->mismatchList)->unique('no_cab')->values()->all();
-                $redirect->with('unit_nama_mismatch', $unique);
-            }
-
-            return $redirect;
-
-        } catch (\Throwable $e) {
-            return redirect()
-                ->route('pesanan-majalah.index')
-                ->with('error', 'Import gagal: ' . $e->getMessage());
         }
+
+        $redirect = redirect()
+            ->route('pesanan-majalah.show', $pesananMajalah->id)
+            ->with('success', "Data pesanan majalah periode {$bulan} {$tahun} berhasil diimport.");
+
+        // Flash hanya data yang sudah unique
+        if ($uniqueMismatches->isNotEmpty()) {
+            $redirect->with('unit_nama_mismatch', $uniqueMismatches->all());
+        }
+
+        return $redirect;
+
+    } catch (\Throwable $e) {
+        return redirect()
+            ->route('pesanan-majalah.index')
+            ->with('error', 'Import gagal: ' . $e->getMessage());
     }
+}
     private function daftarPeriodeImport(): array
     {
         $periode = [];

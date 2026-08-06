@@ -59,8 +59,7 @@
             margin: 8px 0;
         }
 
-        th,
-        td {
+        th, td {
             border: 1px solid #333;
             padding-top: 1px;
             padding-bottom: 1px;
@@ -94,17 +93,31 @@
 </head>
 <body>
 
-{{-- Tombol PDF Manual --}}
-<a href="{{ route('import.manual-printed.picking-pdf', $item->id ?? $id ?? '') }}"
+{{-- Portrait --}}
+<a href="{{ route('import.manual-printed.picking-pdf', ['id' => $item->id, 'orientation' => 'portrait']) }}"
    target="_blank"
    class="print-btn"
    style="position:fixed; top:20px; right:20px; padding:8px 16px;
           background:#1e40af; color:white; border:none; border-radius:5px;
-          cursor:pointer; font-size:14px; z-index:100;
-          text-decoration: none; display: inline-block;">
-    🖨 CETAK PDF
+          cursor:pointer; font-size:14px; z-index:100; text-decoration:none;">
+    🖨 CETAK PDF (Portrait)
 </a>
 
+{{-- Landscape --}}
+<a href="{{ route('import.manual-printed.picking-pdf', ['id' => $item->id, 'orientation' => 'landscape']) }}"
+   target="_blank"
+   class="print-btn"
+   style="position:fixed; top:60px; right:20px; padding:8px 16px;
+          background:#047857; color:white; border:none; border-radius:5px;
+          cursor:pointer; font-size:14px; z-index:100; text-decoration:none;">
+    🖨 CETAK PDF (Landscape)
+</a>
+
+@php
+    $totalLembar = $jumlah_lembar ?? 1;
+@endphp
+
+{{-- ==================== HANYA 1 LEMBAR ==================== --}}
 <div class="preview">
     <div style="padding: 4mm 5mm 10mm 5mm;">
 
@@ -143,7 +156,6 @@
                     }
                 }
 
-                // Fallback dari variabel controller
                 if (empty($kategoriJudul) && !empty($kategori_order)) {
                     $kategoriJudul = strtoupper($kategori_order);
                 }
@@ -166,6 +178,9 @@
                 @endif
                 | {{ $item->no_ps ?? '-' }}
             </span>
+            <div style="font-size: 13px; font-weight: bold; margin-top: 6px;">
+                        {{ $totalLembar }} Lembar
+                    </div>
         </div>
 
         {{-- INFO --}}
@@ -177,12 +192,10 @@
 
                     <strong>{{ $item->nama_unit ?? '-' }}</strong><br>
 
-                    {{-- Telepon unit --}}
                     @if(!empty($item->manualOrder?->phone))
                         Telp: {{ $item->manualOrder->phone }}<br>
                     @endif
 
-                    {{-- Alamat (tanpa shipping_city) --}}
                     @php
                         $alamat = trim(implode(', ', array_filter([
                             $item->manualOrder?->shipping_address_1,
@@ -193,13 +206,10 @@
                         {{ $alamat }}<br>
                     @endif
 
-                    {{-- Wilayah (dari shipping_city) --}}
                     @if(!empty($item->manualOrder?->shipping_city))
                         Wilayah: <strong>{{ $item->manualOrder->shipping_city }}</strong><br>
                     @endif
 
-
-                    {{-- Contact person --}}
                     @php
                         $cp = null;
                         $rawNotes = $item->manualOrder?->notes ?? $item->manualOrder?->catatan ?? '';
@@ -214,10 +224,10 @@
                     <strong>{{ $item->pengiriman ?? '-' }} | {{ $item->service_pengiriman ?? '-' }}</strong>
                     {{ $data->count() }} | {{ $data->sum('item_qty') ?: $data->sum('qty') ?: $data->count() }}
                 </td>
-    <td style="text-align:center; vertical-align:top; width:20%;">
-        <strong style="font-size: 15px;">PARAF</strong><br><br>
-    </td>
-</tr>
+                <td style="text-align:center; vertical-align:top; width:20%;">
+                    <strong style="font-size: 15px;">PARAF</strong><br><br>
+                </td>
+            </tr>
         </table>
 
         {{-- TABEL PRODUK --}}
@@ -228,7 +238,7 @@
                     <th>NAMA PRODUK</th>
                     <th width="17%">SKU</th>
                     <th width="8%">QTY</th>
-                    <th width="10%" class="center">CEK</th>
+                    
                 </tr>
             </thead>
             <tbody>
@@ -252,7 +262,6 @@
                     <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">
                         @php
                             $sku = trim($row->item_sku ?? '');
-                            // Hapus prefix JKT / tanda -
                             $cleanSku = str_ireplace(['JKT', '-'], '', $sku);
                             $cleanSku = trim($cleanSku);
                         @endphp
@@ -261,7 +270,6 @@
                     <td style="text-align:center; vertical-align:top; padding-top:1px; line-height:1;">
                         {{ $row->item_qty ?? $row->qty ?? 1 }}
                     </td>
-                    <td class="center"></td>
                 </tr>
                 @endforeach
             </tbody>
@@ -272,7 +280,9 @@
     {{-- FOOTER --}}
     <div class="footer">
         No. Order: {{ $no_pl ?? $item->no_pl ?? '-' }}
-        | Dicetak: {{ now()->format('d/m/Y H:i') }}<br>
+        | Dicetak: {{ now()->format('d/m/Y H:i') }}
+        | {{ $totalLembar }} Lembar
+        <br>
         biMBA LOGISTIK — MANUAL
     </div>
 </div>
