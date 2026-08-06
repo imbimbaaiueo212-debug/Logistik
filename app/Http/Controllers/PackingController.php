@@ -163,34 +163,67 @@ class PackingController extends Controller
     /**
      * Update Data Packing Order Manual
      */
-    public function updateManual(Request $request, $id)
-    {
-        $packing = ManualPacking::findOrFail($id);
+    /**
+ * Update Data Packing Order Manual
+ */
+public function updateManual(Request $request, $id)
+{
+    $packing = ManualPacking::findOrFail($id);
 
-        if ($packing->status_packing === 'Selesai') {
-            return back()->with('error', 'Data packing sudah selesai dan tidak dapat diedit lagi.');
-        }
-
-        $validated = $request->validate([
-            'tgl_packing'        => 'nullable|date',
-            'status_packing'     => 'required|in:Pending,Proses,Selesai,Batal',
-            'nama_packer'        => 'nullable|string|max:100',
-            'berat_aktual'       => 'nullable|numeric|min:0',
-            'koli'               => 'nullable|string|max:50',
-            'keterangan_packing' => 'nullable|string|max:255',
-        ]);
-
-        $packing->update([
-            'tgl_packing'        => $validated['tgl_packing'] ?? null,
-            'status_packing'     => $validated['status_packing'],
-            'nama_packer'        => $validated['nama_packer'] ?? null,
-            'berat_aktual'       => $validated['berat_aktual'] ?? null,
-            'koli'               => $validated['koli'] ?? null,
-            'keterangan_packing' => $validated['keterangan_packing'] ?? null,
-            'packing_by'         => Auth::id(),
-            'packing_at'         => now(),
-        ]);
-
-        return back()->with('success', 'Data Packing Manual berhasil disimpan.');
+    if ($packing->status_packing === 'Selesai') {
+        return back()->with('error', 'Data packing sudah selesai dan tidak dapat diedit lagi.');
     }
+
+    $validated = $request->validate([
+        'tgl_packing'        => 'nullable|date',
+        'status_packing'     => 'required|in:Pending,Proses,Selesai,Batal',
+        'nama_packer'        => 'nullable|string|max:100',
+        'berat_aktual'       => 'nullable|numeric|min:0',
+        'koli'               => 'nullable|string|max:50',
+        'keterangan_packing' => 'nullable|string|max:255',
+    ]);
+
+    $packing->update([
+        'tgl_packing'        => $validated['tgl_packing'] ?? null,
+        'status_packing'     => $validated['status_packing'],
+        'nama_packer'        => $validated['nama_packer'] ?? null,
+        'berat_aktual'       => $validated['berat_aktual'] ?? null,
+        'koli'               => $validated['koli'] ?? null,
+        'keterangan_packing' => $validated['keterangan_packing'] ?? null,
+        'packing_by'         => Auth::id(),
+        'packing_at'         => now(),
+    ]);
+
+    // =====================================================
+    // JIKA STATUS = SELESAI → BUAT DISTRIBUTION MANUAL
+    // =====================================================
+    if ($packing->status_packing === 'Selesai') {
+
+        $picking = $packing->manualPicking; // pastikan relasi ada
+
+        \App\Models\ManualDistributionOrder::updateOrCreate(
+            [
+                'manual_packing_id' => $packing->id,
+            ],
+            [
+                'manual_picking_id'  => $packing->manual_picking_id,
+                'no_pl'              => $packing->no_pl,
+                'no_ps'              => $packing->no_ps,
+                'nama_unit'          => $packing->nama_unit,
+                'grup'               => $packing->grup,
+                'kategori_order'     => $packing->kategori_order,
+                'ekspedisi'          => $picking?->ekspedisi,
+                'service_pengiriman' => $picking?->service_pengiriman,
+                'status_kirim'       => $picking?->status_kirim ?? 'Dikirim',
+                'berat'              => $packing->berat,
+                'berat_aktual'       => $packing->berat_aktual,
+                'koli'               => $packing->koli,
+                'status_distribusi'  => 'Pending',
+                'created_by'         => Auth::id(),
+            ]
+        );
+    }
+
+    return back()->with('success', 'Data Packing Manual berhasil disimpan.');
+}
 }

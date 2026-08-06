@@ -12,6 +12,7 @@ class ManualPicking extends Model
         'manual_realisasi_id',
         'manual_order_id',
         'no_pl',
+        'no_ps',
         'kategori_order',
         'tgl_order',
         'tgl_picking',

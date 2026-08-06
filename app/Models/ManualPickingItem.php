@@ -16,6 +16,7 @@ class ManualPickingItem extends Model
         'item_qty',
         'qty_picked',
         'cek',
+        'no_ps',
     ];
 
     protected $casts = [

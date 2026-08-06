@@ -43,103 +43,63 @@
 
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
 
                 {{-- Jakarta Aktif --}}
                 <a href="{{ route('distribution-order.jakarta-aktif') }}" class="group">
-
                     <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-
-                        <div class="text-5xl mb-4">
-                            🚚
-                        </div>
-
-                        <h3 class="text-2xl font-semibold mb-2">
-                            Jakarta Aktif
-                        </h3>
-
-                        <p class="text-gray-500 text-sm">
-                            Distribution Order Jakarta Aktif
-                        </p>
-
+                        <div class="text-5xl mb-4">🚚</div>
+                        <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
+                        <p class="text-gray-500 text-sm">Distribution Order Jakarta Aktif</p>
                     </div>
-
                 </a>
 
                 {{-- Jakarta Pasif --}}
                 <a href="{{ route('distribution-order.jakarta-pasif') }}" class="group">
-
                     <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-
-                        <div class="text-5xl mb-4">
-                            🚚
-                        </div>
-
-                        <h3 class="text-2xl font-semibold mb-2">
-                            Jakarta Pasif
-                        </h3>
-
-                        <p class="text-gray-500 text-sm">
-                            Distribution Order Jakarta Pasif
-                        </p>
-
+                        <div class="text-5xl mb-4">🚚</div>
+                        <h3 class="text-2xl font-semibold mb-2">Jakarta Pasif</h3>
+                        <p class="text-gray-500 text-sm">Distribution Order Jakarta Pasif</p>
                     </div>
-
                 </a>
 
                 {{-- InterVio --}}
                 <a href="{{ route('distribution-order.intervio') }}" class="group">
-
                     <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-
-                        <div class="text-5xl mb-4">
-                            🚚
-                        </div>
-
-                        <h3 class="text-2xl font-semibold mb-2">
-                            InterVio (DLC)
-                        </h3>
-
-                        <p class="text-gray-500 text-sm">
-                            Distribution Order DLC
-                        </p>
-
+                        <div class="text-5xl mb-4">🚚</div>
+                        <h3 class="text-2xl font-semibold mb-2">InterVio (DLC)</h3>
+                        <p class="text-gray-500 text-sm">Distribution Order DLC</p>
                     </div>
-
                 </a>
 
                 {{-- EBT --}}
                 <a href="{{ route('distribution-order.ebt') }}" class="group">
-
                     <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-
-                        <div class="text-5xl mb-4">
-                            🚚
-                        </div>
-
-                        <h3 class="text-2xl font-semibold mb-2">
-                            English biMBA Talk
-                        </h3>
-
-                        <p class="text-gray-500 text-sm">
-                            Distribution Order EBT
-                        </p>
-
+                        <div class="text-5xl mb-4">🚚</div>
+                        <h3 class="text-2xl font-semibold mb-2">English biMBA Talk</h3>
+                        <p class="text-gray-500 text-sm">Distribution Order EBT</p>
                     </div>
+                </a>
 
+                {{-- Manual --}}
+                <a href="{{ route('distribution-order.manual') }}" class="group">
+                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full border-2 border-transparent hover:border-indigo-300">
+                        <div class="text-5xl mb-4">📦</div>
+                        <h3 class="text-2xl font-semibold mb-2">Manual</h3>
+                        <p class="text-gray-500 text-sm">
+                            Distribution Order Manual<br>
+                            (Majalah / Modul / Sertifikat)
+                        </p>
+                    </div>
                 </a>
 
             </div>
 
             <div class="mt-12 flex justify-center">
-
                 <a href="{{ route('home') }}"
                     class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 px-8 py-3 rounded-2xl font-medium transition-all">
-
                     ← Kembali ke Menu Utama
-
                 </a>
-
             </div>
 
         </div>

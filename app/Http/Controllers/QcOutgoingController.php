@@ -129,6 +129,7 @@ class QcOutgoingController extends Controller
                 [
                     'qc_outgoing_id'   => $qc->id,
                     'no_pl'            => $qc->no_pl ?? null,
+                    'no_ps'            => $qc->no_ps ?? null,
                     'tgl_turun_pl'     => $qc->tgl_turun_pl ?? null,
                     'nama_unit'        => $qc->nama_unit ?? null,
                     'pengiriman'       => $qc->pengiriman ?? null,
@@ -197,6 +198,7 @@ public function storeManual(Request $request)
         [
             'manual_qc_outgoing_id' => $qc->id,
             'no_pl'                 => $picking->no_pl,
+            'no_ps'                 => $picking->no_ps,
             'nama_unit'             => $picking->nama_unit,
             'grup'                  => $picking->grup,
             'kategori_order'        => $picking->kategori_order ?? $picking->pesanan ?? null,

@@ -509,6 +509,7 @@ public function updateStatusManual(Request $request)
                 [
                     'manual_picking_id' => $picking->id,
                     'no_pl'             => $picking->no_pl,
+                    'no_ps'             => $picking->no_ps,
                     'nama_unit'         => $picking->nama_unit,
                     'grup'              => $picking->grup,
                     'kategori_order'    => $picking->kategori_order ?? $picking->pesanan,

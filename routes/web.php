@@ -552,7 +552,6 @@ Route::prefix('packing')->group(function () {
     Route::put('/order-manual/{id}', [PackingController::class, 'updateManual'])
         ->name('packing.order-manual.update');
 });
-
 // Distribution Order Routes
 Route::prefix('distribution-order')
     ->name('distribution-order.')
@@ -564,6 +563,10 @@ Route::prefix('distribution-order')
         Route::get('/jakarta-pasif', [DistributionOrderController::class, 'jakartaPasif'])->name('jakarta-pasif');
         Route::get('/intervio', [DistributionOrderController::class, 'intervio'])->name('intervio');
         Route::get('/ebt', [DistributionOrderController::class, 'ebt'])->name('ebt');
+
+        // === MANUAL ===
+        Route::get('/manual', [DistributionOrderController::class, 'manual'])->name('manual');
+        Route::post('/manual/{id}/update', [DistributionOrderController::class, 'updateManual'])->name('manual.update');
 
         // === ROUTE BARU YANG DIBUTUHKAN ===
         Route::get('/create', [DistributionOrderController::class, 'create'])->name('create');

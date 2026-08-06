@@ -11,6 +11,7 @@ class ManualQcOutgoing extends Model
     protected $fillable = [
         'manual_picking_id',
         'no_pl',
+        'no_ps',                // ← TAMBAHKAN
         'nama_unit',
         'grup',
         'kategori_order',
@@ -19,6 +20,7 @@ class ManualQcOutgoing extends Model
         'kode_qc',
         'keterangan',
         'tgl_qc',
+        'created_by',
     ];
 
     protected $casts = [
@@ -29,8 +31,9 @@ class ManualQcOutgoing extends Model
     {
         return $this->belongsTo(ManualPicking::class);
     }
+
     public function manualPacking()
-{
-    return $this->hasOne(ManualPacking::class, 'manual_qc_outgoing_id');
-}
+    {
+        return $this->hasOne(ManualPacking::class, 'manual_qc_outgoing_id');
+    }
 }

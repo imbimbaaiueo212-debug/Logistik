@@ -45,7 +45,7 @@ class UnitKemitraanImport implements
 
     public function startRow(): int
     {
-        return 2;
+        return 2; // baris 1 = header
     }
 
     public function getCsvSettings(): array
@@ -82,11 +82,7 @@ class UnitKemitraanImport implements
 
         $value = trim((string) $value);
 
-        if ($value === '' || $value === '-' || $value === '?' || strtolower($value) === 'null') {
-            return null;
-        }
-
-        if ($value === '0') {
+        if ($value === '' || $value === '-' || $value === '?' || strtolower($value) === 'null' || $value === '0') {
             return null;
         }
 
@@ -122,7 +118,7 @@ class UnitKemitraanImport implements
         }
 
         $value = str_replace(['%', ' '], '', $value);
-        $value = str_replace('.', '', $value);
+        $value = str_replace('.', '', $value);   // 420.000 → 420000
         $value = str_replace(',', '.', $value);
         $value = preg_replace('/[^0-9.\-]/', '', $value);
 
@@ -176,8 +172,8 @@ class UnitKemitraanImport implements
                 return Carbon::instance($value)->format('Y-m-d H:i:s');
             }
 
-            $value = trim($value);
-            $formats = ['d/m/Y', 'd-M-y', 'd-M-Y', 'd-m-Y', 'Y-m-d'];
+            $value = trim((string) $value);
+            $formats = ['d/m/Y', 'd-M-y', 'd-M-Y', 'd-m-Y', 'Y-m-d', 'd-M-y'];
 
             foreach ($formats as $format) {
                 try {
@@ -253,24 +249,38 @@ class UnitKemitraanImport implements
     }
 
     /**
-     * Cek apakah ada perbedaan data
+     * Jika baris masih 1 kolom (delimiter tidak terbaca), pecah manual
      */
-    private function hasChanges(UnitKemitraan $existing, array $data): bool
-    {
-        foreach ($data as $key => $newValue) {
-            $oldValue = $existing->getAttribute($key);
-
-            // Samakan null & string kosong
-            $old = ($oldValue === null || $oldValue === '') ? null : (string) $oldValue;
-            $new = ($newValue === null || $newValue === '') ? null : (string) $newValue;
-
-            if ($old !== $new) {
-                return true;
-            }
-        }
-
-        return false;
+    private function normalizeRow(array $row): array
+{
+    // kalau csv masih menjadi satu kolom
+    if (count($row) === 1 && is_string($row[0]) && str_contains($row[0], ';')) {
+        $row = str_getcsv($row[0], ';', '"', '\\');
     }
+
+    // reindex
+    $row = array_values($row);
+
+    // hilangkan karakter BOM
+    foreach ($row as $k => $v) {
+
+        if (is_string($v)) {
+
+            $v = preg_replace('/^\xEF\xBB\xBF/', '', $v);
+
+            // ubah nbsp menjadi spasi biasa
+            $v = str_replace("\xc2\xa0", ' ', $v);
+
+            // hapus karakter control
+            $v = preg_replace('/[\x00-\x1F\x7F]/u', '', $v);
+
+            $row[$k] = trim($v);
+        }
+    }
+
+    // pastikan jumlah kolom selalu cukup
+    return array_pad($row,150,null);
+}
 
     // =========================================================
     // MODEL
@@ -279,36 +289,46 @@ class UnitKemitraanImport implements
     public function model(array $row)
     {
         try {
-            $row = array_pad($row, 120, null);
+            $row = $this->normalizeRow($row);
+            if (count($row) < 131) {
+
+            Log::warning('Jumlah kolom tidak sesuai',[
+                'jumlah' => count($row),
+                'row' => $row,
+            ]);
+
+            return null;
+        }
 
             $idRecordRaw = $row[0] ?? null;
             $noCabRaw    = $row[1] ?? null;
 
-            $isIdEmpty    = ($idRecordRaw === null || trim((string) $idRecordRaw) === '' || trim((string) $idRecordRaw) === '-');
-            $isNoCabEmpty = ($noCabRaw === null || trim((string) $noCabRaw) === '' || trim((string) $noCabRaw) === '-');
+            $idRecord = $this->cleanIdRecord($idRecordRaw);
 
-            if ($isIdEmpty && $isNoCabEmpty) {
+            // Normalisasi no_cab
+            $noCab = $this->clean($noCabRaw !== null ? (string) $noCabRaw : null);
+            if ($noCab !== null && preg_match('/[0-9]/', $noCab)) {
+                $noCab = (string) (int) preg_replace('/[^0-9]/', '', $noCab);
+            }
+
+            if (empty($noCab) && empty($idRecord)) {
                 $this->skippedCount++;
                 return null;
             }
-
-            $noCab = $this->clean($noCabRaw !== null ? (string) $noCabRaw : null);
-
-            // HAPUS / COMMENT bagian ini:
-            // if ($noCab !== null && ctype_digit($noCab)) {
-            //     $noCab = str_pad($noCab, 5, '0', STR_PAD_LEFT);
-            // }
 
             if (empty($noCab)) {
                 $this->skippedCount++;
                 return null;
             }
 
+            if (empty($idRecord)) {
+                $idRecord = 'AUTO-' . $noCab;
+            }
+
             $status = $this->clean($row[3] ?? null);
 
             $data = [
-                // IDENTITAS UNIT
-                'id_record'        => $this->cleanIdRecord($idRecordRaw),
+                'id_record'        => $idRecord,
                 'no_cab'           => $noCab,
                 'bimba_aiueo_unit' => $this->clean($row[2] ?? null),
                 'status'           => $status,
@@ -327,19 +347,16 @@ class UnitKemitraanImport implements
                 'koordinat_s'      => $this->clean($row[16] ?? null),
                 'koordinat_e'      => $this->clean($row[17] ?? null),
 
-                // MITRA
                 'no_induk_mitra'   => $this->clean($row[18] ?? null),
                 'nama_mitra'       => $this->clean($row[19] ?? null),
                 'email'            => $this->clean($row[20] ?? null),
                 'no_hp'            => $this->cleanPhone($row[21] ?? null),
                 'foto'             => $this->clean($row[22] ?? null),
 
-                // BANK
                 'bank'             => $this->clean($row[23] ?? null),
                 'no_rekening'      => $this->clean($row[24] ?? null),
                 'atas_nama'        => $this->clean($row[25] ?? null),
 
-                // LISENSI
                 'no_akta'          => $this->clean($row[26] ?? null),
                 'tgl_akta'         => $this->parseDate($row[27] ?? null),
                 'nilai_lisensi'    => $this->extractNumber($row[28] ?? null),
@@ -351,7 +368,6 @@ class UnitKemitraanImport implements
                 'perpanjang'       => $this->parseDate($row[33] ?? null),
                 'tutup'            => $this->parseDate($row[34] ?? null),
 
-                // VA
                 'jmp'                  => $this->clean($row[35] ?? null),
                 'lpm'                  => $this->clean($row[36] ?? null),
                 'pengembalian'         => $this->clean($row[37] ?? null),
@@ -362,7 +378,6 @@ class UnitKemitraanImport implements
                 'marketing'            => $this->clean($row[42] ?? null),
                 'koorwil_kpk_sos'      => $this->clean($row[43] ?? null),
 
-                // KETERANGAN
                 'detail'           => $this->clean($row[44] ?? null),
                 'note'             => $this->clean($row[45] ?? null),
                 'updated_by'       => $this->clean($row[46] ?? null) ?? 'Import System',
@@ -371,7 +386,6 @@ class UnitKemitraanImport implements
                 'valid'            => $this->clean($row[49] ?? null),
                 'level_user'       => $this->clean($row[50] ?? null),
 
-                // SISA
                 'sisa_3'           => $this->extractNumber($row[51] ?? null),
                 'sisa_1'           => $this->extractNumber($row[52] ?? null),
                 'sisa_2'           => $this->extractNumber($row[53] ?? null),
@@ -381,7 +395,6 @@ class UnitKemitraanImport implements
                 'sisa'             => $this->clean($row[57] ?? null),
                 'sisa_rr'          => $this->extractNumber($row[58] ?? null),
 
-                // PERUBAHAN
                 'no'                       => $this->clean($row[59] ?? null),
                 'lokasi_'                  => $this->clean($row[60] ?? null),
                 'kategori_perubahan'       => $this->clean($row[61] ?? null),
@@ -413,10 +426,8 @@ class UnitKemitraanImport implements
 
                 'len_perubahan_unit'       => $this->clean($row[85] ?? null),
                 'no_cab_bimba_unit'        => $this->clean($row[86] ?? null),
-
                 'lampiran_jarak_stokis_1'  => $this->toSafeDecimal($row[87] ?? null),
                 'lampiran_jarak_stokis_2'  => $this->toSafeDecimal($row[88] ?? null),
-
                 'keterangan_stokis_1'      => $this->clean($row[89] ?? null),
                 'keterangan_stokis_2'      => $this->clean($row[90] ?? null),
                 'kirim_email_lisensi'      => $this->clean($row[91] ?? null),
@@ -448,33 +459,50 @@ class UnitKemitraanImport implements
                 'akun_instagram'           => $this->clean($row[112] ?? null),
                 'akun_media_sosial_unit_bimba_aiueo' => $this->clean($row[113] ?? null),
 
-                // Otomatis
-                'status_pengelolaan'       => $this->getStatusPengelolaan($status),
-                'mitra_pengelolaan'        => $this->getMitraPengelolaan($status),
+                // MEMO
+                'status_unit'          => $this->clean($row[114] ?? null),
+                'pdf_memo'             => $this->clean($row[115] ?? null),
+                'update_pdf_memo'      => $this->clean($row[116] ?? null),
+                'last_updated_memo'    => $this->parseDate($row[117] ?? null),
+                'version_memo'         => $this->clean($row[118] ?? null),
+                'kirim_email_memo'     => $this->clean($row[119] ?? null),
+                'tgl_kirim_email_memo' => $this->parseDate($row[120] ?? null),
+
+                // MARKETING & ALAMAT MITRA
+                'nama_marketing_'      => $this->clean($row[121] ?? null),
+                'no_rumah'             => $this->clean($row[122] ?? null),
+                'rt_mitra'             => $this->clean($row[123] ?? null),
+                'rw_mitra'             => $this->clean($row[124] ?? null),
+                'kel_mitra'            => $this->clean($row[125] ?? null),
+                'kec_mitra'            => $this->clean($row[126] ?? null),
+                'kota_mitra'           => $this->clean($row[127] ?? null),
+                'provinsi_mitra'       => $this->clean($row[128] ?? null),
+                'kode_pos_mitra'       => $this->clean($row[129] ?? null),
+                'email_marketing_'     => $this->clean($row[130] ?? null),
+
+                'status_pengelolaan'   => $this->getStatusPengelolaan($status),
+                'mitra_pengelolaan'    => $this->getMitraPengelolaan($status),
             ];
 
-            // =====================================================
-            // LOGIKA: INSERT / UPDATE / SKIP
-            // =====================================================
-            $existing = UnitKemitraan::where('no_cab', $noCab)->first();
+            // INSERT / UPDATE
+            $existing = UnitKemitraan::withTrashed()
+                ->where('no_cab', $noCab)
+                ->first();
 
             if ($existing) {
-                if ($this->hasChanges($existing, $data)) {
-                    $existing->update($data);
-                    $this->successCount++;
-                } else {
-                    // Tidak ada perubahan → skip
-                    $this->skippedCount++;
+                if ($existing->trashed()) {
+                    $existing->restore();
                 }
+                $existing->fill($data);
+                $existing->save();
             } else {
-                // Data baru
                 UnitKemitraan::create($data);
-                $this->successCount++;
             }
+
+            $this->successCount++;
 
         } catch (Throwable $e) {
             $this->failedCount++;
-
             $this->failedRows[] = [
                 'no_cab'    => $row[1] ?? '-',
                 'id_record' => $row[0] ?? '-',
@@ -522,7 +550,6 @@ class UnitKemitraanImport implements
             'failed'      => $this->failedCount,
             'skipped'     => $this->skippedCount,
             'failed_rows' => $this->failedRows,
-            'errors'      => method_exists($this, 'failures') ? $this->failures() : [],
         ];
     }
 }

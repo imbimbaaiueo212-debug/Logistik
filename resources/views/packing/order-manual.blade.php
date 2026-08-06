@@ -172,10 +172,11 @@
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
                         <th class="text-center px-4 py-3">No</th>
                         <th class="text-left px-4 py-3">No PL</th>
+                        <th class="text-left px-4 py-3">ID biMBA Shop</th>
                         <th class="text-left px-4 py-3">Nama Unit</th>
                         <th class="text-center px-4 py-3">Grup</th>
                         <th class="text-center px-4 py-3">Kategori</th>
-                        <th class="text-center px-4 py-3">PIC Picking</th>
+                        <th class="text-center px-4 py-3">PIC QC</th>
                         <th class="text-left px-4 py-3">Status Packing</th>
                         <th class="text-left px-4 py-3">Nama Packer</th>
                         <th class="text-center px-4 py-3">Tgl Packing</th>
@@ -194,11 +195,12 @@
         <tr class="hover:bg-gray-50">
             <td class="px-4 py-3 text-center">{{ $data->firstItem() + $index }}</td>
             <td class="px-4 py-3 font-medium">{{ $item->no_pl ?? '-' }}</td>
+            <td class="px-4 py-3">{{ $item->no_ps ?? '-' }}</td>
             <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
             <td class="px-4 py-3 text-center">{{ $item->grup ?? '-' }}</td>
             <td class="px-4 py-3 text-center">{{ $item->kategori_order ?? '-' }}</td>
             <td class="px-4 py-3 text-center">
-                {{ $item->manualPicking->pic ?? $packing->pic_picking ?? '-' }}
+                {{ $item->pic_qc ?? '-' }}
             </td>
 
             @if($packing)

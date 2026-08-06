@@ -12,6 +12,7 @@ class ManualPacking extends Model
         'manual_picking_id',
         'manual_qc_outgoing_id',
         'no_pl',
+        'no_ps',                // ← TAMBAHKAN
         'nama_unit',
         'grup',
         'kategori_order',
@@ -50,10 +51,4 @@ class ManualPacking extends Model
     {
         return $this->belongsTo(User::class, 'packing_by');
     }
-
-    // Opsional: kalau nanti ada Distribution Manual
-    // public function distributionOrder()
-    // {
-    //     return $this->hasOne(ManualDistributionOrder::class, 'manual_packing_id');
-    // }
 }

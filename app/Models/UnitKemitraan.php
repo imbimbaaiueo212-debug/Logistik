@@ -56,6 +56,7 @@ class UnitKemitraan extends Model
         'bank',
         'no_rekening',
         'atas_nama',
+        
 
         'no_akta',
         'tgl_akta',
@@ -160,7 +161,30 @@ class UnitKemitraan extends Model
         'akun_media_sosial_unit_bimba_aiueo',
         'status_pengelolaan',
         'mitra_pengelolaan',
-    ];
+        // Memo
+        'status_unit',
+        'pdf_memo',
+        'update_pdf_memo',
+        'last_updated_memo',
+        'version_memo',
+        'kirim_email_memo',
+        'tgl_kirim_email_memo',
+
+        // Marketing
+        'nama_marketing_',
+        // Alamat Mitra
+        'no_rumah',
+        'rt_mitra',
+        'rw_mitra',
+        'kel_mitra',
+        'kec_mitra',
+        'kota_mitra',
+        'provinsi_mitra',
+        'kode_pos_mitra',
+
+        // Email Marketing
+        'email_marketing_',
+        ];
 
     protected $casts = [
         'tgl_akta'        => 'date',
