@@ -494,17 +494,21 @@ Route::prefix('qc-outgoing')
     ->group(function () {
 
         Route::get('/', [App\Http\Controllers\QcOutgoingController::class, 'index'])
-             ->name('index');
+            ->name('index');
 
         Route::get('/jakarta-aktif', [App\Http\Controllers\QcOutgoingController::class, 'jakartaAktif'])
-             ->name('jakarta-aktif');
+            ->name('jakarta-aktif');
 
         Route::post('/store', [App\Http\Controllers\QcOutgoingController::class, 'qcStore'])
-             ->name('store');
-        Route::get('/order-manual', [QcOutgoingController::class, 'orderManual'])
-            ->name('order-manual');
-    });
+            ->name('store');
 
+        // Order Manual
+        Route::get('/order-manual', [App\Http\Controllers\QcOutgoingController::class, 'orderManual'])
+            ->name('order-manual');
+
+        Route::post('/manual/store', [App\Http\Controllers\QcOutgoingController::class, 'storeManual'])
+            ->name('manual.store');
+    });
 //ORDER MANUAL
 Route::get('/import/manual', [ImportController::class,'manual'])
     ->name('import.manual');
@@ -535,12 +539,18 @@ Route::prefix('packing')->group(function () {
     Route::get('/jakarta-aktif', [PackingController::class, 'jakartaAktif'])
         ->name('packing.jakarta.aktif');
 
-    // Tambahkan route ini
     Route::put('/{id}', [PackingController::class, 'update'])
         ->name('packing.update');
 
     Route::post('/store', [PackingController::class, 'store'])
         ->name('packing.store');
+
+    // ===== ORDER MANUAL =====
+    Route::get('/order-manual', [PackingController::class, 'orderManual'])
+        ->name('packing.order-manual');
+
+    Route::put('/order-manual/{id}', [PackingController::class, 'updateManual'])
+        ->name('packing.order-manual.update');
 });
 
 // Distribution Order Routes

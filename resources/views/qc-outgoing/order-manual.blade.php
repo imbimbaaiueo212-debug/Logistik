@@ -43,19 +43,60 @@
 
     <div class="max-w-screen-2xl mx-auto px-6 py-6">
 
-        <!-- Header -->
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">QC Outgoing - Order Manual</h1>
-                <p class="text-gray-600">Quality Control dari Picking Order Manual</p>
-            </div>
-            <a href="{{ route('qc-outgoing.index') }}" 
-               class="px-5 py-2.5 bg-white border border-gray-300 rounded-xl hover:border-blue-500 text-gray-700 hover:text-blue-700 transition">
-                ← Kembali
+        {{-- Header + Filter Kategori --}}
+<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-800">QC Outgoing - Order Manual</h1>
+        <p class="text-gray-600">Quality Control dari Picking Order Manual</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+        {{-- Filter Kategori --}}
+        <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border">
+            <a href="{{ route('qc-outgoing.index') }}"
+           class="px-5 py-2.5  rounded-xl hover:border-blue-500 text-gray-700 hover:text-blue-700 transition">
+            Kembali
+        </a>
+            <a href="{{ route('qc-outgoing.order-manual') }}"
+               class="px-5 py-2.5 rounded-3xl font-medium transition-all
+               {{ !request('kategori') ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                Semua
+            </a>
+
+            <a href="{{ route('qc-outgoing.order-manual', ['kategori' => 'Modul']) }}"
+               class="px-5 py-2.5 rounded-3xl font-medium transition-all
+               {{ request('kategori') == 'Modul' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                🟢 Modul
+            </a>
+
+            <a href="{{ route('qc-outgoing.order-manual', ['kategori' => 'Majalah']) }}"
+               class="px-5 py-2.5 rounded-3xl font-medium transition-all
+               {{ request('kategori') == 'Majalah' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                🔵 Majalah
+            </a>
+
+            <a href="{{ route('qc-outgoing.order-manual', ['kategori' => 'Sertifikat']) }}"
+               class="px-5 py-2.5 rounded-3xl font-medium transition-all
+               {{ request('kategori') == 'Sertifikat' ? 'bg-red-600 text-white shadow-sm' : 'hover:bg-gray-100' }}">
+                🔴 Sertifikat
             </a>
         </div>
+    </div>
+</div>
 
-        <!-- Filter -->
+        {{-- Flash --}}
+        @if(session('success'))
+            <div class="mb-4 bg-green-50 border border-green-200 text-green-800 px-5 py-3 rounded-2xl">
+                {{ session('success') }}
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-800 px-5 py-3 rounded-2xl">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        {{-- Filter --}}
         <div class="bg-white rounded-3xl shadow p-6 mb-6">
             <form method="GET" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
                 
@@ -118,7 +159,7 @@
             </form>
         </div>
 
-        <!-- Tabel -->
+        {{-- Tabel --}}
         <div class="bg-white rounded-3xl shadow overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
@@ -129,13 +170,23 @@
                         <th class="text-center px-4 py-3">Grup</th>
                         <th class="text-center px-4 py-3">Kategori</th>
                         <th class="text-center px-4 py-3">PIC Picking</th>
-                        <th class="text-center px-4 py-3">Status QC</th>
-                        <th class="text-center px-4 py-3">PIC QC</th>
+                        <th class="text-left px-4 py-3">Status QC</th>
+                        <th class="text-left px-4 py-3">PIC QC</th>
+                        <th class="text-left px-4 py-3">Kode QC</th>
+                        <th class="text-left px-4 py-3">Keterangan</th>
                         <th class="text-center px-4 py-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($data as $index => $item)
+                        @php
+                            $qc = $item->manualQcOutgoing ?? null;
+                            $statusQc  = $qc->status_qc ?? 'Pending';
+                            $picQc     = $qc->pic_qc ?? null;
+                            $kodeQc    = $qc->kode_qc ?? null;
+                            $keterangan = $qc->keterangan ?? null;
+                            $isLolos   = $statusQc === 'Lolos';
+                        @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-center">{{ $data->firstItem() + $index }}</td>
                         <td class="px-4 py-3 font-medium">{{ $item->no_pl ?? '-' }}</td>
@@ -147,33 +198,88 @@
                         <td class="px-4 py-3 text-center">
                             {{ $item->pic ?? '-' }}
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            @php
-                                $statusQc = $item->manualQcOutgoing->status_qc ?? 'Pending';
-                            @endphp
 
-                            @if($statusQc === 'Lolos')
-                                <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lolos</span>
-                            @elseif($statusQc === 'Reject')
-                                <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">Reject</span>
-                            @elseif($statusQc === 'Revisi')
-                                <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">Revisi</span>
-                            @else
-                                <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold">Pending</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            {{ $item->manualQcOutgoing->pic_qc ?? '-' }}
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            <a href="#" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                Proses QC
-                            </a>
-                        </td>
+                        <form method="POST" action="{{ route('qc-outgoing.manual.store') }}">
+                            @csrf
+                            <input type="hidden" name="manual_picking_id" value="{{ $item->id }}">
+
+                            {{-- STATUS QC --}}
+                            <td class="px-4 py-3">
+                                @if($isLolos)
+                                    <span class="inline-block px-3 py-1 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+                                        {{ $statusQc }}
+                                    </span>
+                                    <input type="hidden" name="status_qc" value="{{ $statusQc }}">
+                                @else
+                                    <select name="status_qc"
+                                            class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full">
+                                        <option value="Pending" {{ $statusQc == 'Pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="Lolos"   {{ $statusQc == 'Lolos'   ? 'selected' : '' }}>Lolos</option>
+                                        <option value="Reject"  {{ $statusQc == 'Reject'  ? 'selected' : '' }}>Reject</option>
+                                        <option value="Revisi"  {{ $statusQc == 'Revisi'  ? 'selected' : '' }}>Revisi</option>
+                                    </select>
+                                @endif
+                            </td>
+
+                            {{-- PIC QC --}}
+                            <td class="px-4 py-3">
+                                @if($picQc)
+                                    <span>{{ preg_replace('/^\d+\s*-\s*/', '', $picQc) }}</span>
+                                    <input type="hidden" name="pic_qc" value="{{ $picQc }}">
+                                @else
+                                    <select name="pic_qc"
+                                            class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full"
+                                            required>
+                                        <option value="">Pilih PIC</option>
+                                        <option value="01 - Aep Saefudin">01 - Aep Saefudin</option>
+                                        <option value="02 - Yusuf Supena">02 - Yusuf Supena</option>
+                                        <option value="03 - Ramdhan Yusuf">03 - Ramdhan Yusuf</option>
+                                        <option value="04 - Usman Agung Permana">04 - Usman Agung Permana</option>
+                                    </select>
+                                @endif
+                            </td>
+
+                            {{-- KODE QC --}}
+                            <td class="px-4 py-3">
+                                @if($kodeQc)
+                                    <span>{{ $kodeQc }}</span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+
+                            {{-- KETERANGAN --}}
+                            <td class="px-4 py-3">
+                                @if($isLolos)
+                                    {{ $keterangan ?? '-' }}
+                                    <input type="hidden" name="keterangan" value="{{ $keterangan }}">
+                                @else
+                                    <input type="text"
+                                           name="keterangan"
+                                           value="{{ $keterangan }}"
+                                           class="border border-gray-300 rounded-lg px-3 py-1 text-sm w-full"
+                                           placeholder="Keterangan QC">
+                                @endif
+                            </td>
+
+                            {{-- AKSI --}}
+                            <td class="px-4 py-3 text-center">
+                                @if($isLolos)
+                                    <span class="inline-flex items-center px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">
+                                        ✓ Selesai
+                                    </span>
+                                @else
+                                    <button type="submit"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                                        {{ $picQc ? 'Update QC' : 'Simpan QC' }}
+                                    </button>
+                                @endif
+                            </td>
+                        </form>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-16 text-gray-500">
+                        <td colspan="11" class="text-center py-16 text-gray-500">
                             Belum ada data Order Manual yang siap di-QC.
                         </td>
                     </tr>

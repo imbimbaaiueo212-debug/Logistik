@@ -29,4 +29,8 @@ class ManualQcOutgoing extends Model
     {
         return $this->belongsTo(ManualPicking::class);
     }
+    public function manualPacking()
+{
+    return $this->hasOne(ManualPacking::class, 'manual_qc_outgoing_id');
+}
 }

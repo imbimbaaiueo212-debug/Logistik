@@ -960,9 +960,6 @@ private function handleManualSyncResult($result, &$created, &$skipped, &$skipped
 /**
  * Buat 1 record Manual Order dari 1 unit Pesanan Majalah
  */
-/**
- * Buat 1 record Manual Order dari 1 unit Pesanan Majalah
- */
 private function createManualOrderFromUnit(
     $unit,
     string $edisi,
@@ -1086,49 +1083,49 @@ private function createManualOrderFromUnit(
     $notesText = implode(' | ', $parts);
 
     try {
-        ManualOrder::create([
-            'order_id'            => $orderId,
-            'order_date'          => now(),
-            'customer_name'       => $namaUnit,
-            'phone'               => $unit->telepon ?? null,
+    ManualOrder::create([
+        'order_id'            => $orderId,
+        'order_date'          => now(),
+        'customer_name'       => $namaUnit,
+        'phone'               => $unit->telepon ?? null,
 
-            'product_sku'         => $edisi,
-            'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
-            'qty'                 => $qty,
-            'price'               => 0,
-            'total'               => 0,
+        'product_sku'         => $edisi,
+        'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
+        'qty'                 => $qty,
+        'price'               => 0,
+        'total'               => 0,
 
-            'ship_total'          => 0,
-            'order_weight'        => 0,
-            'discount_total'      => 0,
-            'refunded_total'      => 0,
+        'ship_total'          => 0,
+        'order_weight'        => $qty * 70,          // ← UBAH INI (0,070 Kg = 70 gram)
+        'discount_total'      => 0,
+        'refunded_total'      => 0,
 
-            'payment_method'      => 'manual',
-            'status'              => 'pending',
-            'grup'                => $group,
+        'payment_method'      => 'manual',
+        'status'              => 'pending',
+        'grup'                => $group,
 
-            'billing_first_name'  => $mitra,
-            'billing_last_name'   => $noCab ?: null,
+        'billing_first_name'  => $mitra,
+        'billing_last_name'   => $noCab ?: null,
 
-            'shipping_first_name' => $namaUnit,
-            'shipping_last_name'  => $noCab ?: null,
-            'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
-            'shipping_address_2'  => null,
-            'shipping_city'       => $wilayah,
+        'shipping_first_name' => $namaUnit,
+        'shipping_last_name'  => $noCab ?: null,
+        'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
+        'shipping_address_2'  => null,
+        'shipping_city'       => $wilayah,
 
-            'status_kirim'        => 'Dikirim',
-            'ekspedisi'           => 'Lion Parcel',
-            'service_pengiriman'  => 'REGPACK',
-            'is_processed'        => false,
-            'payment_date'        => null,
+        'status_kirim'        => 'Dikirim',
+        'ekspedisi'           => 'Lion Parcel',
+        'service_pengiriman'  => 'REGPACK',
+        'is_processed'        => false,
+        'payment_date'        => null,
 
-            'no_ps'               => $noPs,
+        'no_ps'               => $noPs,
 
-            'notes'               => $notesText,
-            'catatan'             => $notesText,
-        ]);
+        'notes'               => $notesText,
+        'catatan'             => $notesText,
+    ]);
 
-        return 'created';
+    return 'created';
 
     } catch (\Throwable $e) {
         Log::error("Gagal create ManualOrder dari unit {$unit->id}: " . $e->getMessage());
