@@ -50,7 +50,7 @@
         .header-title {
             font-size: {{ ($orientation ?? 'portrait') === 'landscape' ? '22px' : '16px' }};
             font-weight: bold;
-            line-height: 1.2;
+            line-height: 6;
         }
 
         .header-sub {
