@@ -93,16 +93,6 @@
 </head>
 <body>
 
-{{-- Portrait --}}
-<a href="{{ route('import.manual-printed.picking-pdf', ['id' => $item->id, 'orientation' => 'portrait']) }}"
-   target="_blank"
-   class="print-btn"
-   style="position:fixed; top:20px; right:20px; padding:8px 16px;
-          background:#1e40af; color:white; border:none; border-radius:5px;
-          cursor:pointer; font-size:14px; z-index:100; text-decoration:none;">
-    🖨 CETAK PDF (Portrait)
-</a>
-
 {{-- Landscape --}}
 <a href="{{ route('import.manual-printed.picking-pdf', ['id' => $item->id, 'orientation' => 'landscape']) }}"
    target="_blank"
@@ -110,7 +100,7 @@
    style="position:fixed; top:60px; right:20px; padding:8px 16px;
           background:#047857; color:white; border:none; border-radius:5px;
           cursor:pointer; font-size:14px; z-index:100; text-decoration:none;">
-    🖨 CETAK PDF (Landscape)
+    🖨 CETAK PDF
 </a>
 
 @php
