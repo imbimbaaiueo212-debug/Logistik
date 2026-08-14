@@ -331,7 +331,7 @@
                         <button type="button"
                                 onclick="printPerDate('{{ $tanggal }}', 'ekspedisi')"
                                 class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
-                            <i class="fa-solid fa-truck"></i> RA EKSPEDISI
+                            <i class="fa-solid fa-truck"></i> RA DISTRIBUSI
                         </button>
                     </div>
                 @endif

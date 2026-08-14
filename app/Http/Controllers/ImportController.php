@@ -1984,7 +1984,7 @@ public function printManualEkspedisi(Request $request)
 
         return $pdf->stream('Manual-Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
     } catch (\Throwable $e) {
-        \Log::error('printManualEkspedisi error: ' . $e->getMessage());
+        Log::error('printManualEkspedisi error: ' . $e->getMessage());
         return back()->with('error', 'Gagal generate PDF Ekspedisi: ' . $e->getMessage());
     }
 }

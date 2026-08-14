@@ -6,7 +6,7 @@
     <style>
 @page {
     size: A4 landscape;
-    margin: 7mm;
+    margin: 8mm 8mm 12mm 8mm; /* margin lebih aman */
 }
 
 body {
@@ -28,7 +28,7 @@ th {
     background: #e8eef7;
     color: #111827;
     border: 1px solid #0000003d;
-    padding: 5px 4px;
+    padding: 5px 3px;
     text-align: center;
     vertical-align: middle;
     font-size: 9.5px;
@@ -38,7 +38,7 @@ th {
 
 td {
     border: 1px solid #0000003d;
-    padding: 3px 4px;
+    padding: 3px 3px;
     font-size: 9px;
     color: #374151;
     vertical-align: top;
@@ -54,7 +54,7 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
     border: 1px solid #0000003d;
     font-size: 10px;
     font-weight: 700;
-    padding: 6px 4px;
+    padding: 6px 3px;
 }
 
 .header2 th {
@@ -62,7 +62,7 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
     border: 1px solid #0000003d;
     font-size: 9px;
     font-weight: 700;
-    padding: 5px 4px;
+    padding: 5px 3px;
 }
 
 .text-left   { text-align: left; }
@@ -70,31 +70,15 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
 .text-right  { text-align: right; }
 .font-bold   { font-weight: bold; }
 
-.main-table {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-}
+/* ===== LEBAR KOLOM (7 kolom aktif) ===== */
+.col-no         { width: 5%; }
+.col-id         { width: 10%; }
+.col-unit       { width: 18%; }
+.col-kategori   { width: 20%; }
+.col-distribusi { width: 12%; }
+.col-catatan    { width: 25%; }
+.col-status     { width: 10%; }
 
-.main-table .col-no         { width: 4%; }
-.main-table .col-id         { width: 7%; }
-.main-table .col-unit       { width: 12%; }
-.main-table .col-kategori   { width: 17%; }
-.main-table .col-distribusi { width: 8%; }
-.main-table .col-tglbayar   { width: 9%; }
-.main-table .col-nominal    { width: 10%; }
-.main-table .col-estimasi   { width: 9%; }
-.main-table .col-catatan    { width: 14%; }
-.main-table .col-status     { width: 10%; }
-
-.footer {
-    margin-top: 10px;
-    border-top: 1px solid #d1d5db;
-    padding-top: 4px;
-    text-align: right;
-    font-size: 8px;
-    color: #6b7280;
-}
 </style>
 </head>
 <body>
@@ -102,7 +86,6 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
 @php
     $firstItem  = $data->first();
 
-    // Hilangkan suffix / Majalah, / Modul, / Sertifikat
     $stokisName = $firstItem?->nama_stokis ?? 'Manual';
     $stokisName = preg_replace('/\s*\/\s*(Majalah|Modul|Sertifikat).*$/i', '', $stokisName);
     $stokisName = trim($stokisName) ?: 'Manual';
@@ -206,38 +189,35 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
 
     <!-- TANDA TANGAN -->
     <tr>
-    <td colspan="3" style="border:1px solid #374151; padding:4px 6px 8px 6px;">
-        <table style="width:100%; border:none; border-collapse:collapse;">
-            <tr>
-                @foreach(['PRICING','PICKING','QC OUTGOING','PACKING','EKSPEDISI'] as $bagian)
-                <td style="border:none; text-align:center; vertical-align:top; padding:0;">
-                    <div style="font-size:9.5px; font-weight:bold; margin:0 0 28px 0; line-height:1.2;">
-                        {{ $bagian }}
-                    </div>
-                    <div style="font-size:8px; font-weight:bold; white-space:nowrap;">
-                        Nama __________ &nbsp;&nbsp; Tgl __________
-                    </div>
-                </td>
-                @endforeach
-            </tr>
-        </table>
-    </td>
-</tr>
+        <td colspan="3" style="border:1px solid #374151; padding:4px 6px 8px 6px;">
+            <table style="width:100%; border:none; border-collapse:collapse;">
+                <tr>
+                    @foreach(['PRICING','PICKING','QC OUTGOING','PACKING','EKSPEDISI'] as $bagian)
+                    <td style="border:none; text-align:center; vertical-align:top; padding:0;">
+                        <div style="font-size:9.5px; font-weight:bold; margin:0 0 28px 0; line-height:1.2;">
+                            {{ $bagian }}
+                        </div>
+                        <div style="font-size:8px; font-weight:bold; white-space:nowrap;">
+                            Nama __________ &nbsp;&nbsp; Tgl __________
+                        </div>
+                    </td>
+                    @endforeach
+                </tr>
+            </table>
+        </td>
+    </tr>
 </table>
 
 <!-- TABEL UTAMA -->
 <table class="main-table">
     <colgroup>
-        <col style="width:4%;">
-        <col style="width:5%;">
-        <col style="width:12%;">
-        <col style="width:17%;">
-        <col style="width:8%;">
-        <col style="width:9%;">
-        <col style="width:10%;">
-        <col style="width:9%;">
-        <col style="width:14%;">
-        <col style="width:10%;">
+        <col class="col-no">
+        <col class="col-id">
+        <col class="col-unit">
+        <col class="col-kategori">
+        <col class="col-distribusi">
+        <col class="col-catatan">
+        <col class="col-status">
     </colgroup>
 
     <thead>
@@ -245,8 +225,6 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
             <th rowspan="2" class="col-no">NO</th>
             <th colspan="3">DETAIL ORDER</th>
             <th rowspan="2" class="col-distribusi">DISTRIBUSI</th>
-            <th colspan="2" class="col-nominal">PEMBAYARAN</th>
-            <th rowspan="2" class="col-estimasi">ESTIMASI (WAKTU)</th>
             <th rowspan="2" class="col-catatan">CATATAN</th>
             <th rowspan="2" class="col-status">STATUS PRINT</th>
         </tr>
@@ -254,8 +232,6 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
             <th class="col-id">ID ORDER</th>
             <th class="col-unit">NAMA UNIT</th>
             <th class="col-kategori">KATEGORI</th>
-            <th class="col-tglbayar">TGL BAYAR</th>
-            <th class="col-nominal">JUMLAH BAYAR</th>
         </tr>
     </thead>
 
@@ -264,7 +240,6 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
         <tr>
             <td class="font-bold text-center">{{ $loop->iteration }}</td>
 
-            {{-- ID ORDER + No. PS --}}
             <td class="text-center">
                 {{ $item->no_pl ?? '-' }}
                 @if(!empty($item->no_ps))
@@ -274,81 +249,47 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
 
             <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
 
-            {{-- KATEGORI (Manual: pakai nama_barang / kategori_order) --}}
             <td class="text-center">
-                @php
-                    $kategoriDisplay = $item->nama_barang
-                        ?? $item->kategori_order
-                        ?? 'Lainnya';
-                @endphp
-                <div class="font-medium">{{ $kategoriDisplay }}</div>
+                {{ $item->nama_barang ?? $item->kategori_order ?? 'Lainnya' }}
             </td>
 
-            {{-- DISTRIBUSI --}}
             <td style="padding:1px 2px; vertical-align:top; text-align:center;">
-                <div style="margin:0; padding:0; line-height:1;">
+                <div style="margin:0; padding:0; line-height:1.1;">
                     {{ $item->pengiriman ?? '-' }}
                 </div>
-                <div style="margin:0; padding:0; line-height:1;">
+                <div style="margin:0; padding:0; line-height:1.1; font-size:8px;">
                     {{ $item->service_pengiriman ?? '-' }}
                 </div>
             </td>
 
-            {{-- TGL BAYAR (null = Pending) --}}
-            <td class="text-center">
-                {{ $item->tgl_bayar
-                    ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i')
-                    : 'Pending' }}
+            <td class="text-center" style="font-size:8.5px;">
+                @php
+                    $raw = $item->ket
+                        ?? $item->manualOrder?->catatan
+                        ?? $item->manualOrder?->notes
+                        ?? '';
+
+                    $display = preg_replace('/^CP:.*$/mi', '', $raw);
+                    $display = preg_replace('/^NAMA_MISMATCH.*$/mi', '', $display);
+                    $display = preg_replace('/Di\s+proses\s+bulk\s+pada\s+[\d\/:\s]+[:\s]*/i', '', $display);
+                    $display = preg_replace('/[\r\n]+/', ' ', $display);
+                    $display = preg_replace('/\s*\|\s*/', ' ', $display);
+                    $display = trim(preg_replace('/\s+/', ' ', $display));
+
+                    $catatan = $display !== '' ? strtoupper($display) : '-';
+                @endphp
+
+                {{ \Illuminate\Support\Str::limit($catatan, 60) }}
             </td>
 
-            <td class="text-right font-bold">
-                Rp {{ number_format($item->jumlah_bayar ?? 0, 0, ',', '.') }}
-            </td>
-
-            {{-- ESTIMASI --}}
-            <td style="padding:1px 2px; vertical-align:top; text-align:center;">
-                <div style="margin:0; padding:0; line-height:1;">
-                    {{ $item->tgl_estimasi
-                        ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y')
-                        : '-' }}
-                </div>
-                <div style="margin:0; padding:0; line-height:1;">
-                    {{ $item->estimasi_hari ?? 0 }} Hari
-                </div>
-            </td>
-
-            {{-- CATATAN --}}
-           {{-- CATATAN --}}
-                <td class="text-center" style="font-size:8.8px;">
-                    @php
-                        $raw = $item->ket
-                            ?? $item->manualOrder?->catatan
-                            ?? $item->manualOrder?->notes
-                            ?? '';
-
-                        // Bersihkan (sama seperti di index)
-                        $display = preg_replace('/^CP:.*$/mi', '', $raw);
-                        $display = preg_replace('/^NAMA_MISMATCH.*$/mi', '', $display);
-                        $display = preg_replace('/Di\s+proses\s+bulk\s+pada\s+[\d\/:\s]+[:\s]*/i', '', $display);
-                        $display = preg_replace('/[\r\n]+/', ' ', $display);
-                        $display = preg_replace('/\s*\|\s*/', ' ', $display);
-                        $display = trim(preg_replace('/\s+/', ' ', $display));
-
-                        $catatan = $display !== '' ? strtoupper($display) : '-';
-                    @endphp
-
-                    {{ \Illuminate\Support\Str::limit($catatan, 65) }}
-                </td>
-
-            {{-- STATUS PRINT --}}
             <td class="text-center" style="vertical-align:middle;">
                 @if($item->picking_printed_at)
-                    <div style="font-size:10px; font-weight:bold; color:#10b981;">
+                    <div style="font-size:11px; font-weight:bold; color:#10b981;">
                         &#10003;
                     </div>
                 @else
-                    <div style="font-size:10px; font-weight:bold; color:#ef4444;">
-                        &#10003; BELUM
+                    <div style="font-size:9px; font-weight:bold; color:#ef4444;">
+                        BELUM
                     </div>
                 @endif
             </td>
@@ -357,14 +298,11 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
     </tbody>
 </table>
 
-<!-- FOOTER -->
-
-
 <script type="text/php">
     if (isset($pdf)) {
         $font = $fontMetrics->getFont("DejaVu Sans");
         $size = 8;
-        $color = array(0.42, 0.45, 0.50); // #6b7280
+        $color = array(0.42, 0.45, 0.50);
 
         // Kiri
         $pdf->page_text(
@@ -376,11 +314,11 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
             $color
         );
 
-        // Kanan (nomor halaman)
+        // Kanan
         $text = "Halaman {PAGE_NUM} / {PAGE_COUNT}";
         $width = $fontMetrics->getTextWidth($text, $font, $size);
         $pdf->page_text(
-            $pdf->get_width() - $width , 
+            $pdf->get_width() - $width - 40, 
             $pdf->get_height() - 18, 
             $text, 
             $font, 
