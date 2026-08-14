@@ -659,7 +659,7 @@ Route::prefix('pesanan-majalah-kotamadya')
 
 
         // =========================================================
-        // HAPUS SELURUH PERIODE (baru)
+        // HAPUS SELURUH PERIODE
         // =========================================================
         Route::delete(
             '/periode/{id}',
@@ -703,12 +703,20 @@ Route::prefix('pesanan-majalah-kotamadya')
         )->name('destroy');
 
 
+        // =========================================================
+        // UPDATE NO. PS
+        // =========================================================
+        Route::post(
+            '/{id}/update-no-ps',
+            [PesananMajalahKotamadyaController::class, 'updateNoPs']
+        )->name('update-no-ps');
+
+
         /*
         |--------------------------------------------------------------------------
         | UNIT KOTAMADYA
         |--------------------------------------------------------------------------
         */
-
 
         // =========================================================
         // TAMBAH UNIT KE KOTAMADYA
@@ -802,6 +810,13 @@ Route::prefix('pesanan-majalah-puw1')
             '/{id}',
             [PesananMajalahPuw1Controller::class, 'destroy']
         )->name('destroy');
+
+
+        // Update No. PS
+        Route::post(
+            '/{id}/update-no-ps',
+            [PesananMajalahPuw1Controller::class, 'updateNoPs']
+        )->name('update-no-ps');
 
     });
 

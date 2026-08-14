@@ -130,13 +130,18 @@ class PesananMajalahPuw1Controller extends Controller
         ->orderBy('no_cab')
         ->get();
 
+    // Ambil no_ps dari PesananMajalah (pusat) berdasarkan periode yang sama
+    $utama = \App\Models\PesananMajalah::where('periode', $data->periode)->first();
+    $noPs  = $utama?->no_ps;
+
     return view('pesanan-majalah-puw1.show', compact(
         'data',
         'units',
         'listNamaUnit',
         'listNoCabang',
         'listKabupaten',
-        'mismatches'
+        'mismatches',
+        'noPs'          // ← kirim ke view
     ));
 }
 
@@ -476,4 +481,39 @@ class PesananMajalahPuw1Controller extends Controller
 
         return $periode;
     }
+
+
+    public function updateNoPs(Request $request, $id)
+{
+    $request->validate([
+        'no_ps' => 'nullable|string|max:50',
+    ]);
+
+    $puw1 = PesananMajalahPuw1::findOrFail($id);
+
+    // Update di tabel PUW1 sendiri
+    $puw1->update([
+        'no_ps' => $request->no_ps,
+    ]);
+
+    // Optional: tetap sinkronkan ke pusat juga
+    $utama = \App\Models\PesananMajalah::firstOrCreate(
+        ['periode' => $puw1->periode],
+        [
+            'judul' => $puw1->judul ?? 'Pesanan Majalah',
+            'bulan' => $puw1->bulan,
+            'tahun' => $puw1->tahun,
+        ]
+    );
+
+    $utama->update([
+        'no_ps' => $request->no_ps,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'No PS berhasil disimpan',
+        'no_ps'   => $puw1->no_ps,
+    ]);
+}
 }

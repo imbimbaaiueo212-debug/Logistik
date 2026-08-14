@@ -14,6 +14,13 @@
             padding: 12px 8px; 
             font-size: 0.875rem; 
         }
+        /* Style untuk field yang sudah dikunci */
+        input:disabled, select:disabled {
+            background-color: #f3f4f6 !important;
+            color: #6b7280 !important;
+            cursor: not-allowed;
+            border-color: #e5e7eb !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -115,7 +122,15 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($data as $item)
-                    <tr class="transition duration-200 hover:bg-gray-50" data-id="{{ $item->id }}">
+                    @php
+                        // Cek apakah data sudah lengkap (sudah pernah disimpan)
+                        $isLocked = !empty($item->tgl_kirim) 
+                                 && !empty($item->no_resi) 
+                                 && !empty($item->status_distribusi) 
+                                 && !empty($item->keterangan);
+                    @endphp
+
+                    <tr class="transition duration-200 hover:bg-gray-50 {{ $isLocked ? 'bg-gray-50' : '' }}" data-id="{{ $item->id }}">
                         <td class="px-4 py-4 text-center font-semibold">{{ $loop->iteration }}</td>
                         
                         <td class="px-4 py-4 font-semibold text-indigo-700">
@@ -153,14 +168,14 @@
                         </td>
                         
                        <td class="px-4 py-4 text-center">
-    @php
-        $beratDariOrder = $item->manualPicking?->manualOrder?->order_weight
-            ?? $item->berat
-            ?? null;
-    @endphp
+                            @php
+                                $beratDariOrder = $item->manualPicking?->manualOrder?->order_weight
+                                    ?? $item->berat
+                                    ?? null;
+                            @endphp
 
-    {{ $beratDariOrder !== null ? number_format($beratDariOrder, 0, ',', '.') : '-' }} gr
-</td>
+                            {{ $beratDariOrder !== null ? number_format($beratDariOrder, 0, ',', '.') : '-' }} gr
+                        </td>
                         
                         <td class="px-4 py-4 text-center">
                             {{ $item->berat_aktual !== null ? number_format($item->berat_aktual, 2, ',', '.') : '-' }} Kg
@@ -174,7 +189,8 @@
                             <input type="date"
                                    class="tgl-kirim w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                    data-id="{{ $item->id }}"
-                                   value="{{ $item->tgl_kirim ? $item->tgl_kirim->format('Y-m-d') : '' }}">
+                                   value="{{ $item->tgl_kirim ? $item->tgl_kirim->format('Y-m-d') : '' }}"
+                                   {{ $isLocked ? 'disabled' : '' }}>
                         </td>
                         
                         <td class="px-3 py-4">
@@ -182,12 +198,14 @@
                                    class="no-resi w-44 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                    data-id="{{ $item->id }}"
                                    value="{{ $item->no_resi ?? '' }}"
-                                   placeholder="No. Resi">
+                                   placeholder="No. Resi"
+                                   {{ $isLocked ? 'disabled' : '' }}>
                         </td>
                         
                         <td class="px-3 py-4">
                             <select class="status-distribusi w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                                    data-id="{{ $item->id }}">
+                                    data-id="{{ $item->id }}"
+                                    {{ $isLocked ? 'disabled' : '' }}>
                                 <option value="Pending" {{ $item->status_distribusi == 'Pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="Proses" {{ $item->status_distribusi == 'Proses' ? 'selected' : '' }}>Proses</option>
                                 <option value="Selesai" {{ $item->status_distribusi == 'Selesai' ? 'selected' : '' }}>Selesai</option>
@@ -199,16 +217,25 @@
                                    class="keterangan w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                    data-id="{{ $item->id }}"
                                    value="{{ $item->keterangan ?? '' }}"
-                                   placeholder="Catatan...">
+                                   placeholder="Catatan..."
+                                   {{ $isLocked ? 'disabled' : '' }}>
                         </td>
                         
                         <td class="px-4 py-4 text-center">
-                            <button type="button"
-                                    class="btn-save text-emerald-600 hover:text-emerald-700"
-                                    data-id="{{ $item->id }}"
-                                    title="Simpan">
-                                <i class="bi bi-check-circle text-xl"></i>
-                            </button>
+                            @if($isLocked)
+                                <button type="button"
+                                        class="text-gray-400 cursor-not-allowed"
+                                        title="Data sudah dikunci">
+                                    <i class="bi bi-lock-fill text-xl"></i>
+                                </button>
+                            @else
+                                <button type="button"
+                                        class="btn-save text-emerald-600 hover:text-emerald-700"
+                                        data-id="{{ $item->id }}"
+                                        title="Simpan">
+                                    <i class="bi bi-check-circle text-xl"></i>
+                                </button>
+                            @endif
                         </td>
                     </tr>
                 @empty
@@ -238,17 +265,53 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 $(document).ready(function () {
-    $('.btn-save').on('click', function () {
-        const id = $(this).data('id');
-        const row = $(this).closest('tr');
+
+    // Fungsi untuk mengunci baris setelah berhasil disimpan
+    function lockRow(row) {
+        row.find('.tgl-kirim, .no-resi, .status-distribusi, .keterangan').prop('disabled', true);
+        
+        // Ganti tombol jadi gembok
+        row.find('.btn-save').replaceWith(`
+            <button type="button" class="text-gray-400 cursor-not-allowed" title="Data sudah dikunci">
+                <i class="bi bi-lock-fill text-xl"></i>
+            </button>
+        `);
+
+        // Kasih background abu-abu
+        row.addClass('bg-gray-50');
+    }
+
+    // Fungsi simpan
+    function saveRow(row) {
+        const id = row.data('id');
+        const btn = row.find('.btn-save');
+
+        // Cegah double request
+        if (btn.data('saving') || btn.length === 0) return;
+        btn.data('saving', true);
 
         const payload = {
             _token: '{{ csrf_token() }}',
             tgl_kirim: row.find('.tgl-kirim').val(),
-            no_resi: row.find('.no-resi').val(),
+            no_resi: row.find('.no-resi').val().trim(),
             status_distribusi: row.find('.status-distribusi').val(),
-            keterangan: row.find('.keterangan').val(),
+            keterangan: row.find('.keterangan').val().trim(),
         };
+
+        // Cek apakah semua field sudah terisi
+        const isComplete = payload.tgl_kirim && 
+                           payload.no_resi && 
+                           payload.status_distribusi && 
+                           payload.keterangan;
+
+        if (!isComplete) {
+            btn.data('saving', false);
+            showToast('Harap isi semua field terlebih dahulu', 'error');
+            return;
+        }
+
+        // Visual feedback
+        btn.html('<i class="bi bi-arrow-repeat animate-spin text-xl"></i>');
 
         $.ajax({
             url: `/distribution-order/manual/${id}/update`,
@@ -256,17 +319,82 @@ $(document).ready(function () {
             data: payload,
             success: function (res) {
                 if (res.success) {
-                    alert('Data berhasil disimpan');
+                    showToast('Data berhasil disimpan & dikunci', 'success');
+                    lockRow(row); // ← Kunci field setelah berhasil
                 } else {
-                    alert(res.message || 'Gagal menyimpan');
+                    showToast(res.message || 'Gagal menyimpan', 'error');
+                    btn.html('<i class="bi bi-check-circle text-xl"></i>');
                 }
             },
             error: function (xhr) {
-                alert(xhr.responseJSON?.message || 'Terjadi kesalahan');
+                showToast(xhr.responseJSON?.message || 'Terjadi kesalahan', 'error');
+                btn.html('<i class="bi bi-check-circle text-xl"></i>');
+            },
+            complete: function () {
+                btn.data('saving', false);
             }
         });
+    }
+
+    // Tombol simpan manual
+    $(document).on('click', '.btn-save', function () {
+        const row = $(this).closest('tr');
+        saveRow(row);
     });
+
+    // Auto-save ketika semua field sudah terisi
+    $(document).on('change input', '.tgl-kirim, .no-resi, .status-distribusi, .keterangan', function () {
+        const row = $(this).closest('tr');
+
+        // Jangan proses kalau sudah dikunci
+        if (row.find('.tgl-kirim').prop('disabled')) return;
+
+        clearTimeout(row.data('timeout'));
+        row.data('timeout', setTimeout(function () {
+            saveRow(row);
+        }, 700));
+    });
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+        $('.custom-toast').remove();
+
+        const bg = type === 'success' ? 'bg-emerald-600' : 'bg-red-600';
+        const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle';
+
+        const toast = $(`
+            <div class="custom-toast fixed bottom-6 right-6 ${bg} text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 z-50 animate-fade-in">
+                <i class="bi ${icon} text-xl"></i>
+                <span class="font-medium">${message}</span>
+            </div>
+        `);
+
+        $('body').append(toast);
+
+        setTimeout(() => {
+            toast.fadeOut(300, function () {
+                $(this).remove();
+            });
+        }, 2500);
+    }
 });
 </script>
+
+<style>
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fade-in 0.3s ease-out;
+    }
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
 </body>
 </html>

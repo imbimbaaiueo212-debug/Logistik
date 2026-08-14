@@ -173,159 +173,131 @@
                     </thead>
                     <tbody>
                         @foreach($rows as $item)
-                            @php
-                                $noCab     = trim($item->billing_last_name ?? $item->manualOrder?->billing_last_name ?? '');
-                                $mismatch  = $mismatchMap[$noCab] ?? null;
-                                $isMismatch = $mismatch
-                                    || str_contains($item->ket ?? '', 'NAMA_MISMATCH')
-                                    || str_contains($item->manualOrder?->catatan ?? '', 'NAMA_MISMATCH')
-                                    || str_contains($item->manualOrder?->notes ?? '', 'NAMA_MISMATCH');
-
-                                $grup = strtoupper(trim($item->grup ?? $item->manualOrder?->grup ?? ''));
-                                $grupClass = match($grup) {
-                                    'A'     => 'bg-blue-100 text-blue-700 border border-blue-200',
-                                    'B'     => 'bg-emerald-100 text-emerald-700 border border-emerald-200',
-                                    'C'     => 'bg-purple-100 text-purple-700 border border-purple-200',
-                                    'D'     => 'bg-amber-100 text-amber-700 border border-amber-200',
-                                    'E'     => 'bg-rose-100 text-rose-700 border border-rose-200',
-                                    'F'     => 'bg-cyan-100 text-cyan-700 border border-cyan-200',
-                                    default => 'bg-gray-100 text-gray-600 border border-gray-200',
-                                };
-                            @endphp
-                            <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
-                                <td class="font-medium text-center">{{ $loop->iteration }}</td>
-                                <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
-
-                                {{-- NAMA UNIT + MISMATCH --}}
-                                <td class="text-left">
-                                    <div class="flex flex-col gap-0.5">
-                                        <span class="font-medium">{{ $item->nama_unit ?? '-' }}</span>
-
-                                        @if($isMismatch && $mismatch)
-                                            <div class="text-xs font-normal mt-0.5 space-y-0.5">
-                                                <div class="text-orange-700">
-                                                    <span class="text-gray-500">Excel:</span>
-                                                    <span class="font-medium">{{ $mismatch['nama_excel'] }}</span>
-                                                </div>
-                                                <div class="text-emerald-700">
-                                                    <span class="text-gray-500">Kemitraan:</span>
-                                                    <span class="font-medium">{{ $mismatch['nama_master'] }}</span>
-                                                </div>
-                                            </div>
-                                            <span class="inline-flex items-center self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                                ⚠️ Mismatch
-                                            </span>
-                                        @elseif($isMismatch)
-                                            <span class="inline-flex items-center self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                                ⚠️ Mismatch
-                                            </span>
-                                        @endif
-                                    </div>
-                                </td>
-
-                                {{-- GROUP --}}
-                                <td class="text-center">
-                                    @if($grup)
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $grupClass }}">
-                                            Group {{ $grup }}
-                                        </span>
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
-
-                                <td class="text-center text-sm">
-                                    <div class="font-medium">
-                                        {{ $item->nama_barang ?? $item->kategori_order ?? 'Majalah' }}
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <div>{{ $item->pengiriman ?? '-' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $item->service_pengiriman ?? '-' }}</div>
-                                </td>
-                                {{-- CATATAN (bisa diedit) --}}
-                                    <td class="text-center text-xs relative" style="min-width: 180px;">
     @php
-        $raw = $item->manualOrder?->catatan 
-            ?? $item->manualOrder?->notes 
-            ?? $item->ket 
-            ?? '';
-
-        // === Bersihkan catatan sistem ===
-        $lines = preg_split('/\r\n|\r|\n/', $raw);
-        $cleanLines = [];
-
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ($line === '') continue;
-
-            // Skip baris sistem
-            if (preg_match('/^CP\s*:/i', $line)) continue;
-            if (preg_match('/NAMA_MISMATCH/i', $line)) continue;
-            if (preg_match('/Di\s+proses\s+bulk\s+pada/i', $line)) continue;
-            if (preg_match('/^[\|\s\-]+$/', $line)) continue;
-
-            // Jika ada "CP:" di tengah baris, potong dari situ
-            if (preg_match('/^(.*?)\s*\|?\s*CP\s*:.*$/i', $line, $m)) {
-                $line = trim($m[1]);
-                if ($line === '' || preg_match('/^[\|\s\-]+$/', $line)) continue;
-            }
-
-            $cleanLines[] = $line;
-        }
-
-        $display = implode(' ', $cleanLines);
-        $display = trim(preg_replace('/\s+/', ' ', $display));
-        $display = trim(preg_replace('/\s*\|\s*/', ' ', $display));
+        $grup = strtoupper(trim($item->grup ?? $item->manualOrder?->grup ?? ''));
+        $grupClass = match($grup) {
+            'A'     => 'bg-blue-100 text-blue-700 border border-blue-200',
+            'B'     => 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+            'C'     => 'bg-purple-100 text-purple-700 border border-purple-200',
+            'D'     => 'bg-amber-100 text-amber-700 border border-amber-200',
+            'E'     => 'bg-rose-100 text-rose-700 border border-rose-200',
+            'F'     => 'bg-cyan-100 text-cyan-700 border border-cyan-200',
+            default => 'bg-gray-100 text-gray-600 border border-gray-200',
+        };
     @endphp
+    <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
+        <td class="font-medium text-center">{{ $loop->iteration }}</td>
+        <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
 
-    <div class="catatan-display group relative" data-id="{{ $item->id }}">
-        <div class="flex items-center justify-center gap-1">
-            <span class="catatan-text inline-block {{ $display !== '' ? 'bg-gray-100 px-3 py-1 rounded-md' : 'text-gray-400' }}">
-                {{ $display !== '' ? strtoupper($display) : '-' }}
-            </span>
-            <button type="button"
-                    onclick="editCatatan(this)"
-                    class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-800 p-1"
-                    title="Edit catatan">
-                <i class="fa-solid fa-pen-to-square text-sm"></i>
-            </button>
-        </div>
-    </div>
+        {{-- NAMA UNIT (sudah bersih, tanpa mismatch) --}}
+        <td class="text-left">
+            <span class="font-medium">{{ $item->nama_unit ?? '-' }}</span>
+        </td>
 
-    {{-- Form edit - hanya isi catatan yang sudah bersih --}}
-    <div class="catatan-edit hidden mt-1" data-id="{{ $item->id }}">
-        <textarea rows="2"
-                  class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  placeholder="Tulis catatan...">{{ $display }}</textarea>
-        <div class="flex gap-1 mt-1.5 justify-center">
-            <button type="button"
-                    onclick="saveCatatan(this, {{ $item->id }})"
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-lg font-medium">
-                Simpan
-            </button>
-            <button type="button"
-                    onclick="cancelEditCatatan(this)"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded-lg">
-                Batal
-            </button>
-        </div>
-    </div>
-</td>
+        {{-- GROUP --}}
+        <td class="text-center">
+            @if($grup)
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $grupClass }}">
+                    Group {{ $grup }}
+                </span>
+            @else
+                <span class="text-gray-400">-</span>
+            @endif
+        </td>
 
-                                <td class="text-center">
-                                    <button type="button"
-                                            onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-                                            class="action-btn text-2xl {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
-                                        @if($item->picking_printed_at)
-                                            <i class="fa-solid fa-file-pdf"></i>
-                                        @else
-                                            <i class="fa-solid fa-print"></i>
-                                        @endif
-                                    </button>
-                                </td>
-                            </tr>
-                        @endforeach
+        <td class="text-center text-sm">
+            <div class="font-medium">
+                {{ $item->nama_barang ?? $item->kategori_order ?? 'Majalah' }}
+            </div>
+        </td>
+        <td class="text-center">
+            <div>{{ $item->pengiriman ?? '-' }}</div>
+            <div class="text-xs text-gray-500">{{ $item->service_pengiriman ?? '-' }}</div>
+        </td>
+
+        {{-- CATATAN (bisa diedit) --}}
+        <td class="text-center text-xs relative" style="min-width: 180px;">
+            @php
+                $raw = $item->manualOrder?->catatan 
+                    ?? $item->manualOrder?->notes 
+                    ?? $item->ket 
+                    ?? '';
+
+                // === Bersihkan catatan sistem ===
+                $lines = preg_split('/\r\n|\r|\n/', $raw);
+                $cleanLines = [];
+
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if ($line === '') continue;
+
+                    // Skip baris sistem
+                    if (preg_match('/^CP\s*:/i', $line)) continue;
+                    if (preg_match('/NAMA_MISMATCH/i', $line)) continue;
+                    if (preg_match('/Di\s+proses\s+bulk\s+pada/i', $line)) continue;
+                    if (preg_match('/^[\|\s\-]+$/', $line)) continue;
+
+                    // Jika ada "CP:" di tengah baris, potong dari situ
+                    if (preg_match('/^(.*?)\s*\|?\s*CP\s*:.*$/i', $line, $m)) {
+                        $line = trim($m[1]);
+                        if ($line === '' || preg_match('/^[\|\s\-]+$/', $line)) continue;
+                    }
+
+                    $cleanLines[] = $line;
+                }
+
+                $display = implode(' ', $cleanLines);
+                $display = trim(preg_replace('/\s+/', ' ', $display));
+                $display = trim(preg_replace('/\s*\|\s*/', ' ', $display));
+            @endphp
+
+            <div class="catatan-display group relative" data-id="{{ $item->id }}">
+                <div class="flex items-center justify-center gap-1">
+                    <span class="catatan-text inline-block {{ $display !== '' ? 'bg-gray-100 px-3 py-1 rounded-md' : 'text-gray-400' }}">
+                        {{ $display !== '' ? strtoupper($display) : '-' }}
+                    </span>
+                    <button type="button"
+                            onclick="editCatatan(this)"
+                            class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-800 p-1"
+                            title="Edit catatan">
+                        <i class="fa-solid fa-pen-to-square text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Form edit --}}
+            <div class="catatan-edit hidden mt-1" data-id="{{ $item->id }}">
+                <textarea rows="2"
+                          class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                          placeholder="Tulis catatan...">{{ $display }}</textarea>
+                <div class="flex gap-1 mt-1.5 justify-center">
+                    <button type="button"
+                            onclick="saveCatatan(this, {{ $item->id }})"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-lg font-medium">
+                        Simpan
+                    </button>
+                    <button type="button"
+                            onclick="cancelEditCatatan(this)"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded-lg">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </td>
+
+        <td class="text-center">
+            <button type="button"
+                    onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                    class="action-btn text-2xl {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
+                @if($item->picking_printed_at)
+                    <i class="fa-solid fa-file-pdf"></i>
+                @else
+                    <i class="fa-solid fa-print"></i>
+                @endif
+            </button>
+        </td>
+    </tr>
+@endforeach
                     </tbody>
                 </table>
 

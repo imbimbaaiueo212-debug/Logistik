@@ -454,14 +454,23 @@ class PesananMajalahController extends Controller
     ]);
 
     $item = \App\Models\PesananMajalah::findOrFail($id);
+    
     $item->update([
         'no_ps' => $request->no_ps,
     ]);
+
+    // ===== SINKRONKAN KE PUW1 =====
+    if ($item->periode) {
+        \App\Models\PesananMajalahPuw1::where('periode', $item->periode)
+            ->update([
+                'no_ps' => $request->no_ps,
+            ]);
+    }
 
     return response()->json([
         'success' => true,
         'message' => 'No PS berhasil disimpan',
         'no_ps'   => $item->no_ps,
     ]);
-}   
+}
 }

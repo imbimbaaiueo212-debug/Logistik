@@ -213,6 +213,7 @@
                 <tr class="bg-gray-100 border-b-2 border-gray-300">
                     <th class="px-4 py-4 text-center">No</th>
                     <th class="px-4 py-4">Judul Pesanan</th>
+                    <th class="px-4 py-4">ID_PS</th> 
                     <th class="px-4 py-4">Bulan / Edisi</th>
                     <th class="px-4 py-4 text-center">Tahun</th>
                     <th class="px-4 py-4 text-center">Periode</th>
@@ -240,6 +241,21 @@
                                 @endif
                             </a>
                         </td>
+
+                        <td class="px-4 py-4 text-center">
+                        <div class="no-ps-wrapper inline-flex items-center gap-1 justify-center"
+                             data-id="{{ $item->id }}">
+                            <span class="no-ps-text cursor-pointer hover:bg-blue-50 px-2 py-1 rounded"
+                                  onclick="editNoPs(this)">
+                                {{ $item->no_ps ?: '-' }}
+                            </span>
+                            <input type="text"
+                                   class="no-ps-input hidden border border-blue-400 rounded px-2 py-1 text-sm w-28 text-center"
+                                   value="{{ $item->no_ps }}"
+                                   onkeydown="if(event.key === 'Enter') saveNoPs(this)"
+                                   onblur="saveNoPs(this)">
+                        </div>
+                    </td>
 
                         <td class="px-4 py-4">{{ $item->bulan ?? '-' }}</td>
                         <td class="px-4 py-4 text-center">{{ $item->tahun ?? '-' }}</td>
@@ -428,6 +444,53 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+function editNoPs(el) {
+    const wrapper = el.closest('.no-ps-wrapper');
+    const text = wrapper.querySelector('.no-ps-text');
+    const input = wrapper.querySelector('.no-ps-input');
+
+    text.classList.add('hidden');
+    input.classList.remove('hidden');
+    input.focus();
+    input.select();
+}
+
+function saveNoPs(input) {
+    const wrapper = input.closest('.no-ps-wrapper');
+    const text = wrapper.querySelector('.no-ps-text');
+    const id = wrapper.dataset.id;
+    const value = input.value.trim();
+
+    // Kembalikan tampilan
+    input.classList.add('hidden');
+    text.classList.remove('hidden');
+    text.textContent = value || '-';
+
+    // Kirim ke server
+    fetch(`/pesanan-majalah-kotamadya/${id}/update-no-ps`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ no_ps: value })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Optional: kasih feedback kecil
+            text.classList.add('bg-green-100');
+            setTimeout(() => text.classList.remove('bg-green-100'), 800);
+        } else {
+            alert(data.message || 'Gagal menyimpan No. PS');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Terjadi kesalahan saat menyimpan No. PS');
+    });
+}
 </script>
 
 </body>

@@ -180,6 +180,7 @@
                         <th class="text-left px-4 py-3">Status Packing</th>
                         <th class="text-left px-4 py-3">Nama Packer</th>
                         <th class="text-center px-4 py-3">Tgl Packing</th>
+                        <th class="text-center px-4 py-3">Berat</th>
                         <th class="text-center px-4 py-3">Berat Aktual</th>
                         <th class="text-center px-4 py-3">Koli</th>
                         <th class="text-left px-4 py-3">Keterangan</th>
@@ -249,6 +250,16 @@
                                    class="border border-gray-300 rounded-lg px-2 py-1 text-sm w-full">
                         @endif
                     </td>
+
+                    <td class="px-4 py-4 text-center">
+                            @php
+                                $beratDariOrder = $item->manualPicking?->manualOrder?->order_weight
+                                    ?? $item->berat
+                                    ?? null;
+                            @endphp
+
+                            {{ $beratDariOrder !== null ? number_format($beratDariOrder, 0, ',', '.') : '-' }} gr
+                        </td>
 
                     {{-- BERAT AKTUAL --}}
                     <td class="px-4 py-3 text-center">

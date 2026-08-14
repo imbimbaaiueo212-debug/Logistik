@@ -228,4 +228,22 @@ class PesananMajalahKotamadyaController extends Controller
             ->route('pesanan-majalah-kotamadya.show', $pesananId)
             ->with('success', 'Data Kotamadya berhasil dihapus.');
     }
+
+    public function updateNoPs(Request $request, $id)
+{
+    $request->validate([
+        'no_ps' => 'nullable|string|max:50',
+    ]);
+
+    $item = PesananMajalah::findOrFail($id);
+    $item->update([
+        'no_ps' => $request->no_ps,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'No PS berhasil disimpan',
+        'no_ps'   => $item->no_ps,
+    ]);
+}
 }

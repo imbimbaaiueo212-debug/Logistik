@@ -178,6 +178,7 @@ class PickingController extends Controller
                 $picking = Picking::create([
                     'jakarta_aktif_id'   => $jakarta->id,
                     'no_pl'              => $jakarta->id_pesan . '-' . strtoupper(substr($kategoriOrder, 0, 3)),
+                    
                     'tgl_order'          => $jakarta->tgl_pesan,
                     'tgl_picking'        => now()->toDateString(),
                     'jam_picking'        => now()->format('H:i:s'),

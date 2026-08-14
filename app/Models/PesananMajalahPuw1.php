@@ -17,6 +17,7 @@ class PesananMajalahPuw1 extends Model
         'bulan',
         'tahun',
         'periode',
+        'no_ps',
         'contact_person',
         'telepon_contact_person',
     ];
