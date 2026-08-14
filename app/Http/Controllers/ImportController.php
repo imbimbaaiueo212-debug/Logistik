@@ -1281,6 +1281,11 @@ public function deleteManualRealisasi($id)
 // =========================================================
 public function printManualRealisasiPdf(Request $request)
 {
+    // ===== TAMBAHKAN INI =====
+    ini_set('memory_limit', '1024M');   // atau '2048M' jika data sangat banyak
+    set_time_limit(300);
+    // ========================
+
     $ids = array_filter(explode(',', $request->get('ids', '')));
 
     if (empty($ids)) {
@@ -1291,9 +1296,9 @@ public function printManualRealisasiPdf(Request $request)
         ->with(['manualOrder', 'picking'])
         ->get();
 
-    // Hanya yang picking sudah ada / sudah dicetak picking (opsional)
+    // Hanya yang picking sudah dicetak
     $filteredData = $data->filter(function ($item) {
-    return !is_null($item->picking_printed_at);
+        return !is_null($item->picking_printed_at);
     });
 
     if ($filteredData->isEmpty()) {
@@ -1310,6 +1315,7 @@ public function printManualRealisasiPdf(Request $request)
             ]);
     }
 
+    // Ambil ulang data yang sudah difilter + sorting
     $filteredData = ManualRealisasi::whereIn('id', $filteredData->pluck('id'))
         ->with(['manualOrder', 'picking'])
         ->get()
@@ -1342,6 +1348,8 @@ public function printManualRealisasiPdf(Request $request)
         'defaultFont'          => 'sans-serif',
         'isHtml5ParserEnabled' => true,
         'isRemoteEnabled'      => true,
+        'isPhpEnabled'         => true,          // kadang membantu
+        'dpi'                  => 96,            // kurangi sedikit beban
     ]);
 
     return $pdf->stream(
@@ -1676,6 +1684,11 @@ public function syncManualFromBimbashopCasdana()
  */
 public function printManualQC(Request $request)
 {
+    // ===== Tingkatkan memory & timeout =====
+    ini_set('memory_limit', '1024M');
+    set_time_limit(300);
+    // ======================================
+
     $ids = array_filter(explode(',', $request->get('ids', '')));
 
     if (empty($ids)) {
@@ -1713,22 +1726,34 @@ public function printManualQC(Request $request)
         })
         ->values();
 
+    // Optional: batasi jika terlalu banyak
+    if ($filteredData->count() > 300) {
+        $filteredData = $filteredData->take(300);
+    }
+
     $docNumber = $this->generateManualRekapNumber(
         optional($filteredData->first())->tgl_turun_pl ?? now()
     );
 
-    $pdf = Pdf::loadView('import.manual-print-qc', [
-        'data'      => $filteredData,
-        'docNumber' => $docNumber,
-    ])
-    ->setPaper('A4', 'landscape')
-    ->setOptions([
-        'defaultFont'          => 'sans-serif',
-        'isHtml5ParserEnabled' => true,
-        'isRemoteEnabled'      => true,
-    ]);
+    try {
+        $pdf = Pdf::loadView('import.manual-print-qc', [
+            'data'      => $filteredData,
+            'docNumber' => $docNumber,
+        ])
+        ->setPaper('A4', 'landscape')
+        ->setOptions([
+            'defaultFont'          => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => true,
+            'isPhpEnabled'         => true,   // ← wajib untuk nomor halaman
+            'dpi'                  => 96,
+        ]);
 
-    return $pdf->stream('Manual-QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+        return $pdf->stream('Manual-QC-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    } catch (\Throwable $e) {
+        Log::error('printManualQC error: ' . $e->getMessage());
+        return back()->with('error', 'Gagal generate PDF QC: ' . $e->getMessage());
+    }
 }
 
 /**
@@ -1736,6 +1761,11 @@ public function printManualQC(Request $request)
  */
 public function printManualPemesanan(Request $request)
 {
+    // ===== PENTING: Tingkatkan memory =====
+    ini_set('memory_limit', '1024M');
+    set_time_limit(300);
+    // ======================================
+
     $ids = array_filter(explode(',', $request->get('ids', '')));
 
     if (empty($ids)) {
@@ -1772,6 +1802,11 @@ public function printManualPemesanan(Request $request)
         })
         ->values();
 
+    // Batasi jika terlalu banyak (opsional, untuk cegah crash)
+    if ($filteredData->count() > 300) {
+        $filteredData = $filteredData->take(300);
+    }
+
     $groupedData = $filteredData->groupBy(function ($item) {
         return Carbon::parse($item->tgl_turun_pl)->toDateString();
     });
@@ -1780,19 +1815,26 @@ public function printManualPemesanan(Request $request)
         optional($filteredData->first())->tgl_turun_pl ?? now()
     );
 
-    $pdf = Pdf::loadView('import.manual-print-pemesanan', [
-        'data'        => $filteredData,
-        'groupedData' => $groupedData,
-        'docNumber'   => $docNumber,
-    ])
-    ->setPaper('A4', 'landscape')
-    ->setOptions([
-        'defaultFont'          => 'sans-serif',
-        'isHtml5ParserEnabled' => true,
-        'isRemoteEnabled'      => true,
-    ]);
+    try {
+        $pdf = Pdf::loadView('import.manual-print-pemesanan', [
+            'data'        => $filteredData,
+            'groupedData' => $groupedData,
+            'docNumber'   => $docNumber,
+        ])
+        ->setPaper('A4', 'landscape')
+        ->setOptions([
+            'defaultFont'          => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => true,
+            'isPhpEnabled'         => true,
+            'dpi'                  => 96,
+        ]);
 
-    return $pdf->stream('Manual-RA-Pemesanan-Picking-' . now()->format('d-m-Y_H-i') . '.pdf');
+        return $pdf->stream('Manual-RA-Pemesanan-Picking-' . now()->format('d-m-Y_H-i') . '.pdf');
+    } catch (\Throwable $e) {
+        Log::error('printManualPemesanan error: ' . $e->getMessage());
+        return back()->with('error', 'Gagal generate PDF: ' . $e->getMessage());
+    }
 }
 
 /**
@@ -1800,6 +1842,11 @@ public function printManualPemesanan(Request $request)
  */
 public function printManualPacking(Request $request)
 {
+    // ===== Tingkatkan memory & timeout =====
+    ini_set('memory_limit', '1024M');
+    set_time_limit(300);
+    // ======================================
+
     $ids = array_filter(explode(',', $request->get('ids', '')));
 
     if (empty($ids)) {
@@ -1836,22 +1883,34 @@ public function printManualPacking(Request $request)
         })
         ->values();
 
+    // Optional: batasi jika terlalu banyak
+    if ($filteredData->count() > 300) {
+        $filteredData = $filteredData->take(300);
+    }
+
     $docNumber = $this->generateManualRekapNumber(
         optional($filteredData->first())->tgl_turun_pl ?? now()
     );
 
-    $pdf = Pdf::loadView('import.manual-print-packing', [
-        'data'      => $filteredData,
-        'docNumber' => $docNumber,
-    ])
-    ->setPaper('A4', 'landscape')
-    ->setOptions([
-        'defaultFont'          => 'sans-serif',
-        'isHtml5ParserEnabled' => true,
-        'isRemoteEnabled'      => true,
-    ]);
+    try {
+        $pdf = Pdf::loadView('import.manual-print-packing', [
+            'data'      => $filteredData,
+            'docNumber' => $docNumber,
+        ])
+        ->setPaper('A4', 'landscape')
+        ->setOptions([
+            'defaultFont'          => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => true,
+            'isPhpEnabled'         => true,   // ← wajib untuk nomor halaman
+            'dpi'                  => 96,
+        ]);
 
-    return $pdf->stream('Manual-Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+        return $pdf->stream('Manual-Packing-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    } catch (\Throwable $e) {
+        Log::error('printManualPacking error: ' . $e->getMessage());
+        return back()->with('error', 'Gagal generate PDF Packing: ' . $e->getMessage());
+    }
 }
 
 /**
@@ -1859,6 +1918,11 @@ public function printManualPacking(Request $request)
  */
 public function printManualEkspedisi(Request $request)
 {
+    // ===== Tingkatkan memory & timeout =====
+    ini_set('memory_limit', '1024M');
+    set_time_limit(300);
+    // ======================================
+
     $ids = array_filter(explode(',', $request->get('ids', '')));
 
     if (empty($ids)) {
@@ -1895,22 +1959,34 @@ public function printManualEkspedisi(Request $request)
         })
         ->values();
 
+    // Optional: batasi jika terlalu banyak
+    if ($filteredData->count() > 300) {
+        $filteredData = $filteredData->take(300);
+    }
+
     $docNumber = $this->generateManualRekapNumber(
         optional($filteredData->first())->tgl_turun_pl ?? now()
     );
 
-    $pdf = Pdf::loadView('import.manual-print-ekspedisi', [
-        'data'      => $filteredData,
-        'docNumber' => $docNumber,
-    ])
-    ->setPaper('A4', 'landscape')
-    ->setOptions([
-        'defaultFont'          => 'sans-serif',
-        'isHtml5ParserEnabled' => true,
-        'isRemoteEnabled'      => true,
-    ]);
+    try {
+        $pdf = Pdf::loadView('import.manual-print-ekspedisi', [
+            'data'      => $filteredData,
+            'docNumber' => $docNumber,
+        ])
+        ->setPaper('A4', 'landscape')
+        ->setOptions([
+            'defaultFont'          => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => true,
+            'isPhpEnabled'         => true,   // ← wajib untuk nomor halaman
+            'dpi'                  => 96,
+        ]);
 
-    return $pdf->stream('Manual-Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+        return $pdf->stream('Manual-Ekspedisi-Report-' . now()->format('d-m-Y_H-i') . '.pdf');
+    } catch (\Throwable $e) {
+        \Log::error('printManualEkspedisi error: ' . $e->getMessage());
+        return back()->with('error', 'Gagal generate PDF Ekspedisi: ' . $e->getMessage());
+    }
 }
 
 /**

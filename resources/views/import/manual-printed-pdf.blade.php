@@ -358,9 +358,37 @@ tbody tr:nth-child(odd)  { background: #ffffff; }
 </table>
 
 <!-- FOOTER -->
-<div class="footer" style="margin-top:10px; font-size:9px;">
-    Dicetak oleh : Pricing {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
-</div>
+
+
+<script type="text/php">
+    if (isset($pdf)) {
+        $font = $fontMetrics->getFont("DejaVu Sans");
+        $size = 8;
+        $color = array(0.42, 0.45, 0.50); // #6b7280
+
+        // Kiri
+        $pdf->page_text(
+            40, 
+            $pdf->get_height() - 18, 
+            "Dicetak oleh : Pricing {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}", 
+            $font, 
+            $size, 
+            $color
+        );
+
+        // Kanan (nomor halaman)
+        $text = "Halaman {PAGE_NUM} / {PAGE_COUNT}";
+        $width = $fontMetrics->getTextWidth($text, $font, $size);
+        $pdf->page_text(
+            $pdf->get_width() - $width , 
+            $pdf->get_height() - 18, 
+            $text, 
+            $font, 
+            $size, 
+            $color
+        );
+    }
+</script>
 
 </body>
 </html>

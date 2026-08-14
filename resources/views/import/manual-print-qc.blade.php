@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 7mm;
+            margin: 7mm 7mm 12mm 7mm; /* bawah lebih besar untuk footer */
         }
 
         body {
@@ -77,13 +77,6 @@
         .text-center { text-align: center; }
         .text-right  { text-align: right; }
         .font-bold   { font-weight: bold; }
-
-        .footer {
-            margin-top: 15px;
-            text-align: right;
-            font-size: 8.8px;
-            color: #6b7280;
-        }
 
         thead {
             display: table-header-group;
@@ -251,7 +244,6 @@
                             ?? $item->manualOrder?->notes
                             ?? '';
 
-                        // === Bersihkan catatan sistem ===
                         $lines = preg_split('/\r\n|\r|\n/', $raw);
                         $cleanLines = [];
 
@@ -259,13 +251,11 @@
                             $line = trim($line);
                             if ($line === '') continue;
 
-                            // Skip baris sistem
                             if (preg_match('/^CP\s*:/i', $line)) continue;
                             if (preg_match('/NAMA_MISMATCH/i', $line)) continue;
                             if (preg_match('/Di\s+proses\s+bulk\s+pada/i', $line)) continue;
                             if (preg_match('/^[\|\s\-]+$/', $line)) continue;
 
-                            // Jika ada "CP:" di tengah baris, potong dari situ
                             if (preg_match('/^(.*?)\s*\|?\s*CP\s*:.*$/i', $line, $m)) {
                                 $line = trim($m[1]);
                                 if ($line === '' || preg_match('/^[\|\s\-]+$/', $line)) continue;
@@ -288,9 +278,36 @@
         </tbody>
     </table>
 
-    <div class="footer">
-        Dicetak oleh : QC • {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}
-    </div>
+    <!-- ================= NOMOR HALAMAN ================= -->
+    <script type="text/php">
+        if (isset($pdf)) {
+            $font = $fontMetrics->getFont("DejaVu Sans");
+            $size = 8;
+            $color = array(0.42, 0.45, 0.50);
+
+            // Kiri
+            $pdf->page_text(
+                40,
+                $pdf->get_height() - 18,
+                "Dicetak oleh : QC • {{ \Carbon\Carbon::parse($firstDate)->format('d/m/Y H:i:s') }}",
+                $font,
+                $size,
+                $color
+            );
+
+            // Kanan (nomor halaman)
+            $text = "Halaman {PAGE_NUM} / {PAGE_COUNT}";
+            $width = $fontMetrics->getTextWidth($text, $font, $size);
+            $pdf->page_text(
+                $pdf->get_width() - $width - 40,
+                $pdf->get_height() - 18,
+                $text,
+                $font,
+                $size,
+                $color
+            );
+        }
+    </script>
 
 </body>
 </html>

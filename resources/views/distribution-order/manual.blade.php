@@ -123,11 +123,8 @@
             <tbody class="divide-y divide-gray-200">
                 @forelse($data as $item)
                     @php
-                        // Cek apakah data sudah lengkap (sudah pernah disimpan)
-                        $isLocked = !empty($item->tgl_kirim) 
-                                 && !empty($item->no_resi) 
-                                 && !empty($item->status_distribusi) 
-                                 && !empty($item->keterangan);
+                        // Hanya kunci jika status sudah "Selesai"
+                        $isLocked = ($item->status_distribusi === 'Selesai');
                     @endphp
 
                     <tr class="transition duration-200 hover:bg-gray-50 {{ $isLocked ? 'bg-gray-50' : '' }}" data-id="{{ $item->id }}">
@@ -266,7 +263,7 @@
 <script>
 $(document).ready(function () {
 
-    // Fungsi untuk mengunci baris setelah berhasil disimpan
+    // Fungsi untuk mengunci baris setelah berhasil disimpan (hanya saat status Selesai)
     function lockRow(row) {
         row.find('.tgl-kirim, .no-resi, .status-distribusi, .keterangan').prop('disabled', true);
         
@@ -298,18 +295,6 @@ $(document).ready(function () {
             keterangan: row.find('.keterangan').val().trim(),
         };
 
-        // Cek apakah semua field sudah terisi
-        const isComplete = payload.tgl_kirim && 
-                           payload.no_resi && 
-                           payload.status_distribusi && 
-                           payload.keterangan;
-
-        if (!isComplete) {
-            btn.data('saving', false);
-            showToast('Harap isi semua field terlebih dahulu', 'error');
-            return;
-        }
-
         // Visual feedback
         btn.html('<i class="bi bi-arrow-repeat animate-spin text-xl"></i>');
 
@@ -319,8 +304,15 @@ $(document).ready(function () {
             data: payload,
             success: function (res) {
                 if (res.success) {
-                    showToast('Data berhasil disimpan & dikunci', 'success');
-                    lockRow(row); // ← Kunci field setelah berhasil
+                    // Hanya kunci kalau status = Selesai
+                    if (payload.status_distribusi === 'Selesai') {
+                        showToast('Data berhasil disimpan & dikunci', 'success');
+                        lockRow(row);
+                    } else {
+                        showToast('Data berhasil disimpan', 'success');
+                        // Field tetap bisa diedit
+                        btn.html('<i class="bi bi-check-circle text-xl"></i>');
+                    }
                 } else {
                     showToast(res.message || 'Gagal menyimpan', 'error');
                     btn.html('<i class="bi bi-check-circle text-xl"></i>');
@@ -342,12 +334,17 @@ $(document).ready(function () {
         saveRow(row);
     });
 
-    // Auto-save ketika semua field sudah terisi
+    // Auto-save (hanya aktif saat status = Selesai)
     $(document).on('change input', '.tgl-kirim, .no-resi, .status-distribusi, .keterangan', function () {
         const row = $(this).closest('tr');
 
         // Jangan proses kalau sudah dikunci
         if (row.find('.tgl-kirim').prop('disabled')) return;
+
+        const status = row.find('.status-distribusi').val();
+
+        // Hanya auto-save kalau status = Selesai
+        if (status !== 'Selesai') return;
 
         clearTimeout(row.data('timeout'));
         row.data('timeout', setTimeout(function () {
