@@ -33,7 +33,7 @@
                             <div class="text-5xl mb-4">🏬</div>
                             <h3 class="text-2xl font-semibold mb-2">DLC</h3>
                             <p class="text-gray-600">
-                                Input data pemesanan majalah DLC manual.
+                                Input data pemesanan majalah DLC.
                             </p>
                         </div>
                     </a>
