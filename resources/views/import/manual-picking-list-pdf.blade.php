@@ -231,7 +231,7 @@
                     @endif
                 </div>
 
-                <div class="section-title">Delivery Address</div>
+                <div class="section-title">Alamat Pengiriman</div>
                 <div><strong>{{ $item->nama_unit ?? '-' }}</strong></div>
 
                 @if(!empty($item->manualOrder?->phone))

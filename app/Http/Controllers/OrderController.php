@@ -2189,7 +2189,8 @@ public function printPickingList($id)
 {
     $main = RealisasiAktif::with([
         'picking',
-        'picking.pickingItems.product'
+        'picking.pickingItems.product',
+        'jakartaAktif'                      // ← relasi ditambahkan
     ])->findOrFail($id);
 
     if (!$main->picking_printed_at) {
@@ -2199,7 +2200,7 @@ public function printPickingList($id)
     }
 
     if (!$main->picking) {
-        return back()->with('error','Picking belum dibuat.');
+        return back()->with('error', 'Picking belum dibuat.');
     }
 
     $items = $main->picking
@@ -2207,15 +2208,16 @@ public function printPickingList($id)
         ->sortBy('item_sku')
         ->values();
 
-    return view('order.picking-list',[
-        'item'=>$main,
-        'picking'=>$main->picking,
-        'data'=>$items,
-        'no_pl'=>$main->no_pl,
-        'tgl_order'=>$main->tgl_turun_pl,
-        'billing_last_name'=>$main->billing_last_name,
-        'billing_company'=>$main->billing_company,
-        'kategori_order'=>$main->kategori_order,
+    return view('order.picking-list', [
+        'item'              => $main,
+        'picking'           => $main->picking,
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name,
+        'billing_company'   => $main->billing_company,
+        'kategori_order'    => $main->kategori_order,
+        'jakarta_aktif'     => $main->jakartaAktif,   // ← dikirim ke view
     ]);
 }
 
@@ -2224,7 +2226,10 @@ public function printPickingList($id)
  */
 public function printPickingListPdf($id)
 {
-    $main = RealisasiAktif::with('picking.pickingItems')->findOrFail($id);
+    $main = RealisasiAktif::with([
+        'picking.pickingItems',
+        'jakartaAktif'                          // ← relasi ditambahkan
+    ])->findOrFail($id);
 
     // Tandai sudah dicetak
     if (!$main->picking_printed_at) {
@@ -2255,6 +2260,7 @@ public function printPickingListPdf($id)
         'billing_last_name' => $main->billing_last_name,
         'billing_company'   => $main->billing_company,
         'kategori_order'    => $main->kategori_order,
+        'jakarta_aktif'     => $main->jakartaAktif,   // ← dikirim ke view PDF
     ]);
 
     $pdf->setPaper('A5', 'portrait');

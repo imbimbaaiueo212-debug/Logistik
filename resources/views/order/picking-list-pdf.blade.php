@@ -13,7 +13,7 @@
             font-family: Arial, Helvetica, sans-serif;
             font-size: 10.8px;           /* dikecilkan */
             color: #333;
-            line-height: 1.3;
+            line-height: 1;
             margin: 0;
             padding: 0;
         }
@@ -147,6 +147,7 @@
                         PayDate: <strong>{{ $item->tgl_bayar ? \Carbon\Carbon::parse($item->tgl_bayar)->format('d/m/Y H:i') : '-' }}</strong><br>
                         Estimasi: <strong>{{ $item->tgl_estimasi ? \Carbon\Carbon::parse($item->tgl_estimasi)->format('d/m/Y') : '-'}}</strong><br>
                         <strong>{{ $item->nama_unit ?? '-' }}</strong><br>
+                        <strong>{{ $jakarta_aktif->kirim ?? '-' }}</strong><br>
                         <strong>{{ $item->pengiriman ?? '-' }} | {{ $item->service_pengiriman ?? '-' }}</strong> {{ $data->count() }} | {{ $data->sum('item_qty') ?: $data->sum('qty') ?: $data->count() }}
                     </td>
 
