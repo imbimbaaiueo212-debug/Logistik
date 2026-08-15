@@ -12,6 +12,8 @@ use App\Models\UnitNamaMismatch;
 use App\Models\ManualRealisasi;
 use App\Models\ManualPicking;
 use App\Models\ManualPickingItem;
+use App\Models\DlcPeriode;
+use App\Models\DlcPesanan;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Product;
 use Carbon\Carbon;
@@ -814,7 +816,7 @@ private function isHolidayManual($date): bool
  * Sync Pesanan Majalah (Kabupaten + Kotamadya + PUW1)
  * → Manual Order
  */
-public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diubah ke Manual
+public function syncPesananMajalahToJakartaAktif()
 {
     $created     = 0;
     $updated     = 0;
@@ -828,6 +830,11 @@ public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diub
     ])->get();
 
     $periodesPuw1 = PesananMajalahPuw1::with('units')->get();
+
+    // ===== AMBIL DATA DLC =====
+    $periodesDlc = DlcPeriode::with('pesanan')
+        ->where('status', 'aktif')
+        ->get();
 
     DB::beginTransaction();
 
@@ -902,9 +909,47 @@ public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diub
             }
         }
 
+        // =====================================================
+        // D. DLC → GROUP A
+        // =====================================================
+        foreach ($periodesDlc as $periode) {
+            $edisi = strtoupper(trim($periode->edisi));
+
+            foreach ($periode->pesanan as $item) {
+                if (($item->qty ?? 0) <= 0) {
+                    $skipped++;
+                    $skippedList[] = $item->nama_unit . ' (DLC)';
+                    continue;
+                }
+
+                // Buat object mirip unit
+                $unit = (object) [
+                    'id'                => $item->id,
+                    'nama_unit'         => $item->nama_unit,
+                    'no_cabang'         => $item->no_cab ?? null,
+                    'jumlah_pesanan'    => $item->qty,
+                    'alamat_unit'       => $item->alamat ?? $item->nama_unit,
+                    'telepon'           => $item->telepon ?? null,
+                    'mitra_pengelolaan' => null,
+                    'kabupaten_kota'    => 'DLC',
+                ];
+
+                $result = $this->createManualOrderFromUnit(
+                    $unit,
+                    $edisi,
+                    'DLC',              // wilayah
+                    null,               // contact person
+                    'A',                // ← GROUP A
+                    null                // no_ps
+                );
+
+                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
+            }
+        }
+
         DB::commit();
 
-        $message = "✅ Sync Pesanan Majalah ke Manual selesai.<br>"
+        $message = "✅ Sync Pesanan Majalah + DLC ke Manual selesai.<br>"
                  . "Berhasil masuk: <strong>{$created}</strong><br>"
                  . "Berhasil di-update (no_ps): <strong>{$updated}</strong><br>"
                  . "Dilewati (sudah ada / qty 0): <strong>{$skipped}</strong>";
@@ -929,13 +974,15 @@ public function syncPesananMajalahToJakartaAktif() // nama route tetap, isi diub
 
     } catch (\Throwable $e) {
         DB::rollBack();
-        Log::error('Sync Pesanan Majalah ke Manual gagal: ' . $e->getMessage());
+        Log::error('Sync Pesanan Majalah + DLC gagal: ' . $e->getMessage());
 
         return redirect()
             ->route('import.manual')
             ->with('error', 'Gagal sync: ' . $e->getMessage());
     }
 }
+
+
 
 private function handleManualSyncResult($result, &$created, &$skipped, &$skippedList, &$errors, &$updated = null)
 {
@@ -979,15 +1026,61 @@ private function createManualOrderFromUnit(
     $noCab = trim($unit->no_cabang ?? '');
     $qty   = (int) $unit->jumlah_pesanan;
 
+    $noCab = trim($unit->no_cabang ?? '');
+    $qty   = (int) $unit->jumlah_pesanan;
+    $namaUnit = trim($unit->nama_unit ?? '');
+
+    // =====================================================
+    // CEK EXISTING (berbeda antara Group A dan B)
+    // =====================================================
+    if ($group === 'A') {
+    // DLC → cocokkan berdasarkan edisi + nama_unit + group
+    $existing = ManualOrder::where('product_sku', $edisi)
+        ->where('customer_name', $namaUnit)
+        ->where('grup', 'A')
+        ->where('status', 'pending')
+        ->first();
+} else {
+    // Group B → cocokkan seperti sebelumnya
     $existing = ManualOrder::where('product_sku', $edisi)
         ->where('billing_last_name', $noCab)
         ->where('qty', $qty)
         ->where('status', 'pending')
         ->first();
+}
+
+    // =====================================================
+    // JIKA SUDAH ADA
+    // =====================================================
+    if ($existing) {
+        // Update qty jika berbeda (khusus DLC)
+        if ($group === 'A' && $existing->qty != $qty) {
+            $existing->update([
+                'qty'          => $qty,
+                'order_weight' => (int) round(($existing->order_weight / max($existing->qty, 1)) * $qty),
+            ]);
+            return 'updated';
+        }
+
+        // Update no_ps jika ada
+        $needUpdate = empty($existing->no_ps) || ($noPs !== null && $existing->no_ps !== $noPs);
+
+        if ($needUpdate && $noPs !== null) {
+            try {
+                $existing->update(['no_ps' => $noPs]);
+                $this->syncNoPsToRelated($existing, $noPs);
+                return 'updated';
+            } catch (\Throwable $e) {
+                Log::error("Gagal update no_ps ManualOrder #{$existing->id}: " . $e->getMessage());
+                return $e->getMessage();
+            }
+        }
+
+        return 'skipped';
+    }
 
     // =====================================================
     // JIKA SUDAH ADA → update no_ps (jika kosong / berbeda)
-    // lalu sync ke Realisasi + Picking
     // =====================================================
     if ($existing) {
         $needUpdate = empty($existing->no_ps) || ($noPs !== null && $existing->no_ps !== $noPs);
@@ -1057,110 +1150,123 @@ private function createManualOrderFromUnit(
     }
 
     // =====================================================
-// Generate Order ID (format: B0001, B0002, ...)
-// =====================================================
-$prefix = 'B';
-
-$lastId = ManualOrder::where('order_id', 'like', $prefix . '%')
-    ->whereRaw("order_id REGEXP '^{$prefix}[0-9]{4}$'")
-    ->orderByRaw("CAST(SUBSTRING(order_id, 2) AS UNSIGNED) DESC")
-    ->value('order_id');
-
-$nextNumber = 1;
-
-if ($lastId) {
-    // Ambil angka di belakang prefix (contoh: B0042 → 42)
-    $nextNumber = (int) substr($lastId, 1) + 1;
-}
-
-$orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT); // B0001
-
-// Jaga-jaga kalau sudah ada (race condition)
-while (ManualOrder::where('order_id', $orderId)->exists()) {
-    $nextNumber++;
-    $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-}
-
+    // Generate Order ID
     // =====================================================
-// NOTES: mismatch + contact person kabupaten
-// =====================================================
-$parts = [];
-if ($isMismatch) {
-    $parts[] = 'NAMA_MISMATCH';
-}
-if (!empty($contactPerson)) {
-    $parts[] = 'CP: ' . $contactPerson;
-}
-$notesText = implode(' | ', $parts);
+    // Khusus DLC (Group A) pakai prefix A, selain itu tetap B
+    $prefix = ($group === 'A') ? 'A' : 'B';
 
-// =====================================================
-// HITUNG BERAT DARI MASTER PRODUK (berdasarkan LABEL)
-// =====================================================
-$beratSatuanKg = 0.070; // fallback default
+    $lastId = ManualOrder::where('order_id', 'like', $prefix . '%')
+        ->whereRaw("order_id REGEXP '^{$prefix}[0-9]{4}$'")
+        ->orderByRaw("CAST(SUBSTRING(order_id, 2) AS UNSIGNED) DESC")
+        ->value('order_id');
 
-// Hanya ambil produk yang label-nya SAMA PERSIS dengan edisi
-$product = Product::where('label', $edisi)
-    ->whereNotNull('berat_satuan')
-    ->where('berat_satuan', '>', 0)
-    ->first();
+    $nextNumber = 1;
 
-if ($product) {
-    $beratSatuanKg = (float) $product->berat_satuan;
-}
-
-// Konversi ke gram
-$orderWeightGram = (int) round($beratSatuanKg * 1000 * $qty);
-
-    try {
-        ManualOrder::create([
-            'order_id'            => $orderId,
-            'order_date'          => now(),
-            'customer_name'       => $namaUnit,
-            'phone'               => $unit->telepon ?? null,
-
-            'product_sku'         => $edisi,
-            'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
-            'qty'                 => $qty,
-            'price'               => 0,
-            'total'               => 0,
-
-            'ship_total'          => 0,
-            'order_weight'        => $orderWeightGram,
-            'discount_total'      => 0,
-            'refunded_total'      => 0,
-
-            'payment_method'      => 'manual',
-            'status'              => 'pending',
-            'grup'                => $group,
-
-            'billing_first_name'  => $mitra,
-            'billing_last_name'   => $noCab ?: null,
-
-            'shipping_first_name' => $namaUnit,
-            'shipping_last_name'  => $noCab ?: null,
-            'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
-            'shipping_address_2'  => null,
-            'shipping_city'       => $wilayah,
-
-            'status_kirim'        => 'Dikirim',
-            'ekspedisi'           => 'Lion Parcel',
-            'service_pengiriman'  => 'REGPACK',
-            'is_processed'        => false,
-            'payment_date'        => null,
-
-            'no_ps'               => $noPs,
-
-            'notes'               => $notesText,
-            'catatan'             => $notesText,
-        ]);
-
-        return 'created';
-
-    } catch (\Throwable $e) {
-        Log::error("Gagal create ManualOrder dari unit {$unit->id}: " . $e->getMessage());
-        return $e->getMessage();
+    if ($lastId) {
+        $nextNumber = (int) substr($lastId, 1) + 1;
     }
-}
+
+    $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+    while (ManualOrder::where('order_id', $orderId)->exists()) {
+        $nextNumber++;
+        $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+        // =====================================================
+        // NOTES
+        // =====================================================
+        $parts = [];
+        if ($isMismatch) {
+            $parts[] = 'NAMA_MISMATCH';
+        }
+        if (!empty($contactPerson)) {
+            $parts[] = 'CP: ' . $contactPerson;
+        }
+        if ($group === 'A') {
+            $parts[] = 'Sumber: DLC';
+        }
+        $notesText = implode(' | ', $parts);
+
+        // =====================================================
+        // HITUNG BERAT
+        // =====================================================
+        $beratSatuanKg = 0.070;
+
+        $product = Product::where('label', $edisi)
+            ->whereNotNull('berat_satuan')
+            ->where('berat_satuan', '>', 0)
+            ->first();
+
+        if ($product) {
+            $beratSatuanKg = (float) $product->berat_satuan;
+        }
+
+        $orderWeightGram = (int) round($beratSatuanKg * 1000 * $qty);
+
+        // =====================================================
+        // KHUSUS DLC (Group A) → Kurir & Status belum ditentukan
+        // =====================================================
+        if ($group === 'A') {
+            $statusKirim = null;
+            $ekspedisi   = null;
+            $service     = null;
+        } else {
+            $statusKirim = 'Dikirim';
+            $ekspedisi   = 'Lion Parcel';
+            $service     = 'REGPACK';
+        }
+
+        try {
+            ManualOrder::create([
+                'order_id'            => $orderId,
+                'order_date'          => now(),
+                'customer_name'       => $namaUnit,
+                'phone'               => $unit->telepon ?? null,
+
+                'product_sku'         => $edisi,
+                'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
+                'qty'                 => $qty,
+                'price'               => 0,
+                'total'               => 0,
+
+                'ship_total'          => 0,
+                'order_weight'        => $orderWeightGram,
+                'discount_total'      => 0,
+                'refunded_total'      => 0,
+
+                'payment_method'      => 'manual',
+                'status'              => 'pending',
+                'grup'                => $group,
+
+                'billing_first_name'  => $mitra,
+                'billing_last_name'   => $noCab ?: null,
+
+                'shipping_first_name' => $namaUnit,
+                'shipping_last_name'  => $noCab ?: null,
+                'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
+                'shipping_address_2'  => null,
+                'shipping_city'       => $wilayah,
+
+                'status_kirim'        => $statusKirim,
+                'ekspedisi'           => $ekspedisi,
+                'service_pengiriman'  => $service,
+                'is_processed'        => false,
+                'payment_date'        => null,
+
+                'no_ps'               => $noPs,
+
+                'notes'               => $notesText,
+                'catatan'             => $notesText,
+            ]);
+
+            return 'created';
+
+        } catch (\Throwable $e) {
+            Log::error("Gagal create ManualOrder dari unit {$unit->id}: " . $e->getMessage());
+            return $e->getMessage();
+        }
+    }
 
 private function extractEdisiMajalah(?string $text): string
 {
@@ -2064,5 +2170,136 @@ public function updateManualCatatan(Request $request, $id)
         'message' => 'Catatan berhasil diperbarui',
         'catatan' => $catatan,
     ]);
+}
+
+// =========================================================
+// DLC - Index
+// =========================================================
+public function dlcIndex()
+{
+    $periodes = DlcPeriode::withCount('pesanan')
+        ->withSum('pesanan', 'qty')
+        ->latest()
+        ->paginate(20);
+
+    return view('import.dlc.index', compact('periodes'));
+}
+
+// =========================================================
+// DLC - Form Create
+// =========================================================
+public function dlcCreate()
+{
+    return view('import.dlc.create');
+}
+
+// =========================================================
+// DLC - Store
+// =========================================================
+public function dlcStore(Request $request)
+{
+    // Ambil hanya item yang terisi
+    $items = collect($request->input('items', []))
+        ->filter(function ($item) {
+            return !empty(trim($item['nama_unit'] ?? '')) && (int)($item['qty'] ?? 0) > 0;
+        })
+        ->values()
+        ->toArray();
+
+    // Validasi ulang setelah difilter
+    $request->merge(['items' => $items]);
+
+    $request->validate([
+        'edisi'             => 'required|string|max:20',
+        'judul'             => 'nullable|string|max:100',
+        'periode'           => 'required|string|max:50',
+        'bulan'             => 'nullable|string|max:20',
+        'tahun'             => 'nullable|integer|min:2020|max:2030',
+        'items'             => 'required|array|min:1',
+        'items.*.nama_unit' => 'required|string|max:150',
+        'items.*.qty'       => 'required|integer|min:1',
+    ], [
+        'items.required'             => 'Minimal harus ada 1 unit yang diisi.',
+        'items.min'                  => 'Minimal harus ada 1 unit yang diisi.',
+        'items.*.nama_unit.required' => 'Nama unit wajib diisi.',
+        'items.*.qty.required'       => 'Qty wajib diisi.',
+        'items.*.qty.min'            => 'Qty minimal 1.',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        $periode = DlcPeriode::create([
+            'edisi'      => strtoupper(trim($request->edisi)),
+            'judul'      => $request->judul ?: 'Majalah ' . strtoupper($request->edisi),
+            'periode'    => $request->periode,
+            'bulan'      => $request->bulan,
+            'tahun'      => $request->tahun,
+            'status'     => 'aktif',
+            'created_by' => Auth::id(),
+        ]);
+
+        foreach ($items as $item) {
+            DlcPesanan::create([
+                'dlc_periode_id' => $periode->id,
+                'nama_unit'      => trim($item['nama_unit']),
+                'qty'            => (int) $item['qty'],
+                'no_cab'         => $item['no_cab'] ?? null,
+                'alamat'         => $item['alamat'] ?? null,
+                'telepon'        => $item['telepon'] ?? null,
+                'keterangan'     => $item['keterangan'] ?? null,
+            ]);
+        }
+
+        DB::commit();
+
+        return redirect()
+            ->route('import.dlc.show', $periode->id)
+            ->with('success', '✅ Data DLC berhasil disimpan!');
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
+    }
+}
+
+public function dlcUpdateQty(Request $request, $id)
+{
+    $request->validate([
+        'qty' => 'required|integer|min:0',
+    ]);
+
+    $pesanan = DlcPesanan::findOrFail($id);
+    $pesanan->update([
+        'qty' => (int) $request->qty,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Qty berhasil diupdate',
+        'qty'     => $pesanan->qty,
+    ]);
+}
+
+// =========================================================
+// DLC - Show Detail
+// =========================================================
+public function dlcShow($id)
+{
+    $periode = DlcPeriode::with('pesanan')->findOrFail($id);
+    $total   = $periode->pesanan->sum('qty');
+
+    return view('import.dlc.show', compact('periode', 'total'));
+}
+
+// =========================================================
+// DLC - Hapus
+// =========================================================
+public function dlcDestroy($id)
+{
+    $periode = DlcPeriode::findOrFail($id);
+    $periode->delete(); // cascade akan hapus pesanan juga
+
+    return redirect()
+        ->route('import.dlc.index')
+        ->with('success', '✅ Data DLC berhasil dihapus');
 }
 }

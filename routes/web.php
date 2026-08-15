@@ -106,6 +106,17 @@ Route::prefix('import')
         Route::post('/sync-pesanan-majalah', [ImportController::class, 'syncPesananMajalahToJakartaAktif'])
             ->name('sync-pesanan-majalah');
 
+            Route::prefix('dlc')->name('dlc.')->group(function () {
+            Route::get('/', [ImportController::class, 'dlcIndex'])->name('index');
+            Route::get('/create', [ImportController::class, 'dlcCreate'])->name('create');
+            Route::post('/store', [ImportController::class, 'dlcStore'])->name('store');
+            Route::get('/{id}', [ImportController::class, 'dlcShow'])->name('show');
+            Route::delete('/{id}', [ImportController::class, 'dlcDestroy'])->name('destroy');
+
+            // ← yang benar
+            Route::put('/pesanan/{id}', [ImportController::class, 'dlcUpdateQty'])->name('update-qty');
+        });
+
         // =====================================================
 // MANUAL PRINTED
 // =====================================================
@@ -824,3 +835,5 @@ Route::prefix('pesanan-majalah-puw1')
     Route::get('/order-manual', [OrderManualController::class, 'index'])
     ->name('order-manual.index')
     ->middleware('auth');
+
+    
