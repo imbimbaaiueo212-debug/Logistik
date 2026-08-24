@@ -18,6 +18,7 @@ class PickingPasif extends Model
         'kategori_order',
         'tgl_order',
         'tgl_picking',
+        'tgl_terima',                 // ← ditambahkan
         'payment_date',
         'waktu_estimasi_persiapan',
         'jam_picking',
@@ -37,6 +38,8 @@ class PickingPasif extends Model
         'total_item',
         'total_qty',
         'status',
+        'status_persiapan',           // ← ditambahkan
+        'pic',                        // ← ditambahkan
         'printed_at',
         'created_by',
         'catatan',
@@ -45,11 +48,14 @@ class PickingPasif extends Model
     protected $casts = [
         'tgl_order'                => 'date',
         'tgl_picking'              => 'date',
+        'tgl_terima'               => 'datetime',   // ← ditambahkan
         'payment_date'             => 'date',
         'waktu_estimasi_persiapan' => 'date',
         'printed_at'               => 'datetime',
         'total'                    => 'decimal:2',
         'berat'                    => 'decimal:2',
+        'total_item'               => 'integer',
+        'total_qty'                => 'integer',
     ];
 
     // ====================== RELATIONS ======================

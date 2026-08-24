@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DistributionOrder;
+use App\Models\DistributionPasif;
 use App\Models\ManualDistributionOrder;
 use App\Models\ManualPacking;
 use Illuminate\Http\Request;
@@ -55,12 +56,35 @@ class DistributionOrderController extends Controller
     /**
      * Distribution Order Jakarta Pasif
      */
-    public function jakartaPasif(Request $request)
-    {
-        // Sesuaikan query sesuai kebutuhan
-        $distributionOrders = collect(); // ganti dengan query asli
-        return view('distribution-order.jakarta-pasif', compact('distributionOrders'));
+    /**
+ * Distribution Order Jakarta Pasif
+ */
+public function jakartaPasif(Request $request)
+{
+    $query = DistributionPasif::with(['packingPasif', 'pickingPasif'])
+        ->orderByDesc('created_at');
+
+    if ($request->filled('status_distribusi')) {
+        $query->where('status_distribusi', $request->status_distribusi);
     }
+
+    if ($request->filled('status_pengiriman')) {
+        $query->where('status_pengiriman', $request->status_pengiriman);
+    }
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('no_pl', 'like', "%{$search}%")
+              ->orWhere('nama_unit', 'like', "%{$search}%")
+              ->orWhere('nama_barang', 'like', "%{$search}%");
+        });
+    }
+
+    $distributionOrders = $query->paginate(25)->appends($request->query());
+
+    return view('distribution-order.jakarta-pasif', compact('distributionOrders'));
+}
 
     /**
      * Distribution Order InterVio (DLC)
@@ -250,4 +274,32 @@ class DistributionOrderController extends Controller
             ]
         );
     }
+
+    public function updatePasif(Request $request, $id)
+{
+    $item = DistributionPasif::findOrFail($id);
+
+    $validated = $request->validate([
+        'tgl_pickup'        => 'nullable|date',
+        'awb'               => 'nullable|string|max:100',
+        'status_pengiriman' => 'nullable|string',
+        'tgl_diterima'      => 'nullable|date',
+        'penerima'          => 'nullable|string|max:150',
+        'keterangan'        => 'nullable|string|max:255',
+    ]);
+
+    $item->update([
+        'tgl_pickup'        => $validated['tgl_pickup'] ?? null,
+        'awb'               => $validated['awb'] ?? null,
+        'no_resi'           => $validated['awb'] ?? $item->no_resi,
+        'status_pengiriman' => $validated['status_pengiriman'] ?? $item->status_pengiriman,
+        'tgl_diterima'      => $validated['tgl_diterima'] ?? null,
+        'penerima'          => $validated['penerima'] ?? null,
+        'keterangan'        => $validated['keterangan'] ?? null,
+        'updated_by'        => Auth::id(),
+    ]);
+
+    return back()->with('success', 'Data distribusi pasif berhasil disimpan.');
+}
+    
 }

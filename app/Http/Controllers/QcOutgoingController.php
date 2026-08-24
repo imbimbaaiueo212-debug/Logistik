@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Picking;
 use App\Models\ManualPicking;          // ← pastikan model ini ada
 use App\Models\ManualPacking;
+use App\Models\QcOutgoingPasif;
+use App\Models\PackingPasif;
 use App\Models\DistributionOrder;
 use App\Models\QcOutgoing;
 use App\Models\Packing;
@@ -214,5 +216,85 @@ public function storeManual(Request $request)
     return redirect()
         ->route('qc-outgoing.order-manual')
         ->with('success', 'QC Manual berhasil disimpan.');
+}
+
+public function jakartaPasif(Request $request)
+{
+    $query = QcOutgoingPasif::with(['pickingPasif', 'createdBy'])
+        ->orderBy('created_at', 'desc');
+
+    // Filter (opsional)
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('no_pl', 'like', "%{$search}%")
+              ->orWhere('nama_unit', 'like', "%{$search}%");
+        });
+    }
+
+    if ($request->filled('status_qc')) {
+        $query->where('status_qc', $request->status_qc);
+    }
+
+    $data = $query->paginate(20)->appends($request->query());
+
+    return view('qc-outgoing.jakarta-pasif', compact('data'));
+}
+
+public function storePasif(Request $request)
+{
+    $validated = $request->validate([
+        'id'               => 'required|exists:qc_outgoing_pasif,id',
+        'status_qc'        => 'required|in:Pending,Lolos,Reject,Revisi',
+        'pic_qc'           => 'nullable|string',
+        'keterangan'       => 'nullable|string',
+    ]);
+
+    $qc = QcOutgoingPasif::findOrFail($validated['id']);
+
+    // Tidak boleh diubah lagi kalau sudah Lolos
+    if ($qc->status_qc === 'Lolos') {
+        return back()->with('warning', 'Data QC yang sudah Lolos tidak dapat diubah.');
+    }
+
+    $update = [
+        'status_qc'  => $validated['status_qc'],
+        'keterangan' => $validated['keterangan'] ?? null,
+        'tgl_qc'     => now(),
+    ];
+
+    // PIC QC + Kode QC hanya diisi sekali
+    if (empty($qc->pic_qc) && !empty($validated['pic_qc'])) {
+        $kodePic = explode(' - ', $validated['pic_qc'])[0] ?? '';
+        $update['pic_qc']  = $validated['pic_qc'];
+        $update['kode_qc'] = $kodePic;
+    }
+
+    $qc->update($update);
+
+    // ===== PINDAH KE PACKING PASIF JIKA LOLOS =====
+    if ($validated['status_qc'] === 'Lolos') {
+        // Pastikan model & tabel PackingPasif sudah ada
+        \App\Models\PackingPasif::updateOrCreate(
+            ['picking_pasif_id' => $qc->picking_pasif_id],
+            [
+                'qc_outgoing_pasif_id' => $qc->id,
+                'no_pl'                => $qc->no_pl,
+                'tgl_turun_pl'         => $qc->tgl_turun_pl,
+                'nama_unit'            => $qc->nama_unit,
+                'pengiriman'           => $qc->pengiriman,
+                'nama_barang'          => $qc->nama_barang,
+                'tgl_bayar'            => $qc->tgl_bayar,
+                'jumlah_bayar'         => $qc->jumlah_bayar,
+                'tgl_estimasi'         => $qc->tgl_estimasi,
+                'status_packing'       => 'Pending',
+                'packing_by'           => Auth::id(),
+                'packing_at'           => now(),
+                'created_by'           => Auth::id(),
+            ]
+        );
+    }
+
+    return back()->with('success', 'QC Pasif berhasil disimpan.');
 }
 }

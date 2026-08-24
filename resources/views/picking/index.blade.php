@@ -35,10 +35,11 @@
                     </div>
                 </a>
 
-                <a href="#" class="group">
+                <a href="{{ route('picking.jakarta.pasif') }}" class="group">
                     <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
                         <div class="text-5xl mb-4">📦</div>
                         <h3 class="text-2xl font-semibold mb-2">Jakarta Pasif</h3>
+                        <p class="text-gray-500 text-sm">Picking List Jakarta Pasif</p>
                     </div>
                 </a>
 

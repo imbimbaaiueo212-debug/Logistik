@@ -288,8 +288,16 @@ Route::prefix('picking')->name('picking.')->group(function () {
     
     // Jakarta Aktif
     Route::get('/jakarta/aktif', [PickingController::class, 'jakartaAktif'])->name('jakarta.aktif');
+
+    // Jakarta Pasif
+    Route::get('/jakarta/pasif', [PickingController::class, 'jakartaPasif'])->name('jakarta.pasif');
+
+    // ===== JAKARTA PASIF - UPDATE (perbaiki di sini) =====
+    Route::post('/pasif/checklist', [PickingController::class, 'updateChecklistPasif'])->name('pasif.checklist');
+    Route::post('/pasif/pic', [PickingController::class, 'updatePicPasif'])->name('pasif.pic');
+    Route::post('/pasif/status', [PickingController::class, 'updateStatusPasif'])->name('pasif.status');
     
-    // Checklist, PIC, Status (Normal)
+    // Checklist, PIC, Status (Normal / Aktif)
     Route::post('/checklist/update', [PickingController::class, 'updateChecklist'])->name('checklist.update');
     Route::post('/pic/update', [PickingController::class, 'updatePic'])->name('pic.update');
     Route::post('/status/update', [PickingController::class, 'updateStatus'])->name('status.update');
@@ -297,15 +305,10 @@ Route::prefix('picking')->name('picking.')->group(function () {
     // Order Manual (list)
     Route::get('/order-manual', [PickingController::class, 'orderManual'])->name('order-manual');
 
-    // ===== MANUAL PICKING (BARU) =====
-    Route::post('/manual/checklist', [PickingController::class, 'updateChecklistManual'])
-         ->name('manual.checklist.update');
-
-    Route::post('/manual/status', [PickingController::class, 'updateStatusManual'])
-         ->name('manual.status.update');
-
-    Route::post('/manual/pic', [PickingController::class, 'updatePicManual'])
-         ->name('manual.pic.update');
+    // ===== MANUAL PICKING =====
+    Route::post('/manual/checklist', [PickingController::class, 'updateChecklistManual'])->name('manual.checklist.update');
+    Route::post('/manual/status', [PickingController::class, 'updateStatusManual'])->name('manual.status.update');
+    Route::post('/manual/pic', [PickingController::class, 'updatePicManual'])->name('manual.pic.update');
 });
 // ====================== SUPPLIERS ======================
 Route::resource('suppliers', SupplierController::class);
@@ -504,6 +507,11 @@ Route::prefix('qc-outgoing')
 
         Route::get('/jakarta-aktif', [App\Http\Controllers\QcOutgoingController::class, 'jakartaAktif'])
             ->name('jakarta-aktif');
+        
+        Route::get('/jakarta-pasif', [QcOutgoingController::class, 'jakartaPasif'])->name('jakarta-pasif');
+
+        Route::post('/pasif/store', [App\Http\Controllers\QcOutgoingController::class, 'storePasif'])
+            ->name('pasif.store');
 
         Route::post('/store', [App\Http\Controllers\QcOutgoingController::class, 'qcStore'])
             ->name('store');
@@ -514,6 +522,7 @@ Route::prefix('qc-outgoing')
 
         Route::post('/manual/store', [App\Http\Controllers\QcOutgoingController::class, 'storeManual'])
             ->name('manual.store');
+
     });
 //ORDER MANUAL
 Route::get('/import/manual', [ImportController::class,'manual'])
@@ -545,6 +554,13 @@ Route::prefix('packing')->group(function () {
     Route::get('/jakarta-aktif', [PackingController::class, 'jakartaAktif'])
         ->name('packing.jakarta.aktif');
 
+    Route::get('/jakarta-pasif', [PackingController::class, 'jakartaPasif'])
+        ->name('packing.jakarta-pasif');
+
+    // ← PASTIKAN BARIS INI ADA
+    Route::put('/pasif/{id}', [PackingController::class, 'updatePasif'])
+        ->name('packing.pasif.update');
+
     Route::put('/{id}', [PackingController::class, 'update'])
         ->name('packing.update');
 
@@ -574,7 +590,11 @@ Route::prefix('distribution-order')
         Route::get('/manual', [DistributionOrderController::class, 'manual'])->name('manual');
         Route::post('/manual/{id}/update', [DistributionOrderController::class, 'updateManual'])->name('manual.update');
 
-        // === ROUTE BARU YANG DIBUTUHKAN ===
+        // === PASIF UPDATE (letakkan SEBELUM route {distributionOrder}) ===
+        Route::put('/pasif/{id}', [DistributionOrderController::class, 'updatePasif'])
+            ->name('pasif.update');
+
+        // === ROUTE LAIN ===
         Route::get('/create', [DistributionOrderController::class, 'create'])->name('create');
         Route::post('/', [DistributionOrderController::class, 'store'])->name('store');
 

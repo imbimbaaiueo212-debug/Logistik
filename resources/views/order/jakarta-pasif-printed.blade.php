@@ -402,14 +402,16 @@
     // Buka picking list
     window.open(`/order/jakarta-pasif/picking-list/${id}`, '_blank');
 
-    // Langsung ubah jadi ungu + icon PDF (tanpa reload)
+    // Langsung ubah jadi ungu + icon PDF
     if (btn) {
         btn.classList.remove('text-blue-600', 'hover:text-blue-700');
         btn.classList.add('text-purple-600');
         btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i>';
+        // Tandai sudah printed di element
+        btn.dataset.printed = '1';
     }
 
-    // Optional: mark di server via AJAX (supaya status tetap tersimpan)
+    // Mark di server
     fetch(`/order/jakarta-pasif/mark-picking-printed/${id}`, {
         method: 'POST',
         headers: {
@@ -420,6 +422,65 @@
         },
         body: JSON.stringify({})
     }).catch(() => {});
+
+    // Cek apakah semua picking di tanggal ini sudah dicetak → tampilkan tombol RA
+    checkAndShowRaButtons(btn);
+}
+
+// Cek semua tombol picking di group tanggal yang sama
+function checkAndShowRaButtons(btn) {
+    const container = btn.closest('[data-tanggal]');
+    if (!container) return;
+
+    const allPrintButtons = container.querySelectorAll('button.action-btn');
+    const allPrinted = Array.from(allPrintButtons).every(b => {
+        return b.classList.contains('text-purple-600') || b.dataset.printed === '1';
+    });
+
+    if (!allPrinted) return;
+
+    // Cek apakah container tombol RA sudah ada
+    let raContainer = container.querySelector('.ra-buttons-container');
+    
+    if (!raContainer) {
+        // Buat container tombol RA
+        const tanggal = container.dataset.tanggal;
+        
+        raContainer = document.createElement('div');
+        raContainer.className = 'ra-buttons-container bg-gray-50 border-t p-4 flex flex-wrap gap-3 justify-end';
+        raContainer.innerHTML = `
+            <button onclick="printPerDate('${tanggal}', 'prising')" 
+                class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-file-pdf"></i> Cetak RA Prising
+            </button>
+
+            <button onclick="printPerDate('${tanggal}', 'pemesanan')" 
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-list-check"></i> RA PICKING
+            </button>
+
+            <button onclick="printPerDate('${tanggal}', 'qc')" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-clipboard-check"></i> RA QC
+            </button>
+
+            <button onclick="printPerDate('${tanggal}', 'packing')" 
+                    class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                <i class="fas fa-box"></i> RA PACKING
+            </button>
+
+            <button onclick="printPerDate('${tanggal}', 'ekspedisi')" 
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-truck"></i> RA EKSPEDISI
+            </button>
+        `;
+
+        // Masukkan ke dalam accordion-content
+        const content = container.querySelector('.accordion-content');
+        if (content) {
+            content.appendChild(raContainer);
+        }
+    }
 }
     </script>
 </body>
