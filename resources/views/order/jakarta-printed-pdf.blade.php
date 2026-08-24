@@ -259,11 +259,21 @@ tbody tr:nth-child(odd){
 <body>
 
                     @php
-                        $firstItem = $data->first();
-                        $stokisName = $firstItem?->nama_stokis ?? 'STOKIS JAKARTA AKTIF';
-                        $rekapNo    = $firstItem?->rekap_number ?? '#0001';
-                        $firstDate  = $data->min('created_at') ?? $data->min('tgl_turun_pl');
-                    @endphp
+    $firstItem = $data->first();
+    $rekapNo   = $firstItem?->rekap_number ?? '#0001';
+    $firstDate = $data->min('created_at') ?? $data->min('tgl_turun_pl');
+
+    // Nama stokis: bedakan Aktif vs Pasif
+    if ($is_pasif ?? false) {
+        $stokisName = 'Stokis Jakarta Pasif';
+    } else {
+        $stokisName = $firstItem?->nama_stokis ?? 'Stokis Jakarta Aktif';
+        // Jaga-jaga data salah label
+        if (str_contains(strtolower($stokisName), 'pasif')) {
+            $stokisName = 'Stokis Jakarta Aktif';
+        }
+    }
+@endphp
 
                     <!-- ================= HEADER ================= -->
                     <table style="width:100%; border:none; border-collapse:collapse; margin-bottom:10px;">

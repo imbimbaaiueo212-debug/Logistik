@@ -171,158 +171,104 @@ Route::prefix('order')
         // MENU
         // =========================
         Route::get('/', [OrderController::class, 'index'])->name('index');
-
-        Route::get('/unit-aktif', [OrderController::class, 'unitAktif'])
-            ->name('unit-aktif');
-
-        Route::get('/unit-pasif', [OrderController::class, 'unitPasif'])
-            ->name('unit-pasif');
+        Route::get('/unit-aktif', [OrderController::class, 'unitAktif'])->name('unit-aktif');
+        Route::get('/unit-pasif', [OrderController::class, 'unitPasif'])->name('unit-pasif');
 
         // =========================
         // JAKARTA AKTIF
         // =========================
-        Route::get('/jakarta-aktif', [OrderController::class, 'jakartaAktif'])
-            ->name('jakarta-aktif');
+        Route::get('/jakarta-aktif', [OrderController::class, 'jakartaAktif'])->name('jakarta-aktif');
+        Route::get('/modul', [OrderController::class, 'modul'])->name('modul');
+        Route::get('/majalah', [OrderController::class, 'majalah'])->name('majalah');
+        Route::get('/sertifikat', [OrderController::class, 'sertifikat'])->name('sertifikat');
 
-        // Halaman Modul
-        Route::get('/modul', [OrderController::class, 'modul'])
-            ->name('modul');
+        Route::post('/jakarta-aktif/import', [OrderController::class, 'importJakartaAktif'])->name('jakarta-aktif.import');
+        Route::post('/jakarta-aktif/sync-jkt', [OrderController::class, 'syncJktFromBimbashop'])->name('jakarta-aktif.sync-jkt');
+        Route::post('/jakarta-aktif/bulk-action', [OrderController::class, 'bulkActionJakartaAktif'])->name('jakarta-aktif.bulk-action');
+        Route::get('/jakarta-aktif/{id}/edit', [OrderController::class, 'editJakartaAktif'])->name('jakarta-aktif.edit');
+        Route::put('/jakarta-aktif/{id}', [OrderController::class, 'updateJakartaAktif'])->name('jakarta-aktif.update');
+        Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])->name('jakarta-aktif.filtered-ids');
+        Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])->name('jakarta-aktif.get-modal-data');
+        Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])->name('jakarta-aktif.export');
 
-        Route::get('/majalah', [OrderController::class, 'majalah'])
-            ->name('majalah');
+        // =========================
+        // JAKARTA PASIF
+        // =========================
+        Route::get('/jakarta-pasif', [OrderController::class, 'jakartaPasif'])->name('jakarta-pasif');
+        Route::post('/jakarta-pasif/import', [OrderController::class, 'importJakartaPasif'])->name('jakarta-pasif.import');
+        Route::post('/jakarta-pasif/sync-jkt', [OrderController::class, 'syncJktPasifFromBimbashop'])->name('jakarta-pasif.sync-jkt');
+        Route::post('/jakarta-pasif/bulk-action', [OrderController::class, 'bulkActionJakartaPasif'])->name('jakarta-pasif.bulk-action');
+        Route::get('/jakarta-pasif/{id}/edit', [OrderController::class, 'editJakartaPasif'])->name('jakarta-pasif.edit');
+        Route::put('/jakarta-pasif/{id}', [OrderController::class, 'updateJakartaPasif'])->name('jakarta-pasif.update');
+        Route::get('/jakarta-pasif/filtered-ids', [OrderController::class, 'getFilteredIdsPasif'])->name('jakarta-pasif.filtered-ids');
+        Route::post('/jakarta-pasif/get-modal-data', [OrderController::class, 'getModalDataPasif'])->name('jakarta-pasif.get-modal-data');
+        Route::get('/jakarta-pasif/export', [OrderController::class, 'exportJakartaPasif'])->name('jakarta-pasif.export');
 
-        Route::get('/sertifikat', [OrderController::class, 'sertifikat'])
-            ->name('sertifikat');
-
-        Route::post('/jakarta-aktif/import', [OrderController::class, 'importJakartaAktif'])
-            ->name('jakarta-aktif.import');
-
-        Route::post('/jakarta-aktif/sync-jkt', [OrderController::class, 'syncJktFromBimbashop'])
-            ->name('jakarta-aktif.sync-jkt');
-
-        Route::post('/jakarta-aktif/bulk-action', [OrderController::class, 'bulkActionJakartaAktif'])
-            ->name('jakarta-aktif.bulk-action');
-
-        Route::get('/jakarta-aktif/{id}/edit', [OrderController::class, 'editJakartaAktif'])
-            ->name('jakarta-aktif.edit');
-
-        Route::put('/jakarta-aktif/{id}', [OrderController::class, 'updateJakartaAktif'])
-            ->name('jakarta-aktif.update');
-
-        Route::get('/jakarta-aktif/filtered-ids', [OrderController::class, 'getFilteredIds'])
-            ->name('jakarta-aktif.filtered-ids');
-
-        Route::post('/jakarta-aktif/get-modal-data', [OrderController::class, 'getModalData'])
-            ->name('jakarta-aktif.get-modal-data');
-
-        Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
-            ->name('jakarta-aktif.export');
-
-            // =========================
-            // JAKARTA PASIF
-            // =========================
-            Route::get('/jakarta-pasif', [OrderController::class, 'jakartaPasif'])
-                ->name('jakarta-pasif');
-
-            Route::post('/jakarta-pasif/import', [OrderController::class, 'importJakartaPasif'])
-                ->name('jakarta-pasif.import');
-
-            Route::post('/jakarta-pasif/sync-jkt', [OrderController::class, 'syncJktPasifFromBimbashop'])
-                ->name('jakarta-pasif.sync-jkt');
-
-            Route::post('/jakarta-pasif/bulk-action', [OrderController::class, 'bulkActionJakartaPasif'])
-                ->name('jakarta-pasif.bulk-action');
-
-            Route::get('/order/jakarta-pasif/filtered-ids', [OrderController::class, 'getFilteredIdsPasif'])
-                ->name('order.jakarta-pasif.filtered-ids');
-
-            Route::post('/order/jakarta-pasif/get-modal-data', [OrderController::class, 'getModalDataPasif'])
-                ->name('order.jakarta-pasif.get-modal-data');
-
-            Route::post('/order/jakarta-pasif/bulk-action', [OrderController::class, 'bulkActionJakartaPasif'])
-                ->name('order.jakarta-pasif.bulk-action');
-
-            Route::get('/jakarta-pasif/{id}/edit', [OrderController::class, 'editJakartaPasif'])
-                ->name('jakarta-pasif.edit');
-
-            Route::put('/jakarta-pasif/{id}', [OrderController::class, 'updateJakartaPasif'])
-                ->name('jakarta-pasif.update');
-
-            Route::get('/jakarta-pasif/filtered-ids', [OrderController::class, 'getFilteredIdsPasif'])
-                ->name('jakarta-pasif.filtered-ids');
-
-            Route::post('/jakarta-pasif/get-modal-data', [OrderController::class, 'getModalDataPasif'])
-                ->name('jakarta-pasif.get-modal-data');
-
-            Route::get('/jakarta-pasif/export', [OrderController::class, 'exportJakartaPasif'])
-                ->name('jakarta-pasif.export');
+        // Picking List Pasif (DALAM group → URL = /order/jakarta-pasif/...)
+        Route::get('/jakarta-pasif/picking-list/{id}', [OrderController::class, 'printPickingListPasif'])
+            ->name('jakarta-pasif.picking-list');
+        Route::get('/jakarta-pasif/picking-list-pdf/{id}', [OrderController::class, 'printPickingListPdfPasif'])
+            ->name('jakarta-pasif.picking-list-pdf');
+        Route::post('/jakarta-pasif/mark-picking-printed/{id}', [OrderController::class, 'markPickingPrintedPasif'])
+            ->name('jakarta-pasif.mark-picking-printed');
 
         // =========================
         // REALISASI
         // =========================
-        Route::get('/jakarta-printed', [OrderController::class, 'jakartaPrinted'])
-            ->name('jakarta-printed');
-            
-        Route::get('/jakarta-pasif-printed', [OrderController::class, 'jakartaPasifPrinted'])
-            ->name('jakarta-pasif-printed');
+        Route::get('/jakarta-printed', [OrderController::class, 'jakartaPrinted'])->name('jakarta-printed');
+        Route::get('/jakarta-pasif-printed', [OrderController::class, 'jakartaPasifPrinted'])->name('jakarta-pasif-printed');
 
-        Route::delete('/realisasi/{id}', [OrderController::class, 'deleteRealisasi'])
-            ->name('realisasi.delete');
-
-        Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])
-            ->name('realisasi.mark-printed-all');
+        Route::delete('/realisasi/{id}', [OrderController::class, 'deleteRealisasi'])->name('realisasi.delete');
+        Route::post('/realisasi/mark-printed-all', [OrderController::class, 'markAllAsPrinted'])->name('realisasi.mark-printed-all');
 
         // =========================
-        // PRINT
+        // PRINT REALISASI PASIF
         // =========================
-        Route::get('/realisasi/print-pdf', [OrderController::class, 'printRealisasiPdf'])
-            ->name('realisasi.print-pdf');
+        Route::get('/realisasi-pasif/print-pdf', [OrderController::class, 'printRealisasiPasifPdf'])
+            ->name('realisasi-pasif.print-pdf');
 
-        Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])
-            ->name('realisasi.print-single');
+        Route::get('/realisasi-pasif/print-pemesanan', [OrderController::class, 'printPemesananPasif'])
+            ->name('realisasi-pasif.print-pemesanan');
 
-        Route::get('/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])
-            ->name('realisasi.picking-list');
+        Route::get('/realisasi-pasif/print-qc', [OrderController::class, 'printQCPasif'])
+            ->name('realisasi-pasif.print-qc');
 
-        Route::get('/picking-list/pdf/{id}', [OrderController::class, 'printPickingListPdf'])
-            ->name('picking-list.pdf');
+        Route::get('/realisasi-pasif/print-packing', [OrderController::class, 'printPackingPasif'])
+            ->name('realisasi-pasif.print-packing');
 
-        Route::get('/realisasi/print-qc', [OrderController::class, 'printQC'])
-            ->name('realisasi.print-qc');
+        Route::get('/realisasi-pasif/print-ekspedisi', [OrderController::class, 'printEkspedisiPasif'])
+            ->name('realisasi-pasif.print-ekspedisi');
 
-        Route::get('/realisasi/print-pemesanan', [OrderController::class, 'printPemesanan'])
-            ->name('realisasi.print-pemesanan');
-
-        Route::get('/realisasi/print-ekspedisi', [OrderController::class, 'printEkspedisi'])
-            ->name('realisasi.print-ekspedisi');
-
-        Route::get('/realisasi/print-packing', [OrderController::class, 'printPacking'])
-            ->name('realisasi.print-packing');
-            Route::get('/realisasi/picking-list-all', [OrderController::class, 'printPickingListAll'])
-        ->name('print-picking-list-all');
-
-    Route::get('/realisasi/print-qc-all', [OrderController::class, 'printQCAll'])
-        ->name('print-qc-all');
-
-    Route::get('/realisasi/print-packing-all', [OrderController::class, 'printPackingAll'])
-        ->name('print-packing-all');
-
-    Route::get('/realisasi/print-ekspedisi-all', [OrderController::class, 'printEkspedisiAll'])
-        ->name('print-ekspedisi-all');
-
-    Route::get('/realisasi/print-ra-all', [OrderController::class, 'printRealisasiAll'])
-        ->name('print-ra-all');
+        // =========================
+        // PRINT (AKTIF)
+        // =========================
+        Route::get('/realisasi/print-pdf', [OrderController::class, 'printRealisasiPdf'])->name('realisasi.print-pdf');
+        Route::get('/realisasi/print-pdf/{id}', [OrderController::class, 'printSingleRealisasi'])->name('realisasi.print-single');
+        Route::get('/realisasi/picking-list/{id}', [OrderController::class, 'printPickingList'])->name('realisasi.picking-list');
+        Route::get('/picking-list/pdf/{id}', [OrderController::class, 'printPickingListPdf'])->name('picking-list.pdf');
+        Route::get('/realisasi/print-qc', [OrderController::class, 'printQC'])->name('realisasi.print-qc');
+        Route::get('/realisasi/print-pemesanan', [OrderController::class, 'printPemesanan'])->name('realisasi.print-pemesanan');
+        Route::get('/realisasi/print-ekspedisi', [OrderController::class, 'printEkspedisi'])->name('realisasi.print-ekspedisi');
+        Route::get('/realisasi/print-packing', [OrderController::class, 'printPacking'])->name('realisasi.print-packing');
+        Route::get('/realisasi/picking-list-all', [OrderController::class, 'printPickingListAll'])->name('print-picking-list-all');
+        Route::get('/realisasi/print-qc-all', [OrderController::class, 'printQCAll'])->name('print-qc-all');
+        Route::get('/realisasi/print-packing-all', [OrderController::class, 'printPackingAll'])->name('print-packing-all');
+        Route::get('/realisasi/print-ekspedisi-all', [OrderController::class, 'printEkspedisiAll'])->name('print-ekspedisi-all');
+        Route::get('/realisasi/print-ra-all', [OrderController::class, 'printRealisasiAll'])->name('print-ra-all');
     });
-    Route::post('order/jakarta-aktif/sync-manual', [OrderController::class, 'syncManualToJakartaAktif'])
-    ->name('order.jakarta-aktif.sync-manual');
 
+// Di luar group (path penuh)
+Route::post('order/jakarta-aktif/sync-manual', [OrderController::class, 'syncManualToJakartaAktif'])
+    ->name('order.jakarta-aktif.sync-manual')
+    ->middleware('auth');
 
-    Route::post('pesanan-majalah/{pesananMajalah}/kirim-ke-jakarta-aktif', 
-    [PesananMajalahController::class, 'kirimKeJakartaAktif']
-)->name('pesanan-majalah.kirim-ke-jakarta-aktif');
-Route::post('order/jakarta-aktif/sync-pesanan-majalah', 
-    [OrderController::class, 'syncPesananMajalahToJakartaAktif']
-)->name('order.jakarta-aktif.sync-pesanan-majalah');
+Route::post('order/jakarta-aktif/sync-pesanan-majalah', [OrderController::class, 'syncPesananMajalahToJakartaAktif'])
+    ->name('order.jakarta-aktif.sync-pesanan-majalah')
+    ->middleware('auth');
+
+Route::post('pesanan-majalah/{pesananMajalah}/kirim-ke-jakarta-aktif', [PesananMajalahController::class, 'kirimKeJakartaAktif'])
+    ->name('pesanan-majalah.kirim-ke-jakarta-aktif')
+    ->middleware('auth');
 
 // === PICKING ROUTES ===
 Route::prefix('picking')->name('picking.')->group(function () {

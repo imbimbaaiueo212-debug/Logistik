@@ -2195,19 +2195,48 @@ public function exportJakartaAktif(Request $request)
 public function printPickingList($id)
 {
     $main = RealisasiAktif::with([
-        'picking',
         'picking.pickingItems.product',
-        'jakartaAktif'                      // ← relasi ditambahkan
+        'jakartaAktif.items.product',
+        'jakartaAktif',
     ])->findOrFail($id);
 
-    if (!$main->picking_printed_at) {
-        $main->update([
-            'picking_printed_at' => now()
-        ]);
+    // Jika picking belum ada → generate otomatis
+    if (!$main->picking) {
+        $jakarta = $main->jakartaAktif;
+
+        if (!$jakarta) {
+            return back()->with('error', 'Data Jakarta Aktif tidak ditemukan.');
+        }
+
+        // Filter item sesuai kategori realisasi
+        $routeKey = match ($main->kategori_order) {
+            'Modul'      => 'order.modul',
+            'Majalah'    => 'order.majalah',
+            'Sertifikat' => 'order.sertifikat',
+            default      => 'order.jakarta-aktif',
+        };
+
+        $items = $this->getFilteredItems($jakarta, $routeKey);
+
+        if ($items->isEmpty()) {
+            $items = $jakarta->items()->with('product')->get();
+        }
+
+        if ($items->isEmpty()) {
+            return back()->with('error', 'Tidak ada item untuk dibuatkan Picking List.');
+        }
+
+        $this->createPicking($main, $items);
+        $main->load(['picking.pickingItems.product']);
     }
 
     if (!$main->picking) {
-        return back()->with('error', 'Picking belum dibuat.');
+        return back()->with('error', 'Picking belum dibuat dan gagal digenerate.');
+    }
+
+    // Tandai sudah dicetak
+    if (is_null($main->picking_printed_at)) {
+        $main->update(['picking_printed_at' => now()]);
     }
 
     $items = $main->picking
@@ -2224,7 +2253,7 @@ public function printPickingList($id)
         'billing_last_name' => $main->billing_last_name,
         'billing_company'   => $main->billing_company,
         'kategori_order'    => $main->kategori_order,
-        'jakarta_aktif'     => $main->jakartaAktif,   // ← dikirim ke view
+        'jakarta_aktif'     => $main->jakartaAktif,
     ]);
 }
 
@@ -3626,23 +3655,20 @@ public function getFilteredIdsPasif(Request $request)
     // =====================================================
     if ($allData->isNotEmpty()) {
 
-        foreach ($allData->groupBy(function ($item) {
-            return Carbon::parse($item->tgl_turun_pl)->toDateString();
-        }) as $tanggal => $rows) {
+        foreach ($allData->groupBy(fn ($item) => Carbon::parse($item->tgl_turun_pl)->toDateString()) as $tanggal => $rows) {
+    $rekapNumber = $this->generateRekapNumberPasif($tanggal);
 
-            $rekapNumber = $this->generateRekapNumberPasif($tanggal); // method khusus pasif
+    // Samakan SEMUA baris tanggal ini ke nomor yang sama
+    RealisasiPasif::whereIn('id', $rows->pluck('id'))
+        ->update([
+            'rekap_number' => $rekapNumber,
+            'updated_at'   => now(),
+        ]);
 
-            RealisasiPasif::whereIn('id', $rows->pluck('id'))
-                ->whereNull('rekap_number')
-                ->update([
-                    'rekap_number' => $rekapNumber,
-                    'updated_at'   => now(),
-                ]);
-
-            foreach ($rows as $row) {
-                $row->rekap_number = $rekapNumber;
-            }
-        }
+    foreach ($rows as $row) {
+        $row->rekap_number = $rekapNumber;
+    }
+}
     }
 
     // =====================================================
@@ -3661,21 +3687,515 @@ private function generateRekapNumberPasif($tanggal)
 {
     $date = Carbon::parse($tanggal)->format('ymd');
 
-    // Cari rekap number terakhir untuk tanggal ini
-    $last = RealisasiPasif::whereDate('tgl_turun_pl', $tanggal)
+    // Kalau tanggal ini SUDAH punya rekap_number → pakai yang sama
+    $existing = RealisasiPasif::whereDate('tgl_turun_pl', $tanggal)
         ->whereNotNull('rekap_number')
-        ->orderByDesc('rekap_number')
+        ->orderBy('rekap_number')
         ->value('rekap_number');
 
-    if ($last) {
-        // Ambil angka terakhir (contoh: RAP-260822-0003 → 3)
-        $lastNumber = (int) substr($last, -4);
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
+    if ($existing) {
+        return $existing; // jangan naik nomor
     }
 
-    return 'RAP-' . $date . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    // Baru pertama kali untuk tanggal ini
+    return 'RAP-' . $date . '-' . str_pad(1, 4, '0', STR_PAD_LEFT);
+}
+
+   /**
+ * Print Picking List Pasif - HTML
+ */
+public function printPickingListPasif($id)
+{
+    $main = RealisasiPasif::with([
+        'pickingPasif.items.product',
+        'jakartaPasif',
+    ])->findOrFail($id);
+
+    if (!$main->pickingPasif) {
+        return back()->with('error', 'Picking Pasif belum dibuat.');
+    }
+
+    // Mark printed
+    if (is_null($main->picking_printed_at)) {
+        $main->update(['picking_printed_at' => now()]);
+    }
+
+    if (is_null($main->pickingPasif->printed_at)) {
+        $main->pickingPasif->update([
+            'printed_at' => now(),
+            'status'     => 'completed',
+        ]);
+    }
+
+    // Relasi items: coba 'items' dulu, fallback 'pickingItems'
+    $itemsCollection = $main->pickingPasif->items
+        ?? $main->pickingPasif->pickingItems
+        ?? collect();
+
+    $items = $itemsCollection->sortBy('item_sku')->values();
+
+    // Pakai blade PASIF kalau ada, fallback ke aktif
+    $view = view()->exists('order.picking-list-pasif')
+        ? 'order.picking-list-pasif'
+        : 'order.picking-list';
+
+    return view($view, [
+        'item'              => $main,
+        'picking'           => $main->pickingPasif,
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name,
+        'billing_company'   => $main->billing_company,
+        'kategori_order'    => $main->kategori_order,
+        'jakarta_pasif'     => $main->jakartaPasif,
+        'is_pasif'          => true,
+    ]);
+}
+
+/**
+ * Print Picking List PDF - Pasif
+ */
+public function printPickingListPdfPasif($id)
+{
+    $main = RealisasiPasif::with([
+        'pickingPasif.items',
+        'jakartaPasif',
+    ])->findOrFail($id);
+
+    if (!$main->pickingPasif) {
+        abort(404, 'Picking Pasif data not found');
+    }
+
+    if (is_null($main->picking_printed_at)) {
+        $main->update(['picking_printed_at' => now()]);
+    }
+
+    if (is_null($main->pickingPasif->printed_at)) {
+        $main->pickingPasif->update([
+            'printed_at' => now(),
+            'status'     => 'completed',
+        ]);
+    }
+
+    $itemsQuery = method_exists($main->pickingPasif, 'items')
+        ? $main->pickingPasif->items()
+        : $main->pickingPasif->pickingItems();
+
+    $items = $itemsQuery
+        ->orderBy('item_sku')
+        ->get()
+        ->transform(function ($item) {
+            $item->item_name = preg_replace('/\s+/', ' ', trim($item->item_name ?? ''));
+            return $item;
+        });
+
+    $view = view()->exists('order.picking-list-pdf-pasif')
+        ? 'order.picking-list-pdf-pasif'
+        : 'order.picking-list-pdf';
+
+    $pdf = Pdf::loadView($view, [
+        'item'              => $main,
+        'picking'           => $main->pickingPasif,
+        'data'              => $items,
+        'no_pl'             => $main->no_pl,
+        'tgl_order'         => $main->tgl_turun_pl,
+        'billing_last_name' => $main->billing_last_name,
+        'billing_company'   => $main->billing_company,
+        'kategori_order'    => $main->kategori_order,
+        'jakarta_pasif'     => $main->jakartaPasif,
+        'is_pasif'          => true,
+    ]);
+
+    $pdf->setPaper('A5', 'portrait');
+    $pdf->setOptions([
+        'margin-top'           => 8,
+        'margin-right'         => 6,
+        'margin-bottom'        => 18,
+        'margin-left'          => 6,
+        'isHtml5ParserEnabled' => true,
+        'isPhpEnabled'         => true,
+    ]);
+
+    $filename = 'Picking_List_Pasif_' . ($main->no_pl ?? 'unknown') .
+                '_' . ($main->kategori_order ?? '') .
+                '_' . now()->format('Ymd_His') . '.pdf';
+
+    return $pdf->stream($filename);
+}
+
+/**
+ * Mark Picking Printed - Pasif (AJAX)
+ */
+public function markPickingPrintedPasif($id)
+{
+    $item = RealisasiPasif::with('pickingPasif')->findOrFail($id);
+
+    $item->update([
+        'picking_printed_at' => now(),
+    ]);
+
+    if ($item->pickingPasif) {
+        $item->pickingPasif->update([
+            'printed_at' => now(),
+            'status'     => 'completed',
+        ]);
+    }
+
+    return response()->json(['success' => true]);
+}
+
+
+// ====================== PRINT REALISASI PASIF ======================
+
+/**
+ * Cetak RA Prising / Pricing - Pasif
+ */
+public function printRealisasiPasifPdf(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = RealisasiPasif::whereIn('id', $ids)
+        ->with(['jakartaPasif', 'pickingPasif'])
+        ->get();
+
+    // Hanya yang picking sudah dicetak
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at)
+            || !is_null($item->pickingPasif?->printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang siap dicetak (Picking List belum selesai).');
+    }
+
+    // Tandai sudah print RA
+    if ($request->boolean('mark_printed')) {
+        RealisasiPasif::whereIn('id', $filteredData->pluck('id'))
+            ->whereNull('printed_at')
+            ->update([
+                'printed_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    $filteredData = RealisasiPasif::whereIn('id', $filteredData->pluck('id'))
+        ->with(['jakartaPasif'])
+        ->get();
+
+    // Urut: jumlah item sedikit → tgl → no_pl
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $firstDate = optional($filteredData->first())->tgl_turun_pl;
+    // Pakai nomor yang sudah tersimpan di data, jangan generate baru
+$docNumber = $filteredData->first()->rekap_number
+    ?? $this->generateRekapNumberPasif(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    // Reuse view Aktif jika belum ada khusus pasif
+    $view = view()->exists('order.jakarta-pasif-printed-pdf')
+        ? 'order.jakarta-pasif-printed-pdf'
+        : 'order.jakarta-printed-pdf';
+
+    $pdf = Pdf::loadView($view, [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+        'is_pasif'  => true,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('RA-Pasif-Pricing-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print RA Picking / Pemesanan - Pasif
+ */
+public function printPemesananPasif(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = RealisasiPasif::whereIn('id', $ids)
+        ->with(['jakartaPasif', 'pickingPasif'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at)
+            || !is_null($item->pickingPasif?->printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai dicetak.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $groupedData = $filteredData->groupBy(function ($item) {
+        return Carbon::parse($item->tgl_turun_pl)->toDateString();
+    });
+
+    $docNumber = $this->generateRekapNumberPasif(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $view = view()->exists('order.print-pemesanan-pasif')
+        ? 'order.print-pemesanan-pasif'
+        : 'order.print-pemesanan';
+
+    $pdf = Pdf::loadView($view, [
+        'data'        => $filteredData,
+        'groupedData' => $groupedData,
+        'docNumber'   => $docNumber,
+        'is_pasif'    => true,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('RA-Pemesanan-Picking-Pasif-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print QC - Pasif
+ */
+public function printQCPasif(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = RealisasiPasif::whereIn('id', $ids)
+        ->with(['jakartaPasif', 'pickingPasif'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at)
+            || !is_null($item->pickingPasif?->printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai untuk QC.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $docNumber = $this->generateRekapNumberPasif(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $view = view()->exists('order.print-qc-pasif')
+        ? 'order.print-qc-pasif'
+        : 'order.print-qc';
+
+    $pdf = Pdf::loadView($view, [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+        'is_pasif'  => true,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('QC-Report-Pasif-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Packing - Pasif
+ */
+public function printPackingPasif(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = RealisasiPasif::whereIn('id', $ids)
+        ->with(['jakartaPasif', 'pickingPasif'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at)
+            || !is_null($item->pickingPasif?->printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai untuk Packing.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $docNumber = $this->generateRekapNumberPasif(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $view = view()->exists('order.print-packing-pasif')
+        ? 'order.print-packing-pasif'
+        : 'order.print-packing';
+
+    $pdf = Pdf::loadView($view, [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+        'is_pasif'  => true,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('Packing-Report-Pasif-' . now()->format('d-m-Y_H-i') . '.pdf');
+}
+
+/**
+ * Print Ekspedisi - Pasif
+ */
+public function printEkspedisiPasif(Request $request)
+{
+    $ids = array_filter(explode(',', $request->get('ids', '')));
+
+    if (empty($ids)) {
+        return back()->with('error', 'Tidak ada data yang dipilih.');
+    }
+
+    $data = RealisasiPasif::whereIn('id', $ids)
+        ->with(['jakartaPasif', 'pickingPasif'])
+        ->get();
+
+    $filteredData = $data->filter(function ($item) {
+        return !is_null($item->picking_printed_at)
+            || !is_null($item->pickingPasif?->printed_at);
+    });
+
+    if ($filteredData->isEmpty()) {
+        return back()->with('error', 'Belum ada data yang Picking List-nya selesai untuk Distribusi.');
+    }
+
+    $filteredData = $filteredData
+        ->sort(function ($a, $b) {
+            $countA = empty($a->nama_barang) ? 0 : substr_count($a->nama_barang, '|') + 1;
+            $countB = empty($b->nama_barang) ? 0 : substr_count($b->nama_barang, '|') + 1;
+
+            if ($countA != $countB) {
+                return $countA <=> $countB;
+            }
+
+            $dateCompare = strtotime($a->tgl_turun_pl) <=> strtotime($b->tgl_turun_pl);
+            if ($dateCompare != 0) {
+                return $dateCompare;
+            }
+
+            return ($a->no_pl ?? 0) <=> ($b->no_pl ?? 0);
+        })
+        ->values();
+
+    $docNumber = $this->generateRekapNumberPasif(
+        optional($filteredData->first())->tgl_turun_pl ?? now()
+    );
+
+    $view = view()->exists('order.print-ekspedisi-pasif')
+        ? 'order.print-ekspedisi-pasif'
+        : 'order.print-ekspedisi';
+
+    $pdf = Pdf::loadView($view, [
+        'data'      => $filteredData,
+        'docNumber' => $docNumber,
+        'is_pasif'  => true,
+    ])
+    ->setPaper('A4', 'landscape')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled'      => true,
+    ]);
+
+    return $pdf->stream('Ekspedisi-Report-Pasif-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
 }

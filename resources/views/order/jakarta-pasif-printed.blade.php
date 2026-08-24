@@ -120,8 +120,8 @@
                     <div class="flex-1 text-center px-6">
                         <div>
                             <span class="font-bold text-lg">
-                                Rekap Aktual Detail - {{ $first->nama_stokis ?? 'STOKIS JAKARTA PASIF' }}
-                            </span>
+    Rekap Aktual Detail - Stokis Jakarta Pasif
+</span>
                             <span class="text-indigo-600 font-semibold ml-2">{{ $first->rekap_number ?? '#0001' }}</span>
                         </div>
                         
@@ -237,7 +237,8 @@
                                     @php
                                         $isPickingPrinted = !is_null($item->picking_printed_at ?? $item->pickingPasif?->printed_at ?? null);
                                     @endphp
-                                    <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                                    <button type="button"
+                                            onclick="printPickingListPasif(this, {{ $item->id }}, '{{ $item->no_pl }}')"
                                             class="action-btn text-2xl {{ $isPickingPrinted ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
                                         @if($isPickingPrinted)
                                             <i class="fa-solid fa-file-pdf"></i>
@@ -321,7 +322,7 @@
     }
 
     // ==================== PRINT PER TANGGAL ====================
-    function printPerDate(tanggal, type) {
+        function printPerDate(tanggal, type) {
         const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
         if (!container) return;
 
@@ -331,30 +332,27 @@
 
         let url = "";
 
-        // Sementara pakai route yang sama dulu (nanti bisa diganti route khusus pasif)
-        switch(type) {
+        switch (type) {
             case "prising":
-                url = `{{ route('order.realisasi.print-pdf') }}?ids=${ids}&mark_printed=true`;
+                url = `{{ route('order.realisasi-pasif.print-pdf') }}?ids=${ids}&mark_printed=true`;
                 break;
             case "pemesanan":
-                url = `{{ route('order.realisasi.print-pemesanan') }}?ids=${ids}`;
+                url = `{{ route('order.realisasi-pasif.print-pemesanan') }}?ids=${ids}`;
                 break;
             case "qc":
-                url = `{{ route('order.realisasi.print-qc') }}?ids=${ids}`;
+                url = `{{ route('order.realisasi-pasif.print-qc') }}?ids=${ids}`;
                 break;
             case "packing":
-                url = `{{ route('order.realisasi.print-packing') }}?ids=${ids}`;
+                url = `{{ route('order.realisasi-pasif.print-packing') }}?ids=${ids}`;
                 break;
             case "ekspedisi":
-                url = `{{ route('order.realisasi.print-ekspedisi') }}?ids=${ids}`;
+                url = `{{ route('order.realisasi-pasif.print-ekspedisi') }}?ids=${ids}`;
                 break;
         }
 
         if (url) {
             window.open(url, "_blank");
-            setTimeout(() => {
-                location.reload();
-            }, 1200);
+            setTimeout(() => location.reload(), 1200);
         }
     }
 
@@ -399,6 +397,30 @@
             }
         }
     });
+
+    function printPickingListPasif(btn, id, noPl) {
+    // Buka picking list
+    window.open(`/order/jakarta-pasif/picking-list/${id}`, '_blank');
+
+    // Langsung ubah jadi ungu + icon PDF (tanpa reload)
+    if (btn) {
+        btn.classList.remove('text-blue-600', 'hover:text-blue-700');
+        btn.classList.add('text-purple-600');
+        btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i>';
+    }
+
+    // Optional: mark di server via AJAX (supaya status tetap tersimpan)
+    fetch(`/order/jakarta-pasif/mark-picking-printed/${id}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                || '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    }).catch(() => {});
+}
     </script>
 </body>
 </html>
