@@ -110,6 +110,11 @@ Route::prefix('import')
             Route::get('/', [ImportController::class, 'dlcIndex'])->name('index');
             Route::get('/create', [ImportController::class, 'dlcCreate'])->name('create');
             Route::post('/store', [ImportController::class, 'dlcStore'])->name('store');
+            // Edit & Update (tambahkan di sini)
+            Route::get('/{id}/edit', [ImportController::class, 'dlcEdit'])->name('edit');
+            Route::put('/{id}', [ImportController::class, 'dlcUpdate'])->name('update');
+            Route::put('/{id}/no-ps', [ImportController::class, 'dlcUpdateNoPs'])->name('update-no-ps');
+
             Route::get('/{id}', [ImportController::class, 'dlcShow'])->name('show');
             Route::delete('/{id}', [ImportController::class, 'dlcDestroy'])->name('destroy');
 
@@ -213,11 +218,53 @@ Route::prefix('order')
         Route::get('/jakarta-aktif/export', [OrderController::class, 'exportJakartaAktif'])
             ->name('jakarta-aktif.export');
 
+            // =========================
+            // JAKARTA PASIF
+            // =========================
+            Route::get('/jakarta-pasif', [OrderController::class, 'jakartaPasif'])
+                ->name('jakarta-pasif');
+
+            Route::post('/jakarta-pasif/import', [OrderController::class, 'importJakartaPasif'])
+                ->name('jakarta-pasif.import');
+
+            Route::post('/jakarta-pasif/sync-jkt', [OrderController::class, 'syncJktPasifFromBimbashop'])
+                ->name('jakarta-pasif.sync-jkt');
+
+            Route::post('/jakarta-pasif/bulk-action', [OrderController::class, 'bulkActionJakartaPasif'])
+                ->name('jakarta-pasif.bulk-action');
+
+            Route::get('/order/jakarta-pasif/filtered-ids', [OrderController::class, 'getFilteredIdsPasif'])
+                ->name('order.jakarta-pasif.filtered-ids');
+
+            Route::post('/order/jakarta-pasif/get-modal-data', [OrderController::class, 'getModalDataPasif'])
+                ->name('order.jakarta-pasif.get-modal-data');
+
+            Route::post('/order/jakarta-pasif/bulk-action', [OrderController::class, 'bulkActionJakartaPasif'])
+                ->name('order.jakarta-pasif.bulk-action');
+
+            Route::get('/jakarta-pasif/{id}/edit', [OrderController::class, 'editJakartaPasif'])
+                ->name('jakarta-pasif.edit');
+
+            Route::put('/jakarta-pasif/{id}', [OrderController::class, 'updateJakartaPasif'])
+                ->name('jakarta-pasif.update');
+
+            Route::get('/jakarta-pasif/filtered-ids', [OrderController::class, 'getFilteredIdsPasif'])
+                ->name('jakarta-pasif.filtered-ids');
+
+            Route::post('/jakarta-pasif/get-modal-data', [OrderController::class, 'getModalDataPasif'])
+                ->name('jakarta-pasif.get-modal-data');
+
+            Route::get('/jakarta-pasif/export', [OrderController::class, 'exportJakartaPasif'])
+                ->name('jakarta-pasif.export');
+
         // =========================
         // REALISASI
         // =========================
         Route::get('/jakarta-printed', [OrderController::class, 'jakartaPrinted'])
             ->name('jakarta-printed');
+            
+        Route::get('/jakarta-pasif-printed', [OrderController::class, 'jakartaPasifPrinted'])
+            ->name('jakarta-pasif-printed');
 
         Route::delete('/realisasi/{id}', [OrderController::class, 'deleteRealisasi'])
             ->name('realisasi.delete');
@@ -268,6 +315,8 @@ Route::prefix('order')
     });
     Route::post('order/jakarta-aktif/sync-manual', [OrderController::class, 'syncManualToJakartaAktif'])
     ->name('order.jakarta-aktif.sync-manual');
+
+
     Route::post('pesanan-majalah/{pesananMajalah}/kirim-ke-jakarta-aktif', 
     [PesananMajalahController::class, 'kirimKeJakartaAktif']
 )->name('pesanan-majalah.kirim-ke-jakarta-aktif');

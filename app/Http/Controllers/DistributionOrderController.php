@@ -24,33 +24,33 @@ class DistributionOrderController extends Controller
      * Distribution Order Jakarta Aktif
      */
     public function jakartaAktif(Request $request)
-    {
-        $query = DistributionOrder::with(['jakartaAktif', 'packing'])
-            ->where('tipe', 'jakarta_aktif'); // sesuaikan dengan field yang ada
+{
+    $query = DistributionOrder::with(['jakartaAktif', 'packing'])
+        ->whereHas('jakartaAktif');   // ← use relationship instead of non-existent column
 
-        if ($request->filled('status_pengiriman')) {
-            $query->where('status_pengiriman', $request->status_pengiriman);
-        }
-
-        if ($request->filled('jenis_pengiriman')) {
-            $query->where('jenis_pengiriman', $request->jenis_pengiriman);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('no_pl', 'like', "%{$search}%")
-                  ->orWhere('nama_barang', 'like', "%{$search}%")
-                  ->orWhere('nama_unit', 'like', "%{$search}%");
-            });
-        }
-
-        $distributionOrders = $query->orderByDesc('created_at')
-            ->paginate(25)
-            ->appends($request->query());
-
-        return view('distribution-order.jakarta-aktif', compact('distributionOrders'));
+    if ($request->filled('status_pengiriman')) {
+        $query->where('status_pengiriman', $request->status_pengiriman);
     }
+
+    if ($request->filled('jenis_pengiriman')) {
+        $query->where('jenis_pengiriman', $request->jenis_pengiriman);
+    }
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('no_pl', 'like', "%{$search}%")
+              ->orWhere('nama_barang', 'like', "%{$search}%")
+              ->orWhere('nama_unit', 'like', "%{$search}%");
+        });
+    }
+
+    $distributionOrders = $query->orderByDesc('created_at')
+        ->paginate(25)
+        ->appends($request->query());
+
+    return view('distribution-order.jakarta-aktif', compact('distributionOrders'));
+}
 
     /**
      * Distribution Order Jakarta Pasif

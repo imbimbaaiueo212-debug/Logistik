@@ -15,6 +15,7 @@ class DlcPeriode extends Model
         'tahun',
         'status',
         'created_by',
+        'no_ps',          // ← ditambahkan
     ];
 
     public function pesanan(): HasMany

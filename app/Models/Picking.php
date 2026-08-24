@@ -14,6 +14,8 @@ class Picking extends Model
     protected $fillable = [
         'realisasi_aktif_id',
         'jakarta_aktif_id',
+        'realisasi_pasif_id',
+        'jakarta_pasif_id',
         'kategori_order',
         'no_pl',
         'tgl_order',

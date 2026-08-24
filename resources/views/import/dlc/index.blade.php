@@ -43,6 +43,7 @@
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Edisi</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Judul</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Periode</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">No PS</th>
                         <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Jumlah Unit</th>
                         <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Total Qty</th>
                         <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Status</th>
@@ -61,6 +62,9 @@
                             <td class="px-6 py-4 text-gray-700">
                                 {{ $periode->periode }}
                             </td>
+                            <td class="px-6 py-4 text-gray-700">
+                                {{ $periode->no_ps ?? '-' }}
+                            </td>
                             <td class="px-6 py-4 text-center">
                                 {{ $periode->pesanan_count }}
                             </td>
@@ -75,8 +79,13 @@
                             </td>
                             <td class="px-6 py-4 text-right space-x-3">
                                 <a href="{{ route('import.dlc.show', $periode->id) }}" 
-                                   class="text-blue-600 hover:text-blue-800 font-medium">
+                                   class="text-blue-600 hover:text-blue-800 font-medium text-sm">
                                     Detail
+                                </a>
+
+                                <a href="{{ route('import.dlc.edit', $periode->id) }}" 
+                                   class="text-amber-600 hover:text-amber-800 font-medium text-sm">
+                                    Mode Edit
                                 </a>
 
                                 <form action="{{ route('import.dlc.destroy', $periode->id) }}" 
@@ -84,7 +93,7 @@
                                       onsubmit="return confirm('Yakin ingin menghapus data ini?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-sm">
                                         Hapus
                                     </button>
                                 </form>
@@ -92,7 +101,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-16 text-center text-gray-500">
+                            <td colspan="8" class="px-6 py-16 text-center text-gray-500">
                                 Belum ada data DLC.
                                 <a href="{{ route('import.dlc.create') }}" class="text-blue-600 hover:underline ml-1">
                                     Tambah sekarang

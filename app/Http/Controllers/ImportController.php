@@ -940,7 +940,7 @@ public function syncPesananMajalahToJakartaAktif()
                     'DLC',              // wilayah
                     null,               // contact person
                     'A',                // ← GROUP A
-                    null                // no_ps
+                    $periode->no_ps ?? null   // ← sekarang bisa diambil dari DlcPeriode
                 );
 
                 $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
@@ -2261,22 +2261,93 @@ public function dlcStore(Request $request)
     }
 }
 
-public function dlcUpdateQty(Request $request, $id)
+public function dlcEdit($id)
 {
-    $request->validate([
-        'qty' => 'required|integer|min:0',
+    $periode = DlcPeriode::with('pesanan')->findOrFail($id);
+    return view('import.dlc.edit', compact('periode'));
+}
+
+public function dlcUpdate(Request $request, $id)
+{
+    $periode = DlcPeriode::findOrFail($id);
+
+    $validated = $request->validate([
+        'edisi'     => 'required|string|max:50',
+        'judul'     => 'nullable|string|max:255',
+        'periode'   => 'nullable|string|max:100',
+        'bulan'     => 'nullable|string|max:50',
+        'tahun'     => 'nullable|string|max:10',
+        'status'    => 'required|in:aktif,nonaktif',
+        'no_ps'     => 'nullable|string|max:100',
+
+        // Unit
+        'units'             => 'nullable|array',
+        'units.*.id'        => 'nullable|integer',
+        'units.*.nama_unit' => 'required|string|max:255',
+        'units.*.no_cab'    => 'nullable|string|max:50',
+        'units.*.qty'       => 'required|integer|min:0',
+        'units.*.alamat'    => 'nullable|string',
+        'units.*.telepon'   => 'nullable|string|max:30',
+        'units.*.keterangan'=> 'nullable|string',
     ]);
 
-    $pesanan = DlcPesanan::findOrFail($id);
-    $pesanan->update([
-        'qty' => (int) $request->qty,
+    // Update header
+    $periode->update([
+        'edisi'   => $validated['edisi'],
+        'judul'   => $validated['judul'] ?? null,
+        'periode' => $validated['periode'] ?? null,
+        'bulan'   => $validated['bulan'] ?? null,
+        'tahun'   => $validated['tahun'] ?? null,
+        'status'  => $validated['status'],
+        'no_ps'   => $validated['no_ps'] ?? null,
     ]);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Qty berhasil diupdate',
-        'qty'     => $pesanan->qty,
-    ]);
+    // Update / Create / Delete units
+    $existingIds = [];
+
+    if (!empty($validated['units'])) {
+        foreach ($validated['units'] as $unitData) {
+            if (!empty($unitData['id'])) {
+                // Update existing
+                $pesanan = DlcPesanan::where('dlc_periode_id', $periode->id)
+                    ->where('id', $unitData['id'])
+                    ->first();
+
+                if ($pesanan) {
+                    $pesanan->update([
+                        'nama_unit'  => $unitData['nama_unit'],
+                        'no_cab'     => $unitData['no_cab'] ?? null,
+                        'qty'        => $unitData['qty'],
+                        'alamat'     => $unitData['alamat'] ?? null,
+                        'telepon'    => $unitData['telepon'] ?? null,
+                        'keterangan' => $unitData['keterangan'] ?? null,
+                    ]);
+                    $existingIds[] = $pesanan->id;
+                }
+            } else {
+                // Create new
+                $new = DlcPesanan::create([
+                    'dlc_periode_id' => $periode->id,
+                    'nama_unit'      => $unitData['nama_unit'],
+                    'no_cab'         => $unitData['no_cab'] ?? null,
+                    'qty'            => $unitData['qty'],
+                    'alamat'         => $unitData['alamat'] ?? null,
+                    'telepon'        => $unitData['telepon'] ?? null,
+                    'keterangan'     => $unitData['keterangan'] ?? null,
+                ]);
+                $existingIds[] = $new->id;
+            }
+        }
+    }
+
+    // Hapus unit yang tidak ada di form
+    DlcPesanan::where('dlc_periode_id', $periode->id)
+        ->whereNotIn('id', $existingIds)
+        ->delete();
+
+    return redirect()
+        ->route('import.dlc.index')
+        ->with('success', 'Data DLC berhasil diupdate.');
 }
 
 // =========================================================
@@ -2301,5 +2372,22 @@ public function dlcDestroy($id)
     return redirect()
         ->route('import.dlc.index')
         ->with('success', '✅ Data DLC berhasil dihapus');
+}
+public function dlcUpdateNoPs(Request $request, $id)
+{
+    $request->validate([
+        'no_ps' => 'nullable|string|max:100',
+    ]);
+
+    $periode = DlcPeriode::findOrFail($id);
+    $periode->update([
+        'no_ps' => $request->no_ps,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'No PS berhasil diupdate',
+        'no_ps'   => $periode->no_ps,
+    ]);
 }
 }
