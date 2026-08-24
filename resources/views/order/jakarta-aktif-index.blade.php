@@ -738,6 +738,15 @@
                         @php
                             $isProcessed = $item->is_processed ?? false;
 
+                            // Deteksi Full Refund
+                            $isRefund = in_array(
+                                strtoupper($item->status_pembayaran ?? ''),
+                                ['REFUND', 'REFUNDED']
+                            );
+
+                            // Locked = sudah diproses ATAU full refund
+                            $isLocked = $isProcessed || $isRefund;
+
                             $paymentDate = $item->payment_date
                                 ? \Carbon\Carbon::parse($item->payment_date)
                                 : null;
@@ -758,7 +767,7 @@
                                 ? now()->diffInHours($estimasiPersiapan, false)
                                 : 999;
                         @endphp
-                    <tr class="{{ $isProcessed ? 'processed-row' : '' }} hover:bg-gray-50">
+                    <tr class="{{ $isLocked ? 'processed-row' : '' }} {{ $isRefund ? 'bg-red-50' : '' }}">
                         <td class="px-4 py-3 font-medium">{{ $item->id_pesan ?? '-' }}</td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -857,10 +866,18 @@
                         <td class="text-right px-4 py-3 font-semibold">Rp {{ number_format($item->total ?? 0, 0, ',', '.') }}</td>
                         <td class="text-right px-4 py-3">{{ $item->jenis_bank ?? '-' }}</td>
                         <td class="px-4 py-3">
-                            @if($item->status_pembayaran)
-                                <span class="status-success">{{ $item->status_pembayaran }}</span>
+                            @if($isRefund)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                    REFUND
+                                </span>
+                            @elseif(($item->status_pembayaran ?? '') === 'PARTIAL_REFUND')
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                                    PARTIAL REFUND
+                                </span>
                             @else
-                                <span class="text-gray-400">—</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                                    {{ $item->status_pembayaran ?? '-' }}
+                                </span>
                             @endif
                         </td>
                         <td class="px-4 py-3">
@@ -893,16 +910,21 @@
                         </td>-->
 
                         <!-- Di dalam tabel, bagian Aksi -->
-                    <td class="text-center px-4 py-3">
-                        @if(!$isProcessed)
-                            <a href="{{ route('order.jakarta-aktif.edit', $item->id) }}" 
-                            class="text-blue-600 hover:text-blue-700 text-lg inline-block hover:scale-110 transition">
+                    <td class="px-4 py-3 text-center">
+                        @if($isLocked)
+                            @if($isRefund)
+                                <span class="text-red-500 text-sm font-medium">Terkunci (Refund)</span>
+                            @else
+                                <span class="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                                    ✅ Diproses
+                                </span>
+                            @endif
+                        @else
+                            <a href="{{ route('order.jakarta-aktif.edit', $item->id) }}"
+                            class="text-blue-600 hover:text-blue-800"
+                            title="Edit">
                                 ✏️
                             </a>
-                        @else
-                            <span class="inline-flex items-center gap-1 text-emerald-600 font-medium text-sm">
-                                ✅ Diproses
-                            </span>
                         @endif
                     </td>
                     </tr>

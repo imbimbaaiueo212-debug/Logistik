@@ -1019,31 +1019,77 @@ public function updateJakartaAktif(Request $request, $id)
 {
     $item = JakartaAktif::findOrFail($id);
 
-    $request->validate([
-    'nama_unit'          => 'nullable|string|max:255',
-    'billing_last_name'  => 'nullable|string|max:100',
-    'pesanan'            => 'nullable|string|max:255',
-    'alamat_pengiriman'  => 'nullable|string',
-    'service_pengiriman' => 'nullable|string|max:100',     // ← BARU
-    'ekspedisi'          => 'nullable|string|max:100',
-    'status_kirim'       => 'nullable|in:Dikirim,Belum Dikirim',
-    'status_pembayaran'  => 'nullable|string|max:50',
-    'validasi'           => 'nullable|string|max:50',
-]);
+    // =====================================================
+    // KUNCI: Jika sudah REFUND / REFUNDED → tidak boleh diedit lagi
+    // =====================================================
+    if (in_array(strtoupper($item->status_pembayaran ?? ''), ['REFUND', 'REFUNDED'])) {
+        return back()->with('error', 'Data sudah berstatus REFUND dan tidak dapat diedit lagi.');
+    }
 
-$item->update([
-    'nama_unit'          => $request->nama_unit,
-    'billing_last_name'  => $request->billing_last_name,
-    'pesanan'            => $request->pesanan,
-    'alamat_pengiriman'  => $request->alamat_pengiriman,
-    'kirim'              => $request->alamat_pengiriman,
-    'service_pengiriman' => $request->service_pengiriman,   // ← BARU
-    'ekspedisi'          => $request->ekspedisi,
-    'status_kirim'       => $request->status_kirim,
-    'status_pembayaran'  => $request->status_pembayaran,
-    'validasi'           => $request->validasi,
-    'catatan'            => ($item->catatan ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'),
-]);
+    $validated = $request->validate([
+        'nama_unit'          => 'nullable|string|max:255',
+        'billing_last_name'  => 'nullable|string|max:100',
+        'pesanan'            => 'nullable|string|max:500',
+        'alamat_pengiriman'  => 'nullable|string',
+        'service_pengiriman' => 'nullable|string|max:100',
+        'ekspedisi'          => 'nullable|string|max:100',
+        'status_kirim'       => 'nullable|in:Dikirim,Diambil,Belum Dikirim',
+        'status_pembayaran'  => 'nullable|string|max:50',
+        'validasi'           => 'nullable|string|max:50',
+        'harga'              => 'nullable|numeric|min:0',
+        'diskon'             => 'nullable|numeric|min:0',
+        'ongkir'             => 'nullable|numeric|min:0',
+        'fee_payment'        => 'nullable|numeric|min:0',
+        'berat'              => 'nullable|numeric|min:0',
+        'total'              => 'nullable|numeric|min:0',
+        'catatan'            => 'nullable|string',
+    ]);
+
+    // =====================================================
+    // LOGIKA REFUND
+    // =====================================================
+    $totalBaru = isset($validated['total']) ? (float) $validated['total'] : (float) $item->total;
+    $totalLama = (float) $item->total;
+
+    if ($totalBaru == 0) {
+        // Full Refund
+        $validated['status_pembayaran'] = 'REFUND';
+    } elseif ($totalBaru < $totalLama && $totalBaru > 0) {
+        // Partial Refund
+        $validated['status_pembayaran'] = 'PARTIAL_REFUND';
+    }
+
+    // Catatan
+    $catatanBaru = $validated['catatan'] ?? $item->catatan;
+    $catatanBaru = trim(($catatanBaru ?? '') . "\n\nDiubah manual pada " . now()->format('d/m/Y H:i:s'));
+
+    if (($validated['status_pembayaran'] ?? '') === 'REFUND') {
+        $catatanBaru .= "\n[Sistem] Full Refund - Order Total dijadikan 0";
+    } elseif (($validated['status_pembayaran'] ?? '') === 'PARTIAL_REFUND') {
+        $catatanBaru .= "\n[Sistem] Partial Refund - Total dari Rp " . number_format($totalLama, 0, ',', '.') . 
+                        " menjadi Rp " . number_format($totalBaru, 0, ',', '.');
+    }
+
+    $item->update([
+        'nama_unit'          => $validated['nama_unit'] ?? $item->nama_unit,
+        'billing_last_name'  => $validated['billing_last_name'] ?? $item->billing_last_name,
+        'pesanan'            => $validated['pesanan'] ?? $item->pesanan,
+        'alamat_pengiriman'  => $validated['alamat_pengiriman'] ?? $item->alamat_pengiriman,
+        'kirim'              => $validated['alamat_pengiriman'] ?? $item->kirim,
+        'alamat_kirim'       => $validated['alamat_pengiriman'] ?? $item->alamat_kirim,
+        'service_pengiriman' => $validated['service_pengiriman'] ?? $item->service_pengiriman,
+        'ekspedisi'          => $validated['ekspedisi'] ?? $item->ekspedisi,
+        'status_kirim'       => $validated['status_kirim'] ?? $item->status_kirim,
+        'status_pembayaran'  => $validated['status_pembayaran'] ?? $item->status_pembayaran,
+        'validasi'           => $validated['validasi'] ?? $item->validasi,
+        'harga'              => $validated['harga'] ?? $item->harga,
+        'diskon'             => $validated['diskon'] ?? $item->diskon,
+        'ongkir'             => $validated['ongkir'] ?? $item->ongkir,
+        'fee_payment'        => $validated['fee_payment'] ?? $item->fee_payment,
+        'berat'              => $validated['berat'] ?? $item->berat,
+        'total'              => $validated['total'] ?? $item->total,
+        'catatan'            => $catatanBaru,
+    ]);
 
     return redirect()->route('order.jakarta-aktif')
                      ->with('success', '✅ Data berhasil diupdate!');
@@ -2058,67 +2104,44 @@ public function getFilteredIds(Request $request)
 
         // ================= MODUL =================
         case 'order.modul':
-
             $query->whereHas('items', function ($q) {
-
                 $q->where(function ($x) {
-
-                    // Jika product sudah terhubung
                     $x->whereHas('product', function ($p) {
                         $p->where('kategori', 'Modul');
                     });
-
-                    // Fallback jika product_id masih kosong
                     $x->orWhere('nama_produk', 'like', '%Modul%')
                       ->orWhere('label', 'like', '%Modul%');
-
                 });
-
             });
-
             break;
 
         // ================= MAJALAH =================
         case 'order.majalah':
-
             $query->whereHas('items', function ($q) {
-
                 $q->where(function ($x) {
-
                     $x->whereHas('product', function ($p) {
                         $p->where('kategori', 'Majalah');
                     });
-
                     $x->orWhere('nama_produk', 'like', '%Majalah%')
                       ->orWhere('nama_produk', 'like', '%M159%')
                       ->orWhere('label', 'like', '%M159%');
-
                 });
-
             });
-
             break;
 
         // ================= SERTIFIKAT =================
         case 'order.sertifikat':
-
             $query->whereHas('items', function ($q) {
-
                 $q->where(function ($x) {
-
                     $x->whereHas('product', function ($p) {
                         $p->where('kategori', 'Sertifikat');
                     });
-
                     $x->orWhere('nama_produk', 'like', '%STA%')
                       ->orWhere('nama_produk', 'like', '%STPB%')
                       ->orWhere('label', 'like', '%STA%')
                       ->orWhere('label', 'like', '%STPB%');
-
                 });
-
             });
-
             break;
 
         // ================= SEMUA =================
@@ -2127,9 +2150,8 @@ public function getFilteredIds(Request $request)
     }
 
     // =====================================================
-    // FILTER TANGGAL
+    // FILTER TANGGAL & LAINNYA
     // =====================================================
-
     if ($request->filled('start_date')) {
         $query->whereDate('tgl_pesan', '>=', $request->start_date);
     }
@@ -2154,8 +2176,20 @@ public function getFilteredIds(Request $request)
         $query->where('pesanan', 'like', '%' . $request->pesanan . '%');
     }
 
+    if ($request->filled('status_pembayaran')) {
+        $query->where('status_pembayaran', $request->status_pembayaran);
+    }
+
+    // =====================================================
+    // SYARAT UTAMA
+    // =====================================================
     $ids = $query
-        ->where('is_processed', 0)
+        ->where(function ($q) {
+            $q->where('is_processed', 0)
+              ->orWhereNull('is_processed');
+        })
+        // ===== BLOKIR FULL REFUND =====
+        ->whereNotIn('status_pembayaran', ['REFUND', 'REFUNDED'])
         ->pluck('id');
 
     return response()->json([
