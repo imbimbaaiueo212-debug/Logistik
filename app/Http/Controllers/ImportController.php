@@ -14,6 +14,12 @@ use App\Models\ManualPicking;
 use App\Models\ManualPickingItem;
 use App\Models\DlcPeriode;
 use App\Models\DlcPesanan;
+use App\Models\PasifPeriode;
+use App\Models\BacaanPeriode;
+use App\Models\BacaanPesanan;
+use App\Imports\BacaanImport;
+use App\Models\PasifPesanan;
+use App\Imports\PasifImport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Product;
 use Carbon\Carbon;
@@ -300,6 +306,12 @@ public function casdanaStore(Request $request)
     if ($request->filled('status')) {
         $query->where('status', $request->status);
     }
+
+    // ===== FILTER GRUP (BARU) =====
+    if ($request->filled('grup')) {
+        $query->where('grup', $request->grup);
+    }
+
     if ($request->filled('start_date')) {
         $query->whereDate('order_date', '>=', $request->start_date);
     }
@@ -315,6 +327,14 @@ public function casdanaStore(Request $request)
         ->paginate($perPage)
         ->appends($request->query());
 
+    // Ambil list grup untuk dropdown
+    $grups = ManualOrder::select('grup')
+        ->whereNotNull('grup')
+        ->where('grup', '!=', '')
+        ->distinct()
+        ->orderBy('grup')
+        ->pluck('grup');
+
     $mismatchMap = UnitNamaMismatch::where('is_resolved', false)
         ->get()
         ->keyBy(fn ($m) => trim((string) $m->no_cab))
@@ -324,7 +344,7 @@ public function casdanaStore(Request $request)
         ])
         ->all();
 
-    return view('import.manual.index', compact('manualOrders', 'mismatchMap'));
+    return view('import.manual.index', compact('manualOrders', 'mismatchMap', 'grups'));
 }
 
 // =========================================================
@@ -836,6 +856,11 @@ public function syncPesananMajalahToJakartaAktif()
         ->where('status', 'aktif')
         ->get();
 
+    // ===== AMBIL DATA PASIF (Majalah) =====
+    $periodesPasif = PasifPeriode::with('pesanan')
+        ->where('status', 'aktif')
+        ->get();
+
     DB::beginTransaction();
 
     try {
@@ -922,7 +947,6 @@ public function syncPesananMajalahToJakartaAktif()
                     continue;
                 }
 
-                // Buat object mirip unit
                 $unit = (object) [
                     'id'                => $item->id,
                     'nama_unit'         => $item->nama_unit,
@@ -937,10 +961,47 @@ public function syncPesananMajalahToJakartaAktif()
                 $result = $this->createManualOrderFromUnit(
                     $unit,
                     $edisi,
-                    'DLC',              // wilayah
-                    null,               // contact person
-                    'A',                // ← GROUP A
-                    $periode->no_ps ?? null   // ← sekarang bisa diambil dari DlcPeriode
+                    'DLC',
+                    null,
+                    'A',
+                    $periode->no_ps ?? null
+                );
+
+                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
+            }
+        }
+
+        // =====================================================
+        // E. PASIF (Majalah) → GROUP C
+        // =====================================================
+        foreach ($periodesPasif as $periode) {
+            $edisi = strtoupper(trim($periode->edisi));
+
+            foreach ($periode->pesanan as $item) {
+                if (($item->qty ?? 0) <= 0) {
+                    $skipped++;
+                    $skippedList[] = $item->nama_unit . ' (Pasif)';
+                    continue;
+                }
+
+                $unit = (object) [
+                    'id'                => $item->id,
+                    'nama_unit'         => $item->nama_unit,
+                    'no_cabang'         => $item->no_cab ?? null,
+                    'jumlah_pesanan'    => $item->qty,
+                    'alamat_unit'       => $item->alamat ?? $item->nama_unit,
+                    'telepon'           => $item->telepon ?? null,
+                    'mitra_pengelolaan' => null,
+                    'kabupaten_kota'    => 'PASIF',
+                ];
+
+                $result = $this->createManualOrderFromUnit(
+                    $unit,
+                    $edisi,
+                    'PASIF',
+                    null,
+                    'F',                 // ← GROUP C
+                    $periode->no_ps ?? null
                 );
 
                 $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
@@ -949,7 +1010,7 @@ public function syncPesananMajalahToJakartaAktif()
 
         DB::commit();
 
-        $message = "✅ Sync Pesanan Majalah + DLC ke Manual selesai.<br>"
+        $message = "✅ Sync Pesanan Majalah + DLC + Pasif ke Manual selesai.<br>"
                  . "Berhasil masuk: <strong>{$created}</strong><br>"
                  . "Berhasil di-update (no_ps): <strong>{$updated}</strong><br>"
                  . "Dilewati (sudah ada / qty 0): <strong>{$skipped}</strong>";
@@ -974,7 +1035,7 @@ public function syncPesananMajalahToJakartaAktif()
 
     } catch (\Throwable $e) {
         DB::rollBack();
-        Log::error('Sync Pesanan Majalah + DLC gagal: ' . $e->getMessage());
+        Log::error('Sync Pesanan Majalah + DLC + Pasif gagal: ' . $e->getMessage());
 
         return redirect()
             ->route('import.manual')
@@ -1023,38 +1084,53 @@ private function createManualOrderFromUnit(
         ];
     }
 
-    $noCab = trim($unit->no_cabang ?? '');
-    $qty   = (int) $unit->jumlah_pesanan;
-
-    $noCab = trim($unit->no_cabang ?? '');
-    $qty   = (int) $unit->jumlah_pesanan;
+    $noCab    = trim($unit->no_cabang ?? '');
+    $qty      = (int) $unit->jumlah_pesanan;
     $namaUnit = trim($unit->nama_unit ?? '');
 
     // =====================================================
-    // CEK EXISTING (berbeda antara Group A dan B)
+    // CEK EXISTING
+    // Group A (DLC)  → edisi + nama_unit + grup A
+    // Group F (Pasif)→ edisi + nama_unit + grup F  (atau no_cab jika ada)
+    // Group B        → edisi + no_cab + qty
     // =====================================================
     if ($group === 'A') {
-    // DLC → cocokkan berdasarkan edisi + nama_unit + group
-    $existing = ManualOrder::where('product_sku', $edisi)
-        ->where('customer_name', $namaUnit)
-        ->where('grup', 'A')
-        ->where('status', 'pending')
-        ->first();
-} else {
-    // Group B → cocokkan seperti sebelumnya
-    $existing = ManualOrder::where('product_sku', $edisi)
-        ->where('billing_last_name', $noCab)
-        ->where('qty', $qty)
-        ->where('status', 'pending')
-        ->first();
-}
+        $existing = ManualOrder::where('product_sku', $edisi)
+            ->where('customer_name', $namaUnit)
+            ->where('grup', 'A')
+            ->where('status', 'pending')
+            ->first();
+    } elseif ($group === 'F') {
+        // Pasif: prioritaskan no_cab jika ada, fallback ke nama_unit
+        $existingQuery = ManualOrder::where('product_sku', $edisi)
+            ->where('grup', 'F')
+            ->where('status', 'pending');
+
+        if ($noCab !== '') {
+            $existing = $existingQuery
+                ->where('billing_last_name', $noCab)
+                ->where('qty', $qty)
+                ->first();
+        } else {
+            $existing = $existingQuery
+                ->where('customer_name', $namaUnit)
+                ->first();
+        }
+    } else {
+        // Group B
+        $existing = ManualOrder::where('product_sku', $edisi)
+            ->where('billing_last_name', $noCab)
+            ->where('qty', $qty)
+            ->where('status', 'pending')
+            ->first();
+    }
 
     // =====================================================
     // JIKA SUDAH ADA
     // =====================================================
     if ($existing) {
-        // Update qty jika berbeda (khusus DLC)
-        if ($group === 'A' && $existing->qty != $qty) {
+        // Update qty jika berbeda (khusus DLC / Pasif tanpa no_cab)
+        if (in_array($group, ['A', 'C']) && $existing->qty != $qty) {
             $existing->update([
                 'qty'          => $qty,
                 'order_weight' => (int) round(($existing->order_weight / max($existing->qty, 1)) * $qty),
@@ -1063,26 +1139,6 @@ private function createManualOrderFromUnit(
         }
 
         // Update no_ps jika ada
-        $needUpdate = empty($existing->no_ps) || ($noPs !== null && $existing->no_ps !== $noPs);
-
-        if ($needUpdate && $noPs !== null) {
-            try {
-                $existing->update(['no_ps' => $noPs]);
-                $this->syncNoPsToRelated($existing, $noPs);
-                return 'updated';
-            } catch (\Throwable $e) {
-                Log::error("Gagal update no_ps ManualOrder #{$existing->id}: " . $e->getMessage());
-                return $e->getMessage();
-            }
-        }
-
-        return 'skipped';
-    }
-
-    // =====================================================
-    // JIKA SUDAH ADA → update no_ps (jika kosong / berbeda)
-    // =====================================================
-    if ($existing) {
         $needUpdate = empty($existing->no_ps) || ($noPs !== null && $existing->no_ps !== $noPs);
 
         if ($needUpdate && $noPs !== null) {
@@ -1150,10 +1206,13 @@ private function createManualOrderFromUnit(
     }
 
     // =====================================================
-    // Generate Order ID
+    // Generate Order ID (prefix sesuai group)
     // =====================================================
-    // Khusus DLC (Group A) pakai prefix A, selain itu tetap B
-    $prefix = ($group === 'A') ? 'A' : 'B';
+    $prefix = match ($group) {
+        'A'     => 'A',
+        'F'     => 'F',
+        default => 'B',
+    };
 
     $lastId = ManualOrder::where('order_id', 'like', $prefix . '%')
         ->whereRaw("order_id REGEXP '^{$prefix}[0-9]{4}$'")
@@ -1173,100 +1232,103 @@ private function createManualOrderFromUnit(
         $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
-        // =====================================================
-        // NOTES
-        // =====================================================
-        $parts = [];
-        if ($isMismatch) {
-            $parts[] = 'NAMA_MISMATCH';
-        }
-        if (!empty($contactPerson)) {
-            $parts[] = 'CP: ' . $contactPerson;
-        }
-        if ($group === 'A') {
-            $parts[] = 'Sumber: DLC';
-        }
-        $notesText = implode(' | ', $parts);
-
-        // =====================================================
-        // HITUNG BERAT
-        // =====================================================
-        $beratSatuanKg = 0.070;
-
-        $product = Product::where('label', $edisi)
-            ->whereNotNull('berat_satuan')
-            ->where('berat_satuan', '>', 0)
-            ->first();
-
-        if ($product) {
-            $beratSatuanKg = (float) $product->berat_satuan;
-        }
-
-        $orderWeightGram = (int) round($beratSatuanKg * 1000 * $qty);
-
-        // =====================================================
-        // KHUSUS DLC (Group A) → Kurir & Status belum ditentukan
-        // =====================================================
-        if ($group === 'A') {
-            $statusKirim = null;
-            $ekspedisi   = null;
-            $service     = null;
-        } else {
-            $statusKirim = 'Dikirim';
-            $ekspedisi   = 'Lion Parcel';
-            $service     = 'REGPACK';
-        }
-
-        try {
-            ManualOrder::create([
-                'order_id'            => $orderId,
-                'order_date'          => now(),
-                'customer_name'       => $namaUnit,
-                'phone'               => $unit->telepon ?? null,
-
-                'product_sku'         => $edisi,
-                'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
-                'qty'                 => $qty,
-                'price'               => 0,
-                'total'               => 0,
-
-                'ship_total'          => 0,
-                'order_weight'        => $orderWeightGram,
-                'discount_total'      => 0,
-                'refunded_total'      => 0,
-
-                'payment_method'      => 'manual',
-                'status'              => 'pending',
-                'grup'                => $group,
-
-                'billing_first_name'  => $mitra,
-                'billing_last_name'   => $noCab ?: null,
-
-                'shipping_first_name' => $namaUnit,
-                'shipping_last_name'  => $noCab ?: null,
-                'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
-                'shipping_address_2'  => null,
-                'shipping_city'       => $wilayah,
-
-                'status_kirim'        => $statusKirim,
-                'ekspedisi'           => $ekspedisi,
-                'service_pengiriman'  => $service,
-                'is_processed'        => false,
-                'payment_date'        => null,
-
-                'no_ps'               => $noPs,
-
-                'notes'               => $notesText,
-                'catatan'             => $notesText,
-            ]);
-
-            return 'created';
-
-        } catch (\Throwable $e) {
-            Log::error("Gagal create ManualOrder dari unit {$unit->id}: " . $e->getMessage());
-            return $e->getMessage();
-        }
+    // =====================================================
+    // NOTES
+    // =====================================================
+    $parts = [];
+    if ($isMismatch) {
+        $parts[] = 'NAMA_MISMATCH';
     }
+    if (!empty($contactPerson)) {
+        $parts[] = 'CP: ' . $contactPerson;
+    }
+    if ($group === 'A') {
+        $parts[] = 'Sumber: DLC';
+    } elseif ($group === 'F') {
+        $parts[] = 'Sumber: Pasif';
+    }
+    $notesText = implode(' | ', $parts);
+
+    // =====================================================
+    // HITUNG BERAT
+    // =====================================================
+    $beratSatuanKg = 0.070;
+
+    $product = Product::where('label', $edisi)
+        ->whereNotNull('berat_satuan')
+        ->where('berat_satuan', '>', 0)
+        ->first();
+
+    if ($product) {
+        $beratSatuanKg = (float) $product->berat_satuan;
+    }
+
+    $orderWeightGram = (int) round($beratSatuanKg * 1000 * $qty);
+
+    // =====================================================
+    // Kurir & Status
+    // Group A (DLC) & C (Pasif) → belum ditentukan
+    // =====================================================
+    if (in_array($group, ['A', 'F'])) {
+        $statusKirim = null;
+        $ekspedisi   = null;
+        $service     = null;
+    } else {
+        $statusKirim = 'Dikirim';
+        $ekspedisi   = 'Lion Parcel';
+        $service     = 'REGPACK';
+    }
+
+    try {
+        ManualOrder::create([
+            'order_id'            => $orderId,
+            'order_date'          => now(),
+            'customer_name'       => $namaUnit,
+            'phone'               => $unit->telepon ?? null,
+
+            'product_sku'         => $edisi,
+            'product_name'        => 'Majalah Sahabat biMBA ' . $edisi,
+            'qty'                 => $qty,
+            'price'               => 0,
+            'total'               => 0,
+
+            'ship_total'          => 0,
+            'order_weight'        => $orderWeightGram,
+            'discount_total'      => 0,
+            'refunded_total'      => 0,
+
+            'payment_method'      => 'manual',
+            'status'              => 'pending',
+            'grup'                => $group,
+
+            'billing_first_name'  => $mitra,
+            'billing_last_name'   => $noCab ?: null,
+
+            'shipping_first_name' => $namaUnit,
+            'shipping_last_name'  => $noCab ?: null,
+            'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
+            'shipping_address_2'  => null,
+            'shipping_city'       => $wilayah,
+
+            'status_kirim'        => $statusKirim,
+            'ekspedisi'           => $ekspedisi,
+            'service_pengiriman'  => $service,
+            'is_processed'        => false,
+            'payment_date'        => null,
+
+            'no_ps'               => $noPs,
+
+            'notes'               => $notesText,
+            'catatan'             => $notesText,
+        ]);
+
+        return 'created';
+
+    } catch (\Throwable $e) {
+        Log::error("Gagal create ManualOrder dari unit {$unit->id}: " . $e->getMessage());
+        return $e->getMessage();
+    }
+}
 
 private function extractEdisiMajalah(?string $text): string
 {
@@ -2389,5 +2451,267 @@ public function dlcUpdateNoPs(Request $request, $id)
         'message' => 'No PS berhasil diupdate',
         'no_ps'   => $periode->no_ps,
     ]);
+}
+
+// =========================================================
+// PASIF - MENU
+// =========================================================
+public function pasifMenu()
+{
+    return view('import.pasif.menu');
+}
+
+// =========================================================
+// PASIF - UNIT PASIF (Majalah / Qty)
+// =========================================================
+public function pasifIndex()
+{
+    $periodes = PasifPeriode::withCount('pesanan')
+        ->withSum('pesanan', 'qty')
+        ->latest()
+        ->paginate(20);
+
+    return view('import.pasif.index', compact('periodes'));
+}
+
+public function pasifCreate()
+{
+    return view('import.pasif.create');
+}
+
+public function pasifStore(Request $request)
+{
+    $request->validate([
+        'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        'edisi'       => 'required|string|max:20',
+        'periode'     => 'nullable|string|max:50',
+        'bulan'       => 'nullable|string|max:20',
+        'tahun'       => 'nullable|string|max:10',
+        'no_ps'       => 'nullable|string|max:100',
+    ]);
+
+    try {
+        $file = $request->file('import_file');
+        $originalName = $file->getClientOriginalName();
+        $filename = time() . '_' . $originalName;
+        $file->storeAs('imports/pasif', $filename, 'public');
+
+        DB::beginTransaction();
+
+        // 1. Periode Unit Pasif (Qty)
+        $pasifPeriode = PasifPeriode::create([
+            'edisi'      => strtoupper(trim($request->edisi)),
+            'judul'      => 'Majalah Sahabat biMBA ' . strtoupper($request->edisi),
+            'periode'    => $request->periode,
+            'bulan'      => $request->bulan,
+            'tahun'      => $request->tahun,
+            'no_ps'      => $request->no_ps,
+            'grup'       => 'F',
+            'status'     => 'aktif',
+            'created_by' => Auth::id(),
+        ]);
+
+        // 2. Periode Bacaan Unit (database terpisah, no_ps sendiri)
+        $bacaanPeriode = BacaanPeriode::create([
+            'edisi'      => strtoupper(trim($request->edisi)),
+            'judul'      => 'Bacaan Unit ' . strtoupper($request->edisi),
+            'periode'    => $request->periode,
+            'bulan'      => $request->bulan,
+            'tahun'      => $request->tahun,
+            'no_ps'      => null,
+            'grup'       => 'F',
+            'status'     => 'aktif',
+            'created_by' => Auth::id(),
+        ]);
+
+        // 3. Import ke kedua tabel
+        Excel::import(
+            new \App\Imports\PasifImport($pasifPeriode->id, $bacaanPeriode->id),
+            $file
+        );
+
+        DB::commit();
+
+        return redirect()
+            ->route('import.pasif.show', $pasifPeriode->id)
+            ->with('success', '✅ Data Unit Pasif & Bacaan Unit berhasil diimport! File: ' . $originalName);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("Pasif Import Error: " . $e->getMessage());
+        return back()->with('error', '❌ Gagal import: ' . $e->getMessage());
+    }
+}
+
+public function pasifShow($id)
+{
+    $periode = PasifPeriode::with('pesanan')->findOrFail($id);
+    $total   = $periode->pesanan->sum('qty');
+
+    return view('import.pasif.show', compact('periode', 'total'));
+}
+
+public function pasifDestroy($id)
+{
+    PasifPeriode::findOrFail($id)->delete();
+
+    return redirect()
+        ->route('import.pasif.list')
+        ->with('success', '✅ Data Unit Pasif berhasil dihapus');
+}
+
+public function pasifUpdateNoPs(Request $request, $id)
+{
+    $request->validate([
+        'no_ps' => 'nullable|string|max:100',
+    ]);
+
+    $periode = PasifPeriode::findOrFail($id);
+    $periode->update(['no_ps' => $request->no_ps]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'No PS berhasil diupdate',
+        'no_ps'   => $periode->no_ps,
+    ]);
+}
+
+public function syncPasifToManual()
+{
+    $created = 0;
+    $updated = 0;
+    $skipped = 0;
+    $errors  = [];
+    $skippedList = [];
+
+    $periodes = PasifPeriode::with('pesanan')
+        ->where('status', 'aktif')
+        ->get();
+
+    DB::beginTransaction();
+
+    try {
+        foreach ($periodes as $periode) {
+            $edisi = strtoupper(trim($periode->edisi));
+
+            foreach ($periode->pesanan as $item) {
+                if (($item->qty ?? 0) <= 0) {
+                    $skipped++;
+                    $skippedList[] = $item->nama_unit . ' (Pasif)';
+                    continue;
+                }
+
+                $unit = (object) [
+                    'id'                => $item->id,
+                    'nama_unit'         => $item->nama_unit,
+                    'no_cabang'         => $item->no_cab,
+                    'jumlah_pesanan'    => $item->qty,
+                    'alamat_unit'       => $item->alamat ?? $item->nama_unit,
+                    'telepon'           => $item->telepon,
+                    'mitra_pengelolaan' => null,
+                    'kabupaten_kota'    => 'PASIF',
+                ];
+
+                $result = $this->createManualOrderFromUnit(
+                    $unit,
+                    $edisi,
+                    'PASIF',
+                    null,
+                    'C',
+                    $periode->no_ps
+                );
+
+                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
+            }
+        }
+
+        DB::commit();
+
+        $message = "✅ Sync Unit Pasif ke Manual selesai.<br>"
+                 . "Berhasil masuk: <strong>{$created}</strong><br>"
+                 . "Berhasil di-update: <strong>{$updated}</strong><br>"
+                 . "Dilewati: <strong>{$skipped}</strong>";
+
+        return redirect()
+            ->route('import.manual')
+            ->with('success', $message);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Sync Pasif gagal: ' . $e->getMessage());
+
+        return redirect()
+            ->route('import.pasif.list')
+            ->with('error', 'Gagal sync: ' . $e->getMessage());
+    }
+}
+
+// =========================================================
+// PASIF - BACAAN UNIT (database terpisah)
+// =========================================================
+public function pasifBacaan()
+{
+    $periodes = BacaanPeriode::withCount('pesanan')
+        ->withSum('pesanan', 'bacaan_unit')
+        ->latest()
+        ->paginate(20);
+
+    return view('import.pasif.bacaan', compact('periodes'));
+}
+
+public function pasifBacaanShow($id)
+{
+    $periode     = BacaanPeriode::with('pesanan')->findOrFail($id);
+    $totalBacaan = $periode->pesanan->sum('bacaan_unit');
+
+    return view('import.pasif.bacaan-show', compact('periode', 'totalBacaan'));
+}
+
+public function pasifBacaanUpdateNoPs(Request $request, $id)
+{
+    $request->validate([
+        'no_ps' => 'nullable|string|max:100',
+    ]);
+
+    $periode = BacaanPeriode::findOrFail($id);
+    $periode->update(['no_ps' => $request->no_ps]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'No PS berhasil diupdate',
+        'no_ps'   => $periode->no_ps,
+    ]);
+}
+
+public function pasifBacaanDestroy($id)
+{
+    BacaanPeriode::findOrFail($id)->delete();
+
+    return redirect()
+        ->route('import.pasif.bacaan')
+        ->with('success', '✅ Data Bacaan Unit berhasil dihapus');
+}
+
+// =========================================================
+// PASIF - REKAP TOTAL
+// =========================================================
+public function pasifRekap()
+{
+    $periodes = PasifPeriode::withCount('pesanan')
+        ->withSum('pesanan', 'qty')
+        ->withSum('pesanan', 'bacaan_unit')
+        ->latest()
+        ->paginate(20);
+
+    return view('import.pasif.rekap', compact('periodes'));
+}
+
+public function pasifRekapShow($id)
+{
+    $periode      = PasifPeriode::with('pesanan')->findOrFail($id);
+    $totalBacaan  = $periode->pesanan->sum('bacaan_unit');
+    $totalMajalah = $periode->pesanan->sum('qty');
+
+    return view('import.pasif.rekap-show', compact('periode', 'totalBacaan', 'totalMajalah'));
 }
 }

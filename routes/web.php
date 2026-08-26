@@ -106,21 +106,49 @@ Route::prefix('import')
         Route::post('/sync-pesanan-majalah', [ImportController::class, 'syncPesananMajalahToJakartaAktif'])
             ->name('sync-pesanan-majalah');
 
-            Route::prefix('dlc')->name('dlc.')->group(function () {
+        // =====================================================
+        // DLC
+        // =====================================================
+        Route::prefix('dlc')->name('dlc.')->group(function () {
             Route::get('/', [ImportController::class, 'dlcIndex'])->name('index');
             Route::get('/create', [ImportController::class, 'dlcCreate'])->name('create');
             Route::post('/store', [ImportController::class, 'dlcStore'])->name('store');
-            // Edit & Update (tambahkan di sini)
             Route::get('/{id}/edit', [ImportController::class, 'dlcEdit'])->name('edit');
             Route::put('/{id}', [ImportController::class, 'dlcUpdate'])->name('update');
             Route::put('/{id}/no-ps', [ImportController::class, 'dlcUpdateNoPs'])->name('update-no-ps');
-
             Route::get('/{id}', [ImportController::class, 'dlcShow'])->name('show');
             Route::delete('/{id}', [ImportController::class, 'dlcDestroy'])->name('destroy');
-
-            // ← yang benar
             Route::put('/pesanan/{id}', [ImportController::class, 'dlcUpdateQty'])->name('update-qty');
         });
+
+       Route::prefix('pasif')->name('pasif.')->group(function () {
+        Route::get('/', [ImportController::class, 'pasifMenu'])->name('index');
+
+        Route::put('/{id}/no-ps', [ImportController::class, 'pasifUpdateNoPs'])->name('update-no-ps');
+        
+        // Bacaan Unit (terpisah)
+        Route::get('/bacaan', [ImportController::class, 'pasifBacaan'])->name('bacaan');
+        Route::get('/bacaan/create', [ImportController::class, 'pasifBacaanCreate'])->name('bacaan.create');
+        Route::post('/bacaan/store', [ImportController::class, 'pasifBacaanStore'])->name('bacaan.store');
+        Route::get('/bacaan/{id}', [ImportController::class, 'pasifBacaanShow'])->name('bacaan.show');
+        Route::put('/bacaan/{id}/no-ps', [ImportController::class, 'pasifBacaanUpdateNoPs'])->name('bacaan.update-no-ps');
+        Route::delete('/bacaan/{id}', [ImportController::class, 'pasifBacaanDestroy'])->name('bacaan.destroy');
+
+        // Rekap Total (menu ke-3)
+        Route::get('/rekap', [ImportController::class, 'pasifRekap'])->name('rekap');
+        Route::get('/rekap/{id}', [ImportController::class, 'pasifRekapShow'])->name('rekap.show');
+
+        // Unit Pasif (list)
+        Route::get('/list', [ImportController::class, 'pasifIndex'])->name('list');
+        Route::get('/create', [ImportController::class, 'pasifCreate'])->name('create');
+        Route::post('/store', [ImportController::class, 'pasifStore'])->name('store');
+        Route::post('/sync-to-manual', [ImportController::class, 'syncPasifToManual'])->name('sync');
+
+        // Detail Unit Pasif (paling bawah)
+        Route::get('/{id}', [ImportController::class, 'pasifShow'])->name('show');
+        Route::delete('/{id}', [ImportController::class, 'pasifDestroy'])->name('destroy');
+    });
+
 
         // =====================================================
 // MANUAL PRINTED

@@ -11,25 +11,69 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
     <style>
-        body { font-family: 'Poppins', sans-serif; }
-        table { border-collapse: collapse; }
-        th, td { padding: 12px 8px; font-size: 0.85rem; }
-        th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
-        tr:hover { background-color: #f8fafc; }
-        .truncate { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    body { font-family: 'Poppins', sans-serif; }
+    table { border-collapse: collapse; }
+    th, td { padding: 12px 8px; font-size: 0.85rem; }
+    th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
+    tr:hover { background-color: #f8fafc; }
+    .truncate { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .processed-row {
-            opacity: 0.65;
-            background-color: #f1f5f9 !important;
-            color: #64748b;
-        }
-        .processed-row td { color: #64748b; }
+    .processed-row {
+        opacity: 0.65;
+        background-color: #f1f5f9 !important;
+        color: #64748b;
+    }
+    .processed-row td { color: #64748b; }
 
-        .badge-green { background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-        .badge-yellow { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-        .badge-red { background-color: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-        .badge-black { background-color: #1f2937; color: #f3f4f6; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-    </style>
+    .badge-green { background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    .badge-yellow { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    .badge-red { background-color: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+    .badge-black { background-color: #1f2937; color: #f3f4f6; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
+
+    /* ===== SAMAKAN STYLE SELECT2 DENGAN INPUT ===== */
+    .select2-container--default .select2-selection--single,
+    .select2-container--bootstrap-5 .select2-selection--single {
+        height: 42px !important;
+        border: 1px solid #d1d5db !important;          /* border-gray-300 */
+        border-radius: 0.75rem !important;             /* rounded-xl */
+        padding: 0.4rem 0.75rem !important;
+        display: flex !important;
+        align-items: center !important;
+        background-color: #fff !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered,
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        line-height: 1.5 !important;
+        padding-left: 0 !important;
+        color: #374151 !important;
+        font-size: 0.875rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow,
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        height: 40px !important;
+        right: 8px !important;
+    }
+
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--bootstrap-5.select2-container--focus .select2-selection--single {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 1px #3b82f6 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__placeholder,
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+        color: #9ca3af !important;
+    }
+
+    /* Dropdown list juga rounded */
+    .select2-dropdown {
+        border-radius: 0.75rem !important;
+        border: 1px solid #d1d5db !important;
+        overflow: hidden;
+    }
+</style>
 </head>
 <body class="bg-gray-50">
 
@@ -134,6 +178,17 @@
                 <input type="text" name="order_id" value="{{ request('order_id') }}"
                        class="w-full border border-gray-300 rounded-xl px-4 py-2.5"
                        placeholder="Cari Order ID...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Grup</label>
+                <select name="grup" class="grup-select w-full">
+                    <option value="">Semua Grup</option>
+                    @foreach($grups as $grup)
+                        <option value="{{ $grup }}" {{ request('grup') == $grup ? 'selected' : '' }}>
+                            {{ $grup }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
@@ -564,6 +619,23 @@ $(document).ready(function () {
         allowClear: true,
         width: '100%'
     });
+    $(document).ready(function () {
+    // Inisialisasi semua select filter sekaligus
+    $('.payment-select, .status-select, .grup-select').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Pilih...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    checkFilterStatus();
+    checkProcessButtonVisibility();
+
+    $('input[name="start_date"], input[name="end_date"]').on('change', function () {
+        checkFilterStatus();
+        setTimeout(checkProcessButtonVisibility, 700);
+    });
+});
 
     checkFilterStatus();
     checkProcessButtonVisibility();
