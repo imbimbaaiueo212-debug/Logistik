@@ -34,13 +34,47 @@
             Database User
         </a>
 
+        {{-- Data Import: HANYA Bimba Shop + Cash Dana --}}
+        {{-- Data Import: HANYA Bimba Shop + Cash Dana --}}
         <a href="{{ route('import.index') }}"
-           class="{{ request()->routeIs('import.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
+        class="{{ request()->routeIs([
+                    'import.index',
+                    'import.bimbashop',
+                    'import.bimbashop.*',
+                    'import.casdana',
+                    'import.casdana.*',
+                ])
+                    ? 'text-blue-600 font-semibold'
+                    : 'text-gray-700' }} hover:text-blue-600 transition-colors">
             Data Import
         </a>
-        
+
+        {{-- Order Manual Majalah: Manual + DLC + Pasif + OPS2 + Pesanan Majalah --}}
         <a href="{{ route('order-manual.index') }}"
-            class="{{ request()->routeIs('order-manual.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 transition-colors">
+        class="{{ request()->routeIs([
+                    'order-manual.*',
+
+                    // Manual Pemesanan
+                    'import.manual',
+                    'import.manual.*',
+                    'import.manual-printed',
+                    'import.manual-printed.*',
+                    'import.manual-print-*',
+                    'import.sync-pesanan-majalah',
+
+                    // DLC + Pasif + Pasif Manual
+                    'import.dlc.*',
+                    'import.pasif.*',
+
+                    // OPS2 + wilayah pesanan majalah
+                    'ops2.index',
+                    'ops2.*',
+                    'pesanan-majalah.*',
+                    'pesanan-majalah-kotamadya.*',
+                    'pesanan-majalah-puw1.*',
+                ])
+                    ? 'text-blue-600 font-semibold'
+                    : 'text-gray-700' }} hover:text-blue-600 transition-colors">
             Order Manual Majalah
         </a>
 
