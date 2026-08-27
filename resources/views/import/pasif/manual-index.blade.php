@@ -82,12 +82,16 @@
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
                                                 <a href="{{ route('import.pasif.manual.show', $periode->id) }}"
-                                                   class="text-rose-600 hover:text-rose-800 font-medium">
+                                                class="text-rose-600 hover:text-rose-800 font-medium">
                                                     Detail
                                                 </a>
+                                                <a href="{{ route('import.pasif.manual.edit', $periode->id) }}"
+                                                class="text-blue-600 hover:text-blue-800 font-medium">
+                                                    Edit
+                                                </a>
                                                 <form action="{{ route('import.pasif.manual.destroy', $periode->id) }}"
-                                                      method="POST"
-                                                      onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                                                    method="POST"
+                                                    onsubmit="return confirm('Yakin ingin menghapus data ini?')">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="text-red-500 hover:text-red-700 font-medium">

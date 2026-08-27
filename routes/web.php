@@ -164,6 +164,8 @@ Route::prefix('import')
     // Detail Unit Pasif (paling bawah)
     Route::get('/{id}', [ImportController::class, 'pasifShow'])->name('show');
     Route::delete('/{id}', [ImportController::class, 'pasifDestroy'])->name('destroy');
+    Route::get('/manual/{id}/edit', [ImportController::class, 'pasifManualEdit'])->name('manual.edit');
+Route::put('/manual/{id}', [ImportController::class, 'pasifManualUpdate'])->name('manual.update');
 });
 
         // =====================================================

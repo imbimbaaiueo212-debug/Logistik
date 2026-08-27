@@ -24,6 +24,8 @@ class PasifManualTransaksi extends Model
         'telepon',
         'status_kirim',
         'catatan',
+        'ekspedisi',
+        'service_pengiriman',
     ];
 
     protected $casts = [

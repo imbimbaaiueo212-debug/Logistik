@@ -19,21 +19,24 @@
 
     <div class="flex h-screen overflow-hidden">
         <div class="flex-1 overflow-auto">
-            <div class="p-8">
+            <div class="p-8 max-w-7xl mx-auto">
 
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h2 class="text-3xl font-bold text-gray-800">Detail Pasif Manual</h2>
-                        <p class="text-gray-500 mt-1">Edisi {{ $periode->edisi }} — {{ $periode->judul }}</p>
+                        <p class="text-gray-500 mt-1">
+                            Edisi {{ $periode->edisi }}
+                            @if($periode->judul) — {{ $periode->judul }} @endif
+                        </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('import.pasif.manual.index') }}"
-                           class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-medium transition">
-                            Kembali
+                        <a href="{{ route('import.pasif.manual.edit', $periode->id) }}"
+                           class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-2xl transition">
+                            Edit
                         </a>
-                        <a href="{{ route('import.pasif.manual.create') }}"
-                           class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-medium transition">
-                            + Create Baru
+                        <a href="{{ route('import.pasif.manual.index') }}"
+                           class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-2xl transition">
+                            Kembali
                         </a>
                     </div>
                 </div>
@@ -44,84 +47,88 @@
                     </div>
                 @endif
 
-                {{-- Info Header --}}
+                {{-- Info Periode --}}
                 <div class="bg-white rounded-3xl shadow p-6 mb-8 border border-gray-100">
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 text-sm">
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Edisi</p>
-                            <p class="font-semibold text-lg">{{ $periode->edisi }}</p>
+                            <p class="text-gray-500 mb-1">Edisi</p>
+                            <p class="font-semibold text-gray-800">{{ $periode->edisi }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Judul</p>
-                            <p class="font-semibold">{{ $periode->judul ?? '-' }}</p>
+                            <p class="text-gray-500 mb-1">Judul</p>
+                            <p class="font-semibold text-gray-800">{{ $periode->judul ?? '-' }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Periode</p>
-                            <p class="font-semibold">{{ $periode->periode ?? '-' }}</p>
+                            <p class="text-gray-500 mb-1">Periode</p>
+                            <p class="font-semibold text-gray-800">{{ $periode->periode ?? '-' }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Bulan / Tahun</p>
-                            <p class="font-semibold">{{ $periode->bulan ?? '-' }} {{ $periode->tahun ?? '' }}</p>
+                            <p class="text-gray-500 mb-1">Bulan / Tahun</p>
+                            <p class="font-semibold text-gray-800">
+                                {{ $periode->bulan ?? '-' }} {{ $periode->tahun ?? '' }}
+                            </p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">No PS</p>
-                            <p class="font-semibold">{{ $periode->no_ps ?? '-' }}</p>
+                            <p class="text-gray-500 mb-1">No PS</p>
+                            <p class="font-semibold text-gray-800">{{ $periode->no_ps ?? '-' }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Total Qty</p>
-                            <p class="font-semibold text-rose-700 text-lg">{{ number_format($total) }}</p>
+                            <p class="text-gray-500 mb-1">Total Qty</p>
+                            <p class="font-semibold text-rose-600 text-lg">{{ number_format($total) }}</p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Tabel Detail --}}
+                {{-- Tabel Unit --}}
                 <div class="bg-white rounded-3xl shadow border border-gray-100 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800">Daftar Unit ({{ $periode->transaksis->count() }})</h3>
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            Daftar Unit ({{ $periode->transaksis->count() }})
+                        </h3>
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50 text-left">
                                 <tr>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">No</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Id Pesan</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Kode Pesan</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Tgl Pesan</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Minggu</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Nama Unit</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Label</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Jumlah</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Pesanan</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Note</th>
-                                    <th class="px-4 py-3 font-semibold text-gray-600">Keterangan</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">No</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Id Pesan</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Tgl Pesan</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Nama Unit</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Label</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Jumlah</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Ekspedisi</th>
+                                    <th class="px-3 py-3 whitespace-nowrap">Service</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @forelse($periode->transaksis as $item)
+                                @forelse($periode->transaksis as $index => $item)
                                     <tr class="hover:bg-gray-50">
-                                        <td class="px-4 py-3">{{ $item->no ?? $loop->iteration }}</td>
-                                        <td class="px-4 py-3">{{ $item->id_pesan ?? '-' }}</td>
-                                        <td class="px-4 py-3">{{ $item->kode_pesan ?? '-' }}</td>
-                                        <td class="px-4 py-3">
-                                            {{ $item->tgl_pesan ? $item->tgl_pesan->format('d/m/Y') : '-' }}
+                                        <td class="px-3 py-3 text-center">{{ $index + 1 }}</td>
+                                        <td class="px-3 py-3 font-medium text-indigo-700">
+                                            {{ $item->id_pesan ?? '-' }}
                                         </td>
-                                        <td class="px-4 py-3">{{ $item->minggu ?? '-' }}</td>
-                                        <td class="px-4 py-3 font-medium">{{ $item->nama_unit }}</td>
-                                        <td class="px-4 py-3">
-                                            <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
-                                                {{ $item->label ?? '-' }}
-                                            </span>
+                                        <td class="px-3 py-3 whitespace-nowrap">
+                                            {{ $item->tgl_pesan ? \Carbon\Carbon::parse($item->tgl_pesan)->format('d/m/Y') : '-' }}
                                         </td>
-                                        <td class="px-4 py-3 font-semibold">{{ number_format($item->jumlah) }}</td>
-                                        <td class="px-4 py-3">{{ $item->pesanan ?? '-' }}</td>
-                                        <td class="px-4 py-3">{{ $item->note ?? '-' }}</td>
-                                        <td class="px-4 py-3 text-gray-500">{{ $item->keterangan ?? '-' }}</td>
+                                        <td class="px-3 py-3 font-medium">{{ $item->nama_unit }}</td>
+                                        <td class="px-3 py-3">
+                                            @if($item->label)
+                                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                                                    {{ $item->label }}
+                                                </span>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td class="px-3 py-3 font-semibold">{{ number_format($item->jumlah) }}</td>
+                                        <td class="px-3 py-3">{{ $item->ekspedisi ?? '-' }}</td>
+                                        <td class="px-3 py-3">{{ $item->service_pengiriman ?? '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="11" class="px-4 py-10 text-center text-gray-400">
-                                            Belum ada data unit.
+                                        <td colspan="10" class="px-6 py-12 text-center text-gray-400">
+                                            Belum ada unit pada periode ini.
                                         </td>
                                     </tr>
                                 @endforelse
