@@ -833,11 +833,7 @@ private function isHolidayManual($date): bool
                          ->with('success', '✅ Data berhasil dihapus');
     }
 
-  /**
- * Sync Pesanan Majalah (Kabupaten + Kotamadya + PUW1 + DLC + Pasif + Bacaan)
- * → Manual Order
- */
-public function syncPesananMajalahToJakartaAktif()
+ public function syncPesananMajalahToJakartaAktif()
 {
     $created     = 0;
     $updated     = 0;
@@ -857,6 +853,10 @@ public function syncPesananMajalahToJakartaAktif()
         ->get();
 
     $periodesPasif = PasifPeriode::with('pesanan')
+        ->where('status', 'aktif')
+        ->get();
+
+    $periodesPasifManual = \App\Models\PasifManualPeriode::with('transaksis')
         ->where('status', 'aktif')
         ->get();
 
@@ -944,7 +944,7 @@ public function syncPesananMajalahToJakartaAktif()
             foreach ($periode->pesanan as $item) {
                 if (($item->qty ?? 0) <= 0) {
                     $skipped++;
-                    $skippedList[] = $item->nama_unit . ' (DLC)';
+                    $skippedList[] = ($item->nama_unit ?? '-') . ' (DLC)';
                     continue;
                 }
 
@@ -974,15 +974,17 @@ public function syncPesananMajalahToJakartaAktif()
         }
 
         // =====================================================
-        // E. PASIF (Majalah) → GROUP F
+        // E. PASIF BIASA → GROUP F
         // =====================================================
         foreach ($periodesPasif as $periode) {
             $edisi = strtoupper(trim($periode->edisi));
 
             foreach ($periode->pesanan as $item) {
-                if (($item->qty ?? 0) <= 0) {
+                $qtyItem = (int) ($item->qty ?? $item->jumlah ?? 0);
+
+                if ($qtyItem <= 0) {
                     $skipped++;
-                    $skippedList[] = $item->nama_unit . ' (Pasif)';
+                    $skippedList[] = ($item->nama_unit ?? '-') . ' (Pasif)';
                     continue;
                 }
 
@@ -990,7 +992,7 @@ public function syncPesananMajalahToJakartaAktif()
                     'id'                => $item->id,
                     'nama_unit'         => $item->nama_unit,
                     'no_cabang'         => $item->no_cab ?? null,
-                    'jumlah_pesanan'    => $item->qty,
+                    'jumlah_pesanan'    => $qtyItem,
                     'alamat_unit'       => $item->alamat ?? $item->nama_unit,
                     'telepon'           => $item->telepon ?? null,
                     'mitra_pengelolaan' => null,
@@ -1012,6 +1014,50 @@ public function syncPesananMajalahToJakartaAktif()
         }
 
         // =====================================================
+// E2. PASIF MANUAL → GROUP F
+// order_id = id_pesan yang sudah ada (PP863900)
+// =====================================================
+foreach ($periodesPasifManual as $periode) {
+    $edisi = strtoupper(trim($periode->edisi));
+
+    foreach ($periode->transaksis as $item) {
+        if (($item->jumlah ?? 0) <= 0) {
+            $skipped++;
+            $skippedList[] = ($item->nama_unit ?? '-') . ' (Pasif Manual)';
+            continue;
+        }
+
+        // Kolom di DB: id_pesan = PP863900
+        $idPesananExisting = trim((string) ($item->id_pesan ?? ''));
+
+        $unit = (object) [
+            'id'                => $item->id,
+            'id_pesan'          => $item->id,           // primary key untuk notes ID_PESAN:...
+            'custom_order_id'   => $idPesananExisting !== '' ? $idPesananExisting : null,  // PP863900
+            'nama_unit'         => $item->nama_unit,
+            'no_cabang'         => $item->no_cab ?? null,
+            'jumlah_pesanan'    => $item->jumlah,
+            'alamat_unit'       => $item->alamat ?? $item->nama_unit,
+            'telepon'           => $item->telepon ?? null,
+            'mitra_pengelolaan' => null,
+            'kabupaten_kota'    => 'PASIF MANUAL',
+        ];
+
+        $result = $this->createManualOrderFromUnit(
+            $unit,
+            $edisi,
+            'PASIF MANUAL',
+            null,
+            'F',
+            $periode->no_ps ?? null,
+            'majalah'
+        );
+
+        $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
+    }
+}
+
+        // =====================================================
         // F. BACAAN UNIT → GROUP A (tipe bacaan, qty = 1)
         // =====================================================
         foreach ($periodesBacaan as $periode) {
@@ -1028,7 +1074,7 @@ public function syncPesananMajalahToJakartaAktif()
                     'id'                => $item->id,
                     'nama_unit'         => $item->nama_unit,
                     'no_cabang'         => $item->no_cab ?? null,
-                    'jumlah_pesanan'    => 1,   // qty selalu 1
+                    'jumlah_pesanan'    => 1,
                     'alamat_unit'       => $item->alamat ?? $item->nama_unit,
                     'telepon'           => $item->telepon ?? null,
                     'mitra_pengelolaan' => null,
@@ -1049,10 +1095,9 @@ public function syncPesananMajalahToJakartaAktif()
             }
         }
 
-                // =====================================================
+        // =====================================================
         // G. SPARE PASIF 3% → GROUP A
         // =====================================================
-        // Pastikan data spare ter-update dulu
         $this->syncSparePasifData();
 
         $spareItems = SparePasif::where('status', 'aktif')
@@ -1086,7 +1131,7 @@ public function syncPesananMajalahToJakartaAktif()
                 null,
                 'A',
                 $item->no_ps ?? null,
-                'spare'                 // ← tipe baru
+                'spare'
             );
 
             $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
@@ -1094,9 +1139,9 @@ public function syncPesananMajalahToJakartaAktif()
 
         DB::commit();
 
-        $message = "✅ Sync Pesanan Majalah + DLC + Pasif + Bacaan ke Manual selesai+Spare Pasif 3%.<br>"
+        $message = "✅ Sync Pesanan Majalah + DLC + Pasif + Bacaan + Spare Pasif 3% ke Manual selesai.<br>"
                  . "Berhasil masuk: <strong>{$created}</strong><br>"
-                 . "Berhasil di-update (no_ps): <strong>{$updated}</strong><br>"
+                 . "Berhasil di-update (no_ps / qty): <strong>{$updated}</strong><br>"
                  . "Dilewati (sudah ada / qty 0): <strong>{$skipped}</strong>";
 
         if (count($skippedList) > 0) {
@@ -1180,16 +1225,15 @@ private function createManualOrderFromUnit(
     $noCab    = trim($unit->no_cabang ?? '');
     $qty      = (int) $unit->jumlah_pesanan;
     $namaUnit = trim($unit->nama_unit ?? '');
+    $idPesan  = $unit->id_pesan ?? null;
 
     // =====================================================
-    // CEK EXISTING (tanpa filter status=pending)
-    // Prioritas: no_cab → fallback nama unit
+    // CEK EXISTING
     // =====================================================
     if ($group === 'A') {
         $existingQuery = ManualOrder::where('product_sku', $edisi)
             ->where('grup', 'A');
 
-        // Bedakan DLC / Bacaan / Spare
         if ($tipe === 'bacaan') {
             $existingQuery->where('product_name', 'like', '%Bacaan%');
         } elseif ($tipe === 'spare') {
@@ -1198,7 +1242,6 @@ private function createManualOrderFromUnit(
                   ->orWhere('customer_name', 'like', 'SPARE PASIF%');
             });
         } else {
-            // DLC / majalah biasa
             $existingQuery->where(function ($q) {
                 $q->where('product_name', 'like', '%Majalah%')
                   ->orWhere(function ($q2) {
@@ -1210,14 +1253,12 @@ private function createManualOrderFromUnit(
 
         $existing = null;
 
-        // 1) Prioritas no_cab
         if ($noCab !== '') {
             $existing = (clone $existingQuery)
                 ->where('billing_last_name', $noCab)
                 ->first();
         }
 
-        // 2) Fallback nama unit
         if (!$existing) {
             $existing = (clone $existingQuery)
                 ->where('customer_name', $namaUnit)
@@ -1225,21 +1266,57 @@ private function createManualOrderFromUnit(
         }
 
     } elseif ($group === 'F') {
+
         $existingQuery = ManualOrder::where('product_sku', $edisi)
             ->where('grup', 'F');
 
         $existing = null;
 
-        if ($noCab !== '') {
-            $existing = (clone $existingQuery)
-                ->where('billing_last_name', $noCab)
-                ->first();
-        }
+        // =====================================================
+        // KHUSUS PASIF MANUAL
+        // =====================================================
+        if (str_contains(strtoupper($wilayah ?? ''), 'MANUAL')) {
 
-        if (!$existing) {
-            $existing = (clone $existingQuery)
-                ->where('customer_name', $namaUnit)
-                ->first();
+            $customOrderId = trim((string) ($unit->custom_order_id ?? ''));
+
+            // 1. Cek by order_id = PP863900
+            if ($customOrderId !== '') {
+                $existing = ManualOrder::where('order_id', $customOrderId)->first();
+            }
+
+            // 2. Cek by ID_PESAN di notes (record lama Fxxxx)
+            if (!$existing && !empty($idPesan)) {
+                $existing = (clone $existingQuery)
+                    ->where(function ($q) use ($idPesan) {
+                        $q->where('notes', 'like', "%ID_PESAN:{$idPesan}%")
+                          ->orWhere('catatan', 'like', "%ID_PESAN:{$idPesan}%");
+                    })
+                    ->first();
+
+                // Migrasi order_id Fxxxx → PP863900
+                if ($existing && $customOrderId !== '' && $existing->order_id !== $customOrderId) {
+                    if (!ManualOrder::where('order_id', $customOrderId)->exists()) {
+                        $existing->update(['order_id' => $customOrderId]);
+                    }
+                }
+            }
+
+            // TIDAK ada fallback customer_name saja
+            // agar tidak nabrak record Fxxxx lain dengan nama sama
+
+        } else {
+            // PASIF BIASA
+            if ($noCab !== '') {
+                $existing = (clone $existingQuery)
+                    ->where('billing_last_name', $noCab)
+                    ->first();
+            }
+
+            if (!$existing) {
+                $existing = (clone $existingQuery)
+                    ->where('customer_name', $namaUnit)
+                    ->first();
+            }
         }
 
     } else {
@@ -1262,10 +1339,9 @@ private function createManualOrderFromUnit(
     }
 
     // =====================================================
-    // JIKA SUDAH ADA → update / skip (jangan create lagi)
+    // JIKA SUDAH ADA → update / skip
     // =====================================================
     if ($existing) {
-        // Update qty hanya jika masih pending & belum diproses
         if (
             in_array($group, ['A', 'F'])
             && $existing->status === 'pending'
@@ -1281,7 +1357,6 @@ private function createManualOrderFromUnit(
             return 'updated';
         }
 
-        // Update no_ps jika kosong / berbeda
         $needUpdate = empty($existing->no_ps)
             || ($noPs !== null && $existing->no_ps !== $noPs);
 
@@ -1350,29 +1425,39 @@ private function createManualOrderFromUnit(
     }
 
     // =====================================================
-    // Generate Order ID
+    // Generate / Ambil Order ID
     // =====================================================
-    $prefix = match ($group) {
-        'A'     => 'A',
-        'F'     => 'F',
-        default => 'B',
-    };
+    $customOrderId = trim((string) ($unit->custom_order_id ?? ''));
 
-    $lastId = ManualOrder::where('order_id', 'like', $prefix . '%')
-        ->whereRaw("order_id REGEXP '^{$prefix}[0-9]{4}$'")
-        ->orderByRaw("CAST(SUBSTRING(order_id, 2) AS UNSIGNED) DESC")
-        ->value('order_id');
+    if ($customOrderId !== '' && str_contains(strtoupper($wilayah ?? ''), 'MANUAL')) {
+        $orderId = $customOrderId;
 
-    $nextNumber = 1;
-    if ($lastId) {
-        $nextNumber = (int) substr($lastId, 1) + 1;
-    }
+        if (ManualOrder::where('order_id', $orderId)->exists()) {
+            return 'skipped';
+        }
+    } else {
+        $prefix = match ($group) {
+            'A'     => 'A',
+            'F'     => 'F',
+            default => 'B',
+        };
 
-    $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        $lastId = ManualOrder::where('order_id', 'like', $prefix . '%')
+            ->whereRaw("order_id REGEXP '^{$prefix}[0-9]{4}$'")
+            ->orderByRaw("CAST(SUBSTRING(order_id, 2) AS UNSIGNED) DESC")
+            ->value('order_id');
 
-    while (ManualOrder::where('order_id', $orderId)->exists()) {
-        $nextNumber++;
+        $nextNumber = 1;
+        if ($lastId) {
+            $nextNumber = (int) substr($lastId, 1) + 1;
+        }
+
         $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+        while (ManualOrder::where('order_id', $orderId)->exists()) {
+            $nextNumber++;
+            $orderId = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
     }
 
     // =====================================================
@@ -1393,7 +1478,14 @@ private function createManualOrderFromUnit(
     } elseif ($group === 'A') {
         $parts[] = 'Sumber: DLC';
     } elseif ($group === 'F') {
-        $parts[] = 'Sumber: Pasif';
+        if (str_contains(strtoupper($wilayah ?? ''), 'MANUAL')) {
+            $parts[] = 'Sumber: Pasif Manual';
+            if (!empty($idPesan)) {
+                $parts[] = 'ID_PESAN:' . $idPesan;
+            }
+        } else {
+            $parts[] = 'Sumber: Pasif';
+        }
     }
 
     $notesText = implode(' | ', $parts);
@@ -1422,7 +1514,6 @@ private function createManualOrderFromUnit(
 
     // =====================================================
     // Kurir & Status
-    // Group A (DLC + Bacaan + Spare) & F (Pasif) → belum ditentukan
     // =====================================================
     if (in_array($group, ['A', 'F'])) {
         $statusKirim = null;
@@ -2984,5 +3075,130 @@ public function sparePasifUpdateNoPs(Request $request, $id)
         'message' => 'No PS berhasil diupdate',
         'no_ps'   => $item->no_ps,
     ]);
+}
+
+// =========================================================
+// PASIF MANUAL - CREATE & STORE
+// =========================================================
+
+public function pasifManualCreate()
+{
+    return view('import.pasif.manual-create');
+}
+
+public function pasifManualStore(Request $request)
+{
+    $items = collect($request->input('items', []))
+        ->filter(function ($item) {
+            return !empty(trim($item['nama_unit'] ?? '')) && (int)($item['jumlah'] ?? 0) > 0;
+        })
+        ->values()
+        ->toArray();
+
+    $request->merge(['items' => $items]);
+
+    $request->validate([
+        'edisi'                 => 'required|string|max:20',
+        'judul'                 => 'nullable|string|max:150',
+        'periode'               => 'nullable|string|max:50',
+        'bulan'                 => 'nullable|string|max:20',
+        'tahun'                 => 'nullable|string|max:10',
+        'no_ps'                 => 'nullable|string|max:100',
+        'items'                 => 'required|array|min:1',
+        'items.*.nama_unit'     => 'required|string|max:150',
+        'items.*.jumlah'        => 'required|integer|min:1',
+        'items.*.id_pesan'      => 'nullable|string|max:50',
+        'items.*.kode_pesan'    => 'nullable|string|max:50',
+        'items.*.tgl_pesan'     => 'nullable|date',
+        'items.*.minggu'        => 'nullable|string|max:20',
+        'items.*.label'         => 'nullable|string|max:30',
+        'items.*.pesanan'       => 'nullable|string|max:150',
+        'items.*.note'          => 'nullable|string',
+        'items.*.keterangan'    => 'nullable|string|max:255',
+        'items.*.no_cab'        => 'nullable|string|max:50',
+        'items.*.alamat'        => 'nullable|string',
+        'items.*.telepon'       => 'nullable|string|max:30',
+    ], [
+        'items.required'            => 'Minimal harus ada 1 unit yang diisi.',
+        'items.min'                 => 'Minimal harus ada 1 unit yang diisi.',
+        'items.*.nama_unit.required'=> 'Nama unit wajib diisi.',
+        'items.*.jumlah.required'   => 'Jumlah wajib diisi.',
+        'items.*.jumlah.min'        => 'Jumlah minimal 1.',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // 1. Buat Header Periode Manual
+        $periode = \App\Models\PasifManualPeriode::create([
+            'edisi'      => strtoupper(trim($request->edisi)),
+            'judul'      => $request->judul ?: 'Majalah Edisi ' . strtoupper($request->edisi),
+            'periode'    => $request->periode,
+            'bulan'      => $request->bulan,
+            'tahun'      => $request->tahun,
+            'no_ps'      => $request->no_ps,
+            'grup'       => 'F',
+            'status'     => 'aktif',
+            'created_by' => Auth::id(),
+        ]);
+
+        // 2. Simpan detail transaksi
+        foreach ($items as $index => $item) {
+            \App\Models\PasifManualTransaksi::create([
+                'pasif_manual_periode_id' => $periode->id,
+                'no'                      => $index + 1,
+                'id_pesan'                => $item['id_pesan'] ?? null,
+                'kode_pesan'              => $item['kode_pesan'] ?? null,
+                'tgl_pesan'               => $item['tgl_pesan'] ?? null,
+                'minggu'                  => $item['minggu'] ?? null,
+                'nama_unit'               => trim($item['nama_unit']),
+                'label'                   => $item['label'] ?? ('M' . strtoupper($request->edisi)),
+                'jumlah'                  => (int) $item['jumlah'],
+                'pesanan'                 => $item['pesanan'] ?? ('Majalah Edisi ' . strtoupper($request->edisi)),
+                'note'                    => $item['note'] ?? null,
+                'keterangan'              => $item['keterangan'] ?? null,
+                'no_cab'                  => $item['no_cab'] ?? null,
+                'alamat'                  => $item['alamat'] ?? null,
+                'telepon'                 => $item['telepon'] ?? null,
+            ]);
+        }
+
+        DB::commit();
+
+        return redirect()
+            ->route('import.pasif.manual.show', $periode->id)
+            ->with('success', '✅ Data Pasif Manual berhasil disimpan! Total unit: ' . count($items));
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Pasif Manual Store Error: ' . $e->getMessage());
+        return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
+    }
+}
+
+public function pasifManualShow($id)
+{
+    $periode = \App\Models\PasifManualPeriode::with('transaksis')->findOrFail($id);
+    $total   = $periode->transaksis->sum('jumlah');
+
+    return view('import.pasif.manual-show', compact('periode', 'total'));
+}
+
+public function pasifManualIndex()
+{
+    $periodes = \App\Models\PasifManualPeriode::withCount('transaksis')
+        ->withSum('transaksis', 'jumlah')
+        ->latest()
+        ->paginate(20);
+
+    return view('import.pasif.manual-index', compact('periodes'));
+}
+
+public function pasifManualDestroy($id)
+{
+    $periode = \App\Models\PasifManualPeriode::findOrFail($id);
+    $periode->delete();
+
+    return redirect()
+        ->route('import.pasif.manual.index')
+        ->with('success', '✅ Data Pasif Manual berhasil dihapus');
 }
 }

@@ -4,164 +4,197 @@
     <meta charset="UTF-8">
     <title>PICKING LIST - {{ $no_pl ?? $item->no_pl ?? '-' }}</title>
     <style>
-        @page {
-            size: A5 landscape;
-            margin: 5mm 12mm 8mm 12mm; /* atas lebih kecil */
-        }
+    @page {
+        size: A5 landscape;
+        margin: 15mm 18mm 15mm 18mm;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #111;
+        font-size: 11px;
+        line-height: 1.35;
+        /* cadangan jika @page diabaikan DomPDF */
+        padding: 4mm;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* ===== HEADER ===== */
+    .header-title {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .divider {
+        border-bottom: 1.5px solid #000;
+        margin-bottom: 10px;
+    }
+
+    /* ===== INFO SECTION ===== */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+    }
+
+    .info-table td {
+        vertical-align: top;
+        padding: 0;
+    }
+
+    .info-left {
+        width: 50%;
+        padding-right: 18px;
+    }
+
+    .info-right {
+        width: 50%;
+        text-align: right;
+        padding-left: 14px;
+    }
+
+    .label {
+        display: inline-block;
+        min-width: 105px;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .info-row {
+        margin-bottom: 4px;
+    }
+
+    .section-title {
+        font-weight: 700;
+        margin-top: 8px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid #999;
+        padding-bottom: 2px;
+        display: inline-block;
+        min-width: 120px;
+        font-size: 11px;
+    }
+
+    /* Kotak PARAF */
+    .paraf-wrapper {
+        margin-top: 12px;
+        text-align: right;
+    }
+
+    .paraf-box {
+        width: 78px;
+        height: 46px;
+        border: 1.4px solid #000;
+        text-align: center;
+        display: inline-block;
+    }
+
+    .paraf-label {
+        font-size: 11px;
+        font-weight: 700;
+        background: #f0f0f0;
+        border-bottom: 1px solid #000;
+        padding: 2px 0;
+    }
+
+    /* ===== PRODUCT TABLE ===== */
+    .product-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        margin-top: 6px;
+    }
+
+    .product-table th {
+        font-weight: 700;
+        text-align: left;
+        border-bottom: 1.4px solid #000;
+        padding: 6px 5px;
+        font-size: 11px;
+        background: #f5f5f5;
+    }
+
+    .product-table td {
+        padding: 8px 5px;
+        vertical-align: middle;
+        border-bottom: 1px solid #ccc;
+        font-size: 11.5px;
+    }
+
+    .center { text-align: center; }
+    .left   { text-align: left; }
+
+    .check-box {
+        width: 34px;
+        height: 18px;
+        border: 1.3px solid #333;
+        display: inline-block;
+        background: #fff;
+    }
+
+    /* ===== WATERMARK GAMBAR ===== */
+.watermark-img {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 70%;              /* lebih besar dari sebelumnya */
+    max-width: 480px;        /* naikkan batas maksimal */
+    height: auto;
+    transform: translate(-50%, -50%);  /* centering sempurna */
+    opacity: 0.12;
+    z-index: -1000;
+    pointer-events: none;
+}
+
+    /* ===== FOOTER ===== */
+    .footer {
+        margin-top: 14px;
+        padding-top: 6px;
+        border-top: 1px solid #aaa;
+        font-size: 10px;
+        color: #555;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    @media print {
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            color: #111;
-            font-size: 12.5px;
-            line-height: 1.35;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
-
-        .container {
-            width: 100%;
-        }
-
-        /* ===== HEADER ===== */
-        .header-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 3px;
-        }
-
-        .divider {
-            border-bottom: 1.6px solid #000;
-            margin-bottom: 8px;
-        }
-
-        /* ===== INFO SECTION ===== */
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-
-        .info-table td {
-            vertical-align: top;
-            padding: 0;
-        }
-
-        .info-left {
-            width: 55%;
-            padding-right: 18px;
-        }
-
-        .info-right {
-            width: 45%;
-            text-align: right;
-    padding-left: 20px;         /* optional, biar jarak dari kiri lebih longgar */
-        }
-
-        .label {
-            display: inline-block;
-            width: 125px;
-            font-weight: 700;
-            color: #333;
-        }
-
-        .info-row {
-            margin-bottom: 3px;
-        }
-
-        .section-title {
-            font-weight: 700;
-            margin-top: 6px;
-            margin-bottom: 2px;
-            border-bottom: 1px solid #999;
-            padding-bottom: 2px;
-            display: inline-block;
-            min-width: 140px;
-        }
-
-       /* Kotak PARAF */
-        .paraf-wrapper {
-            margin-top: 10px;
-            text-align: right;
-            padding-right: 1px; /* ← digeser ke kiri */
-        }
-
-        .paraf-box {
-            width: 90px;
-            height: 54px;
-            border: 1.5px solid #000;
-            text-align: center;
-            display: inline-block;
-        }
-
-        .paraf-label {
-            font-size: 12px;
-            font-weight: 700;
-            background: #f0f0f0;
-            border-bottom: 1px solid #000;
-            padding: 2px 0;
-        }
-
-        /* ===== PRODUCT TABLE ===== */
-        .product-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            margin-top: 4px;
-        }
-
-        .product-table th {
-            font-weight: 700;
-            text-align: left;
-            border-bottom: 1.5px solid #000;
-            padding: 6px 5px;
-            font-size: 12.5px;
-            background: #f5f5f5;
-        }
-
-        .product-table td {
-            padding: 8px 5px;
-            vertical-align: middle;
-            border-bottom: 1px solid #ccc;
-            font-size: 13px;
-        }
-
-        .center { text-align: center; }
-        .left   { text-align: left; }
-
-        .check-box {
-            width: 42px;
-            height: 22px;
-            border: 1.4px solid #333;
-            display: inline-block;
-            background: #fff;
-        }
-
-        /* ===== FOOTER ===== */
-        .footer {
-            margin-top: 12px;
-            padding-top: 5px;
-            border-top: 1px solid #aaa;
-            font-size: 11px;
-            color: #555;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
 
 <div class="container">
+
+    {{-- WATERMARK GAMBAR --}}
+{{-- WATERMARK GAMBAR (base64 - paling stabil di DomPDF) --}}
+@php
+    $wmPath = public_path('assets/img/logologistik.jpg');
+    $wmSrc  = '';
+    if (file_exists($wmPath)) {
+        $wmData = base64_encode(file_get_contents($wmPath));
+        $wmSrc  = 'data:image/png;base64,' . $wmData;
+    }
+@endphp
+
+@if($wmSrc)
+    <img class="watermark-img" src="{{ $wmSrc }}" alt="watermark">
+@endif
 
     @php
         $kategoriJudul = '';

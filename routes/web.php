@@ -127,38 +127,44 @@ Route::prefix('import')
 
     Route::put('/{id}/no-ps', [ImportController::class, 'pasifUpdateNoPs'])->name('update-no-ps');
 
-   // =====================================================
-    // SPARE PASIF 3%  ← letakkan SEBELUM route /{id}
+    // =====================================================
+    // SPARE PASIF 3%
     // =====================================================
     Route::get('/spare', [ImportController::class, 'sparePasif'])->name('spare');
     Route::get('/spare/{edisi}', [ImportController::class, 'sparePasifShow'])->name('spare.show');
     Route::put('/spare/{id}/no-ps', [ImportController::class, 'sparePasifUpdateNoPs'])->name('spare.update-no-ps');
-    Route::put('/spare/{id}/no-ps', [ImportController::class, 'sparePasifUpdateNoPs'])
-    ->name('spare.update-no-ps');
 
-        // Bacaan Unit (terpisah)
-        Route::get('/bacaan', [ImportController::class, 'pasifBacaan'])->name('bacaan');
-        Route::get('/bacaan/create', [ImportController::class, 'pasifBacaanCreate'])->name('bacaan.create');
-        Route::post('/bacaan/store', [ImportController::class, 'pasifBacaanStore'])->name('bacaan.store');
-        Route::get('/bacaan/{id}', [ImportController::class, 'pasifBacaanShow'])->name('bacaan.show');
-        Route::put('/bacaan/{id}/no-ps', [ImportController::class, 'pasifBacaanUpdateNoPs'])->name('bacaan.update-no-ps');
-        Route::delete('/bacaan/{id}', [ImportController::class, 'pasifBacaanDestroy'])->name('bacaan.destroy');
+    // Bacaan Unit
+    Route::get('/bacaan', [ImportController::class, 'pasifBacaan'])->name('bacaan');
+    Route::get('/bacaan/create', [ImportController::class, 'pasifBacaanCreate'])->name('bacaan.create');
+    Route::post('/bacaan/store', [ImportController::class, 'pasifBacaanStore'])->name('bacaan.store');
+    Route::get('/bacaan/{id}', [ImportController::class, 'pasifBacaanShow'])->name('bacaan.show');
+    Route::put('/bacaan/{id}/no-ps', [ImportController::class, 'pasifBacaanUpdateNoPs'])->name('bacaan.update-no-ps');
+    Route::delete('/bacaan/{id}', [ImportController::class, 'pasifBacaanDestroy'])->name('bacaan.destroy');
 
-        // Rekap Total
-        Route::get('/rekap', [ImportController::class, 'pasifRekap'])->name('rekap');
-        Route::get('/rekap/{id}', [ImportController::class, 'pasifRekapShow'])->name('rekap.show');
+    // Rekap Total
+    Route::get('/rekap', [ImportController::class, 'pasifRekap'])->name('rekap');
+    Route::get('/rekap/{id}', [ImportController::class, 'pasifRekapShow'])->name('rekap.show');
 
-        // Unit Pasif (list)
-        Route::get('/list', [ImportController::class, 'pasifIndex'])->name('list');
-        Route::get('/create', [ImportController::class, 'pasifCreate'])->name('create');
-        Route::post('/store', [ImportController::class, 'pasifStore'])->name('store');
-        Route::post('/sync-to-manual', [ImportController::class, 'syncPasifToManual'])->name('sync');
+    // Unit Pasif (list)
+    Route::get('/list', [ImportController::class, 'pasifIndex'])->name('list');
+    Route::get('/create', [ImportController::class, 'pasifCreate'])->name('create');
+    Route::post('/store', [ImportController::class, 'pasifStore'])->name('store');
+    Route::post('/sync-to-manual', [ImportController::class, 'syncPasifToManual'])->name('sync');
 
-        // Detail Unit Pasif (paling bawah – biar tidak nabrak /spare)
-        Route::get('/{id}', [ImportController::class, 'pasifShow'])->name('show');
-        Route::delete('/{id}', [ImportController::class, 'pasifDestroy'])->name('destroy');
-    });
+    // =========================================================
+    // PASIF MANUAL  ← letakkan di sini (sebelum /{id})
+    // =========================================================
+    Route::get('/manual', [ImportController::class, 'pasifManualIndex'])->name('manual.index');
+    Route::get('/manual/create', [ImportController::class, 'pasifManualCreate'])->name('manual.create');
+    Route::post('/manual', [ImportController::class, 'pasifManualStore'])->name('manual.store');
+    Route::get('/manual/{id}', [ImportController::class, 'pasifManualShow'])->name('manual.show');
+    Route::delete('/manual/{id}', [ImportController::class, 'pasifManualDestroy'])->name('manual.destroy');
 
+    // Detail Unit Pasif (paling bawah)
+    Route::get('/{id}', [ImportController::class, 'pasifShow'])->name('show');
+    Route::delete('/{id}', [ImportController::class, 'pasifDestroy'])->name('destroy');
+});
 
         // =====================================================
 // MANUAL PRINTED
