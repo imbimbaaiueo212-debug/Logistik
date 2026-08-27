@@ -19,7 +19,7 @@
         <h2 class="text-3xl font-bold text-gray-800 mb-2">Unit Pasif</h2>
         <p class="text-gray-500 mb-8">Pilih jenis data yang ingin dikelola</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl">
 
             <!-- Unit Pasif (Majalah) -->
             <a href="{{ route('import.pasif.list') }}" class="group">
@@ -28,6 +28,18 @@
                     <h3 class="text-2xl font-semibold mb-2 group-hover:text-blue-700 transition">Unit Pasif</h3>
                     <p class="text-gray-600 text-sm">
                         Data pemesanan majalah Unit Pasif (import Excel & sync ke Manual).
+                    </p>
+                </div>
+            </a>
+
+            <!-- Spare Pasif 3% -->
+            <a href="{{ route('import.pasif.spare') }}" class="group">
+                <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full border border-transparent hover:border-amber-200">
+                    <div class="text-5xl mb-4">📦</div>
+                    <h3 class="text-2xl font-semibold mb-2 group-hover:text-amber-700 transition">Spare Pasif 3%</h3>
+                    <p class="text-gray-600 text-sm">
+                        Total (DLC + Pasif + Bacaan) × 3% → dibulatkan.  
+                        Digunakan untuk hitung lembar print (200/lembar).
                     </p>
                 </div>
             </a>
@@ -42,8 +54,6 @@
                     </p>
                 </div>
             </a>
-
-            <!-- Slot ke-3 (nanti) -->
            <!-- Rekap Total -->
             <a href="{{ route('import.pasif.rekap') }}" class="group">
                 <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full border border-transparent hover:border-purple-200">
