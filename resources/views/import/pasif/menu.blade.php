@@ -100,6 +100,21 @@
                 </div>
             </a>
 
+            <!-- Report Angka Cetak -->
+            <a href="{{ route('import.report-angka-cetak') }}" class="group block h-full">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-indigo-300 transition-all duration-300 h-full flex flex-col p-6">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl mb-4 group-hover:bg-indigo-100 transition-colors">
+                        📈
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-800 mb-2 group-hover:text-indigo-700 transition-colors">
+                        Report Angka Cetak
+                    </h3>
+                    <p class="text-slate-500 text-sm leading-relaxed flex-1">
+                        Ringkasan qty cetak majalah per edisi (mirip Excel).
+                    </p>
+                </div>
+            </a>
+
         </div>
 
         <!-- Back Link -->
