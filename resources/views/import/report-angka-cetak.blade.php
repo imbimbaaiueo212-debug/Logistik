@@ -23,7 +23,7 @@
                     Report Angka Cetak Majalah
                 </h2>
                 <p class="text-slate-500 mt-1 text-sm">
-                    Ringkasan qty pemesanan berdasarkan edisi (mirip struktur Excel)
+                    Ringkasan qty pemesanan berdasarkan edisi
                 </p>
             </div>
 
