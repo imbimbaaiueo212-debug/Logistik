@@ -113,7 +113,7 @@
         <div class="mt-8">
             <a href="{{ route('import.pasif.index') }}"
                class="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 font-medium">
-                ← Kembali ke Menu Unit Pasif
+                ← Kembali
             </a>
         </div>
 

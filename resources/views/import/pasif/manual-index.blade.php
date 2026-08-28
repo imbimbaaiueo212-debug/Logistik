@@ -82,7 +82,7 @@
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
                                                 <a href="{{ route('import.pasif.manual.show', $periode->id) }}"
-                                                class="text-rose-600 hover:text-rose-800 font-medium">
+                                                class="text-green-600 hover:text-rose-800 font-medium">
                                                     Detail
                                                 </a>
                                                 <a href="{{ route('import.pasif.manual.edit', $periode->id) }}"

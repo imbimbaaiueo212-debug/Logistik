@@ -996,13 +996,12 @@ private function isHolidayManual($date): bool
                     'alamat_unit'       => $item->alamat ?? $item->nama_unit,
                     'telepon'           => $item->telepon ?? null,
                     'mitra_pengelolaan' => null,
-                    'kabupaten_kota'    => 'PASIF',
                 ];
 
                 $result = $this->createManualOrderFromUnit(
                     $unit,
                     $edisi,
-                    'PASIF',
+                    null,               // Kab/Kota dikosongkan
                     null,
                     'F',
                     $periode->no_ps ?? null,
@@ -1014,51 +1013,48 @@ private function isHolidayManual($date): bool
         }
 
         // =====================================================
-// E2. PASIF MANUAL → GROUP F
-// order_id = id_pesan yang sudah ada (PP863900)
-// =====================================================
-foreach ($periodesPasifManual as $periode) {
-    $edisi = strtoupper(trim($periode->edisi));
+        // E2. PASIF MANUAL → GROUP F
+        // =====================================================
+        foreach ($periodesPasifManual as $periode) {
+            $edisi = strtoupper(trim($periode->edisi));
 
-    foreach ($periode->transaksis as $item) {
-        if (($item->jumlah ?? 0) <= 0) {
-            $skipped++;
-            $skippedList[] = ($item->nama_unit ?? '-') . ' (Pasif Manual)';
-            continue;
+            foreach ($periode->transaksis as $item) {
+                if (($item->jumlah ?? 0) <= 0) {
+                    $skipped++;
+                    $skippedList[] = ($item->nama_unit ?? '-') . ' (Pasif Manual)';
+                    continue;
+                }
+
+                $idPesananExisting = trim((string) ($item->id_pesan ?? ''));
+
+                $unit = (object) [
+                    'id'                => $item->id,
+                    'id_pesan'          => $item->id,
+                    'custom_order_id'   => $idPesananExisting !== '' ? $idPesananExisting : null,
+                    'nama_unit'         => $item->nama_unit,
+                    'no_cabang'         => $item->no_cab ?? null,
+                    'jumlah_pesanan'    => $item->jumlah,
+                    'alamat_unit'       => $item->alamat ?? $item->nama_unit,
+                    'telepon'           => $item->telepon ?? null,
+                    'mitra_pengelolaan' => null,
+                ];
+
+                $result = $this->createManualOrderFromUnit(
+                    $unit,
+                    $edisi,
+                    null,               // Kab/Kota dikosongkan
+                    null,
+                    'F',
+                    $periode->no_ps ?? null,
+                    'majalah'
+                );
+
+                $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
+            }
         }
 
-        // Kolom di DB: id_pesan = PP863900
-        $idPesananExisting = trim((string) ($item->id_pesan ?? ''));
-
-        $unit = (object) [
-            'id'                => $item->id,
-            'id_pesan'          => $item->id,           // primary key untuk notes ID_PESAN:...
-            'custom_order_id'   => $idPesananExisting !== '' ? $idPesananExisting : null,  // PP863900
-            'nama_unit'         => $item->nama_unit,
-            'no_cabang'         => $item->no_cab ?? null,
-            'jumlah_pesanan'    => $item->jumlah,
-            'alamat_unit'       => $item->alamat ?? $item->nama_unit,
-            'telepon'           => $item->telepon ?? null,
-            'mitra_pengelolaan' => null,
-            'kabupaten_kota'    => 'PASIF MANUAL',
-        ];
-
-        $result = $this->createManualOrderFromUnit(
-            $unit,
-            $edisi,
-            'PASIF MANUAL',
-            null,
-            'F',
-            $periode->no_ps ?? null,
-            'majalah'
-        );
-
-        $this->handleManualSyncResult($result, $created, $skipped, $skippedList, $errors, $updated);
-    }
-}
-
         // =====================================================
-        // F. BACAAN UNIT → GROUP A (tipe bacaan, qty = 1)
+        // F. BACAAN UNIT → GROUP A
         // =====================================================
         foreach ($periodesBacaan as $periode) {
             $edisi = strtoupper(trim($periode->edisi));
@@ -1078,13 +1074,12 @@ foreach ($periodesPasifManual as $periode) {
                     'alamat_unit'       => $item->alamat ?? $item->nama_unit,
                     'telepon'           => $item->telepon ?? null,
                     'mitra_pengelolaan' => null,
-                    'kabupaten_kota'    => 'BACAAN',
                 ];
 
                 $result = $this->createManualOrderFromUnit(
                     $unit,
                     $edisi,
-                    'BACAAN',
+                    null,               // Kab/Kota dikosongkan
                     null,
                     'A',
                     $periode->no_ps ?? null,
@@ -1227,6 +1222,9 @@ private function createManualOrderFromUnit(
     $namaUnit = trim($unit->nama_unit ?? '');
     $idPesan  = $unit->id_pesan ?? null;
 
+    // Deteksi Pasif Manual (tidak lagi bergantung pada $wilayah)
+    $isPasifManual = !empty(trim((string) ($unit->custom_order_id ?? '')));
+
     // =====================================================
     // CEK EXISTING
     // =====================================================
@@ -1275,7 +1273,7 @@ private function createManualOrderFromUnit(
         // =====================================================
         // KHUSUS PASIF MANUAL
         // =====================================================
-        if (str_contains(strtoupper($wilayah ?? ''), 'MANUAL')) {
+        if ($isPasifManual) {
 
             $customOrderId = trim((string) ($unit->custom_order_id ?? ''));
 
@@ -1429,7 +1427,7 @@ private function createManualOrderFromUnit(
     // =====================================================
     $customOrderId = trim((string) ($unit->custom_order_id ?? ''));
 
-    if ($customOrderId !== '' && str_contains(strtoupper($wilayah ?? ''), 'MANUAL')) {
+    if ($customOrderId !== '' && $isPasifManual) {
         $orderId = $customOrderId;
 
         if (ManualOrder::where('order_id', $orderId)->exists()) {
@@ -1478,7 +1476,7 @@ private function createManualOrderFromUnit(
     } elseif ($group === 'A') {
         $parts[] = 'Sumber: DLC';
     } elseif ($group === 'F') {
-        if (str_contains(strtoupper($wilayah ?? ''), 'MANUAL')) {
+        if ($isPasifManual) {
             $parts[] = 'Sumber: Pasif Manual';
             if (!empty($idPesan)) {
                 $parts[] = 'ID_PESAN:' . $idPesan;
@@ -1490,10 +1488,12 @@ private function createManualOrderFromUnit(
 
     $notesText = implode(' | ', $parts);
 
-    $productName = match ($tipe) {
-        'bacaan' => 'Bacaan Unit ' . $edisi,
-        'spare'  => 'Spare Pasif 3% ' . $edisi,
-        default  => 'Majalah Sahabat biMBA ' . $edisi,
+    // --- Kategori Pesanan ---
+    $productName = match (true) {
+        $tipe === 'bacaan'     => 'Bacaan Unit ' . $edisi,
+        $tipe === 'spare'      => 'Spare Pasif 3% ' . $edisi,
+        $group === 'F'         => 'Unit Pasif majalah ' . $edisi,   // ← sesuai permintaan
+        default                => 'Majalah Sahabat biMBA ' . $edisi,
     };
 
     // =====================================================
@@ -1554,7 +1554,7 @@ private function createManualOrderFromUnit(
             'shipping_last_name'  => $noCab ?: null,
             'shipping_address_1'  => $unit->alamat_unit ?? $namaUnit,
             'shipping_address_2'  => null,
-            'shipping_city'       => $wilayah,
+            'shipping_city'       => $wilayah,          // null untuk Bacaan & Pasif
 
             'status_kirim'        => $statusKirim,
             'ekspedisi'           => $ekspedisi,
