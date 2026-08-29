@@ -78,7 +78,7 @@
     <!-- LOGO -->
     <div class="p-6 border-b border-blue-700 flex items-center justify-between">
     <div class="flex items-center">
-    <img src="/template/assets/img/logotulisan.png" 
+    <img src="/public/assets/img/logotulisan.png" 
          alt="biMBA-AIUEO" 
          class="h-10 w-auto object-contain">
 </div>
