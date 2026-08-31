@@ -902,4 +902,11 @@ Route::prefix('pesanan-majalah-puw1')
     ->name('order-manual.index')
     ->middleware('auth');
 
+    Route::get('/order-manual-modul', function () {
+    return view('order-manual.modul-index'); // atau placeholder
+})->name('order-manual-modul.index')->middleware('auth');
+
+Route::get('/order-manual-sertifikat', function () {
+    return view('order-manual.sertifikat-index');
+})->name('order-manual-sertifikat.index')->middleware('auth');
     

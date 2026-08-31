@@ -49,7 +49,7 @@
                     </a>
 
                     <a href="{{ route('import.manual') }}" class="group">
-                <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
+                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
                     <div class="text-5xl mb-4">📝</div>
                     <h3 class="text-2xl font-semibold mb-2">Manual Pemesanan</h3>
                     <p class="text-gray-600">
