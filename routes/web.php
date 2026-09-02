@@ -39,6 +39,8 @@ use App\Http\Controllers\PesananMajalahKotamadyaController;
 use App\Http\Controllers\PesananMajalahPuw1Controller;
 use App\Http\Controllers\DatabaseUserController;
 use App\Http\Controllers\OrderManualController;
+use App\Http\Controllers\OrderManualModulController;
+use App\Http\Controllers\OrderManualSertifikatController;
 
 use App\Http\Controllers\DistributionOrderController;
 
@@ -902,11 +904,69 @@ Route::prefix('pesanan-majalah-puw1')
     ->name('order-manual.index')
     ->middleware('auth');
 
-    Route::get('/order-manual-modul', function () {
-    return view('order-manual.modul-index'); // atau placeholder
-})->name('order-manual-modul.index')->middleware('auth');
+Route::prefix('order-manual-modul')
+    ->name('order-manual-modul.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get('/', [OrderManualModulController::class, 'index'])->name('index');
 
-Route::get('/order-manual-sertifikat', function () {
-    return view('order-manual.sertifikat-index');
-})->name('order-manual-sertifikat.index')->middleware('auth');
-    
+        Route::get('/manual', [OrderManualModulController::class, 'manual'])->name('manual');
+        Route::get('/manual/create', [OrderManualModulController::class, 'manualCreate'])->name('manual.create');
+        Route::post('/manual', [OrderManualModulController::class, 'manualStore'])->name('manual.store');
+        Route::get('/manual/{id}/edit', [OrderManualModulController::class, 'manualEdit'])->name('manual.edit');
+        Route::put('/manual/{id}', [OrderManualModulController::class, 'manualUpdate'])->name('manual.update');
+
+        Route::post('/manual/sync-bimbashop-casdana', [OrderManualModulController::class, 'runSyncModul'])
+            ->name('manual.sync');
+
+        Route::get('/manual/filtered-ids', [OrderManualModulController::class, 'getFilteredIds'])->name('manual.filtered-ids');
+        Route::post('/manual/get-modal-data', [OrderManualModulController::class, 'getModalData'])->name('manual.get-modal-data');
+        Route::post('/manual/bulk-action', [OrderManualModulController::class, 'bulkAction'])->name('manual.bulk-action');
+
+        Route::get('/manual-printed', [OrderManualModulController::class, 'printed'])->name('manual-printed');
+        Route::get('/search-products', [OrderManualModulController::class, 'searchProducts'])->name('search-products');
+
+        // ✅ BENAR
+        Route::get('/realisasi', [OrderManualModulController::class, 'realisasi'])->name('realisasi');
+        Route::get('/realisasi', [OrderManualModulController::class, 'realisasi'])->name('realisasi');
+        Route::get('/realisasi/picking-list/{id}', [OrderManualModulController::class, 'printPickingList'])->name('realisasi.picking-list');
+        Route::get('/realisasi/print-prising', [OrderManualModulController::class, 'printPrising'])->name('realisasi.print-prising');
+        Route::get('/realisasi/print-pemesanan', [OrderManualModulController::class, 'printPemesanan'])->name('realisasi.print-pemesanan');
+        Route::get('/realisasi/print-qc', [OrderManualModulController::class, 'printQc'])->name('realisasi.print-qc');
+        Route::get('/realisasi/print-packing', [OrderManualModulController::class, 'printPacking'])->name('realisasi.print-packing');
+        Route::get('/realisasi/print-ekspedisi', [OrderManualModulController::class, 'printEkspedisi'])->name('realisasi.print-ekspedisi');
+    });
+
+        Route::prefix('order-manual-sertifikat')->name('order-manual-sertifikat.')->group(function () {
+            Route::get('/', [OrderManualSertifikatController::class, 'index'])->name('index');
+
+            // List + CRUD
+            Route::get('/manual', [OrderManualSertifikatController::class, 'manual'])->name('manual');
+            Route::get('/manual/create', [OrderManualSertifikatController::class, 'manualCreate'])->name('manual.create');
+            Route::post('/manual', [OrderManualSertifikatController::class, 'manualStore'])->name('manual.store');
+            Route::get('/manual/{id}/edit', [OrderManualSertifikatController::class, 'manualEdit'])->name('manual.edit');
+            Route::put('/manual/{id}', [OrderManualSertifikatController::class, 'manualUpdate'])->name('manual.update');
+
+            // Bulk & modal
+            Route::get('/manual/filtered-ids', [OrderManualSertifikatController::class, 'getFilteredIds'])->name('manual.filtered-ids');
+            Route::post('/manual/get-modal-data', [OrderManualSertifikatController::class, 'getModalData'])->name('manual.get-modal-data');
+            Route::post('/manual/bulk-action', [OrderManualSertifikatController::class, 'bulkAction'])->name('manual.bulk-action');
+
+            // Sync & search
+            Route::post('/manual/sync', [OrderManualSertifikatController::class, 'runSync'])->name('manual.sync');
+            Route::get('/search-products', [OrderManualSertifikatController::class, 'searchProducts'])->name('search-products');
+
+            // Realisasi
+            Route::get('/realisasi', [OrderManualSertifikatController::class, 'realisasi'])->name('realisasi');
+
+            // Print routes
+            Route::get('/realisasi/print-prising', [OrderManualSertifikatController::class, 'printPrising'])->name('realisasi.print-prising');
+            Route::get('/realisasi/print-pemesanan', [OrderManualSertifikatController::class, 'printPemesanan'])->name('realisasi.print-pemesanan');
+            Route::get('/realisasi/print-qc', [OrderManualSertifikatController::class, 'printQc'])->name('realisasi.print-qc');
+            Route::get('/realisasi/print-packing', [OrderManualSertifikatController::class, 'printPacking'])->name('realisasi.print-packing');
+            Route::get('/realisasi/print-ekspedisi', [OrderManualSertifikatController::class, 'printEkspedisi'])->name('realisasi.print-ekspedisi');
+
+            // Picking list (dipakai di confirmPrintPicking)
+            Route::get('/realisasi/picking-list/{id}', [OrderManualSertifikatController::class, 'pickingList'])->name('realisasi.picking-list');
+        });
+            
