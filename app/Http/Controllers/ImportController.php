@@ -1618,6 +1618,10 @@ public function manualPrinted(Request $request)
 {
     $query = ManualRealisasi::query();
 
+    // ===== KHUSUS MAJALAH SAJA =====
+    // Modul & Sertifikat tidak boleh muncul di halaman ini
+    $query->where('kategori_order', 'Majalah');
+
     if ($request->filled('id_pesan')) {
         $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
     }
@@ -1634,6 +1638,8 @@ public function manualPrinted(Request $request)
         $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
     }
 
+    // Parameter kategori tetap dihormati (kalau nanti mau dipakai),
+    // tapi defaultnya sudah dipaksa Majalah di atas
     if ($request->filled('kategori')) {
         $query->where('kategori_order', $request->kategori);
     }

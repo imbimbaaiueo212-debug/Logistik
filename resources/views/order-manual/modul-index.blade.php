@@ -21,15 +21,15 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {{-- OPS2 / wilayah — sesuaikan route jika sudah ada khusus modul --}}
-            <a href="#" class="group">
+            <!--<a href="#" class="group">
                 <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                     <div class="text-5xl mb-4">🏬</div>
                     <h3 class="text-2xl font-semibold mb-2">Coming soon</h3>
                     <p class="text-gray-500 text-sm mt-1">Modul OPS2</p>
                 </div>
-            </a>
+            </a>-->
 
-            <a href="#" class="group">
+            <!--<a href="#" class="group">
                 <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                     <div class="text-5xl mb-4">🏬</div>
                     <h3 class="text-2xl font-semibold mb-2">Coming soon</h3>
@@ -37,9 +37,9 @@
                         modul DLC.
                     </p>
                 </div>
-            </a>
+            </a>-->
 
-            <a href="#" class="group">
+            <!--<a href="#" class="group">
                 <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
                     <div class="text-5xl mb-4">🏬</div>
                     <h3 class="text-2xl font-semibold mb-2">Coming soon</h3>
@@ -47,7 +47,7 @@
                         Modul Pasif.
                     </p>
                 </div>
-            </a>
+            </a>-->
 
             <a href="{{ route('order-manual-modul.manual') }}" class="group">
                 <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
