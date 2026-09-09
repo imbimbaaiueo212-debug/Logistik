@@ -1619,7 +1619,7 @@ public function manualPrinted(Request $request)
     $query = ManualRealisasi::query();
 
     // ===== KHUSUS MAJALAH SAJA =====
-    // Modul & Sertifikat tidak boleh muncul di halaman ini
+    // Paksa hanya tampilkan kategori Majalah
     $query->where('kategori_order', 'Majalah');
 
     if ($request->filled('id_pesan')) {
@@ -1638,11 +1638,8 @@ public function manualPrinted(Request $request)
         $query->whereDate('tgl_turun_pl', '<=', $request->end_date);
     }
 
-    // Parameter kategori tetap dihormati (kalau nanti mau dipakai),
-    // tapi defaultnya sudah dipaksa Majalah di atas
-    if ($request->filled('kategori')) {
-        $query->where('kategori_order', $request->kategori);
-    }
+    // Parameter kategori diabaikan (sudah dipaksa Majalah)
+    // if ($request->filled('kategori')) { ... }
 
     $perPage = $request->get('per_page', 30);
 
@@ -1659,7 +1656,7 @@ public function manualPrinted(Request $request)
         ->orderBy('created_at')
         ->get();
 
-    // Assign rekap_number per tanggal (sama konsep jakarta)
+    // Assign rekap_number per tanggal
     if ($allData->isNotEmpty()) {
         foreach ($allData->groupBy(function ($item) {
             return Carbon::parse($item->tgl_turun_pl)->toDateString();
@@ -1684,7 +1681,6 @@ public function manualPrinted(Request $request)
         return Carbon::parse($item->tgl_turun_pl)->toDateString();
     });
 
-    // Map mismatch untuk ditampilkan di view
     $mismatchMap = UnitNamaMismatch::where('is_resolved', false)
         ->get()
         ->keyBy(fn ($m) => trim((string) $m->no_cab))

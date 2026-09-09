@@ -57,8 +57,8 @@
             </form>
 
             <a href="{{ route('order-manual-sertifikat.realisasi') }}"
-               class="bg-emerald-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-emerald-700">
-                📋 Rekap Aktual
+               class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex items-center gap-2">
+                📊 Rekap Aktual Manual
             </a>
 
             <a href="{{ route('order-manual-sertifikat.manual.create') }}"

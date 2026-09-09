@@ -27,18 +27,15 @@
         </div>
 
         <div class="flex items-center gap-2 bg-white rounded-3xl p-1 shadow border flex-wrap">
-            <a href="{{ route('order-manual-modul.manual') }}"
-               class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">kembali</a>
+    <a href="{{ route('order-manual-modul.manual') }}"
+       class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">
+        kembali
+    </a>
 
-            <a href="{{ route('order-manual-modul.realisasi') }}"
-               class="px-5 py-3 rounded-3xl font-medium {{ !request('kategori') ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' }}">Semua</a>
-            <a href="{{ route('order-manual-modul.realisasi', ['kategori' => 'Modul']) }}"
-               class="px-5 py-3 rounded-3xl font-medium {{ request('kategori') === 'Modul' ? 'bg-green-600 text-white' : 'hover:bg-gray-100' }}">🟢 Modul</a>
-            <a href="{{ route('order-manual-modul.realisasi', ['kategori' => 'Majalah']) }}"
-               class="px-5 py-3 rounded-3xl font-medium {{ request('kategori') === 'Majalah' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' }}">🔵 Majalah</a>
-            <a href="{{ route('order-manual-modul.realisasi', ['kategori' => 'Sertifikat']) }}"
-               class="px-5 py-3 rounded-3xl font-medium {{ request('kategori') === 'Sertifikat' ? 'bg-red-600 text-white' : 'hover:bg-gray-100' }}">🔴 Sertifikat</a>
-        </div>
+    <span class="px-5 py-3 rounded-3xl font-medium bg-green-600 text-white shadow-sm">
+        🟢 Modul
+    </span>
+</div>
     </div>
 
     @forelse($groupedData ?? [] as $tanggal => $rows)
