@@ -238,10 +238,14 @@ function printPerDate(tanggal, type) {
             return;
     }
 
-    window.open(url, "_blank");
-    setTimeout(() => location.reload(), 1200);
-}
+    // Langsung download PDF
 
+
+    // Atau tetap buka tab PDF:
+    window.open(url, "_blank");
+
+    setTimeout(() => location.reload(), 1500);
+}
 let currentButton = null;
 
 function printPickingList(btn, id, noPL) {

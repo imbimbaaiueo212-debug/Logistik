@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\CasdanaTransaction;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -1283,11 +1284,13 @@ public function printPrising(Request $request)
             ->update(['printed_at' => now(), 'updated_at' => now()]);
     }
 
-    return view('order-manual.modul.print-ra', [
-        'data'    => $data,
-        'title'   => 'RA Prising - Manual Modul',
-        'tipe'    => 'prising',
-    ]);
+    $pdf = Pdf::loadView('order-manual.modul.print-ra', [
+        'data'  => $data,
+        'title' => 'RA Prising - Manual Modul',
+        'tipe'  => 'prising',
+    ])->setPaper('a4', 'landscape');
+
+    return $pdf->stream('RA-Prising-Manual-Modul-' . now()->format('Ymd-His') . '.pdf');
 }
 
 public function printPemesanan(Request $request)
@@ -1297,11 +1300,16 @@ public function printPemesanan(Request $request)
         return back()->with('error', 'Tidak ada data.');
     }
 
-    return view('order-manual.modul.print-ra', [
+    $pdf = Pdf::loadView('order-manual.modul.print-ra-picking', [
         'data'  => $data,
         'title' => 'RA Picking - Manual Modul',
         'tipe'  => 'pemesanan',
-    ]);
+    ])->setPaper('a4', 'landscape');
+
+    $filename = 'RA-Picking-Manual-Modul-' . now()->format('Ymd-His') . '.pdf';
+
+    // View di browser (bukan download)
+    return $pdf->stream($filename);
 }
 
 public function printQc(Request $request)
