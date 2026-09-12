@@ -223,19 +223,6 @@
             </div>
             <div class="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 
-                <a href="{{ route('order.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover transition-all p-4 sm:p-5">
-                    <div class="menu-icon-wrap transition-transform inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-800">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 4h2l1.4 11.2A2 2 0 0 0 8.4 17h8.2a2 2 0 0 0 2-1.7L20 8H6"/>
-                            <circle cx="9.5" cy="20" r="1.3" fill="#ffffff" stroke="none"/>
-                            <circle cx="16.5" cy="20" r="1.3" fill="#ffffff" stroke="none"/>
-                        </svg>
-                    </div>
-                    <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Order</h3>
-                    <p class="mt-0.5 text-xs text-navy-950/45">Daftar pesanan masuk</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0 transition-all">Buka →</span>
-                </a>
-
                 <a href="{{ route('picking.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover transition-all p-4 sm:p-5">
                     <div class="menu-icon-wrap transition-transform inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-800">
                         <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -275,17 +262,6 @@
                     <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0 transition-all">Buka →</span>
                 </a>
 
-            </div>
-        </section>
-
-        {{-- ============ DISTRIBUSI ============ --}}
-        <section class="mt-8 sm:mt-9">
-            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h2 class="text-base sm:text-lg font-semibold text-navy-950">Distribusi</h2>
-                <span class="hidden sm:inline text-xs text-navy-950/40">Pengiriman keluar area gudang</span>
-            </div>
-            <div class="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-
                 <a href="{{ route('distribution-order.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover transition-all p-4 sm:p-5">
                     <div class="menu-icon-wrap transition-transform inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rust-500">
                         <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -303,7 +279,6 @@
 
             </div>
         </section>
-
     </div>
 
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">

@@ -465,9 +465,9 @@ Route::post('/quotation/{id}/reject', [QuotationController::class, 'reject'])->n
 Route::post('/quotation/{id}/send', [QuotationController::class, 'send'])->name('quotation.send');
 
 // ====================== HOME & DASHBOARD ======================
-Route::get('/home', function () {
-    return view('home');
-})->middleware('auth')->name('home');
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])
+    ->middleware('auth')
+    ->name('home');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
