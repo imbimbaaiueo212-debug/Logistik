@@ -71,10 +71,40 @@
             Home
         </a>
 
-        <a href="{{ route('database-user.index') }}"
-           class="{{ request()->routeIs('database-user.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap">
-            Database User
-        </a>
+        {{-- ==================== DATABASE USER ==================== --}}
+        <div class="relative" id="databaseDropdown">
+            <button type="button" id="databaseBtn"
+                    class="{{ request()->routeIs([
+                        'user.export',
+                        'unit-kemitraan.*',
+                        'unit-kemitraan-user.*',
+                        'database-user.*',
+                    ]) ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap inline-flex items-center gap-1">
+                Database User
+                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+
+            <div id="databaseMenu"
+                 class="nav-dropdown-menu absolute left-0 top-full mt-2 w-60 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
+
+                <a href="{{ route('user.export') }}"
+                   class="block px-4 py-2.5 text-sm {{ request()->routeIs('user.export') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                    👥 User biMBA Shop
+                </a>
+
+                <a href="{{ route('unit-kemitraan.index') }}"
+                   class="block px-4 py-2.5 text-sm {{ request()->routeIs('unit-kemitraan.*') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                    🏢 Unit Kemitraan
+                </a>
+
+                <a href="{{ route('unit-kemitraan-user.index') }}"
+                   class="block px-4 py-2.5 text-sm {{ request()->routeIs('unit-kemitraan-user.*') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                    🔗 Unit + User Matching
+                </a>
+            </div>
+        </div>
 
         {{-- ==================== ORDER ==================== --}}
         <div class="relative" id="orderDropdown">
@@ -101,7 +131,6 @@
                 </svg>
             </button>
 
-            {{-- Level 1 --}}
             <div id="orderMenu"
                  class="nav-dropdown-menu absolute left-0 top-full mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
 
@@ -141,7 +170,6 @@
                                     Data Order Unit Stokis Aktif
                                 </a>
 
-                                {{-- Data Order Unit Stokis Pasif --}}
                                 <div class="nav-has-children" id="unitPasifItem">
                                     <button type="button"
                                             class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
@@ -153,7 +181,6 @@
 
                                     <div class="nav-submenu bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50" id="unitPasifSubmenu" style="min-width: 220px;">
 
-                                        {{-- Jakarta Aktif (ACCORDION) --}}
                                         <div id="jakartaAktifItem">
                                             <button type="button" id="jakartaAktifBtn"
                                                     class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
@@ -221,7 +248,6 @@
 
                             <div class="nav-submenu bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50" id="majalahSubmenu" style="min-width: 260px;">
 
-                                {{-- OPS2 (ACCORDION) --}}
                                 <div id="ops2Item">
                                     <button type="button" id="ops2Btn"
                                             class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
@@ -252,7 +278,6 @@
                                     DLC
                                 </a>
 
-                                {{-- Unit Pasif (ACCORDION) --}}
                                 <div id="unitPasifManualItem">
                                     <button type="button" id="unitPasifManualBtn"
                                             class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
@@ -312,25 +337,145 @@
             </div>
         </div>
 
-        <a href="{{ route('picking.index') }}"
-           class="{{ request()->routeIs('picking.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap">
-            Picking
-        </a>
+        {{-- ==================== PROSES ==================== --}}
+        <div class="relative" id="prosesDropdown">
+            <button type="button" id="prosesBtn"
+                    class="{{ request()->routeIs([
+                        'picking.*',
+                        'qc-outgoing.*',
+                        'packing.*',
+                        'distribution-order.*',
+                    ]) ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap inline-flex items-center gap-1">
+                Proses
+                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
 
-        <a href="{{ route('qc-outgoing.index') }}"
-           class="{{ request()->routeIs('qc-outgoing.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap">
-            QC Outgoing
-        </a>
+            <div id="prosesMenu"
+                 class="nav-dropdown-menu absolute left-0 top-full mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
 
-        <a href="{{ route('packing.index') }}"
-           class="{{ request()->routeIs('packing.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap">
-            Packing
-        </a>
+                {{-- Picking --}}
+                <div class="nav-has-children" id="pickingItem">
+                    <button type="button"
+                            class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
+                        <span>Picking</span>
+                        <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
 
-        <a href="{{ route('distribution-order.index') }}"
-           class="{{ request()->routeIs('distribution-order.*') ? 'text-blue-600 font-semibold' : 'text-gray-700' }} hover:text-blue-600 whitespace-nowrap">
-            Distribution
-        </a>
+                    <div class="nav-submenu bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50" id="pickingSubmenu" style="min-width: 240px;">
+                        <a href="{{ route('picking.jakarta.aktif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('picking.jakarta.aktif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Jakarta Aktif
+                        </a>
+                        <a href="{{ route('picking.jakarta.pasif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('picking.jakarta.pasif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Jakarta Pasif
+                        </a>
+                        <a href="#" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">📦 InterVio (DLC)</a>
+                        <a href="#" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">📦 English biMBA Talk</a>
+                        <a href="{{ route('picking.order-manual') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('picking.order-manual') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📝 Order Manual
+                        </a>
+                    </div>
+                </div>
+
+                {{-- QC Outgoing --}}
+                <div class="nav-has-children" id="qcOutgoingItem">
+                    <button type="button"
+                            class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
+                        <span>QC Outgoing</span>
+                        <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <div class="nav-submenu bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50" id="qcOutgoingSubmenu" style="min-width: 240px;">
+                        <a href="{{ route('qc-outgoing.jakarta-aktif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('qc-outgoing.jakarta-aktif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Jakarta Aktif
+                        </a>
+                        <a href="{{ route('qc-outgoing.jakarta-pasif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('qc-outgoing.jakarta-pasif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Jakarta Pasif
+                        </a>
+                        <a href="#" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">📦 InterVio (DLC)</a>
+                        <a href="#" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">📦 English biMBA Talk</a>
+                        <a href="{{ route('qc-outgoing.order-manual') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('qc-outgoing.order-manual') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📋 Order Manual
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Packing --}}
+                <div class="nav-has-children" id="packingItem">
+                    <button type="button"
+                            class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
+                        <span>Packing</span>
+                        <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <div class="nav-submenu bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50" id="packingSubmenu" style="min-width: 240px;">
+                        <a href="{{ route('packing.jakarta.aktif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('packing.jakarta.aktif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Jakarta Aktif
+                        </a>
+                        <a href="{{ route('packing.jakarta-pasif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('packing.jakarta-pasif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Jakarta Pasif
+                        </a>
+                        <a href="#" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">📦 InterVio (DLC)</a>
+                        <a href="#" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">📦 English biMBA Talk</a>
+                        <a href="{{ route('packing.order-manual') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('packing.order-manual') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📋 Order Manual
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Distribution --}}
+                <div class="nav-has-children" id="distributionItem">
+                    <button type="button"
+                            class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between">
+                        <span>Distribution</span>
+                        <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <div class="nav-submenu bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50" id="distributionSubmenu" style="min-width: 240px;">
+                        <a href="{{ route('distribution-order.jakarta-aktif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('distribution-order.jakarta-aktif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            🚚 Jakarta Aktif
+                        </a>
+                        <a href="{{ route('distribution-order.jakarta-pasif') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('distribution-order.jakarta-pasif') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            🚚 Jakarta Pasif
+                        </a>
+                        <a href="{{ route('distribution-order.intervio') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('distribution-order.intervio') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            🚚 InterVio (DLC)
+                        </a>
+                        <a href="{{ route('distribution-order.ebt') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('distribution-order.ebt') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            🚚 English biMBA Talk
+                        </a>
+                        <a href="{{ route('distribution-order.manual') }}"
+                           class="block px-4 py-2.5 text-sm {{ request()->routeIs('distribution-order.manual') ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700' }} hover:bg-blue-50 hover:text-blue-700">
+                            📦 Manual
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
     {{-- User + Logout --}}
@@ -352,6 +497,11 @@
 
 <script>
 (function () {
+    // Database User
+    const databaseBtn  = document.getElementById('databaseBtn');
+    const databaseMenu = document.getElementById('databaseMenu');
+
+    // Order
     const orderBtn         = document.getElementById('orderBtn');
     const orderMenu        = document.getElementById('orderMenu');
     const bsItem           = document.getElementById('bsItem');
@@ -364,6 +514,18 @@
     const manualSubmenu    = document.getElementById('manualSubmenu');
     const majalahItem      = document.getElementById('majalahItem');
     const majalahSubmenu   = document.getElementById('majalahSubmenu');
+
+    // Proses
+    const prosesBtn          = document.getElementById('prosesBtn');
+    const prosesMenu         = document.getElementById('prosesMenu');
+    const pickingItem        = document.getElementById('pickingItem');
+    const pickingSubmenu     = document.getElementById('pickingSubmenu');
+    const qcOutgoingItem     = document.getElementById('qcOutgoingItem');
+    const qcOutgoingSubmenu  = document.getElementById('qcOutgoingSubmenu');
+    const packingItem        = document.getElementById('packingItem');
+    const packingSubmenu     = document.getElementById('packingSubmenu');
+    const distributionItem   = document.getElementById('distributionItem');
+    const distributionSubmenu= document.getElementById('distributionSubmenu');
 
     // Accordions
     const jakartaAktifBtn     = document.getElementById('jakartaAktifBtn');
@@ -378,39 +540,110 @@
     const unitPasifManualContent = document.getElementById('unitPasifManualContent');
     const unitPasifManualArrow   = document.getElementById('unitPasifManualArrow');
 
-    if (!orderBtn || !orderMenu) return;
+    // ===== Database User =====
+    if (databaseBtn && databaseMenu) {
+        databaseBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const isOpen = databaseMenu.classList.contains('open');
+            closeAll();
+            if (!isOpen) databaseMenu.classList.add('open');
+        });
 
-    // Klik Order
-    orderBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        const isOpen = orderMenu.classList.contains('open');
-        closeAll();
-        if (!isOpen) orderMenu.classList.add('open');
-    });
+        databaseMenu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
 
-    // Hover side menus
-    bsItem.addEventListener('mouseenter', function () {
-        closeSideSubmenus();
-        bsSubmenu.classList.add('open');
-    });
+    // ===== Order =====
+    if (orderBtn && orderMenu) {
+        orderBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const isOpen = orderMenu.classList.contains('open');
+            closeAll();
+            if (!isOpen) orderMenu.classList.add('open');
+        });
 
-    rekapItem.addEventListener('mouseenter', function () {
-        rekapSubmenu.classList.add('open');
-        unitPasifSubmenu.classList.remove('open');
-    });
+        orderMenu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
 
-    unitPasifItem.addEventListener('mouseenter', function () {
-        unitPasifSubmenu.classList.add('open');
-    });
+    // ===== Proses =====
+    if (prosesBtn && prosesMenu) {
+        prosesBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const isOpen = prosesMenu.classList.contains('open');
+            closeAll();
+            if (!isOpen) prosesMenu.classList.add('open');
+        });
 
-    manualItem.addEventListener('mouseenter', function () {
-        closeSideSubmenus();
-        manualSubmenu.classList.add('open');
-    });
+        prosesMenu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
 
-    majalahItem.addEventListener('mouseenter', function () {
-        majalahSubmenu.classList.add('open');
-    });
+    // Hover side menus - ORDER
+    if (bsItem) {
+        bsItem.addEventListener('mouseenter', function () {
+            closeSideSubmenus();
+            bsSubmenu.classList.add('open');
+        });
+    }
+
+    if (rekapItem) {
+        rekapItem.addEventListener('mouseenter', function () {
+            rekapSubmenu.classList.add('open');
+            unitPasifSubmenu.classList.remove('open');
+        });
+    }
+
+    if (unitPasifItem) {
+        unitPasifItem.addEventListener('mouseenter', function () {
+            unitPasifSubmenu.classList.add('open');
+        });
+    }
+
+    if (manualItem) {
+        manualItem.addEventListener('mouseenter', function () {
+            closeSideSubmenus();
+            manualSubmenu.classList.add('open');
+        });
+    }
+
+    if (majalahItem) {
+        majalahItem.addEventListener('mouseenter', function () {
+            majalahSubmenu.classList.add('open');
+        });
+    }
+
+    // Hover side menus - PROSES
+    if (pickingItem && pickingSubmenu) {
+        pickingItem.addEventListener('mouseenter', function () {
+            closeProsesSideSubmenus();
+            pickingSubmenu.classList.add('open');
+        });
+    }
+
+    if (qcOutgoingItem && qcOutgoingSubmenu) {
+        qcOutgoingItem.addEventListener('mouseenter', function () {
+            closeProsesSideSubmenus();
+            qcOutgoingSubmenu.classList.add('open');
+        });
+    }
+
+    if (packingItem && packingSubmenu) {
+        packingItem.addEventListener('mouseenter', function () {
+            closeProsesSideSubmenus();
+            packingSubmenu.classList.add('open');
+        });
+    }
+
+    if (distributionItem && distributionSubmenu) {
+        distributionItem.addEventListener('mouseenter', function () {
+            closeProsesSideSubmenus();
+            distributionSubmenu.classList.add('open');
+        });
+    }
 
     // Helper accordion
     function toggleAccordion(content, arrow) {
@@ -424,7 +657,6 @@
         }
     }
 
-    // Accordion Jakarta Aktif
     if (jakartaAktifBtn) {
         jakartaAktifBtn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -432,7 +664,6 @@
         });
     }
 
-    // Accordion OPS2
     if (ops2Btn) {
         ops2Btn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -440,7 +671,6 @@
         });
     }
 
-    // Accordion Unit Pasif (Manual)
     if (unitPasifManualBtn) {
         unitPasifManualBtn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -448,29 +678,34 @@
         });
     }
 
-    // Klik di dalam menu jangan tutup
-    orderMenu.addEventListener('click', function (e) {
-        e.stopPropagation();
-    });
-
     // Klik di luar → tutup semua
     document.addEventListener('click', function () {
         closeAll();
     });
 
     function closeSideSubmenus() {
-        bsSubmenu.classList.remove('open');
-        rekapSubmenu.classList.remove('open');
-        unitPasifSubmenu.classList.remove('open');
-        manualSubmenu.classList.remove('open');
-        majalahSubmenu.classList.remove('open');
+        if (bsSubmenu) bsSubmenu.classList.remove('open');
+        if (rekapSubmenu) rekapSubmenu.classList.remove('open');
+        if (unitPasifSubmenu) unitPasifSubmenu.classList.remove('open');
+        if (manualSubmenu) manualSubmenu.classList.remove('open');
+        if (majalahSubmenu) majalahSubmenu.classList.remove('open');
+    }
+
+    function closeProsesSideSubmenus() {
+        if (pickingSubmenu) pickingSubmenu.classList.remove('open');
+        if (qcOutgoingSubmenu) qcOutgoingSubmenu.classList.remove('open');
+        if (packingSubmenu) packingSubmenu.classList.remove('open');
+        if (distributionSubmenu) distributionSubmenu.classList.remove('open');
     }
 
     function closeAll() {
-        orderMenu.classList.remove('open');
-        closeSideSubmenus();
+        if (databaseMenu) databaseMenu.classList.remove('open');
+        if (orderMenu) orderMenu.classList.remove('open');
+        if (prosesMenu) prosesMenu.classList.remove('open');
 
-        // Tutup semua accordion
+        closeSideSubmenus();
+        closeProsesSideSubmenus();
+
         [jakartaAktifContent, ops2Content, unitPasifManualContent].forEach(el => {
             if (el) el.classList.remove('open');
         });

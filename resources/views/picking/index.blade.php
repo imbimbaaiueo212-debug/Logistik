@@ -18,10 +18,6 @@
             <div class="p-8">
                 <div class="flex justify-between items-center mb-8">
                     <h2 class="text-3xl font-bold text-gray-800">Picking List</h2>
-                    <a href="{{ route('picking.create') }}" 
-                       class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-medium flex items-center gap-2">
-                        + Buat Picking Baru
-                    </a>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

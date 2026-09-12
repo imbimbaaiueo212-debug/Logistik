@@ -24,11 +24,6 @@
                         <h2 class="text-3xl font-bold text-gray-800">DATABASE</h2>
                         <p class="text-gray-500 mt-1">Pusat Pengelolaan Data User & Kemitraan</p>
                     </div>
-                    
-                    <a href="{{ route('user.export') }}" 
-                       class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-medium flex items-center gap-2">
-                        📤 Export User Baru
-                    </a>
                 </div>
 
                 <!-- Grid Cards -->
