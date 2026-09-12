@@ -1,9 +1,25 @@
 <style>
+/* ===========================================================
+   DROPDOWN & MEGAMENU: dari display:none/block -> animasi
+   fade + slide halus (transisi butuh opacity/transform, bukan display)
+   =========================================================== */
 .nav-dropdown-menu {
-    display: none;
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
 }
 .nav-dropdown-menu.open {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-dropdown-menu { transition: none; }
 }
 
 .nav-item-active {
@@ -14,6 +30,36 @@
 .nav-link-active {
     color: #E85D2A;
     font-weight: 600;
+}
+
+/* ===== Garis bawah animasi di link nav utama ===== */
+.nav-link-underline {
+    position: relative;
+}
+.nav-link-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 2px;
+    border-radius: 2px;
+    background: #E85D2A;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+}
+.nav-link-underline:hover::after,
+.nav-link-underline.nav-link-active::after {
+    transform: scaleX(1);
+}
+
+/* ===== Chevron ikut berputar saat dropdown/megamenu terbuka ===== */
+.nav-chevron {
+    transition: transform 0.22s ease;
+}
+.nav-btn-open .nav-chevron {
+    transform: rotate(180deg);
 }
 
 /* Megamenu */
@@ -50,10 +96,12 @@
     border: none;
     cursor: pointer;
     width: 100%;
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease, padding-left 0.18s ease;
 }
 .mega-link:hover {
     background-color: #FBECE4;
     color: #D14E1F;
+    transform: translateX(2px);
 }
 .mega-link.indent {
     padding-left: 16px;
@@ -75,18 +123,91 @@
     flex-shrink: 0;
 }
 
-/* Hidden columns */
-#unitPasifColumn.hidden,
-#majalahColumn.hidden {
-    display: none;
+/* ===== Kolom-kolom megamenu muncul bertahap (stagger fade+slide) saat menu open ===== */
+@keyframes megaColIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
+.nav-dropdown-menu .nav-mega-inner > * {
+    opacity: 0;
+}
+.nav-dropdown-menu.open .nav-mega-inner > * {
+    animation: megaColIn 0.32s cubic-bezier(.22,.9,.32,1) forwards;
+}
+.nav-dropdown-menu.open .nav-mega-inner > *:nth-child(1) { animation-delay: 0.02s; }
+.nav-dropdown-menu.open .nav-mega-inner > *:nth-child(2) { animation-delay: 0.06s; }
+.nav-dropdown-menu.open .nav-mega-inner > *:nth-child(3) { animation-delay: 0.10s; }
+.nav-dropdown-menu.open .nav-mega-inner > *:nth-child(4) { animation-delay: 0.14s; }
+.nav-dropdown-menu.open .nav-mega-inner > *:nth-child(5) { animation-delay: 0.18s; }
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-dropdown-menu .nav-mega-inner > *,
+    .nav-dropdown-menu.open .nav-mega-inner > * {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+/* Dropdown biasa (Database User) juga sedikit stagger pada tiap link */
+.nav-dropdown-menu:not(.nav-mega) a {
+    opacity: 0;
+}
+.nav-dropdown-menu.open:not(.nav-mega) a {
+    animation: megaColIn 0.22s ease forwards;
+}
+.nav-dropdown-menu.open:not(.nav-mega) a:nth-child(1) { animation-delay: 0.02s; }
+.nav-dropdown-menu.open:not(.nav-mega) a:nth-child(2) { animation-delay: 0.06s; }
+.nav-dropdown-menu.open:not(.nav-mega) a:nth-child(3) { animation-delay: 0.10s; }
+
+/* ===== Kolom expand (Unit Stokis Pasif / Majalah) dengan smooth height ===== */
 #unitPasifColumn,
 #majalahColumn {
     display: block;
+    overflow: hidden;
+    max-height: 800px;
+    opacity: 1;
+    transition: max-height 0.32s ease, opacity 0.25s ease, margin 0.32s ease;
+}
+#unitPasifColumn.hidden,
+#majalahColumn.hidden {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #unitPasifColumn, #majalahColumn { transition: none; }
+}
+
+/* Panah "»" kecil di tombol expand (Unit Stokis Pasif / Majalah) berputar saat terbuka */
+#toggleUnitPasifBtn, #toggleMajalahBtn {
+    transition: color 0.18s ease;
+}
+
+/* ===== Logo & nav masuk halus saat halaman dimuat ===== */
+@keyframes navFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.nav-enter {
+    animation: navFadeIn 0.45s ease forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+    .nav-enter { animation: none; }
+}
+
+/* ===== Tombol Logout: sedikit "tekan" saat diklik ===== */
+.btn-logout {
+    transition: background-color 0.2s ease, transform 0.12s ease;
+}
+.btn-logout:active {
+    transform: scale(0.96);
 }
 </style>
 
-<nav class="relative bg-white border-b border-[#E4E8F0] py-3.5 px-6 flex items-center justify-between shadow-sm"
+<nav class="nav-enter relative z-50 bg-white border-b border-[#E4E8F0] py-3.5 px-6 flex items-center justify-between shadow-sm"
      style="font-family: 'Poppins', sans-serif;">
 
     {{-- Logo --}}
@@ -100,11 +221,11 @@
     <div class="flex items-center gap-5 text-sm font-medium flex-wrap justify-center">
 
         <a href="{{ route('home') }}"
-           class="{{ request()->routeIs('home') ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap transition-colors">
+           class="nav-link-underline {{ request()->routeIs('home') ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap transition-colors">
             Home
         </a>
         <a href="{{ route('dashboard') }}"
-           class="{{ request()->routeIs('dashboard') ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap transition-colors">
+           class="nav-link-underline {{ request()->routeIs('dashboard') ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap transition-colors">
             Database Master Gudang
         </a>
 
@@ -118,7 +239,7 @@
                         'database-user.*',
                     ]) ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap inline-flex items-center gap-1 transition-colors">
                 Database User
-                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="nav-chevron w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
@@ -161,7 +282,7 @@
                         'import.report-angka-cetak',
                     ]) ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap inline-flex items-center gap-1 transition-colors">
                 Order
-                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="nav-chevron w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
@@ -280,7 +401,7 @@
                         'distribution-order.*',
                     ]) ? 'nav-link-active' : 'text-[#28304A]' }} hover:text-[#E85D2A] whitespace-nowrap inline-flex items-center gap-1 transition-colors">
                 Proses
-                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="nav-chevron w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
@@ -354,7 +475,7 @@
         </span>
         <a href="{{ route('logout') }}"
            onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-           class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all whitespace-nowrap">
+           class="btn-logout bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl text-sm font-medium text-white whitespace-nowrap">
             LOGOUT
         </a>
     </div>
@@ -381,40 +502,32 @@
     const toggleMajalahBtn   = document.getElementById('toggleMajalahBtn');
     const majalahColumn      = document.getElementById('majalahColumn');
 
-    function toggle(menu) {
+    // Pasangan tombol <-> menu, dipakai untuk urus animasi chevron (rotate saat open)
+    const pairs = [
+        { btn: databaseBtn, menu: databaseMenu },
+        { btn: orderBtn,    menu: orderMenu },
+        { btn: prosesBtn,   menu: prosesMenu },
+    ];
+
+    function toggle(menu, btn) {
         const isOpen = menu.classList.contains('open');
         closeAll();
-        if (!isOpen) menu.classList.add('open');
+        if (!isOpen) {
+            menu.classList.add('open');
+            if (btn) btn.classList.add('nav-btn-open');
+        }
     }
 
-    // Database User
-    if (databaseBtn && databaseMenu) {
-        databaseBtn.addEventListener('click', function (e) {
+    pairs.forEach(function (pair) {
+        if (!pair.btn || !pair.menu) return;
+        pair.btn.addEventListener('click', function (e) {
             e.stopPropagation();
-            toggle(databaseMenu);
+            toggle(pair.menu, pair.btn);
         });
-        databaseMenu.addEventListener('click', function (e) { e.stopPropagation(); });
-    }
+        pair.menu.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
 
-    // Order
-    if (orderBtn && orderMenu) {
-        orderBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            toggle(orderMenu);
-        });
-        orderMenu.addEventListener('click', function (e) { e.stopPropagation(); });
-    }
-
-    // Proses
-    if (prosesBtn && prosesMenu) {
-        prosesBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            toggle(prosesMenu);
-        });
-        prosesMenu.addEventListener('click', function (e) { e.stopPropagation(); });
-    }
-
-    // Toggle Unit Stokis Pasif
+    // Toggle Unit Stokis Pasif (animasi height via CSS class .hidden)
     if (toggleUnitPasifBtn && unitPasifColumn) {
         toggleUnitPasifBtn.addEventListener('click', function (e) {
             e.preventDefault();
@@ -443,9 +556,10 @@
     });
 
     function closeAll() {
-        if (databaseMenu) databaseMenu.classList.remove('open');
-        if (orderMenu) orderMenu.classList.remove('open');
-        if (prosesMenu) prosesMenu.classList.remove('open');
+        pairs.forEach(function (pair) {
+            if (pair.menu) pair.menu.classList.remove('open');
+            if (pair.btn) pair.btn.classList.remove('nav-btn-open');
+        });
 
         // Reset kolom yang bisa di-expand
         if (unitPasifColumn) unitPasifColumn.classList.add('hidden');
