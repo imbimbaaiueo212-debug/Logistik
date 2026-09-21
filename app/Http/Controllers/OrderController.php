@@ -4232,4 +4232,20 @@ public function printEkspedisiPasif(Request $request)
     return $pdf->stream('Ekspedisi-Report-Pasif-' . now()->format('d-m-Y_H-i') . '.pdf');
 }
 
+public function printTandaTerima($id)
+{
+    $item = RealisasiAktif::findOrFail($id);
+
+    $pdf = Pdf::loadView('order.tanda-terima-pdf', [
+        'no_pl'     => $item->no_pl,
+        'nama_unit' => $item->nama_unit,
+    ])
+    ->setPaper('a6', 'portrait')
+    ->setOptions([
+        'defaultFont'          => 'sans-serif',
+        'isHtml5ParserEnabled' => true,
+    ]);
+
+    return $pdf->stream('Tanda-Terima-' . ($item->no_pl ?? $item->id) . '.pdf');
+}
 }

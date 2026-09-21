@@ -308,6 +308,8 @@ Route::prefix('order')
         Route::get('/realisasi/print-packing-all', [OrderController::class, 'printPackingAll'])->name('print-packing-all');
         Route::get('/realisasi/print-ekspedisi-all', [OrderController::class, 'printEkspedisiAll'])->name('print-ekspedisi-all');
         Route::get('/realisasi/print-ra-all', [OrderController::class, 'printRealisasiAll'])->name('print-ra-all');
+        Route::get('/realisasi/tanda-terima/{id}', [OrderController::class, 'printTandaTerima'])
+    ->name('realisasi.tanda-terima');
     });
 
 // Di luar group (path penuh)

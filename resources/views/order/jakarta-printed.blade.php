@@ -311,14 +311,27 @@
                                 </td>
 
                                 <td class="text-center">
-                                    <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
-                                            class="action-btn text-2xl {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
-                                        @if($item->picking_printed_at)
-                                            <i class="fa-solid fa-file-pdf"></i>
-                                        @else
-                                            <i class="fa-solid fa-print"></i>
-                                        @endif
-                                    </button>
+                                    <div class="flex items-center justify-center gap-4">
+
+                                        {{-- Picking List (tetap seperti semula) --}}
+                                        <button onclick="printPickingList(this, {{ $item->id }}, '{{ $item->no_pl }}')"
+                                                class="action-btn text-2xl {{ $item->picking_printed_at ? 'text-purple-600' : 'text-blue-600 hover:text-blue-700' }}">
+                                            @if($item->picking_printed_at)
+                                                <i class="fa-solid fa-file-pdf"></i>
+                                            @else
+                                                <i class="fa-solid fa-print"></i>
+                                            @endif
+                                        </button>
+
+                                        {{-- Tanda Terima Produk (A6) --}}
+                                        <a href="{{ route('order.realisasi.tanda-terima', $item->id) }}"
+                                        target="_blank"
+                                        title="Cetak Tanda Terima Produk"
+                                        class="text-2xl text-emerald-600 hover:text-emerald-700">
+                                            <i class="fa-solid fa-receipt"></i>
+                                        </a>
+
+                                    </div>
                                 </td>
                             </tr>
                             @endforeach
