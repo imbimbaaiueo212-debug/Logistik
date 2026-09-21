@@ -31,7 +31,6 @@
     font-weight: 600;
 }
 
-/* ===== Chevron ===== */
 .nav-chevron {
     transition: transform 0.22s ease;
 }
@@ -39,13 +38,9 @@
     transform: rotate(180deg);
 }
 
-/* Megamenu */
-.nav-mega {
-    width: 100%;
-}
-.nav-mega-inner {
-    max-width: 1180px;
-}
+.nav-mega { width: 100%; }
+.nav-mega-inner { max-width: 1180px; }
+
 .mega-col-label {
     font-size: 11px;
     font-weight: 700;
@@ -100,14 +95,55 @@
     flex-shrink: 0;
 }
 
-/* Stagger animation */
+/* Toggle label (biMBA Shop / Rekap) */
+.mega-col-toggle {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8892A8;
+    margin-bottom: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.mega-col-toggle:hover { color: #E85D2A; }
+.mega-col-toggle .nav-chevron {
+    width: 12px;
+    height: 12px;
+    opacity: 0.55;
+    flex-shrink: 0;
+}
+.mega-col-toggle.open .nav-chevron {
+    transform: rotate(180deg);
+}
+.mega-col-toggle.open { color: #E85D2A; }
+
+.mega-collapsible {
+    overflow: hidden;
+    max-height: 500px;
+    opacity: 1;
+    transition: max-height 0.28s ease, opacity 0.2s ease;
+}
+.mega-collapsible.hidden {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+    margin: 0;
+}
+
 @keyframes megaColIn {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.nav-dropdown-menu .nav-mega-inner > * {
-    opacity: 0;
-}
+.nav-dropdown-menu .nav-mega-inner > * { opacity: 0; }
 .nav-dropdown-menu.open .nav-mega-inner > * {
     animation: megaColIn 0.32s cubic-bezier(.22,.9,.32,1) forwards;
 }
@@ -124,11 +160,10 @@
         opacity: 1 !important;
         transform: none !important;
     }
+    .mega-collapsible { transition: none; }
 }
 
-.nav-dropdown-menu:not(.nav-mega) a {
-    opacity: 0;
-}
+.nav-dropdown-menu:not(.nav-mega) a { opacity: 0; }
 .nav-dropdown-menu.open:not(.nav-mega) a {
     animation: megaColIn 0.22s ease forwards;
 }
@@ -136,7 +171,6 @@
 .nav-dropdown-menu.open:not(.nav-mega) a:nth-child(2) { animation-delay: 0.06s; }
 .nav-dropdown-menu.open:not(.nav-mega) a:nth-child(3) { animation-delay: 0.10s; }
 
-/* Expand columns */
 #unitPasifColumn,
 #majalahColumn {
     display: block;
@@ -153,17 +187,11 @@
     pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    #unitPasifColumn, #majalahColumn { transition: none; }
-}
-
-/* ===== CoLabs style ===== */
 .nav-wrapper {
     position: relative;
     z-index: 50;
     padding: 16px 24px 0;
 }
-
 .nav-pill {
     display: flex;
     align-items: center;
@@ -175,12 +203,7 @@
     max-width: 1200px;
     margin: 0 auto;
 }
-
-.nav-logo {
-    flex-shrink: 0;
-    padding-right: 8px;
-}
-
+.nav-logo { flex-shrink: 0; padding-right: 8px; }
 .nav-links-pill {
     display: flex;
     align-items: center;
@@ -189,7 +212,6 @@
     border-radius: 9999px;
     padding: 6px 10px;
 }
-
 .nav-links-pill a,
 .nav-links-pill button {
     font-size: 13.5px;
@@ -206,13 +228,11 @@
     align-items: center;
     gap: 4px;
 }
-
 .nav-links-pill a:hover,
 .nav-links-pill button:hover {
     background: rgba(255,255,255,0.7);
     color: #E85D2A;
 }
-
 .nav-links-pill a.nav-link-active,
 .nav-links-pill button.nav-link-active {
     background: #fff;
@@ -220,7 +240,6 @@
     font-weight: 600;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
-
 .nav-right {
     display: flex;
     align-items: center;
@@ -228,7 +247,6 @@
     padding-left: 12px;
     padding-right: 6px;
 }
-
 .btn-logout {
     background: #E85D2A;
     color: #fff;
@@ -239,21 +257,14 @@
     transition: background-color 0.2s ease, transform 0.12s ease;
     white-space: nowrap;
 }
-.btn-logout:hover {
-    background: #D14E1F;
-}
-.btn-logout:active {
-    transform: scale(0.96);
-}
+.btn-logout:hover { background: #D14E1F; }
+.btn-logout:active { transform: scale(0.96); }
 
-/* Entrance animation */
 @keyframes navFadeIn {
     from { opacity: 0; transform: translateY(-8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.nav-enter {
-    animation: navFadeIn 0.45s ease forwards;
-}
+.nav-enter { animation: navFadeIn 0.45s ease forwards; }
 @media (prefers-reduced-motion: reduce) {
     .nav-enter { animation: none; }
 }
@@ -261,39 +272,27 @@
 
 <div class="nav-wrapper nav-enter" style="font-family: 'Poppins', sans-serif;">
     <nav class="nav-pill">
-
-        {{-- Logo --}}
         <div class="nav-logo">
-            <img src="/public/assets/img/logotulisan.png"
-                 alt="biMBA-AIUEO"
-                 class="h-8 w-auto object-contain">
+            <img src="/public/assets/img/logotulisan.png" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
         </div>
 
-        {{-- Menu Links (pill) --}}
         <div class="nav-links-pill">
+            <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'nav-link-active' : '' }}">Home</a>
 
-            <a href="{{ route('home') }}"
-               class="{{ request()->routeIs('home') ? 'nav-link-active' : '' }}">
-                Home
-            </a>
-
-            <a href="{{ route('dashboard') }}"
-               class="{{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">
-                Database Master Gudang
-            </a>
-
-            {{-- Database User --}}
             <div class="relative" id="databaseDropdown">
                 <button type="button" id="databaseBtn"
-                        class="{{ request()->routeIs(['user.export','unit-kemitraan.*','unit-kemitraan-user.*','database-user.*']) ? 'nav-link-active' : '' }}">
+                        class="{{ request()->routeIs(['dashboard','user.export','unit-kemitraan.*','unit-kemitraan-user.*','database-user.*']) ? 'nav-link-active' : '' }}">
                     Database User
                     <svg class="nav-chevron w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-
                 <div id="databaseMenu"
                      class="nav-dropdown-menu absolute left-0 top-full mt-3 w-60 bg-white border border-[#E4E8F0] rounded-2xl shadow-xl py-2 z-50">
+                    <a href="{{ route('dashboard') }}"
+                       class="block px-4 py-2.5 text-sm {{ request()->routeIs('dashboard') ? 'nav-item-active' : 'text-[#28304A]' }} hover:bg-[#FBECE4] hover:text-[#D14E1F] rounded-lg mx-1">
+                        Database Master Gudang
+                    </a>
                     <a href="{{ route('user.export') }}"
                        class="block px-4 py-2.5 text-sm {{ request()->routeIs('user.export') ? 'nav-item-active' : 'text-[#28304A]' }} hover:bg-[#FBECE4] hover:text-[#D14E1F] rounded-lg mx-1">
                         User biMBA Shop
@@ -309,7 +308,6 @@
                 </div>
             </div>
 
-            {{-- Order --}}
             <div class="relative" id="orderDropdown">
                 <button type="button" id="orderBtn"
                         class="{{ request()->routeIs([
@@ -325,7 +323,6 @@
                 </button>
             </div>
 
-            {{-- Proses --}}
             <div class="relative" id="prosesDropdown">
                 <button type="button" id="prosesBtn"
                         class="{{ request()->routeIs(['picking.*','qc-outgoing.*','packing.*','distribution-order.*']) ? 'nav-link-active' : '' }}">
@@ -335,53 +332,91 @@
                     </svg>
                 </button>
             </div>
-
         </div>
 
-        {{-- User + Logout --}}
         <div class="nav-right">
             <span class="text-sm text-[#28304A] font-medium whitespace-nowrap hidden lg:inline">
                 Halo, {{ Auth::user()->name ?? 'Admin' }}
             </span>
             <a href="{{ route('logout') }}"
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-               class="btn-logout">
-                LOGOUT
-            </a>
+               class="btn-logout">LOGOUT</a>
         </div>
-
     </nav>
 
-    {{-- ===== ORDER MEGAMENU (full width di bawah pill) ===== --}}
+    {{-- ===== ORDER MEGAMENU ===== --}}
     <div id="orderMenu"
          class="nav-mega nav-dropdown-menu absolute left-0 right-0 top-full mt-2 mx-6 bg-white border border-[#E4E8F0] rounded-2xl shadow-xl z-50">
         <div class="nav-mega-inner mx-auto px-8 py-7 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 max-h-[75vh] overflow-y-auto">
 
-            {{-- Kolom 1: BS --}}
+            {{-- Kolom 1: biMBA Shop (klikable) + Rekap (klikable) --}}
             <div>
-                <p class="mega-col-label">BS</p>
-                <a href="{{ route('import.bimbashop') }}" class="mega-link {{ request()->routeIs('import.bimbashop', 'import.bimbashop.*') ? 'nav-item-active' : '' }}">Bimba Shop</a>
-                <a href="{{ route('import.casdana') }}" class="mega-link {{ request()->routeIs('import.casdana', 'import.casdana.*') ? 'nav-item-active' : '' }}">Casdana</a>
-
-                <p class="mega-sub-label">Rekap</p>
-                <a href="{{ route('order.unit-aktif') }}" class="mega-link indent {{ request()->routeIs('order.unit-aktif') ? 'nav-item-active' : '' }}">Data Order Unit Stokis Aktif</a>
-
-                <button type="button" id="toggleUnitPasifBtn"
-                        class="mega-link indent {{ request()->routeIs(['order.jakarta-aktif', 'order.jakarta-aktif.*', 'order.jakarta-pasif']) ? 'nav-item-active' : '' }}">
-                    Data Order Unit Stokis Pasif >
+                {{-- biMBA Shop toggle --}}
+                <button type="button" class="mega-col-toggle" data-target="bimbashopItems" id="toggleBimbashopBtn">
+                    <span>biMBA Shop</span>
+                    <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
                 </button>
+                <div id="bimbashopItems" class="mega-collapsible hidden">
+                    <a href="{{ route('import.bimbashop') }}"
+                       class="mega-link {{ request()->routeIs('import.bimbashop', 'import.bimbashop.*') ? 'nav-item-active' : '' }}">
+                        Import biMBA Shop
+                    </a>
+                    <a href="{{ route('import.casdana') }}"
+                       class="mega-link {{ request()->routeIs('import.casdana', 'import.casdana.*') ? 'nav-item-active' : '' }}">
+                        Import Kasdana
+                    </a>
+                </div>
 
-                <a href="#" class="mega-link indent">Data Order Unit Distribution Point (Dropshipper)</a>
+                {{-- Rekap toggle --}}
+                <button type="button" class="mega-col-toggle" data-target="rekapItems" id="toggleRekapBtn" style="margin-top:14px;">
+                    <span>Rekap</span>
+                    <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="rekapItems" class="mega-collapsible hidden">
+                    <a href="{{ route('order.unit-aktif') }}"
+                       class="mega-link indent {{ request()->routeIs('order.unit-aktif') ? 'nav-item-active' : '' }}">
+                        Data Order Unit Stokis Aktif
+                    </a>
+                    <button type="button" id="toggleUnitPasifBtn"
+                            class="mega-link indent {{ request()->routeIs(['order.jakarta-aktif','order.jakarta-aktif.*','order.jakarta-pasif']) ? 'nav-item-active' : '' }}">
+                        Data Order Unit Stokis Pasif >
+                    </button>
+                    <a href="#" class="mega-link indent">
+                        Data Order Unit Distribution Point (Dropshipper)
+                    </a>
+                </div>
             </div>
 
-            {{-- Kolom 2: Unit Stokis Pasif --}}
+            {{-- Kolom 2: Unit Stokis Pasif detail --}}
             <div id="unitPasifColumn" class="hidden">
-                <p class="mega-col-label">BS &middot; REKAP &middot; UNIT STOKIS PASIF</p>
-                <p class="mega-sub-label" style="margin-top:0;">Jakarta Aktif</p>
-                <a href="{{ route('order.jakarta-aktif.realisasi') }}" class="mega-link indent {{ request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">Realisasi</a>
-                <a href="{{ route('order.jakarta-aktif') }}" class="mega-link indent {{ request()->routeIs('order.jakarta-aktif') && !request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">Rekap Aktual</a>
+                <p class="mega-col-label">REKAP · UNIT STOKIS PASIF</p>
 
-                <a href="{{ route('order.jakarta-pasif') }}" class="mega-link mt-2 {{ request()->routeIs('order.jakarta-pasif') ? 'nav-item-active' : '' }}">Jakarta Pasif</a>
+                {{-- Jakarta Aktif (klik) --}}
+                <button type="button" class="mega-col-toggle" data-target="jakartaAktifItems"
+                        id="toggleJakartaAktifBtn"
+                        style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:0;">
+                    <span>Jakarta Aktif</span>
+                    <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="jakartaAktifItems" class="mega-collapsible hidden">
+                    <a href="{{ route('order.jakarta-aktif.realisasi') }}"
+                    class="mega-link indent {{ request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">
+                        Realisasi
+                    </a>
+                    <a href="{{ route('order.jakarta-aktif') }}"
+                    class="mega-link indent {{ request()->routeIs('order.jakarta-aktif') && !request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">
+                        Rekap Aktual
+                    </a>
+                </div>
+
+                <a href="{{ route('order.jakarta-pasif') }}"
+                class="mega-link mt-2 {{ request()->routeIs('order.jakarta-pasif') ? 'nav-item-active' : '' }}">Jakarta Pasif</a>
                 <a href="#" class="mega-link">Logistik</a>
                 <a href="#" class="mega-link">Semarang</a>
                 <a href="#" class="mega-link">Surabaya</a>
@@ -398,27 +433,58 @@
                         class="mega-link {{ request()->routeIs(['pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*','import.dlc.*','import.pasif.*','import.manual','import.report-angka-cetak']) ? 'nav-item-active' : '' }}">
                     Majalah >
                 </button>
-                <a href="{{ route('order-manual-modul.index') }}" class="mega-link {{ request()->routeIs('order-manual-modul.*') || request()->is('order-manual-modul*') ? 'nav-item-active' : '' }}">Modul</a>
-                <a href="{{ route('order-manual-sertifikat.index') }}" class="mega-link {{ request()->routeIs('order-manual-sertifikat.*') || request()->is('order-manual-sertifikat*') ? 'nav-item-active' : '' }}">Sertifikat</a>
+                <a href="{{ route('order-manual-modul.index') }}"
+                   class="mega-link {{ request()->routeIs('order-manual-modul.*') || request()->is('order-manual-modul*') ? 'nav-item-active' : '' }}">Modul</a>
+                <a href="{{ route('order-manual-sertifikat.index') }}"
+                   class="mega-link {{ request()->routeIs('order-manual-sertifikat.*') || request()->is('order-manual-sertifikat*') ? 'nav-item-active' : '' }}">Sertifikat</a>
             </div>
 
             {{-- Kolom 4: Majalah Detail --}}
-            <div id="majalahColumn" class="hidden">
-                <p class="mega-col-label">MANUAL &middot; MAJALAH</p>
-                <p class="mega-sub-label" style="margin-top:0;">Unit Operasional 2 (OPS2)</p>
-                <a href="{{ route('pesanan-majalah.index') }}" class="mega-link indent {{ request()->routeIs('pesanan-majalah.*') && !request()->routeIs('pesanan-majalah-kotamadya.*') && !request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">KORWIL</a>
-                <a href="{{ route('pesanan-majalah-kotamadya.index') }}" class="mega-link indent {{ request()->routeIs('pesanan-majalah-kotamadya.*') ? 'nav-item-active' : '' }}">PINWIL</a>
-                <a href="{{ route('pesanan-majalah-puw1.index') }}" class="mega-link indent {{ request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">JABODETABEK (PUW1)</a>
-                <a href="{{ route('import.dlc.index') }}" class="mega-link mt-2 {{ request()->routeIs('import.dlc.*') ? 'nav-item-active' : '' }}">DLC</a>
-                <p class="mega-sub-label">Unit Pasif</p>
-                <a href="{{ route('import.pasif.list') }}" class="mega-link indent {{ request()->routeIs('import.pasif.list') ? 'nav-item-active' : '' }}">Unit Pasif</a>
-                <a href="{{ route('import.pasif.spare') }}" class="mega-link indent {{ request()->routeIs('import.pasif.spare') ? 'nav-item-active' : '' }}">Spare Pasif 3%</a>
-                <a href="{{ route('import.pasif.bacaan') }}" class="mega-link indent {{ request()->routeIs('import.pasif.bacaan') ? 'nav-item-active' : '' }}">Bacaan Unit</a>
-                <a href="{{ route('import.pasif.rekap') }}" class="mega-link indent {{ request()->routeIs('import.pasif.rekap') ? 'nav-item-active' : '' }}">Import</a>
-                <a href="{{ route('import.pasif.manual.index') }}" class="mega-link indent {{ request()->routeIs('import.pasif.manual.*') ? 'nav-item-active' : '' }}">Create Manual</a>
-                <a href="{{ route('import.report-angka-cetak') }}" class="mega-link indent {{ request()->routeIs('import.report-angka-cetak') ? 'nav-item-active' : '' }}">Report Angka Cetak</a>
-                <a href="{{ route('import.manual') }}" class="mega-link mt-2 {{ request()->routeIs('import.manual') ? 'nav-item-active' : '' }}">Manual Pemesanan</a>
-            </div>
+<div id="majalahColumn" class="hidden">
+    <p class="mega-col-label">MANUAL · MAJALAH</p>
+
+    {{-- OPS2 (klik) --}}
+    <button type="button" class="mega-col-toggle" data-target="ops2Items" id="toggleOps2Btn"
+            style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:0;">
+        <span>Unit Operasional 2 (OPS2)</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+    <div id="ops2Items" class="mega-collapsible hidden">
+        <a href="{{ route('pesanan-majalah.index') }}"
+           class="mega-link indent {{ request()->routeIs('pesanan-majalah.*') && !request()->routeIs('pesanan-majalah-kotamadya.*') && !request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">
+            KORWIL
+        </a>
+        <a href="{{ route('pesanan-majalah-kotamadya.index') }}"
+           class="mega-link indent {{ request()->routeIs('pesanan-majalah-kotamadya.*') ? 'nav-item-active' : '' }}">
+            PINWIL
+        </a>
+        <a href="{{ route('pesanan-majalah-puw1.index') }}"
+           class="mega-link indent {{ request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">
+            JABODETABEK (PUW1)
+        </a>
+    </div>
+
+    {{-- Unit Pasif (klik) --}}
+    <button type="button" class="mega-col-toggle" data-target="majalahPasifItems" id="toggleMajalahPasifBtn"
+            style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:12px;">
+        <span>Unit Pasif</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+    <div id="majalahPasifItems" class="mega-collapsible hidden">
+        <a href="{{ route('import.pasif.list') }}" class="mega-link indent {{ request()->routeIs('import.pasif.list') ? 'nav-item-active' : '' }}">Unit Pasif</a>
+        <a href="{{ route('import.dlc.index') }}" class="mega-link indent {{ request()->routeIs('import.dlc.*') ? 'nav-item-active' : '' }}">DLC / InterVio</a>
+        <a href="{{ route('import.pasif.spare') }}" class="mega-link indent {{ request()->routeIs('import.pasif.spare') ? 'nav-item-active' : '' }}">Spare Pasif 3%</a>
+        <a href="{{ route('import.pasif.bacaan') }}" class="mega-link indent {{ request()->routeIs('import.pasif.bacaan') ? 'nav-item-active' : '' }}">Bacaan Unit</a>
+        <a href="{{ route('import.pasif.rekap') }}" class="mega-link indent {{ request()->routeIs('import.pasif.rekap') ? 'nav-item-active' : '' }}">Import</a>
+        <a href="{{ route('import.pasif.manual.index') }}" class="mega-link indent {{ request()->routeIs('import.pasif.manual.*') ? 'nav-item-active' : '' }}">Create Manual</a>
+        <a href="{{ route('import.report-angka-cetak') }}" class="mega-link indent {{ request()->routeIs('import.report-angka-cetak') ? 'nav-item-active' : '' }}">Report Angka Cetak</a>
+        <a href="{{ route('import.manual') }}" class="mega-link indent {{ request()->routeIs('import.manual') ? 'nav-item-active' : '' }}">Manual Pemesanan</a>
+    </div>
+</div>
 
             {{-- Kolom 5: Highlight --}}
             <div class="rounded-2xl p-5 flex flex-col justify-between" style="background: linear-gradient(150deg, #162749, #0F1B33);">
@@ -438,7 +504,6 @@
     <div id="prosesMenu"
          class="nav-mega nav-dropdown-menu absolute left-0 right-0 top-full mt-2 mx-6 bg-white border border-[#E4E8F0] rounded-2xl shadow-xl z-50">
         <div class="nav-mega-inner mx-auto px-8 py-7 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 max-h-[75vh] overflow-y-auto">
-
             <div>
                 <p class="mega-col-label"><span class="mega-step">01</span>PICKING</p>
                 <a href="{{ route('picking.jakarta.aktif') }}" class="mega-link {{ request()->routeIs('picking.jakarta.aktif') ? 'nav-item-active' : '' }}">Jakarta Aktif</a>
@@ -447,7 +512,6 @@
                 <a href="#" class="mega-link">English biMBA Talk</a>
                 <a href="{{ route('picking.order-manual') }}" class="mega-link {{ request()->routeIs('picking.order-manual') ? 'nav-item-active' : '' }}">Order Manual</a>
             </div>
-
             <div>
                 <p class="mega-col-label"><span class="mega-step">02</span>QC OUTGOING</p>
                 <a href="{{ route('qc-outgoing.jakarta-aktif') }}" class="mega-link {{ request()->routeIs('qc-outgoing.jakarta-aktif') ? 'nav-item-active' : '' }}">Jakarta Aktif</a>
@@ -456,7 +520,6 @@
                 <a href="#" class="mega-link">English biMBA Talk</a>
                 <a href="{{ route('qc-outgoing.order-manual') }}" class="mega-link {{ request()->routeIs('qc-outgoing.order-manual') ? 'nav-item-active' : '' }}">Order Manual</a>
             </div>
-
             <div>
                 <p class="mega-col-label"><span class="mega-step">03</span>PACKING</p>
                 <a href="{{ route('packing.jakarta.aktif') }}" class="mega-link {{ request()->routeIs('packing.jakarta.aktif') ? 'nav-item-active' : '' }}">Jakarta Aktif</a>
@@ -465,7 +528,6 @@
                 <a href="#" class="mega-link">English biMBA Talk</a>
                 <a href="{{ route('packing.order-manual') }}" class="mega-link {{ request()->routeIs('packing.order-manual') ? 'nav-item-active' : '' }}">Order Manual</a>
             </div>
-
             <div>
                 <p class="mega-col-label"><span class="mega-step">04</span>DISTRIBUTION</p>
                 <a href="{{ route('distribution-order.jakarta-aktif') }}" class="mega-link {{ request()->routeIs('distribution-order.jakarta-aktif') ? 'nav-item-active' : '' }}">Jakarta Aktif</a>
@@ -474,11 +536,10 @@
                 <a href="{{ route('distribution-order.ebt') }}" class="mega-link {{ request()->routeIs('distribution-order.ebt') ? 'nav-item-active' : '' }}">English biMBA Talk</a>
                 <a href="{{ route('distribution-order.manual') }}" class="mega-link {{ request()->routeIs('distribution-order.manual') ? 'nav-item-active' : '' }}">Manual</a>
             </div>
-
             <div class="rounded-2xl p-5 flex flex-col justify-between" style="background: linear-gradient(150deg, #162749, #0F1B33);">
                 <div>
                     <p class="text-white font-semibold text-[15px] leading-snug">Alur gudang lengkap</p>
-                    <p class="text-[12.5px] mt-1.5" style="color:#9FADC7">Order &rarr; Picking &rarr; QC &rarr; Packing &rarr; Kirim.</p>
+                    <p class="text-[12.5px] mt-1.5" style="color:#9FADC7">Order → Picking → QC → Packing → Kirim.</p>
                 </div>
                 <a href="{{ route('dashboard') }}"
                    class="mt-4 inline-flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold rounded-lg px-3.5 py-2.5 transition-colors">
@@ -489,9 +550,7 @@
     </div>
 </div>
 
-<form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
-    @csrf
-</form>
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>
 
 <script>
 (function () {
@@ -519,6 +578,8 @@
         if (!isOpen) {
             menu.classList.add('open');
             if (btn) btn.classList.add('nav-btn-open');
+            // Auto-open section jika route aktif
+            autoOpenActiveSections();
         }
     }
 
@@ -529,6 +590,19 @@
             toggle(pair.menu, pair.btn);
         });
         pair.menu.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+
+    // Toggle collapsible (biMBA Shop & Rekap)
+    document.querySelectorAll('.mega-col-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const id = btn.getAttribute('data-target');
+            const panel = document.getElementById(id);
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+            btn.classList.toggle('open');
+        });
     });
 
     if (toggleUnitPasifBtn && unitPasifColumn) {
@@ -547,7 +621,62 @@
         });
     }
 
-    document.addEventListener('click', function () { closeAll(); });
+    function autoOpenActiveSections() {
+    const bs = document.getElementById('bimbashopItems');
+    const bsBtn = document.getElementById('toggleBimbashopBtn');
+    if (bs && bs.querySelector('.nav-item-active')) {
+        bs.classList.remove('hidden');
+        if (bsBtn) bsBtn.classList.add('open');
+    }
+
+    const rk = document.getElementById('rekapItems');
+    const rkBtn = document.getElementById('toggleRekapBtn');
+    if (rk && rk.querySelector('.nav-item-active')) {
+        rk.classList.remove('hidden');
+        if (rkBtn) rkBtn.classList.add('open');
+    }
+
+    // Unit Stokis Pasif column
+    if (unitPasifColumn && unitPasifColumn.querySelector('.nav-item-active')) {
+        unitPasifColumn.classList.remove('hidden');
+        if (rk) { rk.classList.remove('hidden'); if (rkBtn) rkBtn.classList.add('open'); }
+    }
+
+    // Jakarta Aktif
+    const ja = document.getElementById('jakartaAktifItems');
+    const jaBtn = document.getElementById('toggleJakartaAktifBtn');
+    if (ja && ja.querySelector('.nav-item-active')) {
+        ja.classList.remove('hidden');
+        if (jaBtn) jaBtn.classList.add('open');
+        if (unitPasifColumn) unitPasifColumn.classList.remove('hidden');
+        if (rk) { rk.classList.remove('hidden'); if (rkBtn) rkBtn.classList.add('open'); }
+    }
+
+    // Majalah column
+    if (majalahColumn && majalahColumn.querySelector('.nav-item-active')) {
+        majalahColumn.classList.remove('hidden');
+    }
+
+    // OPS2
+    const ops2 = document.getElementById('ops2Items');
+    const ops2Btn = document.getElementById('toggleOps2Btn');
+    if (ops2 && ops2.querySelector('.nav-item-active')) {
+        ops2.classList.remove('hidden');
+        if (ops2Btn) ops2Btn.classList.add('open');
+        if (majalahColumn) majalahColumn.classList.remove('hidden');
+    }
+
+    // Majalah Unit Pasif
+    const mp = document.getElementById('majalahPasifItems');
+    const mpBtn = document.getElementById('toggleMajalahPasifBtn');
+    if (mp && mp.querySelector('.nav-item-active')) {
+        mp.classList.remove('hidden');
+        if (mpBtn) mpBtn.classList.add('open');
+        if (majalahColumn) majalahColumn.classList.remove('hidden');
+    }
+}
+
+    document.addEventListener('click', closeAll);
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeAll();
     });
@@ -559,6 +688,13 @@
         });
         if (unitPasifColumn) unitPasifColumn.classList.add('hidden');
         if (majalahColumn) majalahColumn.classList.add('hidden');
+        // Reset collapsible ke tertutup
+        document.querySelectorAll('.mega-collapsible').forEach(function (p) {
+            p.classList.add('hidden');
+        });
+        document.querySelectorAll('.mega-col-toggle').forEach(function (b) {
+            b.classList.remove('open');
+        });
     }
 })();
 </script>
