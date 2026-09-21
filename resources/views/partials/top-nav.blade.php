@@ -95,7 +95,7 @@
     flex-shrink: 0;
 }
 
-/* Toggle label (biMBA Shop / Rekap) */
+/* Toggle label (biMBA Shop / Manual / dst.) */
 .mega-col-toggle {
     font-size: 11px;
     font-weight: 700;
@@ -113,6 +113,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+}
+/* Toggle tingkat kedua (dipakai untuk Rekap di dalam biMBA Shop).
+   Ditaruh SEBELUM :hover/.open supaya warna hover & terbuka tetap berlaku. */
+.mega-col-toggle.sub {
+    font-size: 12.5px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #4B5670;
 }
 .mega-col-toggle:hover { color: #E85D2A; }
 .mega-col-toggle .nav-chevron {
@@ -347,17 +355,19 @@
     {{-- ===== ORDER MEGAMENU ===== --}}
     <div id="orderMenu"
          class="nav-mega nav-dropdown-menu absolute left-0 right-0 top-full mt-2 mx-6 bg-white border border-[#E4E8F0] rounded-2xl shadow-xl z-50">
-        <div class="nav-mega-inner mx-auto px-8 py-7 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 max-h-[75vh] overflow-y-auto">
+        {{-- 4 kolom: (1) biMBA Shop + Manual, (2) Unit Stokis Pasif, (3) Majalah, (4) Ringkasan --}}
+        <div class="nav-mega-inner mx-auto px-8 py-7 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 max-h-[75vh] overflow-y-auto">
 
-            {{-- Kolom 1: biMBA Shop (klikable) + Rekap (klikable) --}}
+            {{-- Kolom 1: biMBA Shop (Import biMBA Shop, Import Kasdana, Rekap) + Manual di bawahnya --}}
             <div>
-                {{-- biMBA Shop toggle --}}
+                {{-- ===== biMBA Shop ===== --}}
                 <button type="button" class="mega-col-toggle" data-target="bimbashopItems" id="toggleBimbashopBtn">
                     <span>biMBA Shop</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
+
                 <div id="bimbashopItems" class="mega-collapsible hidden">
                     <a href="{{ route('import.bimbashop') }}"
                        class="mega-link {{ request()->routeIs('import.bimbashop', 'import.bimbashop.*') ? 'nav-item-active' : '' }}">
@@ -367,27 +377,47 @@
                        class="mega-link {{ request()->routeIs('import.casdana', 'import.casdana.*') ? 'nav-item-active' : '' }}">
                         Import Kasdana
                     </a>
+
+                    {{-- Rekap toggle (bersarang di dalam biMBA Shop) --}}
+                    <button type="button" class="mega-col-toggle sub" data-target="rekapItems" id="toggleRekapBtn" style="margin-top:10px;">
+                        <span>Rekap</span>
+                        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <div id="rekapItems" class="mega-collapsible hidden">
+                        <a href="{{ route('order.unit-aktif') }}"
+                           class="mega-link indent {{ request()->routeIs('order.unit-aktif') ? 'nav-item-active' : '' }}">
+                            Data Order Unit Stokis Aktif
+                        </a>
+                        <button type="button" id="toggleUnitPasifBtn"
+                                class="mega-link indent {{ request()->routeIs(['order.jakarta-aktif','order.jakarta-aktif.*','order.jakarta-pasif']) ? 'nav-item-active' : '' }}">
+                            Data Order Unit Stokis Pasif >
+                        </button>
+                        <a href="#" class="mega-link indent">
+                            Data Order Unit Distribution Point (Dropshipper)
+                        </a>
+                    </div>
                 </div>
 
-                {{-- Rekap toggle --}}
-                <button type="button" class="mega-col-toggle" data-target="rekapItems" id="toggleRekapBtn" style="margin-top:14px;">
-                    <span>Rekap</span>
+                {{-- ===== Manual (di bawah biMBA Shop) ===== --}}
+                <button type="button" class="mega-col-toggle" data-target="manualItems" id="toggleManualBtn" style="margin-top:14px;">
+                    <span>Manual</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div id="rekapItems" class="mega-collapsible hidden">
-                    <a href="{{ route('order.unit-aktif') }}"
-                       class="mega-link indent {{ request()->routeIs('order.unit-aktif') ? 'nav-item-active' : '' }}">
-                        Data Order Unit Stokis Aktif
-                    </a>
-                    <button type="button" id="toggleUnitPasifBtn"
-                            class="mega-link indent {{ request()->routeIs(['order.jakarta-aktif','order.jakarta-aktif.*','order.jakarta-pasif']) ? 'nav-item-active' : '' }}">
-                        Data Order Unit Stokis Pasif >
+
+                <div id="manualItems" class="mega-collapsible hidden">
+                    <button type="button" id="toggleMajalahBtn"
+                            class="mega-link {{ request()->routeIs(['pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*','import.dlc.*','import.pasif.*','import.manual','import.report-angka-cetak']) ? 'nav-item-active' : '' }}">
+                        Majalah >
                     </button>
-                    <a href="#" class="mega-link indent">
-                        Data Order Unit Distribution Point (Dropshipper)
-                    </a>
+                    <a href="{{ route('order-manual-modul.index') }}"
+                       class="mega-link {{ request()->routeIs('order-manual-modul.*') || request()->is('order-manual-modul*') ? 'nav-item-active' : '' }}">Modul</a>
+                    <a href="{{ route('order-manual-sertifikat.index') }}"
+                       class="mega-link {{ request()->routeIs('order-manual-sertifikat.*') || request()->is('order-manual-sertifikat*') ? 'nav-item-active' : '' }}">Sertifikat</a>
                 </div>
             </div>
 
@@ -406,17 +436,17 @@
                 </button>
                 <div id="jakartaAktifItems" class="mega-collapsible hidden">
                     <a href="{{ route('order.jakarta-aktif.realisasi') }}"
-                    class="mega-link indent {{ request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">
+                       class="mega-link indent {{ request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">
                         Realisasi
                     </a>
                     <a href="{{ route('order.jakarta-aktif') }}"
-                    class="mega-link indent {{ request()->routeIs('order.jakarta-aktif') && !request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">
+                       class="mega-link indent {{ request()->routeIs('order.jakarta-aktif') && !request()->routeIs('order.jakarta-aktif.realisasi') ? 'nav-item-active' : '' }}">
                         Rekap Aktual
                     </a>
                 </div>
 
                 <a href="{{ route('order.jakarta-pasif') }}"
-                class="mega-link mt-2 {{ request()->routeIs('order.jakarta-pasif') ? 'nav-item-active' : '' }}">Jakarta Pasif</a>
+                   class="mega-link mt-2 {{ request()->routeIs('order.jakarta-pasif') ? 'nav-item-active' : '' }}">Jakarta Pasif</a>
                 <a href="#" class="mega-link">Logistik</a>
                 <a href="#" class="mega-link">Semarang</a>
                 <a href="#" class="mega-link">Surabaya</a>
@@ -426,67 +456,54 @@
                 <a href="#" class="mega-link">Soccer School (biMBA SS)</a>
             </div>
 
-            {{-- Kolom 3: MANUAL --}}
-            <div>
-                <p class="mega-col-label">MANUAL</p>
-                <button type="button" id="toggleMajalahBtn"
-                        class="mega-link {{ request()->routeIs(['pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*','import.dlc.*','import.pasif.*','import.manual','import.report-angka-cetak']) ? 'nav-item-active' : '' }}">
-                    Majalah >
+            {{-- Kolom 3: Majalah Detail --}}
+            <div id="majalahColumn" class="hidden">
+                <p class="mega-col-label">MANUAL · MAJALAH</p>
+
+                {{-- OPS2 (klik) --}}
+                <button type="button" class="mega-col-toggle" data-target="ops2Items" id="toggleOps2Btn"
+                        style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:0;">
+                    <span>Unit Operasional 2 (OPS2)</span>
+                    <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
                 </button>
-                <a href="{{ route('order-manual-modul.index') }}"
-                   class="mega-link {{ request()->routeIs('order-manual-modul.*') || request()->is('order-manual-modul*') ? 'nav-item-active' : '' }}">Modul</a>
-                <a href="{{ route('order-manual-sertifikat.index') }}"
-                   class="mega-link {{ request()->routeIs('order-manual-sertifikat.*') || request()->is('order-manual-sertifikat*') ? 'nav-item-active' : '' }}">Sertifikat</a>
+                <div id="ops2Items" class="mega-collapsible hidden">
+                    <a href="{{ route('pesanan-majalah.index') }}"
+                       class="mega-link indent {{ request()->routeIs('pesanan-majalah.*') && !request()->routeIs('pesanan-majalah-kotamadya.*') && !request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">
+                        KORWIL
+                    </a>
+                    <a href="{{ route('pesanan-majalah-kotamadya.index') }}"
+                       class="mega-link indent {{ request()->routeIs('pesanan-majalah-kotamadya.*') ? 'nav-item-active' : '' }}">
+                        PINWIL
+                    </a>
+                    <a href="{{ route('pesanan-majalah-puw1.index') }}"
+                       class="mega-link indent {{ request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">
+                        JABODETABEK (PUW1)
+                    </a>
+                </div>
+
+                {{-- Unit Pasif (klik) --}}
+                <button type="button" class="mega-col-toggle" data-target="majalahPasifItems" id="toggleMajalahPasifBtn"
+                        style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:12px;">
+                    <span>Unit Pasif</span>
+                    <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="majalahPasifItems" class="mega-collapsible hidden">
+                    <a href="{{ route('import.pasif.list') }}" class="mega-link indent {{ request()->routeIs('import.pasif.list') ? 'nav-item-active' : '' }}">Unit Pasif</a>
+                    <a href="{{ route('import.dlc.index') }}" class="mega-link indent {{ request()->routeIs('import.dlc.*') ? 'nav-item-active' : '' }}">DLC / InterVio</a>
+                    <a href="{{ route('import.pasif.spare') }}" class="mega-link indent {{ request()->routeIs('import.pasif.spare') ? 'nav-item-active' : '' }}">Spare Pasif 3%</a>
+                    <a href="{{ route('import.pasif.bacaan') }}" class="mega-link indent {{ request()->routeIs('import.pasif.bacaan') ? 'nav-item-active' : '' }}">Bacaan Unit</a>
+                    <a href="{{ route('import.pasif.rekap') }}" class="mega-link indent {{ request()->routeIs('import.pasif.rekap') ? 'nav-item-active' : '' }}">Import</a>
+                    <a href="{{ route('import.pasif.manual.index') }}" class="mega-link indent {{ request()->routeIs('import.pasif.manual.*') ? 'nav-item-active' : '' }}">Create Manual</a>
+                    <a href="{{ route('import.report-angka-cetak') }}" class="mega-link indent {{ request()->routeIs('import.report-angka-cetak') ? 'nav-item-active' : '' }}">Report Angka Cetak</a>
+                    <a href="{{ route('import.manual') }}" class="mega-link indent {{ request()->routeIs('import.manual') ? 'nav-item-active' : '' }}">Manual Pemesanan</a>
+                </div>
             </div>
 
-            {{-- Kolom 4: Majalah Detail --}}
-<div id="majalahColumn" class="hidden">
-    <p class="mega-col-label">MANUAL · MAJALAH</p>
-
-    {{-- OPS2 (klik) --}}
-    <button type="button" class="mega-col-toggle" data-target="ops2Items" id="toggleOps2Btn"
-            style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:0;">
-        <span>Unit Operasional 2 (OPS2)</span>
-        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-    <div id="ops2Items" class="mega-collapsible hidden">
-        <a href="{{ route('pesanan-majalah.index') }}"
-           class="mega-link indent {{ request()->routeIs('pesanan-majalah.*') && !request()->routeIs('pesanan-majalah-kotamadya.*') && !request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">
-            KORWIL
-        </a>
-        <a href="{{ route('pesanan-majalah-kotamadya.index') }}"
-           class="mega-link indent {{ request()->routeIs('pesanan-majalah-kotamadya.*') ? 'nav-item-active' : '' }}">
-            PINWIL
-        </a>
-        <a href="{{ route('pesanan-majalah-puw1.index') }}"
-           class="mega-link indent {{ request()->routeIs('pesanan-majalah-puw1.*') ? 'nav-item-active' : '' }}">
-            JABODETABEK (PUW1)
-        </a>
-    </div>
-
-    {{-- Unit Pasif (klik) --}}
-    <button type="button" class="mega-col-toggle" data-target="majalahPasifItems" id="toggleMajalahPasifBtn"
-            style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:12px;">
-        <span>Unit Pasif</span>
-        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-    <div id="majalahPasifItems" class="mega-collapsible hidden">
-        <a href="{{ route('import.pasif.list') }}" class="mega-link indent {{ request()->routeIs('import.pasif.list') ? 'nav-item-active' : '' }}">Unit Pasif</a>
-        <a href="{{ route('import.dlc.index') }}" class="mega-link indent {{ request()->routeIs('import.dlc.*') ? 'nav-item-active' : '' }}">DLC / InterVio</a>
-        <a href="{{ route('import.pasif.spare') }}" class="mega-link indent {{ request()->routeIs('import.pasif.spare') ? 'nav-item-active' : '' }}">Spare Pasif 3%</a>
-        <a href="{{ route('import.pasif.bacaan') }}" class="mega-link indent {{ request()->routeIs('import.pasif.bacaan') ? 'nav-item-active' : '' }}">Bacaan Unit</a>
-        <a href="{{ route('import.pasif.rekap') }}" class="mega-link indent {{ request()->routeIs('import.pasif.rekap') ? 'nav-item-active' : '' }}">Import</a>
-        <a href="{{ route('import.pasif.manual.index') }}" class="mega-link indent {{ request()->routeIs('import.pasif.manual.*') ? 'nav-item-active' : '' }}">Create Manual</a>
-        <a href="{{ route('import.report-angka-cetak') }}" class="mega-link indent {{ request()->routeIs('import.report-angka-cetak') ? 'nav-item-active' : '' }}">Report Angka Cetak</a>
-        <a href="{{ route('import.manual') }}" class="mega-link indent {{ request()->routeIs('import.manual') ? 'nav-item-active' : '' }}">Manual Pemesanan</a>
-    </div>
-</div>
-
-            {{-- Kolom 5: Highlight --}}
+            {{-- Kolom 4: Highlight --}}
             <div class="rounded-2xl p-5 flex flex-col justify-between" style="background: linear-gradient(150deg, #162749, #0F1B33);">
                 <div>
                     <p class="text-white font-semibold text-[15px] leading-snug">Ringkasan seluruh order</p>
@@ -592,16 +609,43 @@
         pair.menu.addEventListener('click', function (e) { e.stopPropagation(); });
     });
 
-    // Toggle collapsible (biMBA Shop & Rekap)
+    // ---------- Helper untuk menu bersarang ----------
+
+    // Tutup kolom detail (Stokis Pasif / Majalah) beserta isinya
+    function collapseColumn(col) {
+        if (!col) return;
+        col.classList.add('hidden');
+        col.querySelectorAll('.mega-collapsible').forEach(function (p) { p.classList.add('hidden'); });
+        col.querySelectorAll('.mega-col-toggle').forEach(function (b) { b.classList.remove('open'); });
+    }
+
+    // Saat sebuah panel ditutup, semua yang bersarang di dalamnya ikut ditutup:
+    // - panel & toggle bersarang (mis. Rekap di dalam biMBA Shop)
+    // - kolom detail yang tombol pembukanya ada di dalam panel itu
+    function collapseWithin(panel) {
+        panel.querySelectorAll('.mega-collapsible').forEach(function (p) { p.classList.add('hidden'); });
+        panel.querySelectorAll('.mega-col-toggle').forEach(function (b) { b.classList.remove('open'); });
+        if (toggleUnitPasifBtn && panel.contains(toggleUnitPasifBtn)) collapseColumn(unitPasifColumn);
+        if (toggleMajalahBtn && panel.contains(toggleMajalahBtn)) collapseColumn(majalahColumn);
+    }
+
+    function openSection(panelId, btnId) {
+        const panel = document.getElementById(panelId);
+        const btn = document.getElementById(btnId);
+        if (panel) panel.classList.remove('hidden');
+        if (btn) btn.classList.add('open');
+    }
+
+    // Toggle collapsible (biMBA Shop, Rekap, Manual, Jakarta Aktif, OPS2, Unit Pasif)
     document.querySelectorAll('.mega-col-toggle').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            const id = btn.getAttribute('data-target');
-            const panel = document.getElementById(id);
+            const panel = document.getElementById(btn.getAttribute('data-target'));
             if (!panel) return;
             panel.classList.toggle('hidden');
             btn.classList.toggle('open');
+            if (panel.classList.contains('hidden')) collapseWithin(panel);
         });
     });
 
@@ -621,60 +665,33 @@
         });
     }
 
+    // Buka otomatis bagian yang berisi halaman aktif (termasuk induknya)
     function autoOpenActiveSections() {
-    const bs = document.getElementById('bimbashopItems');
-    const bsBtn = document.getElementById('toggleBimbashopBtn');
-    if (bs && bs.querySelector('.nav-item-active')) {
-        bs.classList.remove('hidden');
-        if (bsBtn) bsBtn.classList.add('open');
-    }
+        [
+            ['bimbashopItems',   'toggleBimbashopBtn'],
+            ['rekapItems',       'toggleRekapBtn'],
+            ['jakartaAktifItems','toggleJakartaAktifBtn'],
+            ['manualItems',      'toggleManualBtn'],
+            ['ops2Items',        'toggleOps2Btn'],
+            ['majalahPasifItems','toggleMajalahPasifBtn']
+        ].forEach(function (s) {
+            const panel = document.getElementById(s[0]);
+            if (panel && panel.querySelector('.nav-item-active')) openSection(s[0], s[1]);
+        });
 
-    const rk = document.getElementById('rekapItems');
-    const rkBtn = document.getElementById('toggleRekapBtn');
-    if (rk && rk.querySelector('.nav-item-active')) {
-        rk.classList.remove('hidden');
-        if (rkBtn) rkBtn.classList.add('open');
-    }
+        // Halaman aktif ada di kolom Unit Stokis Pasif -> buka kolomnya + Rekap + biMBA Shop
+        if (unitPasifColumn && unitPasifColumn.querySelector('.nav-item-active')) {
+            unitPasifColumn.classList.remove('hidden');
+            openSection('rekapItems', 'toggleRekapBtn');
+            openSection('bimbashopItems', 'toggleBimbashopBtn');
+        }
 
-    // Unit Stokis Pasif column
-    if (unitPasifColumn && unitPasifColumn.querySelector('.nav-item-active')) {
-        unitPasifColumn.classList.remove('hidden');
-        if (rk) { rk.classList.remove('hidden'); if (rkBtn) rkBtn.classList.add('open'); }
+        // Halaman aktif ada di kolom Majalah -> buka kolomnya + Manual
+        if (majalahColumn && majalahColumn.querySelector('.nav-item-active')) {
+            majalahColumn.classList.remove('hidden');
+            openSection('manualItems', 'toggleManualBtn');
+        }
     }
-
-    // Jakarta Aktif
-    const ja = document.getElementById('jakartaAktifItems');
-    const jaBtn = document.getElementById('toggleJakartaAktifBtn');
-    if (ja && ja.querySelector('.nav-item-active')) {
-        ja.classList.remove('hidden');
-        if (jaBtn) jaBtn.classList.add('open');
-        if (unitPasifColumn) unitPasifColumn.classList.remove('hidden');
-        if (rk) { rk.classList.remove('hidden'); if (rkBtn) rkBtn.classList.add('open'); }
-    }
-
-    // Majalah column
-    if (majalahColumn && majalahColumn.querySelector('.nav-item-active')) {
-        majalahColumn.classList.remove('hidden');
-    }
-
-    // OPS2
-    const ops2 = document.getElementById('ops2Items');
-    const ops2Btn = document.getElementById('toggleOps2Btn');
-    if (ops2 && ops2.querySelector('.nav-item-active')) {
-        ops2.classList.remove('hidden');
-        if (ops2Btn) ops2Btn.classList.add('open');
-        if (majalahColumn) majalahColumn.classList.remove('hidden');
-    }
-
-    // Majalah Unit Pasif
-    const mp = document.getElementById('majalahPasifItems');
-    const mpBtn = document.getElementById('toggleMajalahPasifBtn');
-    if (mp && mp.querySelector('.nav-item-active')) {
-        mp.classList.remove('hidden');
-        if (mpBtn) mpBtn.classList.add('open');
-        if (majalahColumn) majalahColumn.classList.remove('hidden');
-    }
-}
 
     document.addEventListener('click', closeAll);
     document.addEventListener('keydown', function (e) {
