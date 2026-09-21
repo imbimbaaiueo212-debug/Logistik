@@ -21,6 +21,7 @@
     .nav-dropdown-menu { transition: none; }
 }
 
+/* Item dropdown biasa (Database User) */
 .nav-item-active {
     color: #D14E1F;
     font-weight: 600;
@@ -67,7 +68,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    width: 100%;
+    width: calc(100% + 16px);
     transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 .mega-link:hover {
@@ -80,6 +81,29 @@
     font-size: 13px;
     color: #5C6884;
 }
+
+/* -----------------------------------------------------------
+   STATE MENYALA
+   Ditulis SETELAH .mega-link / .mega-link.indent supaya tidak
+   tertimpa (sebelumnya .nav-item-active kalah oleh .mega-link).
+   - nav-item-active : halaman yang sedang dibuka
+   - is-open         : tombol yang kolom detailnya sedang terbuka
+   - is-path         : tombol induk dari halaman yang sedang dibuka
+   ----------------------------------------------------------- */
+.mega-link.nav-item-active,
+.mega-link.is-open {
+    background-color: #FBECE4;
+    color: #D14E1F;
+    font-weight: 600;
+}
+.mega-link.nav-item-active {
+    box-shadow: inset 3px 0 0 #E85D2A;
+}
+.mega-link.is-path {
+    color: #D14E1F;
+    font-weight: 600;
+}
+
 .mega-step {
     display: inline-flex;
     align-items: center;
@@ -95,7 +119,7 @@
     flex-shrink: 0;
 }
 
-/* Toggle label (biMBA Shop / Manual / dst.) */
+/* Toggle label (biMBA Shop / Rekap / Manual / dst.) */
 .mega-col-toggle {
     font-size: 11px;
     font-weight: 700;
@@ -103,26 +127,32 @@
     text-transform: uppercase;
     color: #8892A8;
     margin-bottom: 8px;
-    padding: 4px 0;
+    padding: 5px 8px;
+    margin-left: -8px;
+    margin-right: -8px;
+    width: calc(100% + 16px);
+    border-radius: 8px;
     cursor: pointer;
     background: none;
     border: none;
-    width: 100%;
     text-align: left;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    transition: background-color 0.18s ease, color 0.18s ease;
 }
-/* Toggle tingkat kedua (dipakai untuk Rekap di dalam biMBA Shop).
-   Ditaruh SEBELUM :hover/.open supaya warna hover & terbuka tetap berlaku. */
+/* Varian kecil (sub-toggle di kolom detail) */
 .mega-col-toggle.sub {
     font-size: 12.5px;
     text-transform: none;
     letter-spacing: 0;
     color: #4B5670;
 }
-.mega-col-toggle:hover { color: #E85D2A; }
+.mega-col-toggle:hover {
+    color: #E85D2A;
+    background-color: #FBECE4;
+}
 .mega-col-toggle .nav-chevron {
     width: 12px;
     height: 12px;
@@ -132,12 +162,32 @@
 .mega-col-toggle.open .nav-chevron {
     transform: rotate(180deg);
 }
-.mega-col-toggle.open { color: #E85D2A; }
+.mega-col-toggle.open,
+.mega-col-toggle.has-active {
+    color: #E85D2A;
+}
+.mega-col-toggle.open {
+    background-color: #FBECE4;
+}
+/* Titik oranye = "halaman yang sedang dibuka ada di dalam grup ini" */
+.mega-col-toggle.has-active > span::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: #E85D2A;
+    vertical-align: middle;
+}
 
+/* Beri ruang agar sorotan (margin -8px) tidak terpotong overflow */
 .mega-collapsible {
     overflow: hidden;
     max-height: 500px;
     opacity: 1;
+    padding: 0 8px;
+    margin: 0 -8px;
     transition: max-height 0.28s ease, opacity 0.2s ease;
 }
 .mega-collapsible.hidden {
@@ -185,6 +235,8 @@
     overflow: hidden;
     max-height: 800px;
     opacity: 1;
+    padding: 0 8px;
+    margin: 0 -8px;
     transition: max-height 0.32s ease, opacity 0.25s ease, margin 0.32s ease;
 }
 #unitPasifColumn.hidden,
@@ -241,6 +293,12 @@
     background: rgba(255,255,255,0.7);
     color: #E85D2A;
 }
+/* Tombol menu utama menyala saat megamenu-nya terbuka */
+.nav-links-pill button.nav-btn-open {
+    background: #fff;
+    color: #E85D2A;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
 .nav-links-pill a.nav-link-active,
 .nav-links-pill button.nav-link-active {
     background: #fff;
@@ -267,6 +325,48 @@
 }
 .btn-logout:hover { background: #D14E1F; }
 .btn-logout:active { transform: scale(0.96); }
+
+/* -----------------------------------------------------------
+   PENANDA POSISI ("Anda di sini")
+   ----------------------------------------------------------- */
+.nav-crumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 1200px;
+    margin: 10px auto 0;
+    padding: 0 8px;
+    font-size: 12.5px;
+    color: #5C6884;
+}
+.nav-crumb[hidden] { display: none; }
+.nav-crumb-label {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fff;
+    background: #E85D2A;
+    border-radius: 9999px;
+    padding: 3px 10px;
+}
+.nav-crumb-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.nav-crumb-list li + li::before {
+    content: '\203A';
+    margin-right: 6px;
+    color: #B4BCCD;
+}
+.nav-crumb-list li:last-child {
+    color: #D14E1F;
+    font-weight: 600;
+}
 
 @keyframes navFadeIn {
     from { opacity: 0; transform: translateY(-8px); }
@@ -352,22 +452,26 @@
         </div>
     </nav>
 
+    {{-- ===== PENANDA POSISI: diisi otomatis oleh JS ===== --}}
+    <div id="navCrumb" class="nav-crumb" hidden aria-live="polite">
+        <span class="nav-crumb-label">Anda di sini</span>
+        <ol id="navCrumbList" class="nav-crumb-list"></ol>
+    </div>
+
     {{-- ===== ORDER MEGAMENU ===== --}}
     <div id="orderMenu"
          class="nav-mega nav-dropdown-menu absolute left-0 right-0 top-full mt-2 mx-6 bg-white border border-[#E4E8F0] rounded-2xl shadow-xl z-50">
-        {{-- 4 kolom: (1) biMBA Shop + Manual, (2) Unit Stokis Pasif, (3) Majalah, (4) Ringkasan --}}
-        <div class="nav-mega-inner mx-auto px-8 py-7 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 max-h-[75vh] overflow-y-auto">
+        <div class="nav-mega-inner mx-auto px-8 py-7 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 max-h-[75vh] overflow-y-auto">
 
-            {{-- Kolom 1: biMBA Shop (Import biMBA Shop, Import Kasdana, Rekap) + Manual di bawahnya --}}
+            {{-- Kolom 1: biMBA Shop (klikable) + Rekap (klikable) --}}
             <div>
-                {{-- ===== biMBA Shop ===== --}}
+                {{-- biMBA Shop toggle --}}
                 <button type="button" class="mega-col-toggle" data-target="bimbashopItems" id="toggleBimbashopBtn">
                     <span>biMBA Shop</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-
                 <div id="bimbashopItems" class="mega-collapsible hidden">
                     <a href="{{ route('import.bimbashop') }}"
                        class="mega-link {{ request()->routeIs('import.bimbashop', 'import.bimbashop.*') ? 'nav-item-active' : '' }}">
@@ -377,47 +481,27 @@
                        class="mega-link {{ request()->routeIs('import.casdana', 'import.casdana.*') ? 'nav-item-active' : '' }}">
                         Import Kasdana
                     </a>
-
-                    {{-- Rekap toggle (bersarang di dalam biMBA Shop) --}}
-                    <button type="button" class="mega-col-toggle sub" data-target="rekapItems" id="toggleRekapBtn" style="margin-top:10px;">
-                        <span>Rekap</span>
-                        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-
-                    <div id="rekapItems" class="mega-collapsible hidden">
-                        <a href="{{ route('order.unit-aktif') }}"
-                           class="mega-link indent {{ request()->routeIs('order.unit-aktif') ? 'nav-item-active' : '' }}">
-                            Data Order Unit Stokis Aktif
-                        </a>
-                        <button type="button" id="toggleUnitPasifBtn"
-                                class="mega-link indent {{ request()->routeIs(['order.jakarta-aktif','order.jakarta-aktif.*','order.jakarta-pasif']) ? 'nav-item-active' : '' }}">
-                            Data Order Unit Stokis Pasif >
-                        </button>
-                        <a href="#" class="mega-link indent">
-                            Data Order Unit Distribution Point (Dropshipper)
-                        </a>
-                    </div>
                 </div>
 
-                {{-- ===== Manual (di bawah biMBA Shop) ===== --}}
-                <button type="button" class="mega-col-toggle" data-target="manualItems" id="toggleManualBtn" style="margin-top:14px;">
-                    <span>Manual</span>
+                {{-- Rekap toggle --}}
+                <button type="button" class="mega-col-toggle" data-target="rekapItems" id="toggleRekapBtn" style="margin-top:14px;">
+                    <span>Rekap</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-
-                <div id="manualItems" class="mega-collapsible hidden">
-                    <button type="button" id="toggleMajalahBtn"
-                            class="mega-link {{ request()->routeIs(['pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*','import.dlc.*','import.pasif.*','import.manual','import.report-angka-cetak']) ? 'nav-item-active' : '' }}">
-                        Majalah >
+                <div id="rekapItems" class="mega-collapsible hidden">
+                    <a href="{{ route('order.unit-aktif') }}"
+                       class="mega-link indent {{ request()->routeIs('order.unit-aktif') ? 'nav-item-active' : '' }}">
+                        Data Order Unit Stokis Aktif
+                    </a>
+                    {{-- Tombol pembuka kolom 2. Status is-path / is-open diatur oleh JS --}}
+                    <button type="button" id="toggleUnitPasifBtn" class="mega-link indent">
+                        Data Order Unit Stokis Pasif >
                     </button>
-                    <a href="{{ route('order-manual-modul.index') }}"
-                       class="mega-link {{ request()->routeIs('order-manual-modul.*') || request()->is('order-manual-modul*') ? 'nav-item-active' : '' }}">Modul</a>
-                    <a href="{{ route('order-manual-sertifikat.index') }}"
-                       class="mega-link {{ request()->routeIs('order-manual-sertifikat.*') || request()->is('order-manual-sertifikat*') ? 'nav-item-active' : '' }}">Sertifikat</a>
+                    <a href="#" class="mega-link indent">
+                        Data Order Unit Distribution Point (Dropshipper)
+                    </a>
                 </div>
             </div>
 
@@ -426,9 +510,8 @@
                 <p class="mega-col-label">REKAP · UNIT STOKIS PASIF</p>
 
                 {{-- Jakarta Aktif (klik) --}}
-                <button type="button" class="mega-col-toggle" data-target="jakartaAktifItems"
-                        id="toggleJakartaAktifBtn"
-                        style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:0;">
+                <button type="button" class="mega-col-toggle sub" data-target="jakartaAktifItems"
+                        id="toggleJakartaAktifBtn" style="margin-top:0;">
                     <span>Jakarta Aktif</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -456,13 +539,35 @@
                 <a href="#" class="mega-link">Soccer School (biMBA SS)</a>
             </div>
 
-            {{-- Kolom 3: Majalah Detail --}}
+            {{-- Kolom 3: Manual (klikable) --}}
+            <div>
+                {{-- Manual toggle --}}
+                <button type="button" class="mega-col-toggle" data-target="manualItems" id="toggleManualBtn">
+                    <span>Manual</span>
+                    <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <div id="manualItems" class="mega-collapsible hidden">
+                    {{-- Tombol pembuka kolom 4. Status is-path / is-open diatur oleh JS --}}
+                    <button type="button" id="toggleMajalahBtn" class="mega-link">
+                        Majalah >
+                    </button>
+                    <a href="{{ route('order-manual-modul.index') }}"
+                       class="mega-link {{ request()->routeIs('order-manual-modul.*') || request()->is('order-manual-modul*') ? 'nav-item-active' : '' }}">Modul</a>
+                    <a href="{{ route('order-manual-sertifikat.index') }}"
+                       class="mega-link {{ request()->routeIs('order-manual-sertifikat.*') || request()->is('order-manual-sertifikat*') ? 'nav-item-active' : '' }}">Sertifikat</a>
+                </div>
+            </div>
+
+            {{-- Kolom 4: Majalah Detail --}}
             <div id="majalahColumn" class="hidden">
                 <p class="mega-col-label">MANUAL · MAJALAH</p>
 
                 {{-- OPS2 (klik) --}}
-                <button type="button" class="mega-col-toggle" data-target="ops2Items" id="toggleOps2Btn"
-                        style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:0;">
+                <button type="button" class="mega-col-toggle sub" data-target="ops2Items" id="toggleOps2Btn"
+                        style="margin-top:0;">
                     <span>Unit Operasional 2 (OPS2)</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -484,8 +589,8 @@
                 </div>
 
                 {{-- Unit Pasif (klik) --}}
-                <button type="button" class="mega-col-toggle" data-target="majalahPasifItems" id="toggleMajalahPasifBtn"
-                        style="font-size:12.5px; text-transform:none; letter-spacing:0; color:#4B5670; margin-top:12px;">
+                <button type="button" class="mega-col-toggle sub" data-target="majalahPasifItems" id="toggleMajalahPasifBtn"
+                        style="margin-top:12px;">
                     <span>Unit Pasif</span>
                     <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -503,7 +608,7 @@
                 </div>
             </div>
 
-            {{-- Kolom 4: Highlight --}}
+            {{-- Kolom 5: Highlight --}}
             <div class="rounded-2xl p-5 flex flex-col justify-between" style="background: linear-gradient(150deg, #162749, #0F1B33);">
                 <div>
                     <p class="text-white font-semibold text-[15px] leading-snug">Ringkasan seluruh order</p>
@@ -589,13 +694,42 @@
         { btn: prosesBtn,   menu: prosesMenu },
     ];
 
+    /* ---------------------------------------------------------
+       Helper
+       --------------------------------------------------------- */
+    // Apakah di dalam elemen #id ada link halaman yang sedang aktif?
+    function hasActive(id) {
+        const el = document.getElementById(id);
+        return !!(el && el.querySelector('a.nav-item-active'));
+    }
+
+    function setFlag(id, cls, on) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle(cls, !!on);
+    }
+
+    function openPanel(panelId, btnId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.classList.remove('hidden');
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.add('open');
+    }
+
+    function showColumn(col, btn) {
+        if (col) col.classList.remove('hidden');
+        if (btn) btn.classList.add('is-open');
+    }
+
+    /* ---------------------------------------------------------
+       Buka / tutup megamenu
+       --------------------------------------------------------- */
     function toggle(menu, btn) {
         const isOpen = menu.classList.contains('open');
         closeAll();
         if (!isOpen) {
             menu.classList.add('open');
             if (btn) btn.classList.add('nav-btn-open');
-            // Auto-open section jika route aktif
             autoOpenActiveSections();
         }
     }
@@ -606,37 +740,37 @@
             e.stopPropagation();
             toggle(pair.menu, pair.btn);
         });
-        pair.menu.addEventListener('click', function (e) { e.stopPropagation(); });
+        pair.menu.addEventListener('click', onMenuClick);
     });
 
-    // ---------- Helper untuk menu bersarang ----------
+    // Klik di dalam menu: link "#" (belum ada halaman) tidak melompat ke atas,
+    // link asli langsung menyala sebelum halaman berpindah.
+    function onMenuClick(e) {
+        e.stopPropagation();
+        const a = e.target.closest('a');
+        if (!a) return;
 
-    // Tutup kolom detail (Stokis Pasif / Majalah) beserta isinya
-    function collapseColumn(col) {
-        if (!col) return;
-        col.classList.add('hidden');
-        col.querySelectorAll('.mega-collapsible').forEach(function (p) { p.classList.add('hidden'); });
-        col.querySelectorAll('.mega-col-toggle').forEach(function (b) { b.classList.remove('open'); });
+        const href = a.getAttribute('href');
+        if (!href || href === '#') {
+            e.preventDefault();
+            return;
+        }
+        setActiveLeaf(a);
     }
 
-    // Saat sebuah panel ditutup, semua yang bersarang di dalamnya ikut ditutup:
-    // - panel & toggle bersarang (mis. Rekap di dalam biMBA Shop)
-    // - kolom detail yang tombol pembukanya ada di dalam panel itu
-    function collapseWithin(panel) {
-        panel.querySelectorAll('.mega-collapsible').forEach(function (p) { p.classList.add('hidden'); });
-        panel.querySelectorAll('.mega-col-toggle').forEach(function (b) { b.classList.remove('open'); });
-        if (toggleUnitPasifBtn && panel.contains(toggleUnitPasifBtn)) collapseColumn(unitPasifColumn);
-        if (toggleMajalahBtn && panel.contains(toggleMajalahBtn)) collapseColumn(majalahColumn);
+    function setActiveLeaf(a) {
+        document.querySelectorAll('.nav-dropdown-menu a.nav-item-active').forEach(function (el) {
+            el.classList.remove('nav-item-active');
+        });
+        a.classList.remove('text-[#28304A]');
+        a.classList.add('nav-item-active');
+        syncPathStates();
+        renderCrumb();
     }
 
-    function openSection(panelId, btnId) {
-        const panel = document.getElementById(panelId);
-        const btn = document.getElementById(btnId);
-        if (panel) panel.classList.remove('hidden');
-        if (btn) btn.classList.add('open');
-    }
-
-    // Toggle collapsible (biMBA Shop, Rekap, Manual, Jakarta Aktif, OPS2, Unit Pasif)
+    /* ---------------------------------------------------------
+       Toggle collapsible (biMBA Shop, Rekap, Manual, dst.)
+       --------------------------------------------------------- */
     document.querySelectorAll('.mega-col-toggle').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
@@ -645,54 +779,125 @@
             if (!panel) return;
             panel.classList.toggle('hidden');
             btn.classList.toggle('open');
-            if (panel.classList.contains('hidden')) collapseWithin(panel);
         });
     });
 
-    if (toggleUnitPasifBtn && unitPasifColumn) {
-        toggleUnitPasifBtn.addEventListener('click', function (e) {
+    // Tombol pembuka kolom detail: menyala (is-open) selama kolomnya terbuka
+    function bindColumnToggle(btn, col) {
+        if (!btn || !col) return;
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            unitPasifColumn.classList.toggle('hidden');
+            const hidden = col.classList.toggle('hidden');
+            btn.classList.toggle('is-open', !hidden);
         });
     }
+    bindColumnToggle(toggleUnitPasifBtn, unitPasifColumn);
+    bindColumnToggle(toggleMajalahBtn, majalahColumn);
 
-    if (toggleMajalahBtn && majalahColumn) {
-        toggleMajalahBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            majalahColumn.classList.toggle('hidden');
-        });
-    }
-
-    // Buka otomatis bagian yang berisi halaman aktif (termasuk induknya)
+    /* ---------------------------------------------------------
+       Buka otomatis bagian yang berisi halaman aktif
+       --------------------------------------------------------- */
     function autoOpenActiveSections() {
-        [
-            ['bimbashopItems',   'toggleBimbashopBtn'],
-            ['rekapItems',       'toggleRekapBtn'],
-            ['jakartaAktifItems','toggleJakartaAktifBtn'],
-            ['manualItems',      'toggleManualBtn'],
-            ['ops2Items',        'toggleOps2Btn'],
-            ['majalahPasifItems','toggleMajalahPasifBtn']
-        ].forEach(function (s) {
-            const panel = document.getElementById(s[0]);
-            if (panel && panel.querySelector('.nav-item-active')) openSection(s[0], s[1]);
-        });
+        if (hasActive('bimbashopItems')) openPanel('bimbashopItems', 'toggleBimbashopBtn');
+        if (hasActive('rekapItems'))     openPanel('rekapItems', 'toggleRekapBtn');
 
-        // Halaman aktif ada di kolom Unit Stokis Pasif -> buka kolomnya + Rekap + biMBA Shop
-        if (unitPasifColumn && unitPasifColumn.querySelector('.nav-item-active')) {
-            unitPasifColumn.classList.remove('hidden');
-            openSection('rekapItems', 'toggleRekapBtn');
-            openSection('bimbashopItems', 'toggleBimbashopBtn');
+        if (hasActive('unitPasifColumn')) {
+            openPanel('rekapItems', 'toggleRekapBtn');
+            showColumn(unitPasifColumn, toggleUnitPasifBtn);
+            if (hasActive('jakartaAktifItems')) openPanel('jakartaAktifItems', 'toggleJakartaAktifBtn');
         }
 
-        // Halaman aktif ada di kolom Majalah -> buka kolomnya + Manual
-        if (majalahColumn && majalahColumn.querySelector('.nav-item-active')) {
-            majalahColumn.classList.remove('hidden');
-            openSection('manualItems', 'toggleManualBtn');
+        if (hasActive('manualItems')) openPanel('manualItems', 'toggleManualBtn');
+
+        if (hasActive('majalahColumn')) {
+            openPanel('manualItems', 'toggleManualBtn');
+            showColumn(majalahColumn, toggleMajalahBtn);
+            if (hasActive('ops2Items'))         openPanel('ops2Items', 'toggleOpS2Btn'.replace('OpS2', 'Ops2'));
+            if (hasActive('majalahPasifItems')) openPanel('majalahPasifItems', 'toggleMajalahPasifBtn');
         }
     }
 
+    // Tandai semua grup induk dari halaman yang sedang aktif
+    function syncPathStates() {
+        setFlag('toggleBimbashopBtn',    'has-active', hasActive('bimbashopItems'));
+        setFlag('toggleRekapBtn',        'has-active', hasActive('rekapItems') || hasActive('unitPasifColumn'));
+        setFlag('toggleUnitPasifBtn',    'is-path',    hasActive('unitPasifColumn'));
+        setFlag('toggleJakartaAktifBtn', 'has-active', hasActive('jakartaAktifItems'));
+        setFlag('toggleManualBtn',       'has-active', hasActive('manualItems') || hasActive('majalahColumn'));
+        setFlag('toggleMajalahBtn',      'is-path',    hasActive('majalahColumn'));
+        setFlag('toggleOps2Btn',         'has-active', hasActive('ops2Items'));
+        setFlag('toggleMajalahPasifBtn', 'has-active', hasActive('majalahPasifItems'));
+    }
+
+    /* ---------------------------------------------------------
+       Penanda posisi: "Anda di sini  Order › Rekap › ... › Halaman"
+       --------------------------------------------------------- */
+    function buildTrail() {
+        const a = document.querySelector('.nav-dropdown-menu a.nav-item-active');
+
+        if (!a) {
+            const home = document.querySelector('.nav-links-pill > a.nav-link-active');
+            return home ? [home.textContent.trim()] : [];
+        }
+
+        const menu  = a.closest('.nav-dropdown-menu');
+        const label = a.textContent.replace(/\s+/g, ' ').trim();
+        const inside = function (id) {
+            const el = document.getElementById(id);
+            return !!(el && el.contains(a));
+        };
+        const trail = [];
+
+        if (menu.id === 'databaseMenu') {
+            trail.push('Database User');
+
+        } else if (menu.id === 'prosesMenu') {
+            trail.push('Proses');
+            const col = a.parentElement.querySelector('.mega-col-label');
+            if (col) trail.push(col.textContent.replace(/^\s*\d+/, '').trim());
+
+        } else if (menu.id === 'orderMenu') {
+            trail.push('Order');
+            if (inside('bimbashopItems')) {
+                trail.push('biMBA Shop');
+            } else if (inside('rekapItems')) {
+                trail.push('Rekap');
+            } else if (inside('unitPasifColumn')) {
+                trail.push('Rekap', 'Data Order Unit Stokis Pasif');
+                if (inside('jakartaAktifItems')) trail.push('Jakarta Aktif');
+            } else if (inside('manualItems')) {
+                trail.push('Manual');
+            } else if (inside('majalahColumn')) {
+                trail.push('Manual', 'Majalah');
+                if (inside('ops2Items')) trail.push('Unit Operasional 2 (OPS2)');
+                else if (inside('majalahPasifItems')) trail.push('Unit Pasif');
+            }
+        }
+
+        trail.push(label);
+        return trail;
+    }
+
+    function renderCrumb() {
+        const wrap = document.getElementById('navCrumb');
+        const list = document.getElementById('navCrumbList');
+        if (!wrap || !list) return;
+
+        const trail = buildTrail();
+        list.innerHTML = '';
+        trail.forEach(function (text, i) {
+            const li = document.createElement('li');
+            li.textContent = text;
+            if (i === trail.length - 1) li.setAttribute('aria-current', 'page');
+            list.appendChild(li);
+        });
+        wrap.hidden = trail.length === 0;
+    }
+
+    /* ---------------------------------------------------------
+       Tutup semua
+       --------------------------------------------------------- */
     document.addEventListener('click', closeAll);
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeAll();
@@ -705,6 +910,9 @@
         });
         if (unitPasifColumn) unitPasifColumn.classList.add('hidden');
         if (majalahColumn) majalahColumn.classList.add('hidden');
+        if (toggleUnitPasifBtn) toggleUnitPasifBtn.classList.remove('is-open');
+        if (toggleMajalahBtn) toggleMajalahBtn.classList.remove('is-open');
+
         // Reset collapsible ke tertutup
         document.querySelectorAll('.mega-collapsible').forEach(function (p) {
             p.classList.add('hidden');
@@ -713,5 +921,9 @@
             b.classList.remove('open');
         });
     }
+
+    // Inisialisasi saat halaman dimuat
+    syncPathStates();
+    renderCrumb();
 })();
 </script>
