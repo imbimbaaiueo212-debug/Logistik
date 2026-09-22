@@ -19,6 +19,7 @@
                             900: '#162749',
                             800: '#1D3361',
                             700: '#28447F',
+                            600: '#3A548A',
                         },
                         rust: {
                             500: '#E85D2A',
@@ -27,8 +28,8 @@
                         canvas: '#EEF1F6',
                     },
                     boxShadow: {
-                        card: '0 1px 2px rgba(15, 27, 51, 0.06), 0 8px 24px -12px rgba(15, 27, 51, 0.12)',
-                        cardHover: '0 4px 10px rgba(15, 27, 51, 0.08), 0 16px 32px -12px rgba(15, 27, 51, 0.18)',
+                        card: '0 1px 2px rgba(15, 27, 51, 0.05), 0 10px 26px -14px rgba(15, 27, 51, 0.16)',
+                        dock: '0 18px 40px -18px rgba(15, 27, 51, 0.28)',
                     },
                 }
             }
@@ -37,78 +38,67 @@
     <style>
         body { background: #EEF1F6; }
 
-        /* ===== Rute putus-putus yang berjalan (sudah ada sebelumnya) ===== */
+        /* ===== Rute putus-putus di hero (diperhalus, satu elemen saja) ===== */
         .route-dash {
-            stroke-dasharray: 6 7;
-            animation: dash 18s linear infinite;
+            stroke-dasharray: 6 8;
+            animation: dash 22s linear infinite;
         }
-        @keyframes dash { to { stroke-dashoffset: -260; } }
+        @keyframes dash { to { stroke-dashoffset: -300; } }
 
-        /* ===== Titik oranye di ujung rute: berdenyut pelan ===== */
-        .route-dot {
-            animation: pulseDot 2.2s ease-in-out infinite;
-            transform-origin: center;
-        }
+        .route-dot { animation: pulseDot 2.6s ease-in-out infinite; transform-origin: center; }
         @keyframes pulseDot {
             0%, 100% { transform: scale(1); opacity: 1; }
-            50%      { transform: scale(1.6); opacity: 0.55; }
+            50%      { transform: scale(1.5); opacity: 0.5; }
         }
 
-        /* ===== Truk melayang pelan (naik-turun halus) ===== */
-        .truck-float {
-            animation: floatTruck 3.4s ease-in-out infinite;
-        }
+        .truck-float { animation: floatTruck 3.6s ease-in-out infinite; }
         @keyframes floatTruck {
             0%, 100% { transform: translateY(0px); }
-            50%      { transform: translateY(-6px); }
+            50%      { transform: translateY(-5px); }
         }
 
-        /* ===== Entrance: fade + slide naik ===== */
+        /* ===== Satu momen entrance untuk hero saja ===== */
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(18px); }
+            from { opacity: 0; transform: translateY(14px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        .anim-fade-up {
-            opacity: 0;
-            animation: fadeInUp 0.7s cubic-bezier(.22,.9,.32,1) forwards;
-        }
+        .anim-fade-up { opacity: 0; animation: fadeInUp 0.65s cubic-bezier(.22,.9,.32,1) forwards; }
 
-        /* ===== Scroll-reveal untuk tiap section di bawah hero ===== */
+        /* ===== Reveal tenang per-section saat discroll (tanpa stagger per kartu) ===== */
         .reveal {
             opacity: 0;
-            transform: translateY(24px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transform: translateY(14px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
         }
-        .reveal.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* ===== Stagger kartu menu: masing-masing anak ditunda dikit ===== */
-        .stagger-grid.is-visible > * {
-            opacity: 0;
-            animation: fadeInUp 0.55s cubic-bezier(.22,.9,.32,1) forwards;
-        }
-        .stagger-grid.is-visible > *:nth-child(1) { animation-delay: 0.02s; }
-        .stagger-grid.is-visible > *:nth-child(2) { animation-delay: 0.10s; }
-        .stagger-grid.is-visible > *:nth-child(3) { animation-delay: 0.18s; }
-        .stagger-grid.is-visible > *:nth-child(4) { animation-delay: 0.26s; }
-        .stagger-grid.is-visible > *:nth-child(5) { animation-delay: 0.34s; }
-        .stagger-grid.is-visible > *:nth-child(6) { animation-delay: 0.42s; }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
 
         @media (prefers-reduced-motion: reduce) {
-            .route-dash, .route-dot, .truck-float, .anim-fade-up,
-            .stagger-grid.is-visible > * { animation: none !important; }
+            .route-dash, .route-dot, .truck-float, .anim-fade-up { animation: none !important; }
             .reveal { opacity: 1; transform: none; transition: none; }
         }
 
-        /* ===== Hover kartu menu (sudah ada, dipertegas transisinya) ===== */
-        .menu-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-        .menu-card:hover { transform: translateY(-4px); }
-        .menu-card:hover .menu-icon-wrap { transform: translateY(-2px) scale(1.06); }
-        .menu-icon-wrap { transition: transform 0.25s ease; }
-        .menu-arrow { transition: transform 0.25s ease, opacity 0.25s ease; }
-        .menu-card:hover .menu-arrow { transform: translateX(3px); opacity: 1; }
+        /* ===== Kartu menu: garis aksen kiri + elevasi halus saat hover ===== */
+        .menu-card {
+            position: relative;
+            border: 1px solid rgba(15, 27, 51, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .menu-card:hover { transform: translateY(-2px); border-color: rgba(15, 27, 51, 0.1); }
+        .menu-card::before {
+            content: '';
+            position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: var(--accent, #E85D2A);
+            opacity: 0.35;
+            transition: opacity 0.2s ease;
+        }
+        .menu-card:hover::before { opacity: 1; }
+        .menu-chevron { color: rgba(15, 27, 51, 0.22); transition: transform 0.2s ease, color 0.2s ease; }
+        .menu-card:hover .menu-chevron { color: #E85D2A; transform: translateX(2px); }
+
+        /* ===== Kartu metrik hero (dock yang menumpuk di batas hero) ===== */
+        .metric-dock { box-shadow: 0 18px 40px -18px rgba(15, 27, 51, 0.28); }
+        .metric-divider { border-color: rgba(15, 27, 51, 0.08); }
     </style>
 </head>
 <body class="font-poppins text-navy-950 antialiased">
@@ -118,119 +108,166 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-5 md:px-8 pb-16">
 
         {{-- ============ HERO ============ --}}
-        <section class="mt-6 relative overflow-hidden rounded-[22px] sm:rounded-[28px] bg-navy-900">
-            <svg class="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 800 260" preserveAspectRatio="none" fill="none">
-                <path class="route-dash" d="M-20 210 C 150 210, 190 90, 340 90 S 520 210, 700 100 S 780 40, 860 40" stroke="#ffffff" stroke-width="2"/>
-            </svg>
+        <section class="mt-6 relative">
+            <div class="relative overflow-hidden rounded-[22px] sm:rounded-[26px] bg-navy-900">
+                <svg class="absolute inset-0 w-full h-full opacity-[0.08]" viewBox="0 0 800 260" preserveAspectRatio="none" fill="none">
+                    <path class="route-dash" d="M-20 220 C 160 220, 200 100, 350 100 S 540 210, 720 110 S 790 50, 860 50" stroke="#ffffff" stroke-width="1.5"/>
+                </svg>
 
-            <div class="relative grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 lg:gap-8 items-center px-4 sm:px-6 md:px-10 py-6 sm:py-9 md:py-11">
-                <div>
-                    <p class="anim-fade-up text-rust-500 text-xs sm:text-sm font-semibold tracking-wide" style="animation-delay:.05s">biMBA Logistik</p>
-                    <h1 class="anim-fade-up mt-2 text-xl sm:text-2xl md:text-[32px] leading-tight font-bold text-white" style="animation-delay:.15s">
-                        Pusat kendali gudang, order, dan pengiriman
-                    </h1>
-                    <p class="anim-fade-up mt-3 text-navy-100/80 text-sm sm:text-[15px] max-w-md" style="animation-delay:.25s; color:#C9D3E6">
-                        Pantau alur kerja dari data masuk sampai barang terkirim, semua dalam satu halaman.
-                    </p>
+                <div class="relative grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 lg:gap-8 items-center px-4 sm:px-6 md:px-10 pt-6 sm:pt-9 md:pt-11 pb-12 sm:pb-16 md:pb-20">
+                    <div>
+                        <p class="anim-fade-up text-rust-500 text-xs sm:text-sm font-semibold" style="animation-delay:.05s">biMBA Logistik</p>
+                        <h1 class="anim-fade-up mt-2 text-xl sm:text-2xl md:text-[32px] leading-tight font-bold text-white max-w-lg" style="animation-delay:.12s">
+                            Pusat kendali gudang, order, dan pengiriman
+                        </h1>
+                        <p class="anim-fade-up mt-3 text-sm sm:text-[15px] max-w-md" style="animation-delay:.18s; color:#B9C4DC">
+                            Pantau alur kerja dari data masuk sampai barang terkirim, semua dalam satu halaman.
+                        </p>
+                    </div>
 
-                    <div class="anim-fade-up mt-6 sm:mt-7 grid grid-cols-3 gap-2 sm:gap-3 max-w-md" style="animation-delay:.35s">
-                        <div class="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-2.5 sm:py-3 min-w-0">
-                            <p class="js-counter text-white text-base sm:text-lg md:text-xl font-bold truncate"
-                               data-target="{{ $stats['order_hari_ini'] ?? 0 }}">0</p>
-                            <p class="text-[10px] sm:text-[11px] mt-0.5 leading-tight" style="color:#9FADC7">Order hari ini</p>
-                        </div>
-                        <div class="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-2.5 sm:py-3 min-w-0">
-                            <p class="js-counter text-white text-base sm:text-lg md:text-xl font-bold truncate"
-                               data-target="{{ $stats['siap_kirim'] ?? 0 }}">0</p>
-                            <p class="text-[10px] sm:text-[11px] mt-0.5 leading-tight" style="color:#9FADC7">Siap dikirim</p>
-                        </div>
-                        <div class="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-2.5 sm:py-3 min-w-0">
-                            <p class="js-counter text-white text-base sm:text-lg md:text-xl font-bold truncate"
-                               data-target="{{ $stats['proses_qc'] ?? 0 }}">0</p>
-                            <p class="text-[10px] sm:text-[11px] mt-0.5 leading-tight" style="color:#9FADC7">Dalam QC</p>
-                        </div>
+                    {{-- Ilustrasi gudang - truk sederhana bergaya line-art --}}
+                    <div class="hidden md:block anim-fade-up" style="animation-delay:.24s">
+                        <svg viewBox="0 0 340 200" class="w-full h-auto max-w-[260px] lg:max-w-none mx-auto">
+                            <rect x="18" y="70" width="120" height="80" rx="6" fill="#1D3361" stroke="#3A548A" stroke-width="1.5"/>
+                            <rect x="30" y="84" width="24" height="24" rx="3" fill="#28447F"/>
+                            <rect x="60" y="84" width="24" height="24" rx="3" fill="#28447F"/>
+                            <rect x="90" y="84" width="24" height="24" rx="3" fill="#28447F"/>
+                            <rect x="30" y="114" width="24" height="24" rx="3" fill="#28447F"/>
+                            <rect x="60" y="114" width="24" height="24" rx="3" fill="#28447F"/>
+                            <rect x="90" y="114" width="24" height="24" rx="3" fill="#E85D2A"/>
+                            <path d="M18 70 L78 40 L138 70" fill="none" stroke="#3A548A" stroke-width="2" stroke-linejoin="round"/>
+
+                            <g class="truck-float">
+                                <rect x="150" y="126" width="86" height="34" rx="4" fill="#E8ECF3"/>
+                                <rect x="150" y="104" width="40" height="26" rx="4" fill="#E8ECF3"/>
+                                <circle cx="172" cy="164" r="10" fill="#0F1B33" stroke="#E8ECF3" stroke-width="3"/>
+                                <circle cx="212" cy="164" r="10" fill="#0F1B33" stroke="#E8ECF3" stroke-width="3"/>
+                                <rect x="156" y="110" width="20" height="14" rx="2" fill="#9FADC7"/>
+                                <g stroke="#E85D2A" stroke-width="2" fill="none" stroke-linecap="round">
+                                    <path d="M246 150 h20 M246 158 h14"/>
+                                </g>
+                            </g>
+
+                            <path d="M250 96 C 262 60, 300 46, 322 20" fill="none" stroke="#E85D2A" stroke-width="2" stroke-dasharray="5 6" class="route-dash"/>
+                            <circle cx="322" cy="20" r="5" fill="#E85D2A" class="route-dot"/>
+                        </svg>
                     </div>
                 </div>
+            </div>
 
-                {{-- Ilustrasi gudang - truk sederhana bergaya line-art --}}
-                <div class="hidden md:block anim-fade-up" style="animation-delay:.3s">
-                    <svg viewBox="0 0 340 200" class="w-full h-auto max-w-[280px] lg:max-w-none mx-auto">
-                        <rect x="18" y="70" width="120" height="80" rx="6" fill="#1D3361" stroke="#3A548A" stroke-width="1.5"/>
-                        <rect x="30" y="84" width="24" height="24" rx="3" fill="#28447F"/>
-                        <rect x="60" y="84" width="24" height="24" rx="3" fill="#28447F"/>
-                        <rect x="90" y="84" width="24" height="24" rx="3" fill="#28447F"/>
-                        <rect x="30" y="114" width="24" height="24" rx="3" fill="#28447F"/>
-                        <rect x="60" y="114" width="24" height="24" rx="3" fill="#28447F"/>
-                        <rect x="90" y="114" width="24" height="24" rx="3" fill="#E85D2A"/>
-                        <path d="M18 70 L78 40 L138 70" fill="none" stroke="#3A548A" stroke-width="2" stroke-linejoin="round"/>
-
-                        <g class="truck-float">
-                            <rect x="150" y="126" width="86" height="34" rx="4" fill="#E8ECF3"/>
-                            <rect x="150" y="104" width="40" height="26" rx="4" fill="#E8ECF3"/>
-                            <circle cx="172" cy="164" r="10" fill="#0F1B33" stroke="#E8ECF3" stroke-width="3"/>
-                            <circle cx="212" cy="164" r="10" fill="#0F1B33" stroke="#E8ECF3" stroke-width="3"/>
-                            <rect x="156" y="110" width="20" height="14" rx="2" fill="#9FADC7"/>
-
-                            <g stroke="#E85D2A" stroke-width="2" fill="none" stroke-linecap="round">
-                                <path d="M246 150 h20 M246 158 h14"/>
-                            </g>
-                        </g>
-
-                        <path d="M250 96 C 262 60, 300 46, 322 20" fill="none" stroke="#E85D2A" stroke-width="2" stroke-dasharray="5 6" class="route-dash"/>
-                        <circle cx="322" cy="20" r="5" fill="#E85D2A" class="route-dot"/>
-                    </svg>
+            {{-- Metrik hari ini: kartu putih yang menumpuk di batas bawah hero --}}
+            <div class="anim-fade-up relative -mt-8 sm:-mt-9 mx-2 sm:mx-6 md:mx-10 bg-white rounded-2xl metric-dock px-4 sm:px-6 py-4 sm:py-5" style="animation-delay:.3s">
+                <div class="grid grid-cols-3 divide-x metric-divider">
+                    <div class="flex items-center gap-3 pr-3 sm:pr-5 min-w-0">
+                        <div class="hidden xs:flex w-9 h-9 shrink-0 items-center justify-center rounded-lg bg-navy-900/5">
+                            <svg viewBox="0 0 24 24" class="w-4.5 h-4.5" fill="none" stroke="#162749" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="js-counter text-lg sm:text-xl font-bold text-navy-950 truncate" data-target="{{ $stats['order_hari_ini'] ?? 0 }}">0</p>
+                            <p class="text-[11px] sm:text-xs text-navy-950/45 leading-tight truncate">Order hari ini</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 px-3 sm:px-5 min-w-0">
+                        <div class="hidden xs:flex w-9 h-9 shrink-0 items-center justify-center rounded-lg bg-rust-500/10">
+                            <svg viewBox="0 0 24 24" class="w-4.5 h-4.5" fill="none" stroke="#D14E1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V7a1 1 0 0 1 1-1h9v10"/><path d="M13 10h4l4 3.5V16h-2"/><circle cx="7.5" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="js-counter text-lg sm:text-xl font-bold text-navy-950 truncate" data-target="{{ $stats['siap_kirim'] ?? 0 }}">0</p>
+                            <p class="text-[11px] sm:text-xs text-navy-950/45 leading-tight truncate">Siap dikirim</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 pl-3 sm:pl-5 min-w-0">
+                        <div class="hidden xs:flex w-9 h-9 shrink-0 items-center justify-center rounded-lg bg-navy-900/5">
+                            <svg viewBox="0 0 24 24" class="w-4.5 h-4.5" fill="none" stroke="#162749" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 19 6v6c0 4.5-3 7.5-7 8.5-4-1-7-4-7-8.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="js-counter text-lg sm:text-xl font-bold text-navy-950 truncate" data-target="{{ $stats['proses_qc'] ?? 0 }}">0</p>
+                            <p class="text-[11px] sm:text-xs text-navy-950/45 leading-tight truncate">Dalam QC</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
         {{-- ============ DATA & MASTER ============ --}}
-        <section class="reveal mt-8 sm:mt-10">
+        <section class="reveal mt-10 sm:mt-11">
             <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <h2 class="text-base sm:text-lg font-semibold text-navy-950">Data & Master</h2>
                 <span class="hidden sm:inline text-xs text-navy-950/40">Sumber data operasional</span>
             </div>
-            <div class="stagger-grid mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 
-                <a href="{{ route('dashboard') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-900">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/>
-                            <path d="M4.5 5.5V18.5C4.5 19.88 7.86 21 12 21C16.14 21 19.5 19.88 19.5 18.5V5.5"/>
-                            <path d="M4.5 12C4.5 13.38 7.86 14.5 12 14.5C16.14 14.5 19.5 13.38 19.5 12"/>
-                        </svg>
+                <a href="{{ route('dashboard') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#162749">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-900/[0.06]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#162749" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/>
+                                <path d="M4.5 5.5V18.5C4.5 19.88 7.86 21 12 21C16.14 21 19.5 19.88 19.5 18.5V5.5"/>
+                                <path d="M4.5 12C4.5 13.38 7.86 14.5 12 14.5C16.14 14.5 19.5 13.38 19.5 12"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Database</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Ringkasan seluruh data</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('database-user.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-800">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="9" cy="8" r="3.2"/>
-                            <path d="M3.5 20c0-3.3 2.6-5.5 5.8-5.5S15 16.7 15 20"/>
-                            <circle cx="17" cy="8.5" r="2.4"/>
-                            <path d="M16.2 14.6c2.6.3 4.3 2.2 4.3 5.1"/>
-                        </svg>
+                <a href="{{ route('database-user.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#28447F">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-700/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#28447F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="8" r="3.2"/>
+                                <path d="M3.5 20c0-3.3 2.6-5.5 5.8-5.5S15 16.7 15 20"/>
+                                <circle cx="17" cy="8.5" r="2.4"/>
+                                <path d="M16.2 14.6c2.6.3 4.3 2.2 4.3 5.1"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Database User</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Kelola akun pengguna</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('import.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rust-500">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3v11"/>
-                            <path d="M7.5 10.5 12 15l4.5-4.5"/>
-                            <path d="M4.5 17.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/>
-                        </svg>
+                <a href="{{ route('import.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#E85D2A">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-rust-500/10">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#D14E1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3v11"/>
+                                <path d="M7.5 10.5 12 15l4.5-4.5"/>
+                                <path d="M4.5 17.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Data Import biMBA Shop</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Unggah data massal</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
+            </div>
+        </section>
+
+        {{-- ============ ORDER ============ --}}
+        <section class="reveal mt-8 sm:mt-9">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 class="text-base sm:text-lg font-semibold text-navy-950">Order biMBA Shop</h2>
+                <span class="hidden sm:inline text-xs text-navy-950/40">Data order biMBA Shop & rekap</span>
+            </div>
+            <div class="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+
+                <a href="{{ route('order.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#E85D2A">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-rust-500/10">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#D14E1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3.5" y="5" width="17" height="15" rx="2"/>
+                                <path d="M3.5 10h17"/>
+                                <path d="M8 3v4M16 3v4"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                    </div>
+                    <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Ringkasan Order</h3>
+                    <p class="mt-0.5 text-xs text-navy-950/45">Semua transaksi order</p>
+                </a>
             </div>
         </section>
 
@@ -240,43 +277,49 @@
                 <h2 class="text-base sm:text-lg font-semibold text-navy-950">Order Manual</h2>
                 <span class="hidden sm:inline text-xs text-navy-950/40">Input order per kategori produk</span>
             </div>
-            <div class="stagger-grid mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 
-                <a href="{{ route('order-manual.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-700">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/>
-                            <path d="M16 4v3h3"/>
-                            <path d="M8 12h8M8 15.5h8M8 8.5h4"/>
-                        </svg>
+                <a href="{{ route('order-manual.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#28447F">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-700/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#28447F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/>
+                                <path d="M16 4v3h3"/>
+                                <path d="M8 12h8M8 15.5h8M8 8.5h4"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Majalah</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Order manual majalah</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('order-manual-modul.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-700">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 6.5c-1.8-1.2-4-1.7-6.5-1.5v13c2.5-.2 4.7.3 6.5 1.5 1.8-1.2 4-1.7 6.5-1.5V5c-2.5-.2-4.7.3-6.5 1.5Z"/>
-                            <path d="M12 6.5V20"/>
-                        </svg>
+                <a href="{{ route('order-manual-modul.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#28447F">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-700/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#28447F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 6.5c-1.8-1.2-4-1.7-6.5-1.5v13c2.5-.2 4.7.3 6.5 1.5 1.8-1.2 4-1.7 6.5-1.5V5c-2.5-.2-4.7.3-6.5 1.5Z"/>
+                                <path d="M12 6.5V20"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Modul</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Order manual modul</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('order-manual-sertifikat.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-700">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="9" r="5.2"/>
-                            <path d="m8.3 13.2-1.6 7 5.3-2.6 5.3 2.6-1.6-7"/>
-                        </svg>
+                <a href="{{ route('order-manual-sertifikat.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#28447F">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-700/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#28447F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="9" r="5.2"/>
+                                <path d="m8.3 13.2-1.6 7 5.3-2.6 5.3 2.6-1.6-7"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Sertifikat</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Order manual sertifikat</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
             </div>
@@ -288,60 +331,68 @@
                 <h2 class="text-base sm:text-lg font-semibold text-navy-950">Alur Gudang</h2>
                 <span class="hidden sm:inline text-xs text-navy-950/40">Order → Picking → QC → Packing → Kirim</span>
             </div>
-            <div class="stagger-grid mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 
-                <a href="{{ route('picking.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-800">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5Z"/>
-                            <path d="M4 8.5 12 13l8-4.5"/>
-                            <path d="M12 13v7"/>
-                        </svg>
+                <a href="{{ route('picking.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#1D3361">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-800/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#1D3361" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5Z"/>
+                                <path d="M4 8.5 12 13l8-4.5"/>
+                                <path d="M12 13v7"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Picking</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Ambil barang di rak</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('qc-outgoing.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-800">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3.5 19 6v6c0 4.5-3 7.5-7 8.5-4-1-7-4-7-8.5V6Z"/>
-                            <path d="m9 12 2.2 2.2L15.5 10"/>
-                        </svg>
+                <a href="{{ route('qc-outgoing.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#1D3361">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-800/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#1D3361" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3.5 19 6v6c0 4.5-3 7.5-7 8.5-4-1-7-4-7-8.5V6Z"/>
+                                <path d="m9 12 2.2 2.2L15.5 10"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">QC Outgoing</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Cek kualitas keluar</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('packing.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-800">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="4" y="8" width="16" height="12" rx="1.5"/>
-                            <path d="M4 13h16"/>
-                            <path d="M12 8v12"/>
-                            <path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V8"/>
-                        </svg>
+                <a href="{{ route('packing.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#1D3361">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-navy-800/[0.08]">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#1D3361" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="8" width="16" height="12" rx="1.5"/>
+                                <path d="M4 13h16"/>
+                                <path d="M12 8v12"/>
+                                <path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V8"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Packing</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Kemas untuk kirim</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
-                <a href="{{ route('distribution-order.index') }}" class="menu-card group bg-white rounded-2xl shadow-card hover:shadow-cardHover p-4 sm:p-5">
-                    <div class="menu-icon-wrap inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rust-500">
-                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 16V7a1 1 0 0 1 1-1h9v10"/>
-                            <path d="M13 10h4l4 3.5V16h-2"/>
-                            <circle cx="7.5" cy="17.5" r="1.7"/>
-                            <circle cx="17" cy="17.5" r="1.7"/>
-                            <path d="M9.2 17.5h6.1"/>
-                        </svg>
+                <a href="{{ route('distribution-order.index') }}" class="menu-card group bg-white rounded-2xl shadow-card p-4 sm:p-5 pl-5 sm:pl-6" style="--accent:#E85D2A">
+                    <div class="flex items-start justify-between">
+                        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-rust-500/10">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#D14E1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 16V7a1 1 0 0 1 1-1h9v10"/>
+                                <path d="M13 10h4l4 3.5V16h-2"/>
+                                <circle cx="7.5" cy="17.5" r="1.7"/>
+                                <circle cx="17" cy="17.5" r="1.7"/>
+                                <path d="M9.2 17.5h6.1"/>
+                            </svg>
+                        </div>
+                        <svg class="menu-chevron w-4 h-4 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
                     <h3 class="mt-3.5 font-semibold text-[15px] text-navy-950">Distribution</h3>
                     <p class="mt-0.5 text-xs text-navy-950/45">Jadwal & rute kirim</p>
-                    <span class="menu-arrow inline-block mt-2 text-rust-500 text-sm opacity-0">Buka →</span>
                 </a>
 
             </div>
@@ -353,16 +404,15 @@
     </form>
 
     <script>
-        // ===== 1. Angka statistik hero: hitung naik dari 0 ke nilai asli =====
+        // ===== 1. Angka statistik: hitung naik dari 0 ke nilai asli =====
         document.querySelectorAll('.js-counter').forEach(function (el) {
             var target = parseInt(el.getAttribute('data-target'), 10) || 0;
-            var duration = 900; // ms
+            var duration = 900;
             var startTime = null;
 
             function step(timestamp) {
                 if (!startTime) startTime = timestamp;
                 var progress = Math.min((timestamp - startTime) / duration, 1);
-                // easeOutCubic biar di akhir melambat halus
                 var eased = 1 - Math.pow(1 - progress, 3);
                 el.textContent = Math.floor(eased * target);
                 if (progress < 1) {
@@ -374,8 +424,8 @@
             requestAnimationFrame(step);
         });
 
-        // ===== 2. Reveal section & stagger kartu saat discroll ke layar =====
-        var revealTargets = document.querySelectorAll('.reveal, .stagger-grid');
+        // ===== 2. Reveal tenang per-section saat discroll (satu transisi, tanpa stagger) =====
+        var revealTargets = document.querySelectorAll('.reveal');
 
         if ('IntersectionObserver' in window) {
             var observer = new IntersectionObserver(function (entries) {
@@ -385,11 +435,10 @@
                         observer.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.15 });
+            }, { threshold: 0.12 });
 
             revealTargets.forEach(function (el) { observer.observe(el); });
         } else {
-            // Fallback browser lama: langsung tampilkan semua
             revealTargets.forEach(function (el) { el.classList.add('is-visible'); });
         }
     </script>
