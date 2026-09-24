@@ -1,172 +1,194 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual Pemesanan Sertifikat - biMBA AIUEO Logistik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        table { border-collapse: collapse; }
-        th, td { padding: 12px 8px; font-size: 0.85rem; }
-        th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
-        tr:hover { background-color: #f8fafc; }
-        .processed-row { opacity: 0.65; background-color: #f1f5f9 !important; color: #64748b; }
-        .processed-row td { color: #64748b; }
-        .select2-container--default .select2-selection--single,
-        .select2-container--bootstrap-5 .select2-selection--single {
-            height: 42px !important; border: 1px solid #d1d5db !important;
-            border-radius: 0.75rem !important; padding: 0.4rem 0.75rem !important;
-            display: flex !important; align-items: center !important; background-color: #fff !important;
-        }
-        .select2-dropdown { border-radius: 0.75rem !important; border: 1px solid #d1d5db !important; }
-    </style>
-</head>
-<body class="bg-gray-50">
-@include('partials.top-nav')
+@extends('layouts.panel')
 
-<div class="max-w-screen-2xl mx-auto px-6 py-6">
+@section('title', 'Manual Pemesanan Sertifikat')
 
-    @if(session('success'))
-        <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-5 py-4 rounded-2xl">{!! session('success') !!}</div>
-    @endif
-    @if(session('error'))
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-2xl">{!! session('error') !!}</div>
-    @endif
+@push('styles')
+<style>
+    .data-table { border-collapse: separate; border-spacing: 0; }
+    .data-table thead th {
+        position: sticky; top: 0; z-index: 10;
+        background: #F1F5F9; white-space: nowrap;
+    }
+    .data-table th:first-child, .data-table td:first-child {
+        position: sticky; left: 0; z-index: 5; background: #fff;
+    }
+    .data-table th:last-child, .data-table td:last-child {
+        position: sticky; right: 0; z-index: 5; background: #fff;
+        box-shadow: -1px 0 0 rgba(15,27,51,0.08);
+    }
+    .processed-row td { background: #F1F5F9 !important; color: #64748B; }
+    .cell-clip {
+        display: block; max-width: 220px; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap;
+    }
+    .filter-input {
+        width: 100%; border: 1px solid #0F1B331A; border-radius: 0.75rem;
+        padding: 9px 12px; font-size: 13.5px; background: #fff; color: #0F1B33;
+    }
+    .filter-input:focus {
+        outline: none; border-color: #28447F;
+        box-shadow: 0 0 0 3px rgba(40,68,127,0.12);
+    }
+    .pager nav p { display: none; }
+</style>
+@endpush
 
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800">Manual Pemesanan Sertifikat</h1>
-            <p class="text-gray-600">Kelola data pemesanan sertifikat secara manual</p>
-        </div>
+@section('content')
 
-        <div class="flex gap-3 flex-wrap">
-            <a href="{{ route('order-manual-sertifikat.index') }}"
-               class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700">← Kembali</a>
+    @include('partials.flash')
 
-            <form action="{{ route('order-manual-sertifikat.manual.sync') }}" method="POST"
-                  onsubmit="return confirm('Yakin ingin sync data dari Bimba Shop + Casdana?\n\nData Manual Sertifikat yang cocok (no cabang + nama unit + produk) akan di-update: Order Date, Payment Date, Estimasi Print PL, dll.')">
-                @csrf
-                <button type="submit"
-                        class="bg-teal-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-teal-700 flex items-center gap-2">
-                    🔄 Sync Bimba Shop + Casdana
-                </button>
-            </form>
+    @include('partials.page-header', [
+        'title'      => 'Manual Pemesanan Sertifikat',
+        'subtitle'   => 'Kelola data pemesanan sertifikat secara manual',
+        'back'       => route('order-manual-sertifikat.index'),
+        'backLabel'  => 'Kembali',
+        'primary'    => [
+            'url'   => route('order-manual-sertifikat.manual.create'),
+            'label' => 'Create Manual',
+            'icon'  => 'plus',
+        ],
+    ])
 
-            <a href="{{ route('order-manual-sertifikat.realisasi') }}"
-               class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex items-center gap-2">
-                📊 Rekap Aktual Manual
-            </a>
+    {{-- ============ TOOLBAR TAMBAHAN ============ --}}
+    <div class="flex flex-wrap gap-3 mb-6">
+        <form action="{{ route('order-manual-sertifikat.manual.sync') }}" method="POST"
+              onsubmit="return confirm('Yakin ingin sync data dari Bimba Shop + Casdana?\n\nData Manual Sertifikat yang cocok (no cabang + nama unit + produk) akan di-update: Order Date, Payment Date, Estimasi Print PL, dll.')">
+            @csrf
+            <button type="submit"
+                    class="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+                </svg>
+                Sync Bimba Shop + Casdana
+            </button>
+        </form>
 
-            <a href="{{ route('order-manual-sertifikat.manual.create') }}"
-               class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-700">+ Create Manual</a>
-        </div>
+        <a href="{{ route('order-manual-sertifikat.realisasi') }}"
+           class="inline-flex items-center gap-2 bg-navy-700 hover:bg-navy-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v18h18"/>
+                <path d="M7 16v-5M12 16V8M17 16v-9"/>
+            </svg>
+            Rekap Aktual Manual
+        </a>
     </div>
 
-    <div id="bulkActionBar" class="hidden bg-white rounded-3xl shadow p-5 mb-6 flex items-center justify-between border border-indigo-100 flex-wrap gap-3">
-        <span id="selectedCount" class="text-sm font-semibold text-gray-700">Siap memproses data sesuai filter tanggal</span>
+    {{-- ============ BULK ACTION BAR ============ --}}
+    <div id="bulkActionBar" class="hidden bg-white rounded-2xl shadow-card p-5 mb-6 flex items-center justify-between border border-navy-700/10 flex-wrap gap-3">
+        <span id="selectedCount" class="text-sm font-semibold text-navy-950">Siap memproses data sesuai filter tanggal</span>
         <div class="flex items-center gap-3">
             <button type="button" onclick="processAllFilteredData()" id="processAllBtn"
-                    class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-emerald-700">
-                📅 Proses & Edit Semua Sesuai Filter Tanggal
+                    class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+                Proses & Edit Semua Sesuai Filter Tanggal
             </button>
-            <button type="button" onclick="clearSelection()" class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">Reset</button>
+            <button type="button" onclick="clearSelection()"
+                    class="bg-navy-950/10 hover:bg-navy-950/20 text-navy-950/70 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                Reset
+            </button>
         </div>
     </div>
 
-    <div class="bg-white rounded-3xl shadow p-6 mb-6">
+    {{-- ============ FILTER ============ --}}
+    <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
         <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
-                <input type="text" name="order_id" value="{{ request('order_id') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Cari Order ID...">
+                <label class="field-label">Order ID</label>
+                <input type="text" name="order_id" value="{{ request('order_id') }}" class="filter-input" placeholder="Cari Order ID...">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                <input type="text" name="customer_name" value="{{ request('customer_name') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Nama Customer...">
+                <label class="field-label">Customer</label>
+                <input type="text" name="customer_name" value="{{ request('customer_name') }}" class="filter-input" placeholder="Nama Customer...">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                <input type="text" name="product_name" value="{{ request('product_name') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="Nama Produk...">
+                <label class="field-label">Item Name</label>
+                <input type="text" name="product_name" value="{{ request('product_name') }}" class="filter-input" placeholder="Nama Produk...">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                <input type="text" name="product_sku" value="{{ request('product_sku') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5" placeholder="SKU...">
+                <label class="field-label">SKU</label>
+                <input type="text" name="product_sku" value="{{ request('product_sku') }}" class="filter-input" placeholder="SKU...">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <select name="payment_method" class="payment-select w-full">
+                <label class="field-label">Payment Method</label>
+                <select name="payment_method" class="filter-input">
                     <option value="">Semua</option>
-                    <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                    <option value="manual" {{ request('payment_method') == 'manual' ? 'selected' : '' }}>Manual</option>
+                    <option value="cash" @selected(request('payment_method') == 'cash')>Cash</option>
+                    <option value="transfer" @selected(request('payment_method') == 'transfer')>Transfer</option>
+                    <option value="manual" @selected(request('payment_method') == 'manual')>Manual</option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select name="status" class="status-select w-full">
+                <label class="field-label">Status</label>
+                <select name="status" class="filter-input">
                     <option value="">Semua Status</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="processing" {{ request('status') == 'processing' ? 'selected' : '' }}>Processing</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
+                    <option value="pending" @selected(request('status') == 'pending')>Pending</option>
+                    <option value="processing" @selected(request('status') == 'processing')>Processing</option>
+                    <option value="completed" @selected(request('status') == 'completed')>Completed</option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
-                <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
+                <label class="field-label">Dari Tanggal</label>
+                <input type="date" name="start_date" value="{{ request('start_date') }}" class="filter-input">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
-                <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
+                <label class="field-label">Sampai Tanggal</label>
+                <input type="date" name="end_date" value="{{ request('end_date') }}" class="filter-input">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
-                <select name="per_page" onchange="this.form.submit()" class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
+                <label class="field-label">Tampilkan</label>
+                <select name="per_page" onchange="this.form.submit()" class="filter-input">
                     @foreach([10,25,50,100] as $n)
-                        <option value="{{ $n }}" {{ (int)request('per_page', 25) === $n ? 'selected' : '' }}>{{ $n }}</option>
+                        <option value="{{ $n }}" @selected((int)request('per_page', 25) === $n)>{{ $n }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="flex items-end gap-3 pt-6 lg:col-span-2">
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">🔍 Terapkan Filter</button>
-                <a href="{{ route('order-manual-sertifikat.manual') }}" class="text-gray-500 hover:text-red-600 px-4 py-2.5 text-sm font-medium">Reset</a>
+            <div class="flex items-end gap-3 lg:col-span-2">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 bg-navy-700 hover:bg-navy-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    Terapkan Filter
+                </button>
+                <a href="{{ route('order-manual-sertifikat.manual') }}" class="text-navy-950/50 hover:text-rust-600 px-3 py-2.5 text-sm font-medium">Reset</a>
             </div>
         </form>
     </div>
 
-    <div class="bg-white rounded-3xl shadow overflow-x-auto">
-        <table class="w-full text-sm">
+    {{-- ============ TABEL ============ --}}
+    <div class="bg-white rounded-2xl shadow-card overflow-x-auto">
+        <table class="w-full text-sm data-table">
             <thead>
-                <tr class="bg-gray-100 border-b-2 border-gray-300">
-                    <th class="text-left px-4 py-3">ID Manual</th>
-                    <th class="text-left px-4 py-3">ID Pesan</th>
-                    <th class="text-left px-4 py-3">Nama Unit</th>
-                    <th class="text-left px-4 py-3">Cabang</th>
-                    <th class="text-left px-4 py-3">Alamat Kirim</th>
-                    <th class="text-left px-4 py-3">Kab/Kota</th>
-                    <th class="text-left px-4 py-3">Kategori Pesanan</th>
-                    <th class="text-center px-4 py-3">Qty</th>
-                    <th class="text-left px-4 py-3">Order Date</th>
-                    <th class="text-left px-4 py-3">Payment Date</th>
-                    <th class="text-center px-4 py-3">Status Bayar</th>
-                    <th class="text-center px-4 py-3">Status biMBAShop</th>
-                    <th class="text-center px-4 py-3">Estimasi Print PL</th>
-                    <th class="text-center px-4 py-3">Estimasi Persiapan</th>
-                    <th class="text-left px-4 py-3">Jasa Kurir</th>
-                    <th class="text-left px-4 py-3">Service Kurir</th>
-                    <th class="text-left px-4 py-3">Distribusi</th>
-                    <th class="text-right px-4 py-3">Ship Total</th>
-                    <th class="text-right px-4 py-3">Berat (gr)</th>
-                    <th class="text-right px-4 py-3">Order Total</th>
-                    <th class="text-left px-4 py-3">Payment Channel</th>
-                    <th class="text-left px-4 py-3">Status</th>
-                    <th class="text-center px-4 py-3">Tanggal Proses</th>
-                    <th class="text-center px-4 py-3">Aksi</th>
+                <tr class="text-left text-xs font-semibold text-navy-950/70 border-b-2 border-navy-950/10">
+                    <th class="px-4 py-3">ID Manual</th>
+                    <th class="px-4 py-3">ID Pesan</th>
+                    <th class="px-4 py-3">Nama Unit</th>
+                    <th class="px-4 py-3">Cabang</th>
+                    <th class="px-4 py-3">Alamat Kirim</th>
+                    <th class="px-4 py-3">Kab/Kota</th>
+                    <th class="px-4 py-3">Kategori Pesanan</th>
+                    <th class="px-4 py-3 text-center">Qty</th>
+                    <th class="px-4 py-3">Order Date</th>
+                    <th class="px-4 py-3">Payment Date</th>
+                    <th class="px-4 py-3 text-center">Status Bayar</th>
+                    <th class="px-4 py-3 text-center">Status biMBAShop</th>
+                    <th class="px-4 py-3 text-center">Estimasi Print PL</th>
+                    <th class="px-4 py-3 text-center">Estimasi Persiapan</th>
+                    <th class="px-4 py-3">Jasa Kurir</th>
+                    <th class="px-4 py-3">Service Kurir</th>
+                    <th class="px-4 py-3">Distribusi</th>
+                    <th class="px-4 py-3 text-right">Ship Total</th>
+                    <th class="px-4 py-3 text-right">Berat (gr)</th>
+                    <th class="px-4 py-3 text-right">Order Total</th>
+                    <th class="px-4 py-3">Payment Channel</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-center">Tanggal Proses</th>
+                    <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-navy-950/5">
                 @forelse($manualOrders as $order)
                     @php
                         $isProcessed = (bool) ($order->is_processed ?? false);
@@ -187,29 +209,30 @@
                             || str_contains($order->catatan ?? '', 'NAMA_MISMATCH')
                             || str_contains($order->notes ?? '', 'NAMA_MISMATCH');
                     @endphp
-                    <tr class="{{ $isProcessed ? 'processed-row' : '' }} hover:bg-gray-50">
-                        <td class="px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
+                    <tr class="{{ $isProcessed ? 'processed-row' : 'hover:bg-navy-950/[0.02]' }}">
+                        <td class="px-4 py-3 font-semibold text-navy-950 whitespace-nowrap">
                             MS-{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}
                         </td>
-                        <td class="px-4 py-3 font-semibold text-indigo-700 whitespace-nowrap">{{ $order->order_id ?? '-' }}</td>
-                        <td class="px-4 py-3 font-semibold text-gray-800">
-                            <div class="flex flex-col gap-0.5">
-                                <span>{{ $namaUnit }}</span>
-                                @if($isMismatch && $mismatch)
-                                    <div class="text-xs mt-0.5 space-y-0.5">
-                                        <div class="text-orange-700"><span class="text-gray-500">Excel:</span> {{ $mismatch['nama_excel'] }}</div>
-                                        <div class="text-emerald-700"><span class="text-gray-500">Kemitraan:</span> {{ $mismatch['nama_master'] }}</div>
-                                    </div>
-                                    <span class="inline-flex self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">⚠️ Mismatch</span>
-                                @elseif($isMismatch)
-                                    <span class="inline-flex self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">⚠️ Mismatch</span>
-                                @endif
-                            </div>
+                        <td class="px-4 py-3 font-semibold text-navy-700 whitespace-nowrap">{{ $order->order_id ?? '-' }}</td>
+                        <td class="px-4 py-3 font-semibold text-navy-950">
+                            <span class="cell-clip" title="{{ $namaUnit }}">{{ $namaUnit }}</span>
+                            @if($isMismatch)
+                                <div class="text-xs mt-1 space-y-0.5">
+                                    @if($mismatch)
+                                        <div class="text-orange-700"><span class="text-navy-950/50">Excel:</span> {{ $mismatch['nama_excel'] }}</div>
+                                        <div class="text-emerald-700"><span class="text-navy-950/50">Kemitraan:</span> {{ $mismatch['nama_master'] }}</div>
+                                    @endif
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">
+                                        <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+                                        Mismatch
+                                    </span>
+                                </div>
+                            @endif
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">{{ $order->billing_last_name ?? '-' }}</td>
-                        <td class="px-4 py-3"><span class="block whitespace-normal break-words">{{ $order->shipping_address_1 ?? '-' }}</span></td>
+                        <td class="px-4 py-3"><span class="cell-clip" title="{{ $order->shipping_address_1 }}">{{ $order->shipping_address_1 ?? '-' }}</span></td>
                         <td class="px-4 py-3 whitespace-nowrap">{{ $order->shipping_city ?? '-' }}</td>
-                        <td class="px-4 py-3"><span class="block whitespace-normal break-words">{{ $kategori }}</span></td>
+                        <td class="px-4 py-3"><span class="cell-clip" title="{{ $kategori }}">{{ $kategori }}</span></td>
                         <td class="px-4 py-3 text-center font-semibold">{{ $order->qty ?? 0 }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">{{ $order->order_date ? \Carbon\Carbon::parse($order->order_date)->format('d/m/Y H:i') : '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">
@@ -226,7 +249,7 @@
                             @elseif($statusBayar)
                                 <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">{{ $statusBayar }}</span>
                             @else
-                                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">-</span>
+                                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-navy-950/5 text-navy-950/40">-</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
@@ -237,13 +260,13 @@
                                     'processing' => 'bg-blue-100 text-blue-700',
                                     'on-hold'    => 'bg-orange-100 text-orange-700',
                                     'pending'    => 'bg-amber-100 text-amber-800',
-                                    default      => 'bg-gray-100 text-gray-500',
+                                    default      => 'bg-navy-950/5 text-navy-950/40',
                                 };
                             @endphp
                             @if($statusBimba)
                                 <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold {{ $bimbaClass }}">{{ ucfirst($statusBimba) }}</span>
                             @else
-                                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">-</span>
+                                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-navy-950/5 text-navy-950/40">-</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">{{ $estimasiPrint ? $estimasiPrint->format('d/m/Y') : '-' }}</td>
@@ -263,16 +286,22 @@
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
                             @if($isProcessed)
-                                <span class="text-gray-400 cursor-not-allowed font-medium" title="Data sudah diproses / dikunci">Edit</span>
+                                <span class="inline-flex text-navy-950/25 cursor-not-allowed" title="Data sudah diproses / dikunci">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                                </span>
                             @else
                                 <a href="{{ route('order-manual-sertifikat.manual.edit', $order->id) }}"
-                                   class="text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                                   class="inline-flex text-navy-700 hover:text-rust-600" title="Edit">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                                    </svg>
+                                </a>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="24" class="text-center py-16 text-gray-500">
+                        <td colspan="24" class="text-center py-16 text-navy-950/40">
                             Belum ada data pemesanan sertifikat.<br>
                             Silakan <strong>Create Manual</strong>.
                         </td>
@@ -282,281 +311,310 @@
         </table>
 
         @if($manualOrders->total() > 0)
-            <div class="px-6 py-4 bg-white border-t flex items-center justify-between flex-wrap gap-3">
-                <div class="text-sm text-gray-700">
-                    Menampilkan <span class="font-medium">{{ $manualOrders->firstItem() }}</span>
-                    sampai <span class="font-medium">{{ $manualOrders->lastItem() }}</span>
-                    dari total <span class="font-medium">{{ $manualOrders->total() }}</span> data
+            <div class="px-6 py-4 bg-white border-t border-navy-950/10 flex items-center justify-between flex-wrap gap-3">
+                <div class="text-sm text-navy-950/60">
+                    Menampilkan <span class="font-medium text-navy-950">{{ $manualOrders->firstItem() }}</span>
+                    sampai <span class="font-medium text-navy-950">{{ $manualOrders->lastItem() }}</span>
+                    dari total <span class="font-medium text-navy-950">{{ $manualOrders->total() }}</span> data
                 </div>
-                <div>{{ $manualOrders->appends(request()->query())->links() }}</div>
+                <div class="pager">{{ $manualOrders->appends(request()->query())->links('pagination::tailwind') }}</div>
             </div>
         @endif
     </div>
-</div>
 
-{{-- MODAL BULK --}}
-<div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-    <div class="bg-white rounded-3xl shadow-2xl w-[98vw] h-[95vh] mx-2 flex flex-col">
-        <div class="p-6 border-b flex justify-between items-center">
-            <div>
-                <h3 class="text-2xl font-semibold">Edit & Proses Data Sertifikat</h3>
-                <p class="text-gray-600" id="modalCount">0 data dipilih</p>
+    {{-- ============ MODAL BULK ============ --}}
+    <div id="bulkModal" class="hidden fixed inset-0 bg-navy-950/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-[98vw] h-[95vh] mx-2 flex flex-col">
+            <div class="p-6 border-b border-navy-950/10 flex justify-between items-center">
+                <div>
+                    <h3 class="text-2xl font-semibold text-navy-950">Edit & Proses Data Sertifikat</h3>
+                    <p class="text-navy-950/60" id="modalCount">0 data dipilih</p>
+                </div>
+                <button type="button" onclick="hideBulkModal()" class="text-navy-950/50 hover:text-rust-600">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
             </div>
-            <button type="button" onclick="hideBulkModal()" class="text-3xl text-gray-500 hover:text-gray-700">✕</button>
-        </div>
-        <div class="flex-1 overflow-auto p-6">
-            <table class="w-full text-sm border border-gray-200 min-w-[1600px]">
-                <thead class="bg-gray-50 sticky top-0">
-                    <tr class="divide-x divide-gray-200">
-                        <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-left">ID Pesan</th>
-                        <th class="px-4 py-3 text-left">To Customer</th>
-                        <th class="px-4 py-3 text-left">Kategori</th>
-                        <th class="px-4 py-3 text-left">Payment Date</th>
-                        <th class="px-4 py-3 text-left">Payment Channel</th>
-                        <th class="px-4 py-3 text-left">Distribusi</th>
-                        <th class="px-4 py-3 text-left">Jasa Kurir *</th>
-                        <th class="px-4 py-3 text-left">Service</th>
-                        <th class="px-4 py-3 text-left">Catatan</th>
-                    </tr>
-                </thead>
-                <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
-            </table>
-        </div>
-        <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
-            <button type="button" onclick="hideBulkModal()" class="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Batal</button>
-            <button type="button" onclick="executeBulkAction()" class="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-indigo-700">
-                💾 Simpan & Kunci Semua Data
-            </button>
+            <div class="flex-1 overflow-auto p-6">
+                <table class="w-full text-sm border border-navy-950/10 min-w-[1600px] data-table">
+                    <thead>
+                        <tr class="bg-navy-950/[0.03] divide-x divide-navy-950/10 text-left text-xs font-semibold text-navy-950/70">
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">ID Pesan</th>
+                            <th class="px-4 py-3">To Customer</th>
+                            <th class="px-4 py-3">Kategori</th>
+                            <th class="px-4 py-3">Payment Date</th>
+                            <th class="px-4 py-3">Payment Channel</th>
+                            <th class="px-4 py-3">Distribusi</th>
+                            <th class="px-4 py-3">Jasa Kurir *</th>
+                            <th class="px-4 py-3">Service</th>
+                            <th class="px-4 py-3">Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalTableBody" class="divide-y divide-navy-950/10"></tbody>
+                </table>
+            </div>
+            <div class="p-6 border-t border-navy-950/10 bg-navy-950/[0.02] flex justify-end gap-3">
+                <button type="button" onclick="hideBulkModal()" class="px-6 py-3 text-navy-950/60 hover:bg-navy-950/5 rounded-xl">Batal</button>
+                <button type="button" id="saveBulkBtn" onclick="executeBulkAction()" class="bg-rust-600 hover:bg-rust-500 text-white px-8 py-3 rounded-xl font-semibold transition-colors">
+                    Simpan & Kunci Semua Data
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <datalist id="jasaKurirOptions">
+        <option value="JNE">
+        <option value="TIKI">
+        <option value="Lion Parcel">
+    </datalist>
+
+@endsection
+
+@push('scripts')
 <script>
+const filteredIdsUrl = @json(route('order-manual-sertifikat.manual.filtered-ids'));
+const modalDataUrl   = @json(route('order-manual-sertifikat.manual.get-modal-data'));
+const bulkActionUrl  = @json(route('order-manual-sertifikat.manual.bulk-action'));
+const csrfToken      = @json(csrf_token());
+
 let selectedIds = [];
 
 function checkFilterStatus() {
-    const startDate = $('input[name="start_date"]').val();
-    const endDate = $('input[name="end_date"]').val();
-    if (startDate && endDate) $('#bulkActionBar').removeClass('hidden');
-    else $('#bulkActionBar').addClass('hidden');
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDate   = document.querySelector('input[name="end_date"]').value;
+    document.getElementById('bulkActionBar').classList.toggle('hidden', !(startDate && endDate));
 }
 
 function checkProcessButtonVisibility() {
     const processBtn = document.getElementById('processAllBtn');
     if (!processBtn) return;
-    let unprocessedCount = 0;
-    document.querySelectorAll('tbody tr').forEach(row => {
-        if (!row.classList.contains('processed-row') && row.querySelector('td')) unprocessedCount++;
-    });
-    if (unprocessedCount === 0) {
+    const unprocessed = document.querySelectorAll('.data-table tbody tr:not(.processed-row) td').length > 0;
+    if (!unprocessed) {
         processBtn.style.display = 'none';
-        $('#selectedCount').html('✅ <span class="text-emerald-600 font-medium">Semua data pada filter ini sudah diproses</span>');
+        document.getElementById('selectedCount').innerHTML =
+            '<span class="text-emerald-600 font-medium">Semua data pada filter ini sudah diproses</span>';
     } else {
         processBtn.style.display = 'inline-flex';
-        $('#selectedCount').text(`Siap memproses data sesuai filter tanggal`);
+        document.getElementById('selectedCount').textContent = 'Siap memproses data sesuai filter tanggal';
     }
 }
 
-$(document).ready(function () {
-    $('.payment-select, .status-select').select2({
-        theme: 'bootstrap-5', placeholder: 'Pilih...', allowClear: true, width: '100%'
-    });
+document.addEventListener('DOMContentLoaded', () => {
     checkFilterStatus();
     checkProcessButtonVisibility();
-    $('input[name="start_date"], input[name="end_date"]').on('change', function () {
-        checkFilterStatus();
-        setTimeout(checkProcessButtonVisibility, 500);
+    ['start_date', 'end_date'].forEach(name => {
+        document.querySelector(`input[name="${name}"]`).addEventListener('change', () => {
+            checkFilterStatus();
+            setTimeout(checkProcessButtonVisibility, 300);
+        });
     });
 });
 
 function processAllFilteredData() {
-    const startDate = $('input[name="start_date"]').val();
-    const endDate = $('input[name="end_date"]').val();
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDate   = document.querySelector('input[name="end_date"]').value;
     if (!startDate || !endDate) {
-        alert('❌ Harap isi Dari Tanggal dan Sampai Tanggal!');
+        alert('Harap isi Dari Tanggal dan Sampai Tanggal!');
         return;
     }
-    $.ajax({
-        url: '{{ route("order-manual-sertifikat.manual.filtered-ids") }}',
-        method: 'GET',
-        data: {
-            start_date: startDate,
-            end_date: endDate,
-            order_id: $('input[name="order_id"]').val() || '',
-            customer_name: $('input[name="customer_name"]').val() || '',
-            product_name: $('input[name="product_name"]').val() || '',
-            product_sku: $('input[name="product_sku"]').val() || '',
-            status: $('select[name="status"]').val() || '',
-            payment_method: $('select[name="payment_method"]').val() || '',
-        },
-        success: function (response) {
+    const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        order_id: document.querySelector('input[name="order_id"]').value || '',
+        customer_name: document.querySelector('input[name="customer_name"]').value || '',
+        product_name: document.querySelector('input[name="product_name"]').value || '',
+        product_sku: document.querySelector('input[name="product_sku"]').value || '',
+        status: document.querySelector('select[name="status"]').value || '',
+        payment_method: document.querySelector('select[name="payment_method"]').value || '',
+    });
+
+    fetch(`${filteredIdsUrl}?${params.toString()}`)
+        .then(res => res.json())
+        .then(response => {
             if (response.count === 0) {
                 alert('Tidak ada data yang belum diproses.');
                 return;
             }
             selectedIds = response.ids;
-            $('#selectedCount').text(response.count + ' data akan diproses');
+            document.getElementById('selectedCount').textContent = response.count + ' data akan diproses';
             loadModalData();
-        },
-        error: function () { alert('Gagal mengambil data.'); }
-    });
+        })
+        .catch(() => alert('Gagal mengambil data.'));
 }
 
 function loadModalData() {
-    $.ajax({
-        url: '{{ route("order-manual-sertifikat.manual.get-modal-data") }}',
+    fetch(modalDataUrl, {
         method: 'POST',
-        data: { ids: selectedIds, _token: '{{ csrf_token() }}' },
-        success: function (items) {
-            let html = '';
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify({ ids: selectedIds }),
+    })
+        .then(res => res.json())
+        .then(items => {
+            const tbody = document.getElementById('modalTableBody');
+            tbody.innerHTML = '';
+
             items.forEach(item => {
                 const isLocked = Boolean(item.is_processed);
-                const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
-                let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
+                const distribusi = (item.status_kirim || 'Dikirim').trim();
 
+                const tr = document.createElement('tr');
+                tr.dataset.id = item.id;
+                tr.dataset.distribusi = distribusi;
+                tr.className = isLocked ? 'processed-row' : 'hover:bg-navy-950/[0.02]';
+
+                const distribusiBadge = `<span class="inline-flex px-4 py-2.5 text-sm font-semibold rounded-xl ${isLocked ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">${distribusi}</span>`;
+                const paymentDateHtml = item.payment_date || '<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending</span>';
+
+                let jasaHtml, serviceHtml, catatanHtml;
                 if (isLocked) {
-                    distribusiHtml = `<span class="inline-flex px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
-                    jasaKurirHtml = `<span class="text-sm text-gray-500">— Terkunci —</span>`;
-                    serviceKurirHtml = `<span class="text-sm text-gray-500">— Terkunci —</span>`;
-                    catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at || ''}</span>`;
+                    jasaHtml = '<span class="text-sm text-navy-950/40">— Terkunci —</span>';
+                    serviceHtml = '<span class="text-sm text-navy-950/40">— Terkunci —</span>';
+                    catatanHtml = `<span class="text-xs text-navy-950/40 italic">Sudah diproses ${item.processed_at || ''}</span>`;
                 } else {
-                    distribusiHtml = `<span class="inline-flex px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
-                    const selectedJasa = item.jasa_kurir || 'Lion Parcel';
-                    const selectedService = item.service_kurir || 'REGPACK';
-                    jasaKurirHtml = `
-                        <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                            <option value="">Pilih jasa kurir...</option>
-                            <option value="JNE" ${selectedJasa === 'JNE' ? 'selected' : ''}>JNE</option>
-                            <option value="TIKI" ${selectedJasa === 'TIKI' ? 'selected' : ''}>TIKI</option>
-                            <option value="Lion Parcel" ${selectedJasa === 'Lion Parcel' ? 'selected' : ''}>Lion Parcel</option>
-                        </select>`;
-                    serviceKurirHtml = `
-                        <select class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                            <option value="">Pilih Service</option>
-                            <option value="REGPACK" ${selectedService === 'REGPACK' ? 'selected' : ''}>REGPACK</option>
-                            <option value="BOSPACK" ${selectedService === 'BOSPACK' ? 'selected' : ''}>BOSPACK</option>
-                            <option value="JAGOPACK" ${selectedService === 'JAGOPACK' ? 'selected' : ''}>JAGOPACK</option>
-                            <option value="BIGPACK" ${selectedService === 'BIGPACK' ? 'selected' : ''}>BIGPACK</option>
-                        </select>`;
-                    catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan...">`;
+                    const jasa = item.jasa_kurir || 'Lion Parcel';
+                    const disabled = distribusi === 'Diambil' ? 'disabled' : '';
+                    jasaHtml = `<input type="text" class="jasa-kurir-input w-full border border-navy-950/15 rounded-xl px-3 py-2.5 text-sm" list="jasaKurirOptions" value="${distribusi === 'Diambil' ? 'Diambil Sendiri' : jasa}" ${disabled}>`;
+                    serviceHtml = serviceFieldHtml(distribusi === 'Diambil' ? '' : jasa, item.service_kurir, disabled);
+                    catatanHtml = '<input type="text" class="catatan w-full border border-navy-950/15 rounded-xl px-3 py-2.5 text-sm" placeholder="Catatan...">';
                 }
 
-                const paymentDateHtml = item.payment_date || `<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending</span>`;
-
-                html += `<tr data-id="${item.id}" data-distribusi="${currentDistribusi}" class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
+                tr.innerHTML = `
                     <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
                     <td class="px-4 py-3 font-medium">${item.invoice}</td>
                     <td class="px-4 py-3">${item.to_customer}</td>
                     <td class="px-4 py-3">${item.pesanan || '-'}</td>
                     <td class="px-4 py-3">${paymentDateHtml}</td>
-                    <td class="px-4 py-3 text-blue-700">${item.payment_channel}</td>
-                    <td class="px-4 py-3">${distribusiHtml}</td>
-                    <td class="px-4 py-3">${jasaKurirHtml}</td>
-                    <td class="px-4 py-3">${serviceKurirHtml}</td>
+                    <td class="px-4 py-3 text-navy-700">${item.payment_channel}</td>
+                    <td class="px-4 py-3">${distribusiBadge}</td>
+                    <td class="px-4 py-3 jasa-cell">${jasaHtml}</td>
+                    <td class="px-4 py-3 service-cell">${serviceHtml}</td>
                     <td class="px-4 py-3">${catatanHtml}</td>
-                </tr>`;
+                `;
+                tbody.appendChild(tr);
             });
-            $('#modalTableBody').html(html);
-            $('#modalCount').text(items.length + ' data dipilih');
-            $('#bulkModal').removeClass('hidden');
+
+            document.getElementById('modalCount').textContent = items.length + ' data dipilih';
+            document.getElementById('bulkModal').classList.remove('hidden');
+            document.getElementById('bulkModal').classList.add('flex');
             initModalLogic();
-        },
-        error: function () { alert('Gagal memuat data ke modal.'); }
-    });
+        })
+        .catch(() => alert('Gagal memuat data ke modal.'));
+}
+
+function serviceFieldHtml(jasa, currentValue, disabled = '') {
+    if (jasa === 'Lion Parcel') {
+        const opts = ['REGPACK', 'BOSPACK', 'JAGOPACK', 'BIGPACK'];
+        const sel = currentValue && opts.includes(currentValue) ? currentValue : 'REGPACK';
+        return `<select class="service-kurir w-full border border-navy-950/15 rounded-xl px-3 py-2.5 text-sm" ${disabled}>
+            ${opts.map(o => `<option value="${o}" ${o === sel ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>`;
+    }
+    if (jasa === 'JNE' || jasa === 'TIKI') {
+        return `<input type="text" class="service-kurir w-full border border-navy-950/15 rounded-xl px-3 py-2.5 text-sm" value="${currentValue || 'REG'}" ${disabled}>`;
+    }
+    return `<select class="service-kurir w-full border border-navy-950/15 rounded-xl px-3 py-2.5 text-sm" ${disabled}><option value="">Pilih Service</option></select>`;
 }
 
 function initModalLogic() {
-    $('.jasa-kurir-select').select2({
-        placeholder: 'Pilih jasa kurir...', allowClear: true, tags: true, width: '100%',
-        dropdownParent: $('#bulkModal')
-    }).on('change', function () {
-        const row = $(this).closest('tr');
-        const jasa = $(this).val();
-        let serviceField = row.find('.service-kurir');
-        if (jasa === 'Lion Parcel') {
-            serviceField.replaceWith(`
-                <select class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                    <option value="REGPACK" selected>REGPACK</option>
-                    <option value="BOSPACK">BOSPACK</option>
-                    <option value="JAGOPACK">JAGOPACK</option>
-                    <option value="BIGPACK">BIGPACK</option>
-                </select>`);
-        } else if (jasa === 'JNE' || jasa === 'TIKI') {
-            serviceField.replaceWith(`<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" value="REG">`);
-        }
-        checkSaveButtonState();
-    });
+    document.querySelectorAll('#modalTableBody tr').forEach(row => {
+        const jasaInput = row.querySelector('.jasa-kurir-input');
+        if (!jasaInput || jasaInput.disabled) return;
 
-    $('#modalTableBody tr:not(.processed-row)').each(function () {
-        const row = $(this);
-        if (row.data('distribusi') === 'Diambil') {
-            const jasaSelect = row.find('.jasa-kurir-select');
-            if (jasaSelect.find('option[value="Diambil Sendiri"]').length === 0) {
-                jasaSelect.append('<option value="Diambil Sendiri">Diambil Sendiri</option>');
-            }
-            jasaSelect.val('Diambil Sendiri').trigger('change').prop('disabled', true);
-            row.find('.service-kurir').prop('disabled', true).val('');
-        }
-    });
-
-    function checkSaveButtonState() {
-        let isValid = true;
-        $('#modalTableBody tr:not(.processed-row)').each(function () {
-            const row = $(this);
-            let jasaKurir = row.find('.jasa-kurir-select').val() || '';
-            const serviceField = row.find('.service-kurir');
-            let serviceValue = serviceField.is('select') ? (serviceField.val() || '') : $.trim(serviceField.val() || '');
-            const distribusi = row.data('distribusi');
-            if (distribusi === 'Diambil') jasaKurir = 'Diambil Sendiri';
-            if (!jasaKurir) { isValid = false; return false; }
-            if (distribusi === 'Dikirim' && !serviceValue) { isValid = false; return false; }
+        jasaInput.addEventListener('input', () => {
+            const cell = row.querySelector('.service-cell');
+            cell.innerHTML = serviceFieldHtml(jasaInput.value.trim());
+            checkSaveButtonState();
         });
-        const saveButton = $('.bg-indigo-600');
-        if (isValid) {
-            saveButton.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed').text('💾 Simpan & Kunci Semua Data');
-        } else {
-            saveButton.prop('disabled', true).addClass('opacity-50 cursor-not-allowed').text('Lengkapi Jasa Kurir & Service');
-        }
+        jasaInput.addEventListener('change', () => {
+            const cell = row.querySelector('.service-cell');
+            cell.innerHTML = serviceFieldHtml(jasaInput.value.trim());
+            checkSaveButtonState();
+        });
+    });
+
+    document.getElementById('modalTableBody').addEventListener('input', e => {
+        if (e.target.classList.contains('service-kurir')) checkSaveButtonState();
+    });
+    document.getElementById('modalTableBody').addEventListener('change', e => {
+        if (e.target.classList.contains('service-kurir')) checkSaveButtonState();
+    });
+
+    checkSaveButtonState();
+}
+
+function checkSaveButtonState() {
+    let isValid = true;
+    document.querySelectorAll('#modalTableBody tr:not(.processed-row)').forEach(row => {
+        const distribusi = row.dataset.distribusi;
+        let jasa = row.querySelector('.jasa-kurir-input')?.value.trim() || '';
+        if (distribusi === 'Diambil') jasa = 'Diambil Sendiri';
+
+        const serviceField = row.querySelector('.service-kurir');
+        const serviceValue = serviceField ? serviceField.value.trim() : '';
+
+        if (!jasa) isValid = false;
+        if (distribusi === 'Dikirim' && !serviceValue) isValid = false;
+    });
+
+    const saveBtn = document.getElementById('saveBulkBtn');
+    if (isValid) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        saveBtn.textContent = 'Simpan & Kunci Semua Data';
+    } else {
+        saveBtn.disabled = true;
+        saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        saveBtn.textContent = 'Lengkapi Jasa Kurir & Service';
     }
-    $(document).off('input change', '.service-kurir').on('input change', '.service-kurir', checkSaveButtonState);
-    setTimeout(checkSaveButtonState, 400);
 }
 
 function hideBulkModal() {
-    $('#bulkModal').addClass('hidden');
-    try { $('.jasa-kurir-select').select2('destroy'); } catch (e) {}
+    document.getElementById('bulkModal').classList.add('hidden');
+    document.getElementById('bulkModal').classList.remove('flex');
 }
 
 function executeBulkAction() {
-    if ($('.bg-indigo-600').prop('disabled')) {
-        alert('❌ Lengkapi Jasa Kurir dan Service!');
+    if (document.getElementById('saveBulkBtn').disabled) {
+        alert('Lengkapi Jasa Kurir dan Service!');
         return;
     }
     if (!confirm('Yakin memproses ' + selectedIds.length + ' data?')) return;
 
     const updates = [];
-    $('#modalTableBody tr').each(function () {
-        const row = $(this);
-        let distribusiText = row.data('distribusi');
-        let jasaKurirText = row.find('.jasa-kurir-select').val() || '';
-        if (distribusiText === 'Diambil') jasaKurirText = 'Diambil Sendiri';
+    document.querySelectorAll('#modalTableBody tr').forEach(row => {
+        const distribusi = row.dataset.distribusi;
+        let jasa = row.querySelector('.jasa-kurir-input')?.value.trim() || '';
+        if (distribusi === 'Diambil') jasa = 'Diambil Sendiri';
+        const serviceField = row.querySelector('.service-kurir');
+
         updates.push({
-            id: row.data('id'),
-            status_kirim: distribusiText,
-            jasa_kurir: jasaKurirText,
-            service_kurir: row.find('.service-kurir').val() || '',
-            catatan: row.find('.catatan').val() || ''
+            id: row.dataset.id,
+            status_kirim: distribusi,
+            jasa_kurir: jasa,
+            service_kurir: serviceField ? serviceField.value : '',
+            catatan: row.querySelector('.catatan')?.value || '',
         });
     });
 
-    const form = $('<form>', { action: '{{ route("order-manual-sertifikat.manual.bulk-action") }}', method: 'POST' });
-    $('<input>', { type: 'hidden', name: '_token', value: '{{ csrf_token() }}' }).appendTo(form);
-    $('<input>', { type: 'hidden', name: 'action', value: 'processed' }).appendTo(form);
-    $('<input>', { type: 'hidden', name: 'per_item', value: JSON.stringify(updates) }).appendTo(form);
-    form.appendTo('body').submit();
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = bulkActionUrl;
+
+    const fields = {
+        _token: csrfToken,
+        action: 'processed',
+        per_item: JSON.stringify(updates),
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function clearSelection() {
@@ -564,5 +622,4 @@ function clearSelection() {
     checkProcessButtonVisibility();
 }
 </script>
-</body>
-</html>
+@endpush

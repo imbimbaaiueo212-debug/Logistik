@@ -70,6 +70,30 @@
     .hs-sub-link:hover { background-color: rgba(255,255,255,0.06); color: #fff; }
     .hs-sub-link.active { color: #fff; font-weight: 600; background-color: rgba(232,93,42,0.16); }
 
+        /* Dropdown bertingkat (submenu di dalam submenu) */
+    .hs-sub-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.6);
+        background: none;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    .hs-sub-toggle:hover { background-color: rgba(255,255,255,0.06); color: #fff; }
+    .hs-sub-toggle.has-active { color: #fff; font-weight: 600; }
+    .hs-sub-toggle .hs-chevron { width: 12px; height: 12px; }
+    .hs-sub-toggle.open .hs-chevron { transform: rotate(90deg); }
+    .hs-sub .hs-sub { margin: 2px 0 4px 8px; padding-left: 8px; }
+    .hs-sub .hs-sub .hs-sub { margin-left: 4px; padding-left: 6px; }
+
     .hs-sub-label {
         font-size: 10px;
         font-weight: 600;
@@ -186,11 +210,28 @@
         {{-- ================= APLIKASI PENJUALAN ================= --}}
         <p class="hs-group-label">Aplikasi Penjualan</p>
 
-        {{-- Pemesanan --}}
+                      {{-- Pemesanan --}}
         @php
-            $hsPemesananActive = request()->routeIs([
+            // [label, nama route, pola route untuk state aktif]
+            $hsPasifMenu = [
+                ['Daftar Pasif',       'import.pasif.list',         ['import.pasif.list*']],
+                ['Spare Pasif 3%',     'import.pasif.spare',        ['import.pasif.spare*']],
+                ['Bacaan Unit',        'import.pasif.bacaan',       ['import.pasif.bacaan*']],
+                ['Import',             'import.pasif.rekap',        ['import.pasif.rekap*']],
+                ['Create Manual',      'import.pasif.manual.index', ['import.pasif.manual*']],
+                ['Report Angka Cetak', 'import.report-angka-cetak', ['import.report-angka-cetak*']],
+            ];
+            $hsPasifActive = request()->routeIs(['import.pasif.*', 'import.report-angka-cetak*']);
+
+            $hsOps2Active = request()->routeIs([
+                'ops2.*','pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*',
+            ]);
+            $hsMajalahActive = $hsOps2Active || $hsPasifActive || request()->routeIs([
+                'order-manual.*','import.dlc.*','import.manual','import.manual.*',
+            ]);
+            $hsPemesananActive = $hsMajalahActive || request()->routeIs([
                 'order.*','import.bimbashop','import.bimbashop.*',
-                'order-manual.*','order-manual-modul.*','order-manual-sertifikat.*',
+                'order-manual-modul.*','order-manual-sertifikat.*',
             ]);
         @endphp
         <button type="button" data-hs-toggle="#hs-pemesanan" class="hs-toggle {{ $hsPemesananActive ? 'open has-active' : '' }}">
@@ -204,10 +245,43 @@
             <p class="hs-sub-label">biMBA Shop</p>
             <a href="{{ route('order.index') }}" class="hs-sub-link {{ request()->routeIs('order.index') ? 'active' : '' }}">Ringkasan Order</a>
             <a href="{{ route('import.bimbashop') }}" class="hs-sub-link {{ request()->routeIs('import.bimbashop','import.bimbashop.*') ? 'active' : '' }}">Import biMBA Shop</a>
+
             <p class="hs-sub-label">Manual</p>
-            <a href="{{ route('order-manual.index') }}" class="hs-sub-link {{ request()->routeIs('order-manual.*') ? 'active' : '' }}">Majalah</a>
-            <a href="{{ route('order-manual-modul.index') }}" class="hs-sub-link {{ request()->routeIs('order-manual-modul.*') ? 'active' : '' }}">Modul</a>
-            <a href="{{ route('order-manual-sertifikat.index') }}" class="hs-sub-link {{ request()->routeIs('order-manual-sertifikat.*') ? 'active' : '' }}">Sertifikat</a>
+
+            {{-- Majalah (dropdown) --}}
+            <button type="button" data-hs-toggle="#hs-majalah" class="hs-sub-toggle {{ $hsMajalahActive ? 'open has-active' : '' }}">
+                <span>Majalah</span>
+                <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <div id="hs-majalah" class="hs-sub {{ $hsMajalahActive ? 'open' : '' }}">
+
+                {{-- Unit OPS2 (dropdown) --}}
+                <button type="button" data-hs-toggle="#hs-ops2" class="hs-sub-toggle {{ $hsOps2Active ? 'open has-active' : '' }}">
+                    <span>Unit OPS2</span>
+                    <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <div id="hs-ops2" class="hs-sub {{ $hsOps2Active ? 'open' : '' }}">
+                    <a href="{{ route('pesanan-majalah.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-majalah.*') ? 'active' : '' }}">KORWIL</a>
+                    <a href="{{ route('pesanan-majalah-kotamadya.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-majalah-kotamadya.*') ? 'active' : '' }}">PINWIL</a>
+                    <a href="{{ route('pesanan-majalah-puw1.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-majalah-puw1.*') ? 'active' : '' }}">JABODETABEK (PUW1)</a>
+                </div>
+
+                <a href="{{ route('import.dlc.index') }}" class="hs-sub-link {{ request()->routeIs('import.dlc.*') ? 'active' : '' }}">DLC</a>
+                {{-- Unit Pasif (dropdown) --}}
+                <button type="button" data-hs-toggle="#hs-pasif" class="hs-sub-toggle {{ $hsPasifActive ? 'open has-active' : '' }}">
+                    <span>Unit Pasif</span>
+                    <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <div id="hs-pasif" class="hs-sub {{ $hsPasifActive ? 'open' : '' }}">
+                    @foreach($hsPasifMenu as [$label, $rute, $pola])
+                        <a href="{{ route($rute) }}" class="hs-sub-link {{ request()->routeIs($pola) ? 'active' : '' }}">{{ $label }}</a>
+                    @endforeach
+                </div>
+                <a href="{{ route('import.manual') }}" class="hs-sub-link {{ request()->routeIs('import.manual','import.manual.*') ? 'active' : '' }}">Manual Pemesanan</a>
+            </div>
+
+            <a href="{{ route('order-manual-modul.manual') }}" class="hs-sub-link {{ request()->routeIs('order-manual-modul.*') ? 'active' : '' }}">Modul</a>
+            <a href="{{ route('order-manual-sertifikat.manual') }}" class="hs-sub-link {{ request()->routeIs('order-manual-sertifikat.*') ? 'active' : '' }}">Sertifikat</a>
         </div>
 
         {{-- Penjualan --}}
@@ -262,17 +336,21 @@
     </nav>
 
     {{-- User + Logout --}}
+        {{-- User + Logout --}}
     <div class="border-t p-4 shrink-0" style="border-color: rgba(255,255,255,0.08);">
         <p class="text-sm text-white/80 font-medium mb-2 truncate">
             Halo, {{ Auth::user()->name ?? 'Admin' }}
         </p>
-        <a href="{{ route('logout') }}"
-           onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-           class="block text-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-colors"
-           style="background:#E85D2A;"
-           onmouseover="this.style.background='#D14E1F'" onmouseout="this.style.background='#E85D2A'">
-            LOGOUT
-        </a>
+
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit"
+                    class="block w-full text-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-colors cursor-pointer"
+                    style="background:#E85D2A;"
+                    onmouseover="this.style.background='#D14E1F'" onmouseout="this.style.background='#E85D2A'">
+                LOGOUT
+            </button>
+        </form>
     </div>
 </aside>
 

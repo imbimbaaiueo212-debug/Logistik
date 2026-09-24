@@ -1,93 +1,106 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Manual Modul - biMBA AIUEO Logistik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        .field-label { font-size: 12px; color: #6b7280; margin-bottom: 4px; display: block; }
-        .field-input {
-            width: 100%;
-            border: 1px solid #d1d5db;
-            border-radius: 4px;
-            padding: 7px 10px;
-            font-size: 13px;
-            background: #fff;
-        }
-        .field-input:focus {
-            outline: none;
-            border-color: #2271b1;
-            box-shadow: 0 0 0 1px #2271b1;
-        }
-        .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1d2327;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .link-blue { color: #2271b1; font-size: 12px; text-decoration: none; }
-        .link-blue:hover { text-decoration: underline; }
-        .select2-container .select2-selection--single {
-            height: 36px !important;
-            border: 1px solid #d1d5db !important;
-            border-radius: 4px !important;
-            padding-top: 3px;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 28px !important;
-            font-size: 13px;
-            padding-left: 10px;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 34px !important;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-@include('partials.top-nav')
+@extends('layouts.panel')
 
-<div class="max-w-7xl mx-auto px-4 py-6">
+@section('title', 'Create Manual Modul')
 
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-lg font-semibold text-gray-800">Create Manual Modul</h1>
-        <a href="{{ route('order-manual-modul.manual') }}" class="text-sm bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">← Kembali</a>
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .field-label { font-size: 12px; font-weight: 500; color: #0F1B3399; margin-bottom: 4px; display: block; }
+    .field-input {
+        width: 100%;
+        border: 1px solid #0F1B331A;
+        border-radius: 0.75rem;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        background: #fff;
+        color: #0F1B33;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .field-input:focus {
+        outline: none;
+        border-color: #28447F;
+        box-shadow: 0 0 0 3px rgba(40,68,127,0.12);
+    }
+    .field-input:disabled { background: #F8F9FB; color: #0F1B3366; }
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0F1B33;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #0F1B331A;
+    }
+    .link-rust { color: #D14E1F; font-size: 12px; font-weight: 500; text-decoration: none; }
+    .link-rust:hover { text-decoration: underline; }
+
+    .select2-container .select2-selection--single {
+        height: 40px !important;
+        border: 1px solid #0F1B331A !important;
+        border-radius: 0.75rem !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 38px !important;
+        font-size: 13.5px;
+        padding-left: 12px;
+        color: #0F1B33;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 38px !important;
+    }
+    .select2-dropdown { border-radius: 0.75rem !important; border: 1px solid #0F1B331A !important; overflow: hidden; }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #28447F !important;
+    }
+</style>
+@endpush
+
+@section('content')
+
+    {{-- ============ HEADER ============ --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="min-w-0">
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Create Manual Modul</h1>
+            <p class="mt-1 text-sm text-navy-950/55">Input data pemesanan modul secara manual</p>
+        </div>
+        <a href="{{ route('order-manual-modul.manual') }}"
+           class="inline-flex items-center gap-2 bg-white border border-navy-950/10 hover:border-navy-700 text-navy-950/70 hover:text-navy-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Kembali
+        </a>
     </div>
 
+    {{-- ============ FLASH ============ --}}
     @if(session('error'))
-        <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+        <div class="mt-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm">
             {!! session('error') !!}
         </div>
     @endif
 
     @if($errors->any())
-        <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-            <ul class="list-disc list-inside">
+        <div class="mt-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm">
+            <ul class="list-disc list-inside space-y-0.5">
                 @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
             </ul>
         </div>
     @endif
 
-    <form id="formManualModul" action="{{ route('order-manual-modul.manual.store') }}" method="POST">
+    <form id="formManualModul" action="{{ route('order-manual-modul.manual.store') }}" method="POST" class="mt-6">
         @csrf
 
-        <div class="bg-white border border-gray-200 rounded shadow-sm p-5 mb-5">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {{-- GENERAL --}}
                 <div>
                     <div class="section-title">General</div>
-                    <div class="space-y-3">
+                    <div class="space-y-4">
                         <div>
                             <label class="field-label">ID Manual</label>
-                            <input type="text" class="field-input bg-gray-100 text-gray-500"
+                            <input type="text" class="field-input"
                                 value="Otomatis (contoh: MM-{{ date('Ymd') }}-0001)" disabled>
-                            <p class="text-xs text-gray-400 mt-1">Di-generate otomatis saat disimpan</p>
+                            <p class="text-xs text-navy-950/40 mt-1">Di-generate otomatis saat disimpan</p>
                         </div>
 
                         <div>
@@ -98,10 +111,10 @@
 
                         <div>
                             <label class="field-label">Date created</label>
-                            <div class="flex items-center gap-1">
+                            <div class="flex items-center gap-2">
                                 <input type="date" name="order_date_date" value="{{ old('order_date_date', date('Y-m-d')) }}" class="field-input" style="flex:1">
-                                <span class="text-gray-400 text-sm px-1">@</span>
-                                <input type="time" name="order_date_time" value="{{ old('order_date_time', date('H:i')) }}" class="field-input" style="width:90px">
+                                <span class="text-navy-950/40 text-sm">@</span>
+                                <input type="time" name="order_date_time" value="{{ old('order_date_time', date('H:i')) }}" class="field-input" style="width:100px">
                             </div>
                         </div>
 
@@ -162,8 +175,8 @@
                 {{-- BILLING --}}
                 <div>
                     <div class="section-title">Billing</div>
-                    <div class="space-y-3">
-                        <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">First name</label>
                                 <input type="text" name="billing_first_name" id="billing_first_name" value="{{ old('billing_first_name') }}" class="field-input">
@@ -177,7 +190,7 @@
                             <label class="field-label">Company</label>
                             <input type="text" name="billing_company" id="billing_company" value="{{ old('billing_company') }}" class="field-input">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Address line 1</label>
                                 <input type="text" name="billing_address_1" id="billing_address_1" value="{{ old('billing_address_1') }}" class="field-input">
@@ -187,7 +200,7 @@
                                 <input type="text" name="billing_address_2" id="billing_address_2" value="{{ old('billing_address_2') }}" class="field-input">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">City</label>
                                 <input type="text" name="billing_city" id="billing_city" value="{{ old('billing_city') }}" class="field-input">
@@ -197,7 +210,7 @@
                                 <input type="text" name="billing_postcode" id="billing_postcode" value="{{ old('billing_postcode') }}" class="field-input">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Country / Region</label>
                                 <select name="billing_country" class="field-input">
@@ -209,7 +222,7 @@
                                 <input type="text" name="billing_state" id="billing_state" value="{{ old('billing_state') }}" class="field-input">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Email address</label>
                                 <input type="email" name="email" id="email" value="{{ old('email') }}" class="field-input">
@@ -228,7 +241,7 @@
                                 <option value="N/A">N/A</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Sub District (Kelurahan)</label>
                                 <input type="text" name="billing_kelurahan" id="billing_kelurahan" value="{{ old('billing_kelurahan') }}" class="field-input">
@@ -243,12 +256,12 @@
 
                 {{-- SHIPPING --}}
                 <div>
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="section-title mb-0 border-0 pb-0">Shipping</div>
-                        <a href="javascript:void(0)" onclick="copyBillingToShipping()" class="link-blue">Copy billing address</a>
+                    <div class="flex justify-between items-center mb-3.5 pb-2.5 border-b border-navy-950/10">
+                        <span class="text-sm font-semibold text-navy-950">Shipping</span>
+                        <a href="javascript:void(0)" onclick="copyBillingToShipping()" class="link-rust">Copy billing address</a>
                     </div>
-                    <div class="space-y-3">
-                        <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">First name</label>
                                 <input type="text" name="shipping_first_name" id="shipping_first_name" value="{{ old('shipping_first_name') }}" class="field-input">
@@ -262,7 +275,7 @@
                             <label class="field-label">Company</label>
                             <input type="text" name="shipping_company" id="shipping_company" value="{{ old('shipping_company') }}" class="field-input">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Address line 1</label>
                                 <input type="text" name="shipping_address_1" id="shipping_address_1" value="{{ old('shipping_address_1') }}" class="field-input">
@@ -272,7 +285,7 @@
                                 <input type="text" name="shipping_address_2" id="shipping_address_2" value="{{ old('shipping_address_2') }}" class="field-input">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">City</label>
                                 <input type="text" name="shipping_city" id="shipping_city" value="{{ old('shipping_city') }}" class="field-input">
@@ -282,7 +295,7 @@
                                 <input type="text" name="shipping_postcode" id="shipping_postcode" value="{{ old('shipping_postcode') }}" class="field-input">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Country / Region</label>
                                 <select name="shipping_country" class="field-input">
@@ -298,7 +311,7 @@
                             <label class="field-label">Phone</label>
                             <input type="text" name="shipping_phone" id="shipping_phone" value="{{ old('shipping_phone') }}" class="field-input">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="field-label">Sub District (Kelurahan)</label>
                                 <input type="text" name="shipping_kelurahan" id="shipping_kelurahan" value="{{ old('shipping_kelurahan') }}" class="field-input">
@@ -310,7 +323,7 @@
                         </div>
                         <div>
                             <label class="field-label">Customer provided note</label>
-                            <textarea name="catatan" rows="5" class="field-input bg-gray-100">{{ old('catatan') }}</textarea>
+                            <textarea name="catatan" rows="4" class="field-input bg-navy-950/[0.03]">{{ old('catatan') }}</textarea>
                         </div>
                         <div>
                             <label class="field-label">Weight</label>
@@ -321,8 +334,8 @@
                                     step="1"
                                     min="0"
                                     class="field-input"
-                                    style="width:120px">
-                                <span class="text-sm text-gray-500">g</span>
+                                    style="width:130px">
+                                <span class="text-sm text-navy-950/50">g</span>
                             </div>
                         </div>
                     </div>
@@ -332,105 +345,113 @@
         </div>
 
         {{-- ITEMS: SKU dari products.label --}}
-@php
-    $oldItems = old('items', [[
-        'product_id'   => '',
-        'product_sku'  => '',
-        'product_name' => '',
-        'jenis'        => '',
-        'kategori'     => '',
-        'harga_jual'   => '',
-        'qty'          => 1,
-    ]]);
-@endphp
+        @php
+            $oldItems = old('items', [[
+                'product_id'   => '',
+                'product_sku'  => '',
+                'product_name' => '',
+                'jenis'        => '',
+                'kategori'     => '',
+                'harga_jual'   => '',
+                'qty'          => 1,
+            ]]);
+        @endphp
 
-<div class="bg-white border border-gray-200 rounded shadow-sm p-5 mb-5">
-    <div class="flex justify-between items-center mb-3">
-        <div>
-            <div class="section-title mb-0 border-0 pb-0">Items / SKU</div>
-            <p class="text-xs text-gray-400 mt-1">SKU diambil dari <strong>label</strong> master produk (fallback: sku → kode)</p>
+        <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <div class="text-sm font-semibold text-navy-950">Items / SKU</div>
+                    <p class="text-xs text-navy-950/40 mt-0.5">SKU diambil dari <strong>label</strong> master produk (fallback: sku → kode)</p>
+                </div>
+                <button type="button" onclick="addItemRow()"
+                        class="inline-flex items-center gap-1.5 bg-navy-700/10 hover:bg-navy-700/15 text-navy-700 text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Tambah SKU
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-xs text-navy-950/50 border-b border-navy-950/10">
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:220px">SKU (dari Label Produk) <span class="text-rust-600">*</span></th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:180px">Nama Produk / Modul <span class="text-rust-600">*</span></th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:100px">Jenis</th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:120px">Kategori</th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:110px">Harga Jual</th>
+                            <th class="pb-2.5 pr-2 font-medium w-20">Qty <span class="text-rust-600">*</span></th>
+                            <th class="pb-2.5 w-8"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        @foreach($oldItems as $i => $item)
+                        <tr class="item-row border-b border-navy-950/5">
+                            <td class="py-2.5 pr-2">
+                                <select class="sku-select" name="items[{{ $i }}][product_sku]" style="width:100%">
+                                    @if(!empty($item['product_sku']))
+                                        <option value="{{ $item['product_sku'] }}" selected>
+                                            {{ $item['product_sku'] }}@if(!empty($item['product_name'])) — {{ $item['product_name'] }}@endif
+                                        </option>
+                                    @endif
+                                </select>
+                                <input type="hidden" name="items[{{ $i }}][product_id]" class="product-id" value="{{ $item['product_id'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="text" name="items[{{ $i }}][product_name]" required
+                                    class="field-input product-name"
+                                    placeholder="Nama produk"
+                                    value="{{ $item['product_name'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="text" name="items[{{ $i }}][jenis]"
+                                    class="field-input product-jenis"
+                                    placeholder="Jenis"
+                                    value="{{ $item['jenis'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="text" name="items[{{ $i }}][kategori]"
+                                    class="field-input product-kategori"
+                                    placeholder="Kategori"
+                                    value="{{ $item['kategori'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="number"
+                                    name="items[{{ $i }}][harga_jual]"
+                                    step="0.01"
+                                    min="0"
+                                    class="field-input product-harga"
+                                    placeholder="0"
+                                    value="{{ $item['harga_jual'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="number" name="items[{{ $i }}][qty]" min="1" required class="field-input"
+                                    value="{{ $item['qty'] ?? 1 }}">
+                            </td>
+                            <td class="py-2.5 text-center">
+                                <button type="button" onclick="removeItemRow(this)" class="text-rust-600 hover:text-rust-600/70 transition-colors">
+                                    <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <button type="button" onclick="addItemRow()" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded hover:bg-emerald-700">
-            + Tambah SKU
-        </button>
-    </div>
 
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-xs text-gray-500 border-b">
-                    <th class="pb-2 pr-2 font-medium" style="min-width:220px">SKU (dari Label Produk) <span class="text-red-500">*</span></th>
-                    <th class="pb-2 pr-2 font-medium" style="min-width:180px">Nama Produk / Modul <span class="text-red-500">*</span></th>
-                    <th class="pb-2 pr-2 font-medium" style="min-width:100px">Jenis</th>
-                    <th class="pb-2 pr-2 font-medium" style="min-width:120px">Kategori</th>
-                    <th class="pb-2 pr-2 font-medium" style="min-width:110px">Harga Jual</th>
-                    <th class="pb-2 pr-2 font-medium w-20">Qty <span class="text-red-500">*</span></th>
-                    <th class="pb-2 w-8"></th>
-                </tr>
-            </thead>
-            <tbody id="itemsBody">
-                @foreach($oldItems as $i => $item)
-                <tr class="item-row border-b border-gray-100">
-                    <td class="py-2 pr-2">
-                        <select class="sku-select" name="items[{{ $i }}][product_sku]" style="width:100%">
-                            @if(!empty($item['product_sku']))
-                                <option value="{{ $item['product_sku'] }}" selected>
-                                    {{ $item['product_sku'] }}@if(!empty($item['product_name'])) — {{ $item['product_name'] }}@endif
-                                </option>
-                            @endif
-                        </select>
-                        <input type="hidden" name="items[{{ $i }}][product_id]" class="product-id" value="{{ $item['product_id'] ?? '' }}">
-                    </td>
-                    <td class="py-2 pr-2">
-                        <input type="text" name="items[{{ $i }}][product_name]" required
-                            class="field-input product-name"
-                            placeholder="Nama produk"
-                            value="{{ $item['product_name'] ?? '' }}">
-                    </td>
-                    <td class="py-2 pr-2">
-                        <input type="text" name="items[{{ $i }}][jenis]"
-                            class="field-input product-jenis"
-                            placeholder="Jenis"
-                            value="{{ $item['jenis'] ?? '' }}">
-                    </td>
-                    <td class="py-2 pr-2">
-                        <input type="text" name="items[{{ $i }}][kategori]"
-                            class="field-input product-kategori"
-                            placeholder="Kategori"
-                            value="{{ $item['kategori'] ?? '' }}">
-                    </td>
-                   <td class="py-2 pr-2">
-    <input type="number"
-           name="items[{{ $i }}][harga_jual]"
-           step="0.01"
-           min="0"
-           class="field-input product-harga"
-           placeholder="0"
-           value="{{ $item['harga_jual'] ?? '' }}">
-</td>
-                    <td class="py-2 pr-2">
-                        <input type="number" name="items[{{ $i }}][qty]" min="1" required class="field-input"
-                            value="{{ $item['qty'] ?? 1 }}">
-                    </td>
-                    <td class="py-2 text-center">
-                        <button type="button" onclick="removeItemRow(this)" class="text-red-500 text-lg font-bold">×</button>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-
-        <div class="flex gap-2">
-            <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded text-sm font-semibold hover:bg-indigo-700">
+        <div class="flex gap-3">
+            <button type="submit" class="bg-rust-600 hover:bg-rust-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
                 Simpan Order
             </button>
-            <a href="{{ route('order-manual-modul.manual') }}" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-sm">Batal</a>
+            <a href="{{ route('order-manual-modul.manual') }}" class="px-6 py-2.5 rounded-xl bg-white border border-navy-950/10 hover:border-navy-700 text-navy-950/70 hover:text-navy-700 text-sm font-medium transition-colors">
+                Batal
+            </a>
         </div>
     </form>
-</div>
 
+@endsection
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
@@ -559,28 +580,30 @@ function addItemRow() {
     const index = document.querySelectorAll('#itemsBody .item-row').length;
 
     const html = `
-    <tr class="item-row border-b border-gray-100">
-        <td class="py-2 pr-2">
+    <tr class="item-row border-b border-navy-950/5">
+        <td class="py-2.5 pr-2">
             <select class="sku-select" name="items[${index}][product_sku]" style="width:100%"></select>
             <input type="hidden" name="items[${index}][product_id]" class="product-id" value="">
         </td>
-        <td class="py-2 pr-2">
+        <td class="py-2.5 pr-2">
             <input type="text" name="items[${index}][product_name]" required class="field-input product-name" placeholder="Nama produk">
         </td>
-        <td class="py-2 pr-2">
+        <td class="py-2.5 pr-2">
             <input type="text" name="items[${index}][jenis]" class="field-input product-jenis" placeholder="Jenis">
         </td>
-        <td class="py-2 pr-2">
+        <td class="py-2.5 pr-2">
             <input type="text" name="items[${index}][kategori]" class="field-input product-kategori" placeholder="Kategori">
         </td>
-        <td class="py-2 pr-2">
+        <td class="py-2.5 pr-2">
             <input type="number" name="items[${index}][harga_jual]" step="0.01" min="0" class="field-input product-harga" placeholder="0">
         </td>
-        <td class="py-2 pr-2">
+        <td class="py-2.5 pr-2">
             <input type="number" name="items[${index}][qty]" min="1" required class="field-input" value="1">
         </td>
-        <td class="py-2 text-center">
-            <button type="button" onclick="removeItemRow(this)" class="text-red-500 text-lg font-bold">×</button>
+        <td class="py-2.5 text-center">
+            <button type="button" onclick="removeItemRow(this)" class="text-rust-600 hover:text-rust-600/70 transition-colors">
+                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
         </td>
     </tr>`;
 
@@ -747,5 +770,4 @@ $(document).ready(function () {
     applyStatus();
 });
 </script>
-</body>
-</html>
+@endpush

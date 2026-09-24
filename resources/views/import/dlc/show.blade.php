@@ -1,195 +1,204 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail DLC - {{ $periode->edisi }} | biMBA AIUEO Logistik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
-</head>
-<body class="bg-gray-50">
-@include('partials.top-nav')
+@extends('layouts.panel')
 
-<div class="flex h-screen">
-    <div class="flex-1 p-8 overflow-auto">
+@section('title', 'Detail DLC ' . $periode->edisi)
 
-        <div class="flex justify-between items-center mb-8">
+@push('styles')
+<style>
+    .data-table-wrap { overflow: auto; max-height: calc(100vh - 340px); }
+    .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    .data-table thead th {
+        position: sticky; top: 0; z-index: 20;
+        background: #162749; color: #fff; text-align: left;
+        padding: 12px 16px; font-weight: 600; white-space: nowrap;
+    }
+    .data-table tbody td, .data-table tfoot td {
+        padding: 11px 16px; border-bottom: 1px solid #eef0f5;
+        background: #fff; white-space: nowrap;
+    }
+    .data-table tbody tr:hover td { background: #f7f8fb; }
+    .data-table tfoot td { background: #f7f8fb; font-weight: 700; }
+    .data-table th:first-child, .data-table td:first-child { position: sticky; left: 0; z-index: 10; }
+    .data-table thead th:first-child { z-index: 30; }
+    .data-table tfoot td:first-child { position: static; }
+    .data-table th.col-aksi, .data-table td.col-aksi { position: sticky; right: 0; z-index: 10; }
+    .data-table thead th.col-aksi { z-index: 30; }
+    .cell-clip { display: block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+@endpush
+
+@section('content')
+@php
+    $kolom = [
+        ['key' => 'no',        'label' => 'No'],
+        ['key' => 'nama_unit', 'label' => 'Nama Unit', 'clip' => true, 'class' => 'font-medium text-gray-800'],
+        ['key' => 'qty',       'label' => 'Qty',       'align' => 'right', 'class' => 'font-semibold'],
+    ];
+    $info = [
+        ['Edisi',       $periode->edisi],
+        ['Periode',     $periode->periode],
+        ['Jumlah Unit', $periode->pesanan->count()],
+        ['Total Qty',   number_format($total)],
+    ];
+@endphp
+
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+    <div>
+        <h2 class="text-2xl font-bold text-[#162749]">{{ $periode->judul ?? $periode->edisi }}</h2>
+        <p class="text-sm text-gray-500 mt-0.5">Periode: {{ $periode->periode }}</p>
+    </div>
+    <a href="{{ route('import.dlc.index') }}"
+       class="inline-flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+        Kembali
+    </a>
+</div>
+
+@if(session('success'))
+    <div class="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-xl mb-4">{{ session('success') }}</div>
+@endif
+
+{{-- Info header --}}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        @foreach($info as [$label, $nilai])
             <div>
-                <h2 class="text-3xl font-bold text-gray-800">{{ $periode->judul ?? $periode->edisi }}</h2>
-                <p class="text-gray-500 mt-1">Periode: {{ $periode->periode }}</p>
+                <p class="text-xs text-gray-500">{{ $label }}</p>
+                <p class="font-semibold text-base {{ $label === 'Total Qty' ? 'text-[#E85D2A]' : 'text-[#162749]' }}">{{ $nilai }}</p>
             </div>
-            <div class="flex gap-3">
-                <a href="{{ route('import.dlc.index') }}" 
-                   class="px-5 py-2.5 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition">
-                    ← Kembali
-                </a>
-            </div>
-        </div>
+        @endforeach
+    </div>
+</div>
 
-        @if(session('success'))
-            <div class="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-xl mb-6">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        <!-- Info Header -->
-        <div class="bg-white rounded-3xl shadow p-6 mb-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                    <p class="text-sm text-gray-500">Edisi</p>
-                    <p class="font-semibold text-lg">{{ $periode->edisi }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Periode</p>
-                    <p class="font-semibold text-lg">{{ $periode->periode }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Jumlah Unit</p>
-                    <p class="font-semibold text-lg" id="jumlah-unit">{{ $periode->pesanan->count() }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Total Qty</p>
-                    <p class="font-semibold text-lg text-blue-600" id="total-qty">{{ number_format($total) }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabel Unit -->
-        <div class="bg-white rounded-3xl shadow overflow-hidden">
-            <table class="min-w-full">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-16">No</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Nama Unit</th>
-                        <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600">Qty</th>
-                        <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600 w-28">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100" id="tabel-pesanan">
-                    @foreach($periode->pesanan as $index => $item)
-                        <tr class="hover:bg-gray-50" id="row-{{ $item->id }}">
-                            <td class="px-6 py-4 text-gray-500">{{ $index + 1 }}</td>
-                            <td class="px-6 py-4 font-medium text-gray-800">{{ $item->nama_unit }}</td>
-                            <td class="px-6 py-4 text-right font-semibold text-gray-800">
-                                <span id="qty-{{ $item->id }}">{{ number_format($item->qty) }}</span>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <button onclick="openEditModal({{ $item->id }}, '{{ $item->nama_unit }}', {{ $item->qty }})"
-                                        class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                    Edit
-                                </button>
-                            </td>
-                        </tr>
+{{-- Tabel unit --}}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    @foreach($kolom as $k)
+                        <th style="text-align: {{ $k['align'] ?? 'left' }}">{{ $k['label'] }}</th>
                     @endforeach
-                </tbody>
-                <tfoot class="bg-gray-50">
+                    <th class="col-aksi" style="text-align: center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($periode->pesanan as $index => $item)
                     <tr>
-                        <td colspan="2" class="px-6 py-4 text-right font-bold text-gray-700">Jumlah</td>
-                        <td class="px-6 py-4 text-right font-bold text-blue-600 text-lg" id="footer-total">
-                            {{ number_format($total) }}
+                        @foreach($kolom as $k)
+                            <td class="{{ $k['class'] ?? '' }}" style="text-align: {{ $k['align'] ?? 'left' }}">
+                                @if($k['key'] === 'no')
+                                    {{ $index + 1 }}
+                                @elseif($k['key'] === 'qty')
+                                    {{ number_format($item->qty) }}
+                                @else
+                                    <span class="cell-clip" title="{{ $item->{$k['key']} }}">{{ $item->{$k['key']} }}</span>
+                                @endif
+                            </td>
+                        @endforeach
+                        <td class="col-aksi" style="text-align: center">
+                            <button type="button" title="Edit qty" aria-label="Edit qty"
+                                    data-id="{{ $item->id }}" data-nama="{{ $item->nama_unit }}" data-qty="{{ $item->qty }}"
+                                    class="btn-edit-qty p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+                            </button>
                         </td>
-                        <td></td>
                     </tr>
-                </tfoot>
-            </table>
-        </div>
-
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="{{ count($kolom) - 1 }}" style="text-align: right">Jumlah</td>
+                    <td style="text-align: right" class="text-[#E85D2A]">{{ number_format($total) }}</td>
+                    <td class="col-aksi"></td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 </div>
 
-<!-- ===== MODAL EDIT QTY ===== -->
-<div id="editModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-1">Edit Qty</h3>
-        <p class="text-gray-500 text-sm mb-5" id="modal-unit-name">—</p>
+{{-- Modal edit qty --}}
+<div id="editModal" class="fixed inset-0 bg-[#0F1B33]/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <h3 class="text-lg font-bold text-[#162749]">Edit Qty</h3>
+        <p class="text-sm text-gray-500 mb-4" id="modal-unit-name">-</p>
 
-        <div class="mb-5">
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Qty</label>
-            <input type="number" id="modal-qty" min="0"
-                   class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
+        <label for="modal-qty" class="block text-sm font-medium text-gray-700 mb-1">Qty</label>
+        <input type="number" id="modal-qty" min="0"
+               class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]">
+        <p id="modal-error" class="hidden text-xs text-red-600 mt-2"></p>
 
-        <div class="flex gap-3 justify-end">
-            <button onclick="closeEditModal()"
-                    class="px-5 py-2.5 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50">
-                Batal
-            </button>
-            <button onclick="saveQty()"
-                    class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">
-                Simpan
-            </button>
+        <div class="flex justify-end gap-2 mt-5">
+            <button type="button" id="modal-batal"
+                    class="px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Batal</button>
+            <button type="button" id="modal-simpan"
+                    class="px-4 py-2.5 bg-[#E85D2A] hover:bg-[#D14E1F] text-white rounded-xl text-sm font-medium">Simpan</button>
         </div>
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
-    let currentId = null;
+    (function () {
+        var modal = document.getElementById('editModal');
+        var qtyEl = document.getElementById('modal-qty');
+        var errEl = document.getElementById('modal-error');
+        var currentId = null;
+        var baseUrl = "{{ url('/import/dlc/pesanan') }}";
 
-    function openEditModal(id, namaUnit, qty) {
-        currentId = id;
-        document.getElementById('modal-unit-name').textContent = namaUnit;
-        document.getElementById('modal-qty').value = qty;
-        document.getElementById('editModal').classList.remove('hidden');
-        document.getElementById('editModal').classList.add('flex');
-        
-        const input = document.getElementById('modal-qty');
-        input.focus();
-        input.select(); // biar langsung terblok semua angka
-    }
-
-    function closeEditModal() {
-        document.getElementById('editModal').classList.add('hidden');
-        document.getElementById('editModal').classList.remove('flex');
-        currentId = null;
-    }
-
-    function saveQty() {
-        const qty = document.getElementById('modal-qty').value;
-
-        if (qty === '' || qty < 0) {
-            alert('Qty tidak valid');
-            return;
+        function bukaModal(id, nama, qty) {
+            currentId = id;
+            document.getElementById('modal-unit-name').textContent = nama;
+            qtyEl.value = qty;
+            errEl.classList.add('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            qtyEl.focus();
+            qtyEl.select();
         }
 
-        fetch(`/import/dlc/pesanan/${currentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ qty: parseInt(qty) })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Gagal mengupdate');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Terjadi kesalahan');
+        function tutupModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            currentId = null;
+        }
+
+        function tampilError(msg) {
+            errEl.textContent = msg;
+            errEl.classList.remove('hidden');
+        }
+
+        function simpanQty() {
+            var qty = qtyEl.value;
+            if (qty === '' || parseInt(qty, 10) < 0) { tampilError('Qty tidak valid.'); return; }
+
+            fetch(baseUrl + '/' + currentId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ qty: parseInt(qty, 10) })
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success) { location.reload(); }
+                else { tampilError(data.message || 'Gagal mengupdate.'); }
+            })
+            .catch(function () { tampilError('Terjadi kesalahan. Coba lagi.'); });
+        }
+
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.btn-edit-qty');
+            if (btn) bukaModal(btn.dataset.id, btn.dataset.nama, btn.dataset.qty);
         });
-    }
-
-    // Tekan Enter di input → langsung simpan
-    document.getElementById('modal-qty').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            saveQty();
-        }
-    });
-
-    // Tutup modal jika klik di luar
-    document.getElementById('editModal').addEventListener('click', function(e) {
-        if (e.target === this) closeEditModal();
-    });
+        document.getElementById('modal-batal').addEventListener('click', tutupModal);
+        document.getElementById('modal-simpan').addEventListener('click', simpanQty);
+        modal.addEventListener('click', function (e) { if (e.target === modal) tutupModal(); });
+        qtyEl.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); simpanQty(); }
+        });
+    })();
 </script>
-
-</body>
-</html>
+@endpush

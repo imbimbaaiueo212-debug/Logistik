@@ -1,318 +1,198 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual Pemesanan - biMBA AIUEO Logistik</title>
+@extends('layouts.panel')
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+@section('title', 'Manual Pemesanan')
 
-    <style>
-    body { font-family: 'Poppins', sans-serif; }
-    table { border-collapse: collapse; }
-    th, td { padding: 12px 8px; font-size: 0.85rem; }
-    th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
-    tr:hover { background-color: #f8fafc; }
-    .truncate { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .processed-row {
-        opacity: 0.65;
-        background-color: #f1f5f9 !important;
-        color: #64748b;
+@push('styles')
+<style>
+    .data-table-wrap { overflow: auto; max-height: calc(100vh - 120px); }
+    .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    .data-table thead th {
+        position: sticky; top: 0; z-index: 20;
+        background: #162749; color: #fff; text-align: left;
+        padding: 12px 14px; font-weight: 600; white-space: nowrap;
     }
-    .processed-row td { color: #64748b; }
-
-    .badge-green { background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-    .badge-yellow { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-    .badge-red { background-color: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-    .badge-black { background-color: #1f2937; color: #f3f4f6; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem; }
-
-    /* ===== SAMAKAN STYLE SELECT2 DENGAN INPUT ===== */
-    .select2-container--default .select2-selection--single,
-    .select2-container--bootstrap-5 .select2-selection--single {
-        height: 42px !important;
-        border: 1px solid #d1d5db !important;          /* border-gray-300 */
-        border-radius: 0.75rem !important;             /* rounded-xl */
-        padding: 0.4rem 0.75rem !important;
-        display: flex !important;
-        align-items: center !important;
-        background-color: #fff !important;
+    .data-table tbody td {
+        padding: 10px 14px; border-bottom: 1px solid #eef0f5;
+        background: #fff; white-space: nowrap; vertical-align: middle;
     }
-
-    .select2-container--default .select2-selection--single .select2-selection__rendered,
-    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-        line-height: 1.5 !important;
-        padding-left: 0 !important;
-        color: #374151 !important;
-        font-size: 0.875rem;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow,
-    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-        height: 40px !important;
-        right: 8px !important;
-    }
-
-    .select2-container--default.select2-container--focus .select2-selection--single,
-    .select2-container--bootstrap-5.select2-container--focus .select2-selection--single {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 1px #3b82f6 !important;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__placeholder,
-    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
-        color: #9ca3af !important;
-    }
-
-    /* Dropdown list juga rounded */
-    .select2-dropdown {
-        border-radius: 0.75rem !important;
-        border: 1px solid #d1d5db !important;
-        overflow: hidden;
-    }
+    .data-table tbody tr:hover td { background: #f7f8fb; }
+    .data-table tbody tr.is-processed td { background: #f1f5f9; color: #64748b; }
+    .data-table th:first-child, .data-table td:first-child { position: sticky; left: 0; z-index: 10; }
+    .data-table thead th:first-child { z-index: 30; }
+    .data-table th.col-aksi, .data-table td.col-aksi { position: sticky; right: 0; z-index: 10; }
+    .data-table thead th.col-aksi { z-index: 30; }
+    .cell-clip { display: block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pager nav p { display: none; }
 </style>
-</head>
-<body class="bg-gray-50">
+@endpush
 
-@include('partials.top-nav')
+@section('content')
+@php
+    $ctl = 'w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]';
 
-<div class="max-w-screen-2xl mx-auto px-6 py-6">
+    $kolom = [
+        ['key' => 'order_id',        'label' => 'ID Pesan'],
+        ['key' => 'nama_unit',       'label' => 'Nama Unit'],
+        ['key' => 'cabang',          'label' => 'Cabang'],
+        ['key' => 'grup',            'label' => 'Group'],
+        ['key' => 'alamat',          'label' => 'Alamat Kirim'],
+        ['key' => 'kota',            'label' => 'Kab/Kota'],
+        ['key' => 'kategori',        'label' => 'Kategori Pesanan'],
+        ['key' => 'qty',             'label' => 'Qty', 'align' => 'center'],
+        ['key' => 'order_date',      'label' => 'Order Date'],
+        ['key' => 'payment_date',    'label' => 'Payment Date'],
+        ['key' => 'est_print',       'label' => 'Estimasi Print PL | PS', 'align' => 'center'],
+        ['key' => 'est_persiapan',   'label' => 'Estimasi Persiapan', 'align' => 'center'],
+        ['key' => 'ekspedisi',       'label' => 'Jasa Kurir'],
+        ['key' => 'service',         'label' => 'Service Kurir'],
+        ['key' => 'distribusi',      'label' => 'Distribusi'],
+        ['key' => 'ship_total',      'label' => 'Ship Total', 'align' => 'right'],
+        ['key' => 'berat',           'label' => 'Berat (gr)', 'align' => 'right'],
+        ['key' => 'total',           'label' => 'Order Total', 'align' => 'right'],
+        ['key' => 'payment_method',  'label' => 'Payment Channel'],
+        ['key' => 'status_bayar',    'label' => 'Status Bayar'],
+        ['key' => 'status',          'label' => 'Status'],
+        ['key' => 'tgl_proses',      'label' => 'Tanggal Proses', 'align' => 'center'],
+    ];
 
-    {{-- FLASH --}}
-    @if(session('success'))
-        <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-5 py-4 rounded-2xl">
-            {!! session('success') !!}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-2xl">
-            {!! session('error') !!}
-        </div>
-    @endif
+    $grupOpt = collect($grups)->mapWithKeys(function ($g) { return [$g => $g]; })->all();
 
-    {{-- HEADER --}}
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800">Manual Pemesanan</h1>
-            <p class="text-gray-600">Kelola data pemesanan manual</p>
-        </div>
+    $filter = [
+        ['name' => 'order_id',       'label' => 'Order ID',  'type' => 'text', 'ph' => 'Cari Order ID...'],
+        ['name' => 'grup',           'label' => 'Grup',      'type' => 'select', 'options' => $grupOpt, 'empty' => 'Semua Grup'],
+        ['name' => 'customer_name',  'label' => 'Customer',  'type' => 'text', 'ph' => 'Nama Customer...'],
+        ['name' => 'product_name',   'label' => 'Item Name', 'type' => 'text', 'ph' => 'Nama Produk...'],
+        ['name' => 'product_sku',    'label' => 'SKU',       'type' => 'text', 'ph' => 'SKU...'],
+        ['name' => 'payment_method', 'label' => 'Payment Method', 'type' => 'select',
+            'options' => ['cash' => 'Cash', 'transfer' => 'Transfer', 'manual' => 'Manual'], 'empty' => 'Semua'],
+        ['name' => 'status',         'label' => 'Status',    'type' => 'select',
+            'options' => ['pending' => 'Pending', 'processing' => 'Processing', 'completed' => 'Completed'], 'empty' => 'Semua Status'],
+        ['name' => 'start_date',     'label' => 'Dari Tanggal',   'type' => 'date'],
+        ['name' => 'end_date',       'label' => 'Sampai Tanggal', 'type' => 'date'],
+        ['name' => 'per_page',       'label' => 'Tampilkan', 'type' => 'select',
+            'options' => [10 => '10', 25 => '25', 50 => '50', 100 => '100'], 'default' => 25, 'submit' => true],
+    ];
 
-        <div class="flex gap-3 flex-wrap">
-            <a href="{{ route('order-manual.index') }}"
-               class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700 flex items-center gap-2">
-                ← Kembali ke Daftar Import
-            </a>
+    $grupColors = [
+        'A' => 'bg-blue-100 text-blue-700 border border-blue-200',
+        'B' => 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+        'C' => 'bg-purple-100 text-purple-700 border border-purple-200',
+        'D' => 'bg-amber-100 text-amber-700 border border-amber-200',
+        'E' => 'bg-rose-100 text-rose-700 border border-rose-200',
+        'F' => 'bg-cyan-100 text-cyan-700 border border-cyan-200',
+    ];
+    $grupDefault = 'bg-gray-100 text-gray-600 border border-gray-200';
 
-            <a href="{{ route('import.manual-printed') }}"
-                 class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex items-center gap-2">
-                📊 Rekap Aktual Manual
-            </a>
+    $rp = function ($n) { return 'Rp ' . number_format($n ?? 0, 0, ',', '.'); };
+    $estClass = function ($jam, $ok, $warn) {
+        return $jam <= $ok ? 'bg-emerald-100 text-emerald-800'
+             : ($jam <= $warn ? 'bg-red-100 text-red-700' : 'bg-gray-800 text-gray-100');
+    };
+@endphp
 
-            <form action="{{ route('import.sync-pesanan-majalah') }}"
-                  method="POST"
-                  onsubmit="return confirm('Yakin Sync semua Pesanan Majalah ke Manual Pemesanan?')">
-                @csrf
-                <button type="submit"
-                        class="bg-pink-700 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-pink-800 flex items-center gap-2">
-                    🔄 Sync Pesanan Majalah
-                </button>
-            </form>
-        </div>
+{{-- Header --}}
+<div class="flex flex-wrap items-start justify-between gap-3 mb-5">
+    <div>
+        <h2 class="text-2xl font-bold text-[#162749]">Manual Pemesanan</h2>
+        <p class="text-sm text-gray-500 mt-0.5">Kelola data pemesanan manual</p>
     </div>
-
-    {{-- FORM IMPORT --}}
-    <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8">
-        <h2 class="text-xl font-semibold mb-4">Upload File Excel / CSV</h2>
-        <form action="{{ route('import.manual.store') }}" method="POST" enctype="multipart/form-data">
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="{{ route('order-manual.index') }}"
+           class="inline-flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+            Kembali ke Daftar Import
+        </a>
+        <a href="{{ route('import.manual-printed') }}"
+           class="inline-flex items-center gap-2 bg-[#162749] hover:bg-[#1D3361] text-white px-4 py-2.5 rounded-xl text-sm font-medium transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+            Rekap Aktual Manual
+        </a>
+        <form action="{{ route('import.sync-pesanan-majalah') }}" method="POST"
+              onsubmit="return confirm('Yakin Sync semua Pesanan Majalah ke Manual Pemesanan?')">
             @csrf
-            <div class="flex gap-4 items-end flex-wrap">
-                <div class="flex-1 min-w-[240px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File</label>
-                    <input type="file" name="import_file"
-                           class="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-3 file:px-6 file:rounded-2xl
-                                  file:border-0 file:text-sm file:font-semibold
-                                  file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                           accept=".xlsx,.xls,.csv" required>
-                </div>
-                <button type="submit"
-                        class="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-emerald-700">
-                    🚀 Import Sekarang
-                </button>
-            </div>
-            <p class="text-xs text-gray-500 mt-2">Format yang didukung: .xlsx, .xls, .csv (max 10MB)</p>
+            <button type="submit"
+                    class="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#D14E1F] text-white px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/></svg>
+                Sync Pesanan Majalah
+            </button>
         </form>
     </div>
+</div>
 
-    {{-- BULK ACTION BAR --}}
-    <div id="bulkActionBar"
-         class="hidden bg-white rounded-3xl shadow p-5 mb-6 flex items-center justify-between border border-indigo-100 flex-wrap gap-3">
-        <div>
-            <span id="selectedCount" class="text-sm font-semibold text-gray-700">
-                Siap memproses data sesuai filter tanggal
-            </span>
-        </div>
-        <div class="flex items-center gap-3">
-            <button type="button"
-                    onclick="processAllFilteredData()"
-                    id="processAllBtn"
-                    class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-emerald-700 flex items-center gap-2">
-                📅 Proses & Edit Semua Sesuai Filter Tanggal
+@include('partials.flash')
+
+{{-- Bar proses massal (muncul bila filter tanggal terisi) --}}
+<div id="bulkActionBar" class="hidden mb-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-2xl shadow-sm border border-[#28447F]/20 px-5 py-4">
+        <span id="selectedCount" class="text-sm font-medium text-gray-700">Siap memproses data sesuai filter tanggal</span>
+        <div class="flex items-center gap-2">
+            <button type="button" id="processAllBtn"
+                    class="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#D14E1F] text-white px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+                Proses & Edit Semua Sesuai Filter Tanggal
             </button>
-            <button type="button"
-                    onclick="clearSelection()"
-                    class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
-                Reset
-            </button>
+            <button type="button" id="btnReset"
+                    class="px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Reset</button>
         </div>
     </div>
+</div>
 
-    {{-- FILTER --}}
-    <div class="bg-white rounded-3xl shadow p-6 mb-6">
-        <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
+{{-- Filter --}}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+    <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
+        @foreach($filter as $f)
+            @php $val = request($f['name'], $f['default'] ?? ''); @endphp
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
-                <input type="text" name="order_id" value="{{ request('order_id') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5"
-                       placeholder="Cari Order ID...">
+                <label class="block text-xs font-medium text-gray-600 mb-1">{{ $f['label'] }}</label>
+                @if($f['type'] === 'select')
+                    <select name="{{ $f['name'] }}" class="{{ $ctl }}" {!! !empty($f['submit']) ? 'onchange="this.form.submit()"' : '' !!}>
+                        @if(array_key_exists('empty', $f))
+                            <option value="">{{ $f['empty'] }}</option>
+                        @endif
+                        @foreach($f['options'] as $ov => $ol)
+                            <option value="{{ $ov }}" {{ (string) $val === (string) $ov ? 'selected' : '' }}>{{ $ol }}</option>
+                        @endforeach
+                    </select>
+                @else
+                    <input type="{{ $f['type'] }}" name="{{ $f['name'] }}" value="{{ $val }}"
+                           placeholder="{{ $f['ph'] ?? '' }}" class="{{ $ctl }}">
+                @endif
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Grup</label>
-                <select name="grup" class="grup-select w-full">
-                    <option value="">Semua Grup</option>
-                    @foreach($grups as $grup)
-                        <option value="{{ $grup }}" {{ request('grup') == $grup ? 'selected' : '' }}>
-                            {{ $grup }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                <input type="text" name="customer_name" value="{{ request('customer_name') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5"
-                       placeholder="Nama Customer...">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                <input type="text" name="product_name" value="{{ request('product_name') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5"
-                       placeholder="Nama Produk...">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                <input type="text" name="product_sku" value="{{ request('product_sku') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5"
-                       placeholder="SKU...">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <select name="payment_method" class="payment-select w-full">
-                    <option value="">Semua</option>
-                    <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                    <option value="manual" {{ request('payment_method') == 'manual' ? 'selected' : '' }}>Manual</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select name="status" class="status-select w-full">
-                    <option value="">Semua Status</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="processing" {{ request('status') == 'processing' ? 'selected' : '' }}>Processing</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
-                <input type="date" name="start_date" value="{{ request('start_date') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
-                <input type="date" name="end_date" value="{{ request('end_date') }}"
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
-                <select name="per_page" onchange="this.form.submit()"
-                        class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                    <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
-                    <option value="25" {{ request('per_page', 25) == 25 ? 'selected' : '' }}>25</option>
-                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
-                </select>
-            </div>
-            <div class="flex items-end gap-3 pt-6 lg:col-span-2">
-                <button type="submit"
-                        class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">
-                    🔍 Terapkan Filter
-                </button>
-                <a href="{{ route('import.manual') }}"
-                   class="text-gray-500 hover:text-red-600 px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
+        @endforeach
 
-    {{-- TABEL --}}
-    <div class="bg-white rounded-3xl shadow overflow-x-auto">
-        <table class="w-full text-sm">
+        <div class="col-span-2 flex items-end gap-2">
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 flex-1 bg-[#162749] hover:bg-[#1D3361] text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></svg>
+                Terapkan Filter
+            </button>
+            <a href="{{ route('import.manual') }}" class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-red-600 whitespace-nowrap">Reset</a>
+        </div>
+    </form>
+</div>
+
+{{-- Tabel --}}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="data-table-wrap">
+        <table class="data-table" id="dataTable">
             <thead>
-                <tr class="bg-gray-100 border-b-2 border-gray-300">
-                    <th class="text-left px-4 py-3">ID Pesan</th>
-                    <th class="text-left px-4 py-3">Nama Unit</th>
-                    <th class="text-left px-4 py-3">Cabang</th>
-                    <th class="text-left px-4 py-3">Group</th>
-                    <th class="text-left px-4 py-3">Alamat Kirim</th>
-                    <th class="text-left px-4 py-3">Kab/Kota</th>
-                    <th class="text-left px-4 py-3">Kategori Pesanan</th>
-                    <th class="text-center px-4 py-3">Qty</th>
-                    <th class="text-left px-4 py-3">Order Date</th>
-                    <th class="text-left px-4 py-3">Payment Date</th>
-                    <th class="text-center px-4 py-3">Estimasi Print PL | PS</th>
-                    <th class="text-center px-4 py-3">Estimasi Persiapan</th>
-                    <th class="text-left px-4 py-3">Jasa Kurir</th>
-                    <th class="text-left px-4 py-3">Service Kurir</th>
-                    <th class="text-left px-4 py-3">Distribusi</th>
-                    <th class="text-right px-4 py-3">Ship Total</th>
-                    <th class="text-right px-4 py-3">Berat (gr)</th>
-                    <th class="text-right px-4 py-3">Order Total</th>
-                    <th class="text-left px-4 py-3">Payment Channel</th>
-                    <th class="text-left px-4 py-3">Status Bayar</th>
-                    <th class="text-left px-4 py-3">Status</th>
-                    <th class="text-center px-4 py-3">Tanggal Proses</th>
-                    <th class="text-center px-4 py-3">Aksi</th>
+                <tr>
+                    @foreach($kolom as $k)
+                        <th style="text-align: {{ $k['align'] ?? 'left' }}">{{ $k['label'] }}</th>
+                    @endforeach
+                    <th class="col-aksi" style="text-align: center">Aksi</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody>
                 @forelse($manualOrders as $order)
                     @php
                         $isProcessed = (bool) ($order->is_processed ?? false);
 
-                        $paymentDate = $order->payment_date
-                            ? \Carbon\Carbon::parse($order->payment_date)
-                            : null;
-
-                        $estimasiPrint = $order->estimasi_print_pl
-                            ? \Carbon\Carbon::parse($order->estimasi_print_pl)
-                            : null;
-
-                        $estimasiPersiapan = $order->estimasi_persiapan
-                            ? \Carbon\Carbon::parse($order->estimasi_persiapan)
-                            : null;
-
-                        $jamPrint = $estimasiPrint
-                            ? now()->diffInHours($estimasiPrint, false)
-                            : 999;
-
-                        $jamPersiapan = $estimasiPersiapan
-                            ? now()->diffInHours($estimasiPersiapan, false)
-                            : 999;
+                        $paymentDate       = $order->payment_date ? \Carbon\Carbon::parse($order->payment_date) : null;
+                        $estimasiPrint     = $order->estimasi_print_pl ? \Carbon\Carbon::parse($order->estimasi_print_pl) : null;
+                        $estimasiPersiapan = $order->estimasi_persiapan ? \Carbon\Carbon::parse($order->estimasi_persiapan) : null;
+                        $jamPrint      = $estimasiPrint ? now()->diffInHours($estimasiPrint, false) : 999;
+                        $jamPersiapan  = $estimasiPersiapan ? now()->diffInHours($estimasiPersiapan, false) : 999;
 
                         $status = strtolower($order->status ?? 'pending');
                         $statusClass = match($status) {
@@ -324,674 +204,464 @@
                         $namaUnit = $order->customer_name
                             ?? trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? ''))
                             ?: '-';
+                        $kategori = $order->product_name ?? $order->item_name ?? $order->product_sku ?? '-';
 
-                        $kategori = $order->product_name
-                            ?? $order->item_name
-                            ?? $order->product_sku
-                            ?? '-';
+                        $noCab      = trim($order->billing_last_name ?? '');
+                        $mismatch   = $mismatchMap[$noCab] ?? null;
+                        $isMismatch = $mismatch
+                            || str_contains($order->catatan ?? '', 'NAMA_MISMATCH')
+                            || str_contains($order->notes ?? '', 'NAMA_MISMATCH');
+
+                        $grup      = strtoupper(trim($order->grup ?? ''));
+                        $grupClass = $grupColors[$grup] ?? $grupDefault;
                     @endphp
-                    <tr class="{{ $isProcessed ? 'processed-row' : '' }} hover:bg-gray-50">
-                        <td class="px-4 py-3 font-semibold text-indigo-700 whitespace-nowrap">
-                            {{ $order->order_id ?? '-' }}
-                        </td>
-                        <td class="px-4 py-3 font-semibold text-gray-800">
-                            @php
-                                $noCabItem = trim($order->billing_last_name ?? '');
-                                $mismatch  = $mismatchMap[$noCabItem] ?? null;
-                                $isMismatch = $mismatch
-                                    || str_contains($order->catatan ?? '', 'NAMA_MISMATCH')
-                                    || str_contains($order->notes ?? '', 'NAMA_MISMATCH');
-                            @endphp
+                    <tr data-row="1" data-processed="{{ $isProcessed ? 1 : 0 }}" class="{{ $isProcessed ? 'is-processed' : '' }}">
+                        @foreach($kolom as $k)
+                            @php $key = $k['key']; @endphp
+                            <td style="text-align: {{ $k['align'] ?? 'left' }}">
+                                @if($key === 'order_id')
+                                    <span class="font-semibold text-[#28447F]">{{ $order->order_id ?? '-' }}</span>
 
-                            <div class="flex flex-col gap-0.5">
-                                {{-- Nama yang dipakai (Excel) --}}
-                                <span>{{ $namaUnit }}</span>
+                                @elseif($key === 'nama_unit')
+                                    <span class="cell-clip font-semibold text-[#162749]" title="{{ $namaUnit }}">{{ $namaUnit }}</span>
+                                    @if($isMismatch)
+                                        @if($mismatch)
+                                            <span class="cell-clip text-xs text-orange-700" title="{{ $mismatch['nama_excel'] }}">Excel: {{ $mismatch['nama_excel'] }}</span>
+                                            <span class="cell-clip text-xs text-emerald-700" title="{{ $mismatch['nama_master'] }}">Kemitraan: {{ $mismatch['nama_master'] }}</span>
+                                        @endif
+                                        <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200"
+                                              title="Nama unit beda dengan Unit Kemitraan">
+                                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 3 20h18Z"/><path d="M12 10v4M12 17h.01"/></svg>
+                                            Mismatch
+                                        </span>
+                                    @endif
 
-                                @if($isMismatch && $mismatch)
-                                    <div class="text-xs font-normal mt-0.5 space-y-0.5">
-                                        <div class="text-orange-700">
-                                            <span class="text-gray-500">Excel:</span>
-                                            <span class="font-medium">{{ $mismatch['nama_excel'] }}</span>
-                                        </div>
-                                        <div class="text-emerald-700">
-                                            <span class="text-gray-500">Kemitraan:</span>
-                                            <span class="font-medium">{{ $mismatch['nama_master'] }}</span>
-                                        </div>
-                                    </div>
-                                    <span class="inline-flex items-center self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                        ⚠️ Mismatch
-                                    </span>
-                                @elseif($isMismatch)
-                                    <span class="inline-flex items-center self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200"
-                                        title="Nama unit beda dengan Unit Kemitraan">
-                                        ⚠️ Mismatch
-                                    </span>
+                                @elseif($key === 'cabang')
+                                    {{ $order->billing_last_name ?? '-' }}
+
+                                @elseif($key === 'grup')
+                                    @if($grup)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $grupClass }}">Group {{ $grup }}</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+
+                                @elseif($key === 'alamat')
+                                    <span class="cell-clip" title="{{ $order->shipping_address_1 ?? '' }}">{{ $order->shipping_address_1 ?? '-' }}</span>
+
+                                @elseif($key === 'kota')
+                                    {{ $order->shipping_city ?? '-' }}
+
+                                @elseif($key === 'kategori')
+                                    <span class="cell-clip" title="{{ $kategori }}">{{ $kategori }}</span>
+
+                                @elseif($key === 'qty')
+                                    <span class="font-semibold">{{ $order->qty ?? $order->item_qty ?? 0 }}</span>
+
+                                @elseif($key === 'order_date')
+                                    {{ $order->order_date ? \Carbon\Carbon::parse($order->order_date)->format('d/m/Y') : '-' }}
+
+                                @elseif($key === 'payment_date')
+                                    @if($paymentDate)
+                                        {{ $paymentDate->format('d/m/Y') }}
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Pending</span>
+                                    @endif
+
+                                @elseif($key === 'est_print')
+                                    @if($estimasiPrint)
+                                        <span class="inline-block px-3 py-1 rounded-xl text-xs font-semibold {{ $estClass($jamPrint, 24, 48) }}">{{ $estimasiPrint->format('d/m/Y') }}</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+
+                                @elseif($key === 'est_persiapan')
+                                    @if($estimasiPersiapan)
+                                        <span class="inline-block px-3 py-1 rounded-xl text-xs font-semibold {{ $estClass($jamPersiapan, 72, 96) }}">{{ $estimasiPersiapan->format('d/m/Y') }}</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+
+                                @elseif($key === 'ekspedisi')
+                                    {{ $order->ekspedisi ?? '-' }}
+
+                                @elseif($key === 'service')
+                                    {{ $order->service_pengiriman ?? '-' }}
+
+                                @elseif($key === 'distribusi')
+                                    @if(($order->status_kirim ?? '') === 'Diambil')
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Diambil</span>
+                                    @else
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-700">Dikirim</span>
+                                    @endif
+
+                                @elseif($key === 'ship_total')
+                                    {{ $rp($order->ship_total) }}
+
+                                @elseif($key === 'berat')
+                                    {{ number_format($order->order_weight ?? 0, 0, ',', '.') }} gr
+
+                                @elseif($key === 'total')
+                                    <span class="font-semibold">{{ $rp($order->total ?? $order->order_total ?? 0) }}</span>
+
+                                @elseif($key === 'payment_method')
+                                    {{ $order->payment_method ?? '-' }}
+
+                                @elseif($key === 'status_bayar')
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">MANUAL</span>
+
+                                @elseif($key === 'status')
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">{{ ucfirst($order->status ?? 'Pending') }}</span>
+
+                                @elseif($key === 'tgl_proses')
+                                    @if($isProcessed && $order->processed_at)
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-700">{{ \Carbon\Carbon::parse($order->processed_at)->format('d/m/Y H:i') }}</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
                                 @endif
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">{{ $order->billing_last_name ?? '-' }}</td>
-                       <td class="px-4 py-3 whitespace-nowrap">
-                            @php
-                                $grup = strtoupper(trim($order->grup ?? ''));
-                                $grupClass = match($grup) {
-                                    'A'     => 'bg-blue-100 text-blue-700 border border-blue-200',
-                                    'B'     => 'bg-emerald-100 text-emerald-700 border border-emerald-200',
-                                    'C'     => 'bg-purple-100 text-purple-700 border border-purple-200',
-                                    'D'     => 'bg-amber-100 text-amber-700 border border-amber-200',
-                                    'E'     => 'bg-rose-100 text-rose-700 border border-rose-200',
-                                    'F'     => 'bg-cyan-100 text-cyan-700 border border-cyan-200',
-                                    default => 'bg-gray-100 text-gray-600 border border-gray-200',
-                                };
-                            @endphp
+                            </td>
+                        @endforeach
 
-                            @if($grup)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $grupClass }}">
-                                    Group {{ $grup }}
-                                </span>
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="block whitespace-normal break-words" title="{{ $order->shipping_address_1 ?? '' }}">
-                                {{ $order->shipping_address_1 ?? '-' }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">{{ $order->shipping_city ?? '-' }}</td>
-                        <td class="px-4 py-3">
-                            <span class="block whitespace-normal break-words" title="{{ $kategori }}">
-                                {{ $kategori }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-center font-semibold">{{ $order->qty ?? $order->item_qty ?? 0 }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            @if($order->order_date)
-                                {{ \Carbon\Carbon::parse($order->order_date)->format('d/m/Y') }}
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            @if($paymentDate)
-                                {{ $paymentDate->format('d/m/Y') }}
-                            @else
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                    Pending
-                                </span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            @if($estimasiPrint)
-                                <span class="inline-block px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap
-                                    {{ $jamPrint <= 24 ? 'badge-green' : ($jamPrint <= 48 ? 'badge-red' : 'badge-black') }}">
-                                    {{ $estimasiPrint->format('d/m/Y') }}
-                                </span>
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            @if($estimasiPersiapan)
-                                <span class="inline-block px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap
-                                    {{ $jamPersiapan <= 72 ? 'badge-green' : ($jamPersiapan <= 96 ? 'badge-red' : 'badge-black') }}">
-                                    {{ $estimasiPersiapan->format('d/m/Y') }}
-                                </span>
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">{{ $order->ekspedisi ?? '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">{{ $order->service_pengiriman ?? '-' }}</td>
-                        <td class="px-4 py-3">
-                            @if(($order->status_kirim ?? '') === 'Diambil')
-                                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-xl text-sm">Diambil</span>
-                            @else
-                                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm">Dikirim</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-right whitespace-nowrap">
-                            Rp {{ number_format($order->ship_total ?? 0, 0, ',', '.') }}
-                        </td>
-                        <td class="px-4 py-3 text-right whitespace-nowrap">
-                            {{ number_format($order->order_weight ?? 0, 0, ',', '.') }} gr
-                        </td>
-                        <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">
-                            Rp {{ number_format($order->total ?? $order->order_total ?? 0, 0, ',', '.') }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">{{ $order->payment_method ?? '-' }}</td>
-                        <td class="px-4 py-3">
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                MANUAL
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">
-                                {{ ucfirst($order->status ?? 'Pending') }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            @if($isProcessed && $order->processed_at)
-                                <span class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-sm font-medium whitespace-nowrap">
-                                    {{ \Carbon\Carbon::parse($order->processed_at)->format('d/m/Y H:i') }}
-                                </span>
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="col-aksi" style="text-align: center">
                             @if(!$isProcessed)
-                                <div class="flex items-center justify-center gap-3">
-                                    <a href="{{ route('import.manual.edit', $order->id) }}"
-                                       class="text-blue-600 hover:text-blue-700 text-lg" title="Edit">✏️</a>
-                                    <button type="button"
-                                            onclick="if(confirm('Yakin hapus data ini?')) document.getElementById('delete-form-{{ $order->id }}').submit()"
-                                            class="text-red-600 hover:text-red-700 text-lg" title="Hapus">🗑</button>
-                                    <form id="delete-form-{{ $order->id }}"
-                                          action="{{ route('import.manual.destroy', $order->id) }}"
-                                          method="POST" class="hidden">
+                                <div class="inline-flex items-center gap-1">
+                                    <a href="{{ route('import.manual.edit', $order->id) }}" title="Edit" aria-label="Edit"
+                                       class="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+                                    </a>
+                                    <form action="{{ route('import.manual.destroy', $order->id) }}" method="POST" class="inline"
+                                          onsubmit="return confirm('Yakin hapus data ini?')">
                                         @csrf
                                         @method('DELETE')
+                                        <button type="submit" title="Hapus" aria-label="Hapus"
+                                                class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition">
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12"/><path d="M9 7V4h6v3"/></svg>
+                                        </button>
                                     </form>
                                 </div>
                             @else
-                                <span class="inline-flex items-center gap-1 text-emerald-600 font-medium text-sm">
-                                    ✅ Diproses
+                                <span class="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4.5 4.5L19 7"/></svg>
+                                    Diproses
                                 </span>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="22" class="text-center py-16 text-gray-500">
-                            Belum ada data pemesanan.<br>
-                            Silakan <strong>Import Excel</strong> atau klik <strong>Sync Pesanan Majalah</strong>.
+                        <td colspan="{{ count($kolom) + 1 }}" style="text-align: center" class="!py-14 text-gray-400">
+                            Belum ada data pemesanan. Import dari Daftar Import atau klik Sync Pesanan Majalah.
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
-
-        @if($manualOrders->total() > 0)
-            <div class="px-6 py-4 bg-white border-t flex items-center justify-between flex-wrap gap-3">
-                <div class="text-sm text-gray-700">
-                    Menampilkan
-                    <span class="font-medium">{{ $manualOrders->firstItem() }}</span>
-                    sampai
-                    <span class="font-medium">{{ $manualOrders->lastItem() }}</span>
-                    dari total
-                    <span class="font-medium">{{ $manualOrders->total() }}</span> data
-                </div>
-                <div>
-                    {{ $manualOrders->appends(request()->query())->links() }}
-                </div>
-            </div>
-        @endif
     </div>
 </div>
 
-{{-- MODAL BULK PROSES --}}
-<div id="bulkModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-    <div class="bg-white rounded-3xl shadow-2xl w-[98vw] h-[95vh] mx-2 flex flex-col">
-        <div class="p-6 border-b flex justify-between items-center">
+@if($manualOrders->total() > 0)
+    <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+        <p class="text-sm text-gray-500">
+            Menampilkan {{ $manualOrders->firstItem() }} sampai {{ $manualOrders->lastItem() }}
+            dari {{ number_format($manualOrders->total()) }} data
+        </p>
+        @if($manualOrders->hasPages())
+            <div class="pager">{{ $manualOrders->withQueryString()->links('pagination::tailwind') }}</div>
+        @endif
+    </div>
+@endif
+
+{{-- Modal proses massal --}}
+<div id="bulkModal" class="fixed inset-0 bg-[#0F1B33]/60 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-[98vw] h-[94vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div>
-                <h3 class="text-2xl font-semibold">Edit & Proses Data Terpilih</h3>
-                <p class="text-gray-600" id="modalCount">0 data dipilih</p>
+                <h3 class="text-lg font-bold text-[#162749]">Edit & Proses Data Terpilih</h3>
+                <p class="text-sm text-gray-500" id="modalCount">0 data dipilih</p>
             </div>
-            <button type="button" onclick="hideBulkModal()" class="text-3xl text-gray-500 hover:text-gray-700">✕</button>
+            <button type="button" id="btnCloseModal" aria-label="Tutup" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
         </div>
-        <div class="flex-1 overflow-auto p-6">
-            <table class="w-full text-sm border border-gray-200 min-w-[1600px]" id="modalTable">
-                <thead class="bg-gray-50 sticky">
-                    <tr class="divide-x divide-gray-200">
-                        <th class="px-4 py-3 text-left w-24">Status</th>
-                        <th class="px-4 py-3 text-left w-32">ID Pesan</th>
-                        <th class="px-4 py-3 text-left min-w-[240px]">To Customer</th>
-                        <th class="px-4 py-3 text-left w-40">Kategori Pesanan</th>
-                        <th class="px-4 py-3 text-left w-28">Group</th>   {{-- ← TAMBAHKAN --}}
-                        <th class="px-4 py-3 text-left w-36">Payment Date</th>
-                        <th class="px-4 py-3 text-left w-44">Payment Channel</th>
-                        <th class="px-4 py-3 text-left w-40">Distribusi <span class="text-red-500">*</span></th>
-                        <th class="px-4 py-3 text-left min-w-[220px]">Jasa Kurir <span class="text-red-500">*</span></th>
-                        <th class="px-4 py-3 text-left min-w-[190px]">Service</th>
-                        <th class="px-4 py-3 text-left min-w-[220px]">Catatan</th>
+
+        <div class="flex-1 overflow-auto px-6 py-4">
+            <table class="w-full text-sm border border-gray-200 min-w-[1500px]">
+                <thead>
+                    <tr>
+                        @foreach([
+                            ['Status', 'w-24'], ['ID Pesan', 'w-32'], ['To Customer', 'min-w-[240px]'], ['Kategori Pesanan', 'w-40'],
+                            ['Group', 'w-28'], ['Payment Date', 'w-36'], ['Payment Channel', 'w-44'], ['Distribusi *', 'w-40'],
+                            ['Jasa Kurir *', 'min-w-[220px]'], ['Service', 'min-w-[190px]'], ['Catatan', 'min-w-[220px]'],
+                        ] as [$th, $w])
+                            <th class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 px-3 py-2.5 text-left font-semibold text-gray-600 {{ $w }}">{{ $th }}</th>
+                        @endforeach
                     </tr>
                 </thead>
-                <tbody id="modalTableBody" class="divide-y divide-gray-200"></tbody>
+                <tbody id="modalTableBody" class="divide-y divide-gray-100"></tbody>
             </table>
         </div>
-        <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
-            <button type="button" onclick="hideBulkModal()"
-                    class="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Batal</button>
-            <button type="button" onclick="executeBulkAction()"
-                    class="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-indigo-700">
-                💾 Simpan & Kunci Semua Data
+
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            <button type="button" id="btnCancelModal"
+                    class="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-white transition">Batal</button>
+            <button type="button" id="saveBulkBtn"
+                    class="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#D14E1F] text-white px-6 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+                <span id="saveBulkLabel">Simpan & Kunci Semua Data</span>
             </button>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<datalist id="dl-kurir">
+    <option value="JNE"><option value="TIKI"><option value="Lion Parcel">
+</datalist>
 
+<form id="bulkForm" action="{{ route('import.manual.bulk-action') }}" method="POST" class="hidden">
+    @csrf
+    <input type="hidden" name="action" value="processed">
+    <input type="hidden" name="per_item" id="perItemInput">
+</form>
+@endsection
+
+@push('scripts')
 <script>
-let selectedIds = [];
+document.addEventListener('DOMContentLoaded', function () {
+    var URL_IDS   = "{{ route('import.manual.filtered-ids') }}";
+    var URL_MODAL = "{{ route('import.manual.get-modal-data') }}";
+    var CSRF      = "{{ csrf_token() }}";
+    var GRUP_COLORS  = @json($grupColors);
+    var GRUP_DEFAULT = @json($grupDefault);
+    var CTL = 'w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]';
 
-function checkFilterStatus() {
-    const startDate = $('input[name="start_date"]').val();
-    const endDate   = $('input[name="end_date"]').val();
-    if (startDate && endDate) {
-        $('#bulkActionBar').removeClass('hidden');
-    } else {
-        $('#bulkActionBar').addClass('hidden');
-    }
-}
+    var selectedIds = [];
+    var form  = document.getElementById('filterForm');
+    var modal = document.getElementById('bulkModal');
+    var body  = document.getElementById('modalTableBody');
 
-function checkProcessButtonVisibility() {
-    const processBtn = document.getElementById('processAllBtn');
-    if (!processBtn) return;
-
-    let unprocessedCount = 0;
-    document.querySelectorAll('tbody tr').forEach(row => {
-        if (!row.classList.contains('processed-row')) {
-            unprocessedCount++;
-        }
-    });
-
-    if (unprocessedCount === 0) {
-        processBtn.style.display = 'none';
-        $('#selectedCount').html('✅ <span class="text-emerald-600 font-medium">Semua data pada filter ini sudah diproses</span>');
-    } else {
-        processBtn.style.display = 'inline-flex';
-        $('#selectedCount').text(`Siap memproses ${unprocessedCount} data sesuai filter tanggal`);
-    }
-}
-
-$(document).ready(function () {
-    $('.payment-select').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Semua',
-        allowClear: true,
-        width: '100%'
-    });
-    $('.status-select').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Semua Status',
-        allowClear: true,
-        width: '100%'
-    });
-    $(document).ready(function () {
-    // Inisialisasi semua select filter sekaligus
-    $('.payment-select, .status-select, .grup-select').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Pilih...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    checkFilterStatus();
-    checkProcessButtonVisibility();
-
-    $('input[name="start_date"], input[name="end_date"]').on('change', function () {
-        checkFilterStatus();
-        setTimeout(checkProcessButtonVisibility, 700);
-    });
-});
-
-    checkFilterStatus();
-    checkProcessButtonVisibility();
-
-    $('input[name="start_date"], input[name="end_date"]').on('change', function () {
-        checkFilterStatus();
-        setTimeout(checkProcessButtonVisibility, 700);
-    });
-});
-
-function processAllFilteredData() {
-    const startDate = $('input[name="start_date"]').val();
-    const endDate   = $('input[name="end_date"]').val();
-
-    if (!startDate || !endDate) {
-        alert('❌ Harap isi Dari Tanggal dan Sampai Tanggal terlebih dahulu!');
-        return;
+    function $(s, r) { return (r || document).querySelector(s); }
+    function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+    function val(name) { var el = form.elements[name]; return el ? el.value : ''; }
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
     }
 
-    $.ajax({
-        url: '{{ route("import.manual.filtered-ids") }}',
-        method: 'GET',
-        data: {
-            start_date: startDate,
-            end_date: endDate,
-            order_id: $('input[name="order_id"]').val() || '',
-            customer_name: $('input[name="customer_name"]').val() || '',
-            product_name: $('input[name="product_name"]').val() || '',
-            product_sku: $('input[name="product_sku"]').val() || '',
-            status: $('select[name="status"]').val() || '',
-            payment_method: $('select[name="payment_method"]').val() || '',
-        },
-        success: function (response) {
-            if (response.count === 0) {
-                alert('Tidak ada data yang belum diproses.');
-                return;
-            }
-            selectedIds = response.ids;
-            $('#selectedCount').text(`${response.count} data akan diproses`);
-            loadModalData();
-        },
-        error: function () {
-            alert('Gagal mengambil data.');
+    /* ---------- Bar proses massal ---------- */
+    function setBar(text, tone) {
+        var el = $('#selectedCount');
+        el.textContent = text;
+        el.className = 'text-sm font-medium ' + (tone === 'err' ? 'text-red-600' : tone === 'ok' ? 'text-emerald-700' : 'text-gray-700');
+    }
+
+    function checkFilterStatus() {
+        $('#bulkActionBar').classList.toggle('hidden', !(val('start_date') && val('end_date')));
+    }
+
+    function updateBarInfo() {
+        var btn = $('#processAllBtn');
+        var rows = $$('#dataTable tbody tr[data-row]');
+        var belum = rows.filter(function (r) { return r.dataset.processed !== '1'; }).length;
+
+        if (rows.length === 0) {
+            btn.style.display = 'none';
+            setBar('Tidak ada data pada filter ini', 'err');
+        } else if (belum === 0) {
+            btn.style.display = 'none';
+            setBar('Semua data pada filter ini sudah diproses', 'ok');
+        } else {
+            btn.style.display = '';
+            setBar('Siap memproses ' + belum + ' data sesuai filter tanggal');
         }
-    });
-}
+    }
 
-function loadModalData() {
-    $.ajax({
-        url: '{{ route("import.manual.get-modal-data") }}',
-        method: 'POST',
-        data: {
-            ids: selectedIds,
-            _token: '{{ csrf_token() }}'
-        },
-        success: function (items) {
-            let html = '';
+    function requestJson(url, options) {
+        options = options || {};
+        options.headers = Object.assign({ 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, options.headers || {});
+        return fetch(url, options).then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        });
+    }
 
-            items.forEach(item => {
-                const isLocked = Boolean(item.is_processed);
-                const currentDistribusi = (item.status_kirim || 'Dikirim').trim();
-
-                let distribusiHtml, jasaKurirHtml, serviceKurirHtml, catatanHtml;
-
-                if (isLocked) {
-                    distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-emerald-100 text-emerald-700 rounded-2xl">${currentDistribusi}</span>`;
-                    jasaKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                    serviceKurirHtml = `<span class="text-sm text-gray-500 font-medium">— Terkunci —</span>`;
-                    catatanHtml = `<span class="text-xs text-gray-500 italic">Sudah diproses ${item.processed_at ? 'pada ' + item.processed_at : ''}</span>`;
-                } else {
-                    distribusiHtml = `<span class="inline-flex items-center px-4 py-2.5 text-sm font-semibold bg-blue-100 text-blue-700 rounded-2xl">${currentDistribusi}</span>`;
-
-                    const selectedJasa = item.jasa_kurir || 'Lion Parcel';
-                    const selectedService = item.service_kurir || 'REGPACK';
-
-                    jasaKurirHtml = `
-                        <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                            <option value="">Pilih atau ketik jasa kurir...</option>
-                            <option value="JNE" ${selectedJasa === 'JNE' ? 'selected' : ''}>JNE</option>
-                            <option value="TIKI" ${selectedJasa === 'TIKI' ? 'selected' : ''}>TIKI</option>
-                            <option value="Lion Parcel" ${selectedJasa === 'Lion Parcel' ? 'selected' : ''}>Lion Parcel</option>
-                        </select>`;
-
-                    if (selectedJasa === 'Lion Parcel' || !selectedJasa) {
-                        serviceKurirHtml = `
-                            <select class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                                <option value="">Pilih Service</option>
-                                <option value="REGPACK" ${selectedService === 'REGPACK' ? 'selected' : ''}>REGPACK</option>
-                                <option value="BOSPACK" ${selectedService === 'BOSPACK' ? 'selected' : ''}>BOSPACK</option>
-                                <option value="JAGOPACK" ${selectedService === 'JAGOPACK' ? 'selected' : ''}>JAGOPACK</option>
-                                <option value="BIGPACK" ${selectedService === 'BIGPACK' ? 'selected' : ''}>BIGPACK</option>
-                            </select>`;
-                    } else {
-                        serviceKurirHtml = `
-                            <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm"
-                                   value="${selectedService || 'REG'}" placeholder="REG / YES / CTC">`;
-                    }
-
-                    catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;
-                }
-
-                // ===== Group Badge =====
-                const grup = (item.grup || '').toUpperCase();
-                let grupBadge = '<span class="text-gray-400">-</span>';
-
-                if (grup) {
-                    const grupColors = {
-                        'A': 'bg-blue-100 text-blue-700 border-blue-200',
-                        'B': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                        'C': 'bg-purple-100 text-purple-700 border-purple-200',
-                        'D': 'bg-amber-100 text-amber-700 border-amber-200',
-                        'E': 'bg-rose-100 text-rose-700 border-rose-200',
-                        'F': 'bg-cyan-100 text-cyan-700 border-cyan-200',
-                    };
-                    const color = grupColors[grup] || 'bg-gray-100 text-gray-600 border-gray-200';
-                    grupBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${color}">Group ${grup}</span>`;
-                }
-
-                // ===== Payment Date =====
-                const paymentDateHtml = item.payment_date
-                    ? item.payment_date
-                    : `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Pending</span>`;
-
-                // ===== To Customer + Mismatch =====
-                let customerHtml = `<div class="flex flex-col gap-0.5">
-                    <span>${item.to_customer}</span>`;
-
-                if (item.is_mismatch) {
-                    if (item.nama_excel || item.nama_master) {
-                        customerHtml += `
-                            <div class="text-xs font-normal mt-0.5 space-y-0.5">
-                                ${item.nama_excel ? `
-                                    <div class="text-orange-700">
-                                        <span class="text-gray-500">Excel:</span>
-                                        <span class="font-medium">${item.nama_excel}</span>
-                                    </div>` : ''}
-                                ${item.nama_master ? `
-                                    <div class="text-emerald-700">
-                                        <span class="text-gray-500">Kemitraan:</span>
-                                        <span class="font-medium">${item.nama_master}</span>
-                                    </div>` : ''}
-                            </div>
-                            <span class="inline-flex items-center self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                ⚠️ Mismatch
-                            </span>`;
-                    } else {
-                        customerHtml += `
-                            <span class="inline-flex items-center self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                ⚠️ Mismatch
-                            </span>`;
-                    }
-                }
-
-                customerHtml += `</div>`;
-
-                html += `
-                    <tr data-id="${item.id}" data-distribusi="${currentDistribusi}"
-                        class="${isLocked ? 'processed-row' : 'hover:bg-gray-50'}">
-                        <td class="px-4 py-3">${item.status_pembayaran || '-'}</td>
-                        <td class="px-4 py-3 font-medium">${item.invoice}</td>
-                        <td class="px-4 py-3">${customerHtml}</td>
-                        <td class="px-4 py-3 font-medium text-gray-700">${item.pesanan || '-'}</td>
-                        <td class="px-4 py-3">${grupBadge}</td>
-                        <td class="px-4 py-3">${paymentDateHtml}</td>
-                        <td class="px-4 py-3 font-medium text-blue-700">${item.payment_channel}</td>
-                        <td class="px-4 py-3">${distribusiHtml}</td>
-                        <td class="px-4 py-3">${jasaKurirHtml}</td>
-                        <td class="px-4 py-3">${serviceKurirHtml}</td>
-                        <td class="px-4 py-3">${catatanHtml}</td>
-                    </tr>`;
-            });
-
-            $('#modalTableBody').html(html);
-            $('#modalCount').text(`${items.length} data dipilih`);
-            $('#bulkModal').removeClass('hidden');
-            initModalLogic();
-        },
-        error: function () {
-            alert('Gagal memuat data ke modal.');
+    function processAll() {
+        if (!val('start_date') || !val('end_date')) {
+            setBar('Isi Dari Tanggal dan Sampai Tanggal terlebih dahulu.', 'err');
+            return;
         }
-    });
-}
+        var qs = new URLSearchParams();
+        ['start_date', 'end_date', 'order_id', 'grup', 'customer_name', 'product_name', 'product_sku', 'status', 'payment_method']
+            .forEach(function (n) { qs.append(n, val(n)); });
 
-function initModalLogic() {
-    $('.jasa-kurir-select').select2({
-        placeholder: 'Pilih atau ketik jasa kurir...',
-        allowClear: true,
-        tags: true,
-        width: '100%',
-        dropdownParent: $('#bulkModal'),
-        createTag: function (params) {
-            const term = $.trim(params.term);
-            if (term === '') return null;
-            return { id: term, text: term, new: true };
+        requestJson(URL_IDS + '?' + qs.toString())
+            .then(function (res) {
+                if (!res.count) { setBar('Tidak ada data yang belum diproses.', 'err'); return; }
+                selectedIds = res.ids;
+                setBar(res.count + ' data akan diproses');
+                loadModalData();
+            })
+            .catch(function () { setBar('Gagal mengambil data.', 'err'); });
+    }
+
+    /* ---------- Modal ---------- */
+    function badge(text, cls) {
+        return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ' + cls + '">' + esc(text) + '</span>';
+    }
+
+    function rowHtml(item) {
+        var locked = Boolean(item.is_processed);
+        var distribusi = String(item.status_kirim || 'Dikirim').trim();
+        var diambil = distribusi === 'Diambil';
+        var jasa = diambil ? 'Diambil Sendiri' : (item.jasa_kurir || 'Lion Parcel');
+        var isLion = !diambil && (jasa === 'Lion Parcel');
+        var svc = item.service_kurir || (isLion ? 'REGPACK' : 'REG');
+        var dis = diambil ? ' disabled' : '';
+
+        var cDist, cJasa, cSvc, cCatatan;
+        if (locked) {
+            cDist = badge(distribusi, 'bg-emerald-100 text-emerald-700');
+            cJasa = cSvc = '<span class="text-sm text-gray-500">Terkunci</span>';
+            cCatatan = '<span class="text-xs text-gray-500 italic">Sudah diproses' + (item.processed_at ? ' pada ' + esc(item.processed_at) : '') + '</span>';
+        } else {
+            cDist = badge(distribusi, 'bg-blue-100 text-blue-700');
+            cJasa = '<input type="text" list="dl-kurir" class="jasa-kurir ' + CTL + '" value="' + esc(jasa) + '" placeholder="Pilih atau ketik jasa kurir"' + dis + '>';
+
+            var opts = ['', 'REGPACK', 'BOSPACK', 'JAGOPACK', 'BIGPACK'].map(function (o) {
+                return '<option value="' + o + '"' + (o === svc ? ' selected' : '') + '>' + (o || 'Pilih Service') + '</option>';
+            }).join('');
+            cSvc = '<select class="service-select ' + CTL + (isLion ? '' : ' hidden') + '">' + opts + '</select>' +
+                   '<input type="text" class="service-text ' + CTL + (isLion ? ' hidden' : '') + '" value="' + esc(diambil ? '' : svc) + '" placeholder="REG / YES / CTC"' + dis + '>';
+            cCatatan = '<input type="text" class="catatan ' + CTL + '" placeholder="Catatan tambahan...">';
         }
-    }).on('change', function () {
-        const row = $(this).closest('tr');
-        const jasa = $(this).val();
-        let serviceField = row.find('.service-kurir');
+
+        var grup = String(item.grup || '').toUpperCase();
+        var cGrup = grup ? badge('Group ' + grup, GRUP_COLORS[grup] || GRUP_DEFAULT) : '<span class="text-gray-400">-</span>';
+        var cPay = item.payment_date ? esc(item.payment_date) : badge('Pending', 'bg-amber-100 text-amber-800 border border-amber-200');
+
+        var cCust = '<div class="flex flex-col gap-0.5"><span>' + esc(item.to_customer) + '</span>';
+        if (item.is_mismatch) {
+            if (item.nama_excel)  cCust += '<span class="text-xs text-orange-700">Excel: ' + esc(item.nama_excel) + '</span>';
+            if (item.nama_master) cCust += '<span class="text-xs text-emerald-700">Kemitraan: ' + esc(item.nama_master) + '</span>';
+            cCust += '<span class="self-start mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 border border-orange-200">Mismatch</span>';
+        }
+        cCust += '</div>';
+
+        return '<tr data-id="' + esc(item.id) + '" data-distribusi="' + esc(distribusi) + '" data-locked="' + (locked ? 1 : 0) + '" class="' + (locked ? 'bg-gray-100 text-gray-500' : 'hover:bg-gray-50') + '">' +
+            '<td class="px-3 py-2.5">' + esc(item.status_pembayaran || '-') + '</td>' +
+            '<td class="px-3 py-2.5 font-medium">' + esc(item.invoice) + '</td>' +
+            '<td class="px-3 py-2.5">' + cCust + '</td>' +
+            '<td class="px-3 py-2.5 font-medium text-gray-700">' + esc(item.pesanan || '-') + '</td>' +
+            '<td class="px-3 py-2.5">' + cGrup + '</td>' +
+            '<td class="px-3 py-2.5">' + cPay + '</td>' +
+            '<td class="px-3 py-2.5 font-medium text-[#28447F]">' + esc(item.payment_channel) + '</td>' +
+            '<td class="px-3 py-2.5">' + cDist + '</td>' +
+            '<td class="px-3 py-2.5">' + cJasa + '</td>' +
+            '<td class="px-3 py-2.5">' + cSvc + '</td>' +
+            '<td class="px-3 py-2.5">' + cCatatan + '</td>' +
+        '</tr>';
+    }
+
+    function loadModalData() {
+        requestJson(URL_MODAL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ ids: selectedIds })
+        })
+        .then(function (items) {
+            body.innerHTML = items.map(rowHtml).join('');
+            $('#modalCount').textContent = items.length + ' data dipilih';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            checkSaveState();
+        })
+        .catch(function () { setBar('Gagal memuat data ke modal.', 'err'); });
+    }
+
+    function hideModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function serviceValue(row) {
+        var sel = $('.service-select', row), txt = $('.service-text', row);
+        if (!sel || !txt) return '';
+        return sel.classList.contains('hidden') ? txt.value.trim() : sel.value;
+    }
+
+    function syncService(row) {
+        var jasa = $('.jasa-kurir', row).value.trim();
+        var sel = $('.service-select', row), txt = $('.service-text', row);
 
         if (jasa === 'JNE' || jasa === 'TIKI') {
-            if (!serviceField.is('input')) {
-                serviceField.replaceWith(`
-                    <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" value="REG">
-                `);
-            } else {
-                serviceField.val('REG').prop('readonly', true);
-            }
+            sel.classList.add('hidden'); txt.classList.remove('hidden');
+            txt.value = 'REG'; txt.readOnly = true;
         } else if (jasa === 'Lion Parcel') {
-            serviceField.replaceWith(`
-                <select class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
-                    <option value="">Pilih Service</option>
-                    <option value="REGPACK" selected>REGPACK</option>
-                    <option value="BOSPACK">BOSPACK</option>
-                    <option value="JAGOPACK">JAGOPACK</option>
-                    <option value="BIGPACK">BIGPACK</option>
-                </select>
-            `);
+            sel.classList.remove('hidden'); txt.classList.add('hidden');
+            sel.value = 'REGPACK';
         } else {
-            if (!serviceField.is('input')) {
-                serviceField.replaceWith(`
-                    <input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG, YES, CTC, dll">
-                `);
-            } else {
-                serviceField.prop('readonly', false).val('');
-            }
-        }
-        checkSaveButtonState();
-    });
-
-    // Diambil Sendiri
-    $('#modalTableBody tr:not(.processed-row)').each(function () {
-        const row = $(this);
-        if (row.data('distribusi') === 'Diambil') {
-            const jasaSelect = row.find('.jasa-kurir-select');
-            if (jasaSelect.find('option[value="Diambil Sendiri"]').length === 0) {
-                jasaSelect.append('<option value="Diambil Sendiri">Diambil Sendiri</option>');
-            }
-            jasaSelect.val('Diambil Sendiri').trigger('change').prop('disabled', true);
-            row.find('.service-kurir').prop('disabled', true).val('');
-        }
-    });
-
-    function checkSaveButtonState() {
-        let isValid = true;
-
-        $('#modalTableBody tr:not(.processed-row)').each(function () {
-            const row = $(this);
-            let jasaKurir = row.find('.jasa-kurir-select').val() || '';
-            let serviceValue = '';
-            const serviceField = row.find('.service-kurir');
-
-            if (serviceField.length) {
-                serviceValue = serviceField.is('select')
-                    ? (serviceField.val() || '')
-                    : $.trim(serviceField.val());
-            }
-
-            const distribusi = row.data('distribusi');
-            if (distribusi === 'Diambil') {
-                jasaKurir = 'Diambil Sendiri';
-            }
-
-            if (!jasaKurir) {
-                isValid = false;
-                return false;
-            }
-            if (distribusi === 'Dikirim' && !serviceValue) {
-                isValid = false;
-                return false;
-            }
-        });
-
-        const saveButton = $('.bg-indigo-600');
-        if (isValid) {
-            saveButton.prop('disabled', false)
-                .removeClass('opacity-50 cursor-not-allowed')
-                .text('💾 Simpan & Kunci Semua Data');
-        } else {
-            saveButton.prop('disabled', true)
-                .addClass('opacity-50 cursor-not-allowed')
-                .text('Lengkapi Jasa Kurir & Service');
+            sel.classList.add('hidden'); txt.classList.remove('hidden');
+            txt.readOnly = false; txt.value = ''; txt.placeholder = 'REG, YES, CTC, dll';
         }
     }
 
-    $(document).off('input change', '.service-kurir').on('input change', '.service-kurir', checkSaveButtonState);
-    setTimeout(checkSaveButtonState, 400);
-}
-
-function hideBulkModal() {
-    $('#bulkModal').addClass('hidden');
-    try {
-        $('.jasa-kurir-select').select2('destroy');
-    } catch (e) {}
-}
-
-function executeBulkAction() {
-    if ($('.bg-indigo-600').prop('disabled')) {
-        alert('❌ Harap isi Jasa Kurir dan Service untuk semua data yang belum terkunci!');
-        return;
+    function checkSaveState() {
+        var valid = true;
+        $$('tr[data-id]', body).forEach(function (row) {
+            if (row.dataset.locked === '1') return;
+            var diambil = row.dataset.distribusi === 'Diambil';
+            var jasa = diambil ? 'Diambil Sendiri' : $('.jasa-kurir', row).value.trim();
+            if (!jasa) valid = false;
+            if (row.dataset.distribusi === 'Dikirim' && !serviceValue(row)) valid = false;
+        });
+        var btn = $('#saveBulkBtn');
+        btn.disabled = !valid;
+        $('#saveBulkLabel').textContent = valid ? 'Simpan & Kunci Semua Data' : 'Lengkapi Jasa Kurir & Service';
     }
 
-    if (!confirm(`Yakin ingin memproses ${selectedIds.length} data?`)) return;
+    function executeBulk() {
+        if ($('#saveBulkBtn').disabled) return;
+        if (!confirm('Yakin ingin memproses ' + selectedIds.length + ' data?')) return;
 
-    const updates = [];
-
-    $('#modalTableBody tr').each(function () {
-        const row = $(this);
-        let distribusiText = row.data('distribusi');
-        let jasaKurirText = row.find('.jasa-kurir-select').val() || '';
-
-        if (distribusiText === 'Diambil') {
-            jasaKurirText = 'Diambil Sendiri';
-        }
-
-        updates.push({
-            id: row.data('id'),
-            status_kirim: distribusiText,
-            jasa_kurir: jasaKurirText,
-            service_kurir: row.find('.service-kurir').val() || '',
-            catatan: row.find('.catatan').val() || ''
+        var updates = [];
+        $$('tr[data-id]', body).forEach(function (row) {
+            if (row.dataset.locked === '1') return;
+            var diambil = row.dataset.distribusi === 'Diambil';
+            updates.push({
+                id: row.dataset.id,
+                status_kirim: row.dataset.distribusi,
+                jasa_kurir: diambil ? 'Diambil Sendiri' : $('.jasa-kurir', row).value.trim(),
+                service_kurir: diambil ? '' : serviceValue(row),
+                catatan: $('.catatan', row).value
+            });
         });
+
+        $('#perItemInput').value = JSON.stringify(updates);
+        $('#bulkForm').submit();
+    }
+
+    /* ---------- Event ---------- */
+    $('#processAllBtn').addEventListener('click', processAll);
+    $('#btnReset').addEventListener('click', function () { selectedIds = []; updateBarInfo(); });
+    $('#btnCloseModal').addEventListener('click', hideModal);
+    $('#btnCancelModal').addEventListener('click', hideModal);
+    $('#saveBulkBtn').addEventListener('click', executeBulk);
+    modal.addEventListener('click', function (e) { if (e.target === modal) hideModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideModal(); });
+
+    body.addEventListener('change', function (e) {
+        if (e.target.classList.contains('jasa-kurir')) syncService(e.target.closest('tr'));
+        checkSaveState();
+    });
+    body.addEventListener('input', checkSaveState);
+
+    ['start_date', 'end_date'].forEach(function (n) {
+        form.elements[n].addEventListener('change', checkFilterStatus);
     });
 
-    const form = $('<form>', {
-        action: '{{ route("import.manual.bulk-action") }}',
-        method: 'POST'
-    });
-
-    $('<input>', { type: 'hidden', name: '_token', value: '{{ csrf_token() }}' }).appendTo(form);
-    $('<input>', { type: 'hidden', name: 'action', value: 'processed' }).appendTo(form);
-    $('<input>', { type: 'hidden', name: 'per_item', value: JSON.stringify(updates) }).appendTo(form);
-
-    form.appendTo('body').submit();
-}
-
-function clearSelection() {
-    selectedIds = [];
-    checkProcessButtonVisibility();
-}
-/**
- * Ambil hanya bagian catatan yang boleh ditampilkan
- * (hilangkan CP: ... dan NAMA_MISMATCH)
- */
-function getVisibleCatatan(fullNotes) {
-    if (!fullNotes) return '';
-
-    return fullNotes
-        // hapus "CP: IBU AMEL (...)" beserta pemisah |
-        .replace(/(?:^|\|\s*)CP:\s*[^|]+(?:\s*\|\s*)?/gi, '')
-        // hapus NAMA_MISMATCH jika ada di depan
-        .replace(/^NAMA_MISMATCH\s*\|\s*/i, '')
-        // bersihkan sisa pemisah di ujung
-        .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
-        .trim();
-}
+    checkFilterStatus();
+    updateBarInfo();
+});
 </script>
-</body>
-</html>
+@endpush

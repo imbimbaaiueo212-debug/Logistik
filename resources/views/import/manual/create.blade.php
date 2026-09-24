@@ -1,145 +1,74 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Manual Pemesanan</title>
+@extends('layouts.panel')
 
-    <script src="https://cdn.tailwindcss.com"></script>
+@section('title', 'Tambah Manual Pemesanan')
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+@section('content')
+@php
+    $ctl = 'w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]';
 
-    <style>
-        body{
-            font-family:Poppins,sans-serif;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
+    $fields = [
+        ['name' => 'order_date',    'label' => 'Tanggal Order', 'type' => 'date'],
+        ['name' => 'customer_name', 'label' => 'Nama Customer', 'type' => 'text'],
+        ['name' => 'product_sku',   'label' => 'SKU',           'type' => 'text'],
+        ['name' => 'product_name',  'label' => 'Produk',        'type' => 'text'],
+        ['name' => 'qty',           'label' => 'Qty',           'type' => 'number', 'default' => 1],
+        ['name' => 'price',         'label' => 'Harga',         'type' => 'number'],
+    ];
 
-@include('partials.top-nav')
+    $statusOpt = ['pending' => 'Pending', 'processing' => 'Processing', 'completed' => 'Completed'];
+@endphp
 
-<div class="max-w-5xl mx-auto p-6">
+<div class="max-w-3xl">
+    @include('partials.page-header', [
+        'title'    => 'Tambah Manual Pemesanan',
+        'subtitle' => 'Input data order manual',
+        'back'     => route('import.manual'),
+    ])
+    @include('partials.flash')
 
-    <div class="flex justify-between items-center mb-6">
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-xl mb-4">
+            <ul class="list-disc list-inside space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-        <div>
-            <h1 class="text-3xl font-bold">
-                Tambah Manual Pemesanan
-            </h1>
+    <form action="{{ route('import.manual.store') }}" method="POST"
+          class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        @csrf
 
-            <p class="text-gray-500">
-                Input data order manual
-            </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            @foreach($fields as $f)
+                <div>
+                    <label for="{{ $f['name'] }}" class="block text-sm font-medium text-gray-700 mb-1">{{ $f['label'] }}</label>
+                    <input type="{{ $f['type'] }}" id="{{ $f['name'] }}" name="{{ $f['name'] }}"
+                           value="{{ old($f['name'], $f['default'] ?? '') }}" class="{{ $ctl }}">
+                </div>
+            @endforeach
+
+            <div class="sm:col-span-2">
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select id="status" name="status" class="{{ $ctl }}">
+                    @foreach($statusOpt as $val => $lbl)
+                        <option value="{{ $val }}" {{ old('status', 'pending') === $val ? 'selected' : '' }}>{{ $lbl }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
-        <a href="{{ route('import.manual') }}"
-            class="bg-gray-600 text-white px-5 py-3 rounded-xl hover:bg-gray-700">
-            ← Kembali
-        </a>
-
-    </div>
-
-    <div class="bg-white rounded-3xl shadow p-8">
-
-        <form action="{{ route('import.manual.store') }}" method="POST">
-
-            @csrf
-
-            <div class="grid grid-cols-2 gap-6">
-
-                <div>
-                    <label>Tanggal Order</label>
-
-                    <input
-                        type="date"
-                        name="order_date"
-                        class="w-full border rounded-xl p-3"
-                        value="{{ old('order_date') }}">
-                </div>
-
-                <div>
-                    <label>Nama Customer</label>
-
-                    <input
-                        type="text"
-                        name="customer_name"
-                        class="w-full border rounded-xl p-3"
-                        value="{{ old('customer_name') }}">
-                </div>
-
-                <div>
-                    <label>SKU</label>
-
-                    <input
-                        type="text"
-                        name="product_sku"
-                        class="w-full border rounded-xl p-3"
-                        value="{{ old('product_sku') }}">
-                </div>
-
-                <div>
-                    <label>Produk</label>
-
-                    <input
-                        type="text"
-                        name="product_name"
-                        class="w-full border rounded-xl p-3"
-                        value="{{ old('product_name') }}">
-                </div>
-
-                <div>
-                    <label>Qty</label>
-
-                    <input
-                        type="number"
-                        name="qty"
-                        class="w-full border rounded-xl p-3"
-                        value="{{ old('qty',1) }}">
-                </div>
-
-                <div>
-                    <label>Harga</label>
-
-                    <input
-                        type="number"
-                        name="price"
-                        class="w-full border rounded-xl p-3"
-                        value="{{ old('price') }}">
-                </div>
-
-                <div class="col-span-2">
-                    <label>Status</label>
-
-                    <select
-                        name="status"
-                        class="w-full border rounded-xl p-3">
-
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="completed">Completed</option>
-
-                    </select>
-                </div>
-
-            </div>
-
-            <div class="mt-8 flex justify-end">
-
-                <button
-                    class="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700">
-
-                    Simpan Data
-
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+            <a href="{{ route('import.manual') }}"
+               class="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                Batal
+            </a>
+            <button type="submit"
+                    class="bg-[#E85D2A] hover:bg-[#D14E1F] text-white px-6 py-2.5 rounded-xl text-sm font-medium transition">
+                Simpan Data
+            </button>
+        </div>
+    </form>
 </div>
-
-</body>
-</html>
+@endsection

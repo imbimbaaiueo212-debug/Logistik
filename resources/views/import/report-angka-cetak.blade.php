@@ -1,183 +1,112 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Angka Cetak Majalah</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
-</head>
-<body class="bg-slate-50">
-@include('partials.top-nav')
+@extends('layouts.panel')
 
-<div class="flex h-screen">
-    <div class="flex-1 p-6 md:p-8 overflow-auto">
+@section('title', 'Report Angka Cetak')
 
-        <!-- Header -->
-        <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h2 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
-                    Report Angka Cetak Majalah
-                </h2>
-                <p class="text-slate-500 mt-1 text-sm">
-                    Ringkasan qty pemesanan berdasarkan edisi
-                </p>
-            </div>
+@section('content')
+@include('partials.page-header', [
+    'title'     => 'Report Angka Cetak Majalah',
+    'subtitle'  => 'Ringkasan qty pemesanan berdasarkan edisi',
+    'back'      => route('import.pasif.index'),
+    'backLabel' => 'Kembali ke Unit Pasif',
+])
 
-            <!-- Filter Edisi -->
-            <form method="GET" class="flex items-center gap-3">
-                <select name="edisi" onchange="this.form.submit()"
-                        class="rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">— Pilih Edisi —</option>
-                    @foreach($edisiList as $edisi)
-                        <option value="{{ $edisi }}" @selected($selectedEdisi === $edisi)>
-                            {{ $edisi }}
-                        </option>
-                    @endforeach
-                </select>
-            </form>
-        </div>
+{{-- Filter edisi --}}
+<form method="GET" class="flex items-center gap-2 mb-4">
+    <label for="edisi" class="text-sm font-medium text-gray-600">Edisi</label>
+    <select name="edisi" id="edisi" onchange="this.form.submit()"
+            class="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]">
+        <option value="">Pilih Edisi</option>
+        @foreach($edisiList as $edisi)
+            <option value="{{ $edisi }}" {{ $selectedEdisi === $edisi ? 'selected' : '' }}>{{ $edisi }}</option>
+        @endforeach
+    </select>
+</form>
 
-        @if(!$report)
-            <div class="bg-white rounded-2xl border border-dashed border-slate-200 p-16 text-center">
-                <div class="text-slate-400">
-                    Pilih edisi terlebih dahulu untuk melihat report.
-                </div>
-            </div>
-        @else
-            <!-- ==================== SUMMARY CARDS ==================== -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <div class="text-xs font-medium text-blue-600 mb-1">Total Unit Aktif</div>
-                    <div class="text-2xl font-bold text-blue-800">
-                        {{ number_format($report['total_aktif']) }}
-                    </div>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <div class="text-xs font-medium text-emerald-600 mb-1">Total Unit Pasif</div>
-                    <div class="text-2xl font-bold text-emerald-800">
-                        {{ number_format($report['total_pasif']) }}
-                    </div>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <div class="text-xs font-medium text-violet-600 mb-1">Grand Total</div>
-                    <div class="text-2xl font-bold text-violet-800">
-                        {{ number_format($report['grand_total']) }}
-                    </div>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <div class="text-xs font-medium text-amber-600 mb-1">Edisi</div>
-                    <div class="text-2xl font-bold text-amber-800">
-                        {{ $report['edisi'] }}
-                    </div>
-                </div>
-            </div>
+@if(!$report)
+    <div class="bg-white rounded-2xl border border-dashed border-gray-300 py-16 px-6 text-center text-sm text-gray-400">
+        Pilih edisi terlebih dahulu untuk melihat report.
+    </div>
+@else
+    @php
+        $grup = [
+            [
+                'label'       => 'Unit Aktif',
+                'rows'        => $report['rows_aktif'],
+                'total'       => $report['total_aktif'],
+                'total_label' => 'Total Pemesanan Unit Aktif',
+                'hint'        => [],
+            ],
+            [
+                'label'       => 'Unit Pasif',
+                'rows'        => $report['rows_pasif'],
+                'total'       => $report['total_pasif'],
+                'total_label' => 'Total Pemesanan Unit Pasif',
+                'hint'        => ['P1', 'P3'],   // kode yang diberi keterangan bila qty 0
+            ],
+        ];
+    @endphp
 
-            <!-- ==================== TABEL UTAMA (mirip Excel) ==================== -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
-                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/80">
-                    <h3 class="font-semibold text-slate-800">
-                        Order Majalah Sahabat biMBA — Edisi {{ $report['edisi'] }}
-                    </h3>
+    @include('partials.stat-cards', ['stats' => [
+        ['Total Unit Aktif', number_format($report['total_aktif'])],
+        ['Total Unit Pasif', number_format($report['total_pasif'])],
+        ['Grand Total',      number_format($report['grand_total']), true],
+        ['Edisi',            $report['edisi']],
+    ]])
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        @foreach($grup as $g)
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+                    <h3 class="text-base font-semibold text-[#162749]">{{ $g['label'] }}</h3>
+                    <span class="text-xs text-gray-500">Order Majalah Sahabat biMBA, Edisi {{ $report['edisi'] }}</span>
                 </div>
 
-                <div class="overflow-x-auto">
+                {{-- Daftar (scroll sendiri, header tetap) --}}
+                <div class="overflow-auto" style="max-height: calc(100vh - 470px); min-height: 240px;">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
-                                <th class="text-left py-3 px-5 font-medium w-24">Kode</th>
-                                <th class="text-left py-3 px-5 font-medium">Kategori Pemesanan</th>
-                                <th class="text-right py-3 px-5 font-medium w-36">Qty</th>
+                            <tr>
+                                <th class="sticky top-0 z-10 bg-[#162749] text-white text-left font-semibold py-2.5 px-5 w-24">Kode</th>
+                                <th class="sticky top-0 z-10 bg-[#162749] text-white text-left font-semibold py-2.5 px-5">Kategori Pemesanan</th>
+                                <th class="sticky top-0 z-10 bg-[#162749] text-white text-right font-semibold py-2.5 px-5 w-28">Qty</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
-
-                            <!-- ===== UNIT AKTIF ===== -->
-                            <tr class="bg-blue-50/60">
-                                <td colspan="3" class="py-2.5 px-5 font-semibold text-blue-800 text-xs uppercase tracking-wider">
-                                    Unit Aktif
-                                </td>
-                            </tr>
-
-                            @foreach($report['rows_aktif'] as $row)
-                            <tr class="hover:bg-slate-50">
-                                <td class="py-2.5 px-5 font-medium text-slate-700">{{ $row['kode'] }}</td>
-                                <td class="py-2.5 px-5 text-slate-700">{{ $row['label'] }}</td>
-                                <td class="py-2.5 px-5 text-right font-semibold {{ $row['qty'] > 0 ? 'text-slate-800' : 'text-slate-400' }}">
-                                    {{ number_format($row['qty']) }}
-                                </td>
-                            </tr>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($g['rows'] as $row)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-2 px-5 font-medium text-gray-700 whitespace-nowrap">{{ $row['kode'] }}</td>
+                                    <td class="py-2 px-5 text-gray-700">
+                                        {{ $row['label'] }}
+                                        @if($row['qty'] == 0 && in_array($row['kode'], $g['hint']))
+                                            <span class="text-xs text-gray-400">(belum ada data)</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2 px-5 text-right font-semibold {{ $row['qty'] > 0 ? 'text-gray-800' : 'text-gray-400' }}">
+                                        {{ number_format($row['qty']) }}
+                                    </td>
+                                </tr>
                             @endforeach
-
-                            <tr class="bg-blue-50/40 font-semibold">
-                                <td class="py-3 px-5" colspan="2">Total Pemesanan Unit Aktif</td>
-                                <td class="py-3 px-5 text-right text-blue-700">
-                                    {{ number_format($report['total_aktif']) }}
-                                </td>
-                            </tr>
-
-                            <!-- ===== UNIT PASIF ===== -->
-                            <tr class="bg-emerald-50/60">
-                                <td colspan="3" class="py-2.5 px-5 font-semibold text-emerald-800 text-xs uppercase tracking-wider">
-                                    Unit Pasif
-                                </td>
-                            </tr>
-
-                            @foreach($report['rows_pasif'] as $row)
-                            <tr class="hover:bg-slate-50">
-                                <td class="py-2.5 px-5 font-medium text-slate-700">{{ $row['kode'] }}</td>
-                                <td class="py-2.5 px-5 text-slate-700">
-                                    {{ $row['label'] }}
-                                    @if($row['qty'] == 0 && in_array($row['kode'], ['P1', 'P3']))
-                                        <span class="text-xs text-slate-400">(belum ada data)</span>
-                                    @endif
-                                </td>
-                                <td class="py-2.5 px-5 text-right font-semibold {{ $row['qty'] > 0 ? 'text-slate-800' : 'text-slate-400' }}">
-                                    {{ number_format($row['qty']) }}
-                                </td>
-                            </tr>
-                            @endforeach
-
-                            <tr class="bg-emerald-50/40 font-semibold">
-                                <td class="py-3 px-5" colspan="2">Total Pemesanan Unit Pasif</td>
-                                <td class="py-3 px-5 text-right text-emerald-700">
-                                    {{ number_format($report['total_pasif']) }}
-                                </td>
-                            </tr>
-
-                            <!-- ===== GRAND TOTAL ===== -->
-                            <tr class="bg-violet-50 font-bold">
-                                <td class="py-4 px-5" colspan="2">GRAND TOTAL PEMESANAN</td>
-                                <td class="py-4 px-5 text-right text-violet-800 text-lg">
-                                    {{ number_format($report['grand_total']) }}
-                                </td>
-                            </tr>
-
-                            <tr class="bg-slate-100">
-                                <td class="py-3 px-5 font-semibold" colspan="2">ORDER CETAK MAJALAH</td>
-                                <td class="py-3 px-5 text-right font-bold text-slate-800">
-                                    {{ number_format($report['grand_total']) }}
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
+
+                {{-- Subtotal (selalu terlihat) --}}
+                <div class="flex items-center justify-between px-5 py-3 bg-gray-50 border-t border-gray-100 font-semibold text-sm">
+                    <span class="text-gray-800">{{ $g['total_label'] }}</span>
+                    <span class="text-[#28447F]">{{ number_format($g['total']) }}</span>
+                </div>
             </div>
-        @endif
-
-        <!-- Back -->
-        <div class="mt-10">
-            <a href="{{ route('import.pasif.index') }}"
-               class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
-                <span class="text-lg leading-none">←</span>
-                Kembali ke Unit Pasif
-            </a>
-        </div>
-
+        @endforeach
     </div>
-</div>
-</body>
-</html>
+
+    {{-- Grand total --}}
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 bg-[#162749] text-white rounded-2xl px-5 py-4">
+        <span class="font-bold">GRAND TOTAL PEMESANAN</span>
+        <span class="text-xl font-bold">{{ number_format($report['grand_total']) }}</span>
+    </div>
+    <div class="mt-2 flex flex-wrap items-center justify-between gap-3 bg-[#E85D2A]/10 rounded-2xl px-5 py-3 font-semibold">
+        <span class="text-[#162749]">ORDER CETAK MAJALAH</span>
+        <span class="text-[#D14E1F]">{{ number_format($report['grand_total']) }}</span>
+    </div>
+@endif
+@endsection

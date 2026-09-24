@@ -1,548 +1,377 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.panel')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pesanan Majalah - biMBA AIUEO Logistik</title>
+@section('title', 'Pesanan Majalah')
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+@push('styles')
+<style>
+    /* ===== Tabel data ===== */
+    .table-wrap { overflow: auto; max-height: 68vh; }
+    .data-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        min-width: 900px;
+        font-size: 0.8125rem;
+    }
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: middle;
+        white-space: nowrap;
+        border-bottom: 1px solid rgba(15, 27, 51, 0.06);
+    }
+    .data-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #F4F6FA;
+        color: rgba(15, 27, 51, 0.6);
+        font-weight: 600;
+        font-size: 0.75rem;
+        border-bottom: 1px solid rgba(15, 27, 51, 0.1);
+    }
+    .data-table tbody tr:hover td { background-color: #F7F9FC; }
+    .data-table .ctr { text-align: center; }
 
-    {{-- Select2 CSS --}}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    /* Teks panjang dipotong "...", isi lengkap muncul saat kursor diarahkan (atribut title) */
+    .cell-clip { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
 
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        table { border-collapse: collapse; }
-        th, td { padding: 10px 6px; font-size: 0.8rem; }
-        th {
-            background-color: #f1f5f9;
-            font-weight: 600;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        tr:hover { background-color: #f8fafc; }
-        .modal-open { overflow: hidden; }
+    /* Sembunyikan teks "Showing ..." bawaan pagination Laravel */
+    .pager nav p { display: none; }
+</style>
+@endpush
 
-        /* Select2 sesuaikan dengan Tailwind */
-        .select2-container .select2-selection--single {
-            height: 42px !important;
-            border: 1px solid #d1d5db !important;
-            border-radius: 0.75rem !important;
-            padding: 6px 12px !important;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 28px !important;
-            color: #1f2937 !important;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 40px !important;
-        }
-        .select2-dropdown {
-            border-radius: 0.75rem !important;
-            border: 1px solid #d1d5db !important;
-        }
-    </style>
-</head>
+@section('content')
 
-<body class="bg-gray-50">
+    @php
+        $namaBulan = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
 
-@include('partials.top-nav')
+        // "2026-03" -> "Maret"; null bila format tidak cocok
+        $namaPeriode = function ($p) use ($namaBulan) {
+            return preg_match('/^\d{4}-(\d{2})$/', (string) $p, $m) ? ($namaBulan[(int) $m[1]] ?? null) : null;
+        };
 
-<div class="max-w-screen-2xl mx-auto px-6 py-6">
+        // Filter: [name, label, placeholder, daftar opsi]
+        $filters = [
+            ['judul', 'Judul', 'Semua judul', $listJudul],
+            ['bulan', 'Bulan / Edisi', 'Semua bulan', $listBulan],
+            ['tahun', 'Tahun', 'Semua tahun', $listTahun],
+            ['periode', 'Periode', 'Semua periode', $listPeriode],
+        ];
 
-    {{-- ========================================================= --}}
-    {{-- HEADER --}}
-    {{-- ========================================================= --}}
-    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
-        <div>
-            <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('ops2.index') }}"
-                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    ← Kembali
-                </a>
-            </div>
-            <h1 class="text-3xl font-bold text-gray-800">
-                Pesanan Majalah
-            </h1>
-            <p class="text-gray-600 mt-1">
-                Daftar periode pesanan majalah. Klik judul untuk melihat detail data unit.
-            </p>
+        $kolom = ['No', 'Judul Pesanan', 'No PS', 'Bulan / Edisi', 'Tahun', 'Periode', 'Jumlah Unit', 'Total Pesanan'];
+
+        $inp = 'w-full bg-white border border-navy-950/10 rounded-xl px-3.5 py-2.5 text-sm placeholder:text-navy-950/35 focus:outline-none focus:border-navy-700';
+        $lbl = 'block text-sm text-navy-950/60 mb-1.5';
+    @endphp
+
+    {{-- ============ JUDUL ============ --}}
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Pesanan Majalah</h1>
+            <p class="mt-1 text-sm text-navy-950/55">Daftar periode pesanan majalah. Klik judul untuk melihat detail data unit.</p>
         </div>
 
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('ops2.index') }}"
+               class="inline-flex items-center gap-2 bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Kembali
+            </a>
             <button type="button" onclick="openImportModal()"
-                class="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 transition flex items-center gap-2">
-                📥 Import Excel
+                    class="inline-flex items-center gap-2 bg-rust-500 hover:bg-rust-600 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+                Import Excel
             </button>
         </div>
     </div>
 
-    {{-- ========================================================= --}}
-    {{-- ALERT SUCCESS --}}
-    {{-- ========================================================= --}}
-    @if(session('success'))
-        <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-2xl">
-            <div class="flex items-center gap-2">
-                <span>✅</span>
-                <span>{{ session('success') }}</span>
-            </div>
+    {{-- ============ NOTIFIKASI ============ --}}
+    @if (session('success'))
+        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <p class="font-semibold mb-1">Terjadi kesalahan:</p>
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
         </div>
     @endif
 
-    {{-- ========================================================= --}}
-    {{-- ALERT ERROR --}}
-    {{-- ========================================================= --}}
-    @if(session('error'))
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl">
-            <div class="flex items-center gap-2">
-                <span>❌</span>
-                <span>{{ session('error') }}</span>
-            </div>
-        </div>
-    @endif
-
-    {{-- ========================================================= --}}
-    {{-- VALIDATION ERROR --}}
-    {{-- ========================================================= --}}
-    @if($errors->any())
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl">
-            <div class="font-semibold mb-2">Terjadi kesalahan:</div>
-            <ul class="list-disc list-inside text-sm">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
+    {{-- ============ FILTER ============ --}}
+    <div class="mt-6 bg-white rounded-2xl shadow-card p-5 sm:p-6">
+        <form method="GET" action="{{ route('pesanan-majalah.index') }}">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                @foreach ($filters as [$nama, $label, $ph, $opsi])
+                    <div>
+                        <label for="f_{{ $nama }}" class="{{ $lbl }}">{{ $label }}</label>
+                        <select id="f_{{ $nama }}" name="{{ $nama }}" class="{{ $inp }}">
+                            <option value="">{{ $ph }}</option>
+                            @foreach ($opsi as $o)
+                                <option value="{{ $o }}" {{ request($nama) == $o ? 'selected' : '' }}>
+                                    {{ $nama === 'periode' ? ($namaPeriode($o) ?? $o) : $o }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 @endforeach
-            </ul>
-        </div>
-    @endif
-
-    {{-- ========================================================= --}}
-    {{-- FILTER (Select2) --}}
-    {{-- ========================================================= --}}
-    <div class="bg-white rounded-3xl shadow p-6 mb-8">
-        <form method="GET" action="{{ route('pesanan-majalah.index') }}"
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-            {{-- Judul --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Judul</label>
-                <select name="judul" class="select2 w-full">
-                    <option value="">-- Semua Judul --</option>
-                    @foreach($listJudul as $judul)
-                        <option value="{{ $judul }}"
-                            {{ request('judul') == $judul ? 'selected' : '' }}>
-                            {{ $judul }}
-                        </option>
-                    @endforeach
-                </select>
             </div>
 
-            {{-- Bulan / Edisi --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Bulan / Edisi</label>
-                <select name="bulan" class="select2 w-full">
-                    <option value="">-- Semua Bulan --</option>
-                    @foreach($listBulan as $bulan)
-                        <option value="{{ $bulan }}"
-                            {{ request('bulan') == $bulan ? 'selected' : '' }}>
-                            {{ $bulan }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Tahun --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-                <select name="tahun" class="select2 w-full">
-                    <option value="">-- Semua Tahun --</option>
-                    @foreach($listTahun as $tahun)
-                        <option value="{{ $tahun }}"
-                            {{ request('tahun') == $tahun ? 'selected' : '' }}>
-                            {{ $tahun }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Periode --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
-                <select name="periode" class="select2 w-full">
-                    <option value="">-- Semua Periode --</option>
-                    @php
-                        $namaBulan = [
-                            1  => 'Januari',
-                            2  => 'Februari',
-                            3  => 'Maret',
-                            4  => 'April',
-                            5  => 'Mei',
-                            6  => 'Juni',
-                            7  => 'Juli',
-                            8  => 'Agustus',
-                            9  => 'September',
-                            10 => 'Oktober',
-                            11 => 'November',
-                            12 => 'Desember',
-                        ];
-                    @endphp
-                    @foreach($listPeriode as $periode)
-                        @php
-                            $label = $periode;
-                            if (preg_match('/^\d{4}-(\d{2})$/', $periode, $m)) {
-                                $label = $namaBulan[(int) $m[1]] ?? $periode;
-                            }
-                        @endphp
-                        <option value="{{ $periode }}"
-                            {{ request('periode') == $periode ? 'selected' : '' }}>
-                            {{ $label }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="flex items-end gap-3 lg:col-span-4">
+            <div class="mt-5 flex items-center gap-2">
                 <button type="submit"
-                    class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-blue-700 transition">
-                    🔍 Terapkan Filter
+                        class="inline-flex items-center gap-2 bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-6 py-2.5 rounded-xl">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    Terapkan filter
                 </button>
-
                 <a href="{{ route('pesanan-majalah.index') }}"
-                    class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600 transition">
-                    Reset
-                </a>
+                   class="text-sm font-medium text-navy-950/60 hover:text-rust-600 px-3 py-2.5">Reset</a>
             </div>
         </form>
     </div>
 
-    {{-- ========================================================= --}}
-    {{-- TABEL (HANYA LEVEL PERIODE) --}}
-    {{-- ========================================================= --}}
-    <div class="bg-white rounded-3xl shadow overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="bg-gray-100 border-b-2 border-gray-300">
-                    <th class="px-4 py-4 text-center">No</th>
-                    <th class="px-4 py-4">Judul Pesanan</th>
-                    <th class="px-4 py-4">No PS</th>
-                    <th class="px-4 py-4">Bulan / Edisi</th>
-                    <th class="px-4 py-4 text-center">Tahun</th>
-                    <th class="px-4 py-4 text-center">Periode</th>
-                    <th class="px-4 py-4 text-center">Jumlah Unit</th>
-                    <th class="px-4 py-4 text-center">Total Pesanan</th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-gray-200">
-                @php
-                    $no = $data->firstItem() ?? 1;
-                @endphp
-
-                @forelse($data as $item)
-                    @php
-                        $totalUnits   = $item->kabupaten->sum(fn ($kab) => $kab->units->count());
-                        $totalPesanan = $item->kabupaten->sum(fn ($kab) => $kab->units->sum('jumlah_pesanan'));
-                    @endphp
-
-                    <tr class="hover:bg-gray-50">
-                        {{-- No --}}
-                        <td class="px-4 py-4 text-center">{{ $no++ }}</td>
-
-                        {{-- Judul Pesanan --}}
-                        <td class="px-4 py-4 text-center">
-                            <a href="{{ route('pesanan-majalah.show', $item->id) }}"
-                            class="font-semibold text-blue-700 hover:text-blue-900 hover:underline">
-                                {{ $item->judul ?? 'Tanpa Judul' }}
-                                @if($item->bulan)
-                                    — {{ $item->bulan }}
-                                @endif
-                                @if($item->tahun)
-                                    {{ $item->tahun }}
-                                @endif
-                            </a>
-                        </td>
-
-                        {{-- No PS (inline edit) --}}
-                        <td class="px-4 py-4">
-                            <div class="flex items-center gap-2">
-                                <input type="text"
-                                    class="no-ps-input w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
-                                    data-id="{{ $item->id }}"
-                                    value="{{ $item->no_ps ?? '' }}"
-                                    placeholder="No PS...">
-                                <button type="button"
-                                        class="btn-save-no-ps hidden bg-indigo-600 text-white text-xs px-2 py-1.5 rounded-lg hover:bg-indigo-700"
-                                        data-id="{{ $item->id }}">
-                                    Simpan
-                                </button>
-                                <span class="save-status text-xs hidden"></span>
-                            </div>
-                        </td>
-
-                        {{-- Bulan / Edisi --}}
-                        <td class="px-4 py-4 text-center">
-                            {{ $item->bulan ?? '-' }}
-                        </td>
-
-                        {{-- Tahun --}}
-                        <td class="px-4 py-4 text-center">
-                            {{ $item->tahun ?? '-' }}
-                        </td>
-
-                        {{-- Periode --}}
-                        <td class="px-4 py-4 text-center">
-                            @php
-                                $namaBulan = [
-                                    1  => 'Januari',
-                                    2  => 'Februari',
-                                    3  => 'Maret',
-                                    4  => 'April',
-                                    5  => 'Mei',
-                                    6  => 'Juni',
-                                    7  => 'Juli',
-                                    8  => 'Agustus',
-                                    9  => 'September',
-                                    10 => 'Oktober',
-                                    11 => 'November',
-                                    12 => 'Desember',
-                                ];
-
-                                $periodeText = '-';
-                                if (!empty($item->periode) && preg_match('/^\d{4}-(\d{2})$/', $item->periode, $m)) {
-                                    $bulanAngka  = (int) $m[1];
-                                    $periodeText = $namaBulan[$bulanAngka] ?? $item->periode;
-                                }
-                            @endphp
-                            {{ $periodeText }}
-                        </td>
-
-                        {{-- Jumlah Unit --}}
-                        <td class="px-4 py-4 text-center font-medium">
-                            {{ $totalUnits }}
-                        </td>
-
-                        {{-- Total Pesanan --}}
-                        <td class="px-4 py-4 text-center font-semibold">
-                            {{ number_format($totalPesanan) }}
-                        </td>
-                    </tr>
-                @empty
+    {{-- ============ TABEL (level periode) ============ --}}
+    <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <td colspan="8" class="text-center py-20 text-gray-500">
-                            <div class="text-5xl mb-4">📚</div>
-                            <p class="text-lg font-semibold">Belum Ada Data</p>
-                            <p class="text-sm mt-1">Belum ada periode pesanan majalah.</p>
-                        </td>
+                        @foreach ($kolom as $i => $judul)
+                            <th class="{{ in_array($i, [0, 4, 5, 6, 7]) ? 'ctr' : '' }}">{{ $judul }}</th>
+                        @endforeach
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    {{-- ========================================================= --}}
-    {{-- PAGINATION --}}
-    {{-- ========================================================= --}}
-    @if($data->count() > 0)
-        <div class="mt-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm text-gray-600">
-            <div>
-                Menampilkan <strong>{{ $data->total() }}</strong> periode
-            </div>
-            <div>
-                {{ $data->links() }}
-            </div>
-        </div>
-    @endif
-
-</div>
-
-{{-- ========================================================= --}}
-{{-- MODAL IMPORT --}}
-{{-- ========================================================= --}}
-<div id="importModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
-
-        <div class="flex justify-between items-center px-6 py-5 border-b">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800">Import Pesanan Majalah</h2>
-                <p class="text-sm text-gray-500 mt-1">Pilih bulan dan tahun tujuan import data.</p>
-            </div>
-            <button type="button" onclick="closeImportModal()"
-                class="text-gray-500 hover:text-red-600 text-2xl font-bold">&times;</button>
-        </div>
-
-        <form id="formImportMajalah"
-            action="{{ route('pesanan-majalah.import') }}"
-            method="POST"
-            enctype="multipart/form-data"
-            class="p-6">
-            @csrf
-
-            <div class="mb-5">
-                <label for="periodeImport" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Periode Pesanan Majalah
-                </label>
-
-                <select id="periodeImport" name="periode" required
-                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">-- Pilih Periode --</option>
-
-                    @php
-                        $tanggalMulai = now()->startOfYear(); // Januari 2026
-                    @endphp
-
-                    @for($i = 0; $i <= 23; $i++) {{-- 2 tahun ke depan --}}
+                </thead>
+                <tbody>
+                    @forelse ($data as $item)
                         @php
-                            $tanggal = $tanggalMulai->copy()->addMonths($i);
-                            $value   = $tanggal->format('Y-m');
-                            $label   = $tanggal->translatedFormat('F Y');
+                            $totalUnits   = $item->kabupaten->sum(fn ($kab) => $kab->units->count());
+                            $totalPesanan = $item->kabupaten->sum(fn ($kab) => $kab->units->sum('jumlah_pesanan'));
+                            $judulText    = ($item->judul ?? 'Tanpa Judul')
+                                          . ($item->bulan ? ' — ' . $item->bulan : '')
+                                          . ($item->tahun ? ' ' . $item->tahun : '');
                         @endphp
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endfor
-                </select>
+                        <tr>
+                            <td class="ctr">{{ ($data->firstItem() ?? 1) + $loop->index }}</td>
 
-                <p class="text-xs text-gray-500 mt-2">
-                    Pilih bulan dan tahun untuk data pesanan majalah yang akan diimport.
-                </p>
-            </div>
+                            <td class="cell-clip" title="{{ $judulText }}">
+                                <a href="{{ route('pesanan-majalah.show', $item->id) }}"
+                                   class="font-semibold text-navy-700 hover:text-rust-600 hover:underline">{{ $judulText }}</a>
+                            </td>
 
-            <div class="mb-5">
-                <label for="fileImportMajalah" class="block text-sm font-semibold text-gray-700 mb-2">
-                    File Excel
-                </label>
+                            {{-- No PS (edit langsung di tabel) --}}
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <input type="text"
+                                           class="no-ps-input w-28 bg-white border border-navy-950/10 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-navy-700"
+                                           data-url="{{ url('pesanan-majalah/' . $item->id . '/update-no-ps') }}"
+                                           value="{{ $item->no_ps ?? '' }}"
+                                           placeholder="No PS">
+                                    <button type="button"
+                                            class="btn-save-no-ps hidden bg-navy-800 hover:bg-navy-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                                        Simpan
+                                    </button>
+                                    <span class="save-status hidden text-xs"></span>
+                                </div>
+                            </td>
 
-                <input id="fileImportMajalah" type="file" name="file"
-                    accept=".xlsx,.xls,.csv" required
-                    class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white">
-
-                <p class="text-xs text-gray-500 mt-2">
-                    Format yang didukung: XLSX, XLS, atau CSV.
-                </p>
-            </div>
-
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="closeImportModal()"
-                    class="bg-gray-500 text-white px-5 py-3 rounded-xl font-semibold hover:bg-gray-600 transition">
-                    Batal
-                </button>
-
-                <button type="submit" id="btnImportMajalah"
-                    class="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition">
-                    📥 Import Data
-                </button>
-            </div>
-        </form>
+                            <td>{{ $item->bulan ?? '-' }}</td>
+                            <td class="ctr">{{ $item->tahun ?? '-' }}</td>
+                            <td class="ctr">{{ $namaPeriode($item->periode) ?? '-' }}</td>
+                            <td class="ctr font-medium">{{ number_format($totalUnits, 0, ',', '.') }}</td>
+                            <td class="ctr font-semibold">{{ number_format($totalPesanan, 0, ',', '.') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ count($kolom) }}" class="!text-center py-16 text-navy-950/50">
+                                <p class="font-semibold text-navy-950/70">Belum ada data</p>
+                                <p class="mt-1">Belum ada periode pesanan majalah.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-{{-- jQuery + Select2 --}}
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {{-- ============ PAGINATION ============ --}}
+    <div class="mt-5 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-navy-950/60">
+            Menampilkan
+            <span class="font-semibold text-navy-950">{{ number_format($data->firstItem() ?? 0, 0, ',', '.') }}</span>
+            sampai
+            <span class="font-semibold text-navy-950">{{ number_format($data->lastItem() ?? 0, 0, ',', '.') }}</span>
+            dari
+            <span class="font-semibold text-navy-950">{{ number_format($data->total(), 0, ',', '.') }}</span>
+            periode
+        </p>
+        <div class="pager max-w-full overflow-x-auto">
+            {{ $data->withQueryString()->onEachSide(1)->links('pagination::tailwind') }}
+        </div>
+    </div>
 
+    {{-- ============ MODAL IMPORT ============ --}}
+    <div id="importModal" class="hidden fixed inset-0 z-50 bg-navy-950/50 items-center justify-center px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div class="flex items-start justify-between px-6 py-5 border-b border-navy-950/10">
+                <div>
+                    <h2 class="text-lg font-bold text-navy-950">Import Pesanan Majalah</h2>
+                    <p class="text-sm text-navy-950/55 mt-0.5">Pilih bulan dan tahun tujuan import data.</p>
+                </div>
+                <button type="button" onclick="closeImportModal()" aria-label="Tutup"
+                        class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-navy-950/40 hover:text-red-600 hover:bg-red-50 transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
+            </div>
+
+            <form id="formImportMajalah" action="{{ route('pesanan-majalah.import') }}" method="POST" enctype="multipart/form-data" class="p-6">
+                @csrf
+
+                <div>
+                    <label for="periodeImport" class="{{ $lbl }}">Periode pesanan majalah</label>
+                    <select id="periodeImport" name="periode" required class="{{ $inp }}">
+                        <option value="">Pilih periode</option>
+                        @php $tanggalMulai = now()->startOfYear(); @endphp
+                        @for ($i = 0; $i <= 23; $i++)
+                            @php $tgl = $tanggalMulai->copy()->addMonths($i); @endphp
+                            <option value="{{ $tgl->format('Y-m') }}">{{ $tgl->translatedFormat('F Y') }}</option>
+                        @endfor
+                    </select>
+                    <p class="mt-1.5 text-xs text-navy-950/45">Rentang 24 bulan, dimulai dari Januari tahun ini.</p>
+                </div>
+
+                <div class="mt-4">
+                    <label for="fileImportMajalah" class="{{ $lbl }}">File Excel</label>
+                    <input id="fileImportMajalah" type="file" name="file" accept=".xlsx,.xls,.csv" required
+                           class="block w-full text-sm text-navy-950/60
+                                  file:mr-4 file:py-2.5 file:px-5
+                                  file:rounded-xl file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-navy-700/10 file:text-navy-700
+                                  hover:file:bg-navy-700/20">
+                    <p class="mt-1.5 text-xs text-navy-950/45">Format yang didukung: XLSX, XLS, atau CSV.</p>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-2">
+                    <button type="button" onclick="closeImportModal()"
+                            class="text-sm font-medium text-navy-950/60 hover:text-navy-950 px-4 py-2.5">Batal</button>
+                    <button type="submit" id="btnImportMajalah"
+                            class="bg-rust-500 hover:bg-rust-600 disabled:opacity-60 transition-colors text-white text-sm font-semibold px-6 py-2.5 rounded-xl">
+                        Import data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+@endsection
+
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Select2
-    $('.select2').select2({
-        placeholder: 'Cari / pilih...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // Modal Import
-    const modal     = document.getElementById('importModal');
-    const form      = document.getElementById('formImportMajalah');
-    const periode   = document.getElementById('periodeImport');
-    const button    = document.getElementById('btnImportMajalah');
-    const fileInput = document.getElementById('fileImportMajalah');
+    // ---------- Modal import ----------
+    var modal     = document.getElementById('importModal');
+    var form      = document.getElementById('formImportMajalah');
+    var periode   = document.getElementById('periodeImport');
+    var tombol    = document.getElementById('btnImportMajalah');
+    var fileInput = document.getElementById('fileImportMajalah');
 
     window.openImportModal = function () {
         modal.classList.remove('hidden');
-        document.body.classList.add('modal-open');
+        modal.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
         periode.value = '';
-        button.disabled = false;
-        button.innerHTML = '📥 Import Data';
+        tombol.disabled = false;
+        tombol.textContent = 'Import data';
     };
-
     window.closeImportModal = function () {
         modal.classList.add('hidden');
-        document.body.classList.remove('modal-open');
+        modal.classList.remove('flex');
+        document.body.classList.remove('overflow-hidden');
     };
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', function (e) {
         if (!periode.value) {
-            event.preventDefault();
+            e.preventDefault();
             alert('Silakan pilih periode pesanan majalah terlebih dahulu.');
             periode.focus();
             return;
         }
-
         if (!fileInput.files.length) {
-            event.preventDefault();
+            e.preventDefault();
             alert('Silakan pilih file Excel terlebih dahulu.');
             return;
         }
-
-        button.disabled = true;
-        button.innerHTML = '⏳ Sedang Import...';
+        tombol.disabled = true;
+        tombol.textContent = 'Sedang import...';
     });
 
-    modal.addEventListener('click', function (event) {
-        if (event.target === modal) {
-            closeImportModal();
-        }
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeImportModal(); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeImportModal();
     });
 
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeImportModal();
-        }
+    // ---------- Edit No PS langsung di tabel ----------
+    var token = '{{ csrf_token() }}';
+
+    document.addEventListener('input', function (e) {
+        var el = e.target.closest('.no-ps-input');
+        if (!el) return;
+        var td = el.closest('td');
+        td.querySelector('.btn-save-no-ps').classList.remove('hidden');
+        var st = td.querySelector('.save-status');
+        st.classList.add('hidden');
+        st.textContent = '';
     });
-});
-// Inline edit No PS
-$(document).on('input', '.no-ps-input', function () {
-    const row = $(this).closest('td');
-    row.find('.btn-save-no-ps').removeClass('hidden');
-    row.find('.save-status').addClass('hidden').text('');
-});
 
-$(document).on('click', '.btn-save-no-ps', function () {
-    const btn   = $(this);
-    const id    = btn.data('id');
-    const input = btn.closest('td').find('.no-ps-input');
-    const status = btn.closest('td').find('.save-status');
-    const noPs  = input.val().trim();
-
-    btn.prop('disabled', true).text('...');
-
-    $.ajax({
-        url: `/pesanan-majalah/${id}/update-no-ps`,
-        method: 'PATCH',
-        data: {
-            no_ps: noPs,
-            _token: '{{ csrf_token() }}'
-        },
-        success: function (res) {
-            btn.addClass('hidden').prop('disabled', false).text('Simpan');
-            status.removeClass('hidden text-red-600').addClass('text-emerald-600').text('✓ Tersimpan');
-            setTimeout(() => status.addClass('hidden'), 2000);
-        },
-        error: function () {
-            btn.prop('disabled', false).text('Simpan');
-            status.removeClass('hidden text-emerald-600').addClass('text-red-600').text('Gagal');
-        }
-    });
-});
-
-// Optional: simpan juga saat tekan Enter
-$(document).on('keydown', '.no-ps-input', function (e) {
-    if (e.key === 'Enter') {
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !e.target.closest('.no-ps-input')) return;
         e.preventDefault();
-        $(this).closest('td').find('.btn-save-no-ps').click();
-    }
+        e.target.closest('td').querySelector('.btn-save-no-ps').click();
+    });
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-save-no-ps');
+        if (!btn) return;
+
+        var td    = btn.closest('td');
+        var input = td.querySelector('.no-ps-input');
+        var st    = td.querySelector('.save-status');
+
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        fetch(input.dataset.url, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify({ no_ps: input.value.trim() })
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('gagal');
+            btn.classList.add('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Simpan';
+            st.className = 'save-status text-xs text-emerald-600';
+            st.textContent = 'Tersimpan';
+            setTimeout(function () { st.classList.add('hidden'); }, 2000);
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.textContent = 'Simpan';
+            st.className = 'save-status text-xs text-red-600';
+            st.textContent = 'Gagal';
+        });
+    });
 });
 </script>
-
-</body>
-</html>
+@endpush

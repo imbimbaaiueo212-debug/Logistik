@@ -1,98 +1,74 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Import Unit Pasif - biMBA AIUEO Logistik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
-</head>
-<body class="bg-gray-50">
-@include('partials.top-nav')
+@extends('layouts.panel')
 
-<div class="flex h-screen">
-    <div class="flex-1 p-8 overflow-auto">
+@section('title', 'Import Unit Pasif')
 
-        <div class="max-w-2xl mx-auto">
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Import Unit Pasif</h2>
-            <p class="text-gray-500 mb-8">Upload file Excel rekap pemesanan majalah Unit Pasif</p>
+@section('content')
+@php
+    $ctl = 'w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]';
+    $fields = [
+        ['name' => 'edisi',   'label' => 'Edisi',   'default' => 'M159',      'ph' => 'M159', 'req' => true, 'span' => 'sm:col-span-3'],
+        ['name' => 'no_ps',   'label' => 'No PS',   'default' => '',          'ph' => 'Opsional',            'span' => 'sm:col-span-3'],
+        ['name' => 'periode', 'label' => 'Periode', 'default' => 'Juni 2026', 'ph' => 'Juni 2026',           'span' => 'sm:col-span-2'],
+        ['name' => 'bulan',   'label' => 'Bulan',   'default' => 'Juni',      'ph' => '',                    'span' => 'sm:col-span-2'],
+        ['name' => 'tahun',   'label' => 'Tahun',   'default' => '2026',      'ph' => '',                    'span' => 'sm:col-span-2'],
+    ];
+@endphp
 
-            @if($errors->any())
-                <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-                    <ul class="list-disc list-inside text-sm">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+<div class="max-w-2xl">
+    @include('partials.page-header', [
+        'title'    => 'Import Unit Pasif',
+        'subtitle' => 'Upload file Excel rekap pemesanan majalah Unit Pasif',
+    ])
+    @include('partials.flash')
 
-            <form action="{{ route('import.pasif.store') }}" method="POST" enctype="multipart/form-data"
-                  class="bg-white rounded-2xl shadow p-8 space-y-6">
-                @csrf
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-xl mb-4">
+            <ul class="list-disc list-inside space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Edisi <span class="text-red-500">*</span></label>
-                        <input type="text" name="edisi" value="{{ old('edisi', 'M159') }}" required
-                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="M159">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">No PS</label>
-                        <input type="text" name="no_ps" value="{{ old('no_ps') }}"
-                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Opsional">
-                    </div>
-                </div>
+    <form action="{{ route('import.pasif.store') }}" method="POST" enctype="multipart/form-data"
+          class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+        @csrf
 
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
-                        <input type="text" name="periode" value="{{ old('periode', 'Juni 2026') }}"
-                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Juni 2026">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
-                        <input type="text" name="bulan" value="{{ old('bulan', 'Juni') }}"
-                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-                        <input type="text" name="tahun" value="{{ old('tahun', '2026') }}"
-                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-
-                <div>
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
+            @foreach($fields as $f)
+                <div class="{{ $f['span'] }}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
-                        File Excel <span class="text-red-500">*</span>
+                        {{ $f['label'] }} @if(!empty($f['req']))<span class="text-red-500">*</span>@endif
                     </label>
-                    <input type="file" name="import_file" accept=".xlsx,.xls,.csv" required
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <p class="text-xs text-gray-400 mt-2">
-                        Format: NO | CABANG | biMBA-AIUEO UNIT | MAJALAH | Bacaan Unit | NO TELP | ALAMAT
-                    </p>
+                    <input type="text" name="{{ $f['name'] }}" value="{{ old($f['name'], $f['default']) }}"
+                           placeholder="{{ $f['ph'] }}" {{ !empty($f['req']) ? 'required' : '' }} class="{{ $ctl }}">
                 </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button type="submit"
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition">
-                        Import Sekarang
-                    </button>
-                    <a href="{{ route('import.pasif.index') }}"
-                       class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2.5 rounded-xl font-medium transition">
-                        Batal
-                    </a>
-                </div>
-            </form>
+            @endforeach
         </div>
 
-    </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">File Excel <span class="text-red-500">*</span></label>
+            <input type="file" name="import_file" accept=".xlsx,.xls,.csv" required
+                   class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-600
+                          file:mr-3 file:py-1.5 file:px-3.5 file:rounded-lg file:border-0 file:text-sm file:font-medium
+                          file:bg-[#162749]/5 file:text-[#28447F] hover:file:bg-[#162749]/10">
+            <p class="text-xs text-gray-400 mt-2">
+                Format kolom: NO | CABANG | biMBA-AIUEO UNIT | MAJALAH | Bacaan Unit | NO TELP | ALAMAT
+            </p>
+        </div>
+
+        <div class="flex gap-3 pt-4 border-t border-gray-100">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#D14E1F] text-white px-5 py-2.5 rounded-xl text-sm font-medium transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 19h14"/></svg>
+                Import Sekarang
+            </button>
+            <a href="{{ route('import.pasif.index') }}"
+               class="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                Batal
+            </a>
+        </div>
+    </form>
 </div>
-</body>
-</html>
+@endsection

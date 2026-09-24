@@ -1,255 +1,218 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Casdana - biMBA AIUEO Logistik</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-    
-    <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+@extends('layouts.panel')
 
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        table { border-collapse: collapse; }
-        th, td { padding: 12px 8px; font-size: 0.85rem; }
-        th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
-        tr:hover { background-color: #f8fafc; }
-        .truncate { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nominal { font-variant-numeric: tabular-nums; }
-    </style>
-</head>
-<body class="bg-gray-50">
+@section('title', 'Data Casdana')
 
-    <!-- Top Navigation -->
-    @include('partials.top-nav')
+@push('styles')
+<style>
+    .data-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+    .data-table th, .data-table td { padding: 10px 12px; white-space: nowrap; border-bottom: 1px solid #0F1B330F; }
+    .data-table thead th {
+        position: sticky; top: 0; z-index: 10;
+        background: #F8F9FB; color: #0F1B3399;
+        font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em;
+        border-bottom: 1px solid #0F1B331A;
+    }
+    .data-table tbody tr:hover td { background-color: #F8F9FB; }
+    .data-table .sticky-col-aksi { position: sticky; right: 0; z-index: 5; background: #fff; }
+    .data-table thead .sticky-col-aksi { z-index: 15; background: #F8F9FB; }
+    .nominal { font-variant-numeric: tabular-nums; }
+    .filter-input {
+        width: 100%; border: 1px solid #0F1B331A; border-radius: 0.75rem;
+        padding: 9px 12px; font-size: 13.5px; background: #fff; color: #0F1B33;
+    }
+    .filter-input:focus {
+        outline: none; border-color: #28447F;
+        box-shadow: 0 0 0 3px rgba(40,68,127,0.12);
+    }
+    .pager nav p { display: none; }
+</style>
+@endpush
 
-    <!-- Main Content -->
-    <div class="max-w-screen-2xl mx-auto px-6 py-6">
+@section('content')
 
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Data Casdana</h1>
-                <p class="text-gray-600">Import & Kelola Data Transaksi Kas Dana</p>
-            </div>
-            <div class="flex gap-3">
-                <a href="{{ route('import.index') }}" 
-                   class="bg-gray-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-gray-700 flex items-center gap-2">
-                    ← Kembali ke Daftar Import
-                </a>
-                <button onclick="document.getElementById('importForm').classList.toggle('hidden')"
-                        class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex items-center gap-2">
-                    📤 Import Data Baru
-                </button>
-            </div>
+    @include('partials.flash')
+
+    {{-- ============ HEADER ============ --}}
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="min-w-0">
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Data Casdana</h1>
+            <p class="mt-1 text-sm text-navy-950/55">Import & Kelola Data Transaksi Kas Dana</p>
         </div>
 
-        <!-- Filter Section -->
-        <div class="bg-white rounded-3xl shadow p-6 mb-6">
-            <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
-                    <input type="text" name="invoice_number" value="{{ request('invoice_number') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500" 
-                           placeholder="Cari Invoice...">
-                </div>
+        <div class="flex gap-3 flex-wrap">
+            <a href="{{ route('import.index') }}"
+               class="inline-flex items-center gap-2 bg-white border border-navy-950/10 hover:border-navy-700 text-navy-950/70 hover:text-navy-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Kembali ke Daftar Import
+            </a>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Merchant</label>
-                    <input type="text" name="merchant" value="{{ request('merchant') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500" 
-                           placeholder="Nama Merchant...">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                    <input type="text" name="customer" value="{{ request('customer') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500" 
-                           placeholder="Nama Customer...">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" class="status-select w-full">
-                        <option value="">Semua Status</option>
-                        <option value="PAID" {{ request('status') == 'PAID' ? 'selected' : '' }}>PAID</option>
-                        <option value="PENDING" {{ request('status') == 'PENDING' ? 'selected' : '' }}>PENDING</option>
-                        <option value="EXPIRED" {{ request('status') == 'EXPIRED' ? 'selected' : '' }}>EXPIRED</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Payment Channel</label>
-                    <input type="text" name="payment_channel" value="{{ request('payment_channel') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500" 
-                           placeholder="Payment Channel...">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
-                    <input type="date" name="start_date" value="{{ request('start_date') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
-                    <input type="date" name="end_date" value="{{ request('end_date') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
-                    <select name="per_page" onchange="this.form.submit()" 
-                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500">
-                        <option value="25"  {{ request('per_page') == 25  ? 'selected' : '' }}>25</option>
-                        <option value="50"  {{ request('per_page') == 50  ? 'selected' : '' }}>50</option>
-                        <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
-                        <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
-                        <option value="500" {{ request('per_page') == 500 ? 'selected' : '' }}>500</option>
-                        <option value="1000" {{ request('per_page') == 1000 ? 'selected' : '' }}>1000</option>
-                    </select>
-                </div>
-
-                <div class="flex items-end gap-3 pt-6 lg:col-span-2">
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex-1">
-                        🔍 Terapkan Filter
-                    </button>
-                    <a href="{{ route('import.casdana') }}" 
-                       class="text-gray-500 hover:text-red-600 px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                        Reset
-                    </a>
-                </div>
-            </form>
+            <button type="button" onclick="document.getElementById('importForm').classList.toggle('hidden')"
+                    class="inline-flex items-center gap-2 bg-navy-700 hover:bg-navy-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+                Import Data Baru
+            </button>
         </div>
-
-        <!-- Form Import -->
-        <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8">
-            <h2 class="text-xl font-semibold mb-4">Upload File Excel / CSV</h2>
-            <form action="{{ route('import.casdana.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="flex gap-4 items-end">
-                    <div class="flex-1">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File</label>
-                        <input type="file" name="import_file" 
-                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                               accept=".xlsx,.xls,.csv" required>
-                    </div>
-                    <button type="submit" class="bg-green-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-green-700">
-                        🚀 Import Sekarang
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Format yang didukung: .xlsx, .xls, .csv (max 10MB)</p>
-            </form>
-        </div>
-
-        <!-- Tabel Casdana -->
-        <div class="bg-white rounded-3xl shadow overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="bg-gray-100 border-b-2 border-gray-300">
-                        <th class="text-left">Invoice Number</th>
-                        <th class="text-left">Merchant</th>
-                        <th class="text-left">Customer</th>
-                        <th class="text-left">Status</th>
-                        <th class="text-left">Payment Date</th>
-                        <th class="text-left">Payment Channel</th>
-                        <th class="text-left">Payment Code</th>
-                        <th class="text-right">Amount (IDR)</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @forelse($casdanaTransactions as $transaction)
-                    <tr class="hover:bg-gray-50">
-                        <td class="font-medium">{{ $transaction->invoice_number }}</td>
-                        <td>{{ $transaction->merchant ?? '-' }}</td>
-                        <td>{{ $transaction->customer ?? '-' }}</td>
-                        <td>
-                            <span class="px-3 py-1 rounded-full text-xs 
-                                @if(in_array(strtoupper($transaction->status ?? ''), ['SETTLED','PAID'])) bg-green-100 text-green-700
-                                @elseif(strtoupper($transaction->status ?? '') == 'PENDING') bg-yellow-100 text-yellow-700
-                                @else bg-red-100 text-red-700 @endif">
-                                {{ $transaction->status ?? '-' }}
-                            </span>
-                        </td>
-                        <td>{{ $transaction->payment_date ? $transaction->payment_date->format('d/m/Y H:i') : '-' }}</td>
-                        <td>{{ $transaction->payment_channel ?? '-' }}</td>
-                        <td>{{ $transaction->payment_code ?? '-' }}</td>
-                        <td class="text-right font-semibold nominal">
-                            Rp {{ number_format($transaction->amount ?? 0, 0, ',', '.') }}
-                        </td>
-                        <td class="text-center">
-                            <div class="flex items-center justify-center gap-3">
-                                <a href="{{ route('import.casdana.edit', $transaction->id) }}" 
-                                   class="text-blue-600 hover:text-blue-700 transition-colors" title="Edit">
-                                    ✏️
-                                </a>
-                                <button onclick="if(confirm('Yakin hapus?')) document.getElementById('delete-form-{{ $transaction->id }}').submit()" 
-                                        class="text-red-600 hover:text-red-700 transition-colors" title="Hapus">
-                                    🗑
-                                </button>
-                                <form id="delete-form-{{ $transaction->id }}" action="{{ route('import.casdana.destroy', $transaction->id) }}" method="POST" class="hidden">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="9" class="text-center py-16 text-gray-500">
-                            Tidak ada data yang sesuai filter.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-
-                <!-- TOTAL AMOUNT -->
-                @if($casdanaTransactions->count() > 0)
-                <tfoot>
-                    <tr class="bg-gray-50 border-t-2 border-gray-300 font-semibold">
-                        <td colspan="7" class="text-right pr-4 py-3">Total Amount</td>
-                        <td class="text-right py-3 nominal text-lg">
-                            Rp {{ number_format($totalAmount ?? $casdanaTransactions->sum('amount'), 0, ',', '.') }}
-                        </td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-                @endif
-            </table>
-        </div>
-
-        @if($casdanaTransactions->count() > 0)
-        <div class="mt-6 text-sm text-gray-600 flex justify-between items-center">
-            <div>
-                Menampilkan <strong>{{ $casdanaTransactions->count() }}</strong> data 
-                <span class="text-gray-400">(Total: {{ $casdanaTransactions->total() }} data)</span>
-            </div>
-            <div>{{ $casdanaTransactions->links() }}</div>
-        </div>
-        @endif
-
     </div>
 
-    <!-- jQuery + Select2 -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {{-- ============ FILTER ============ --}}
+    <div class="mt-6 bg-white rounded-2xl shadow-card p-6">
+        <form method="GET" id="filterForm" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Invoice Number</label>
+                <input type="text" name="invoice_number" value="{{ request('invoice_number') }}" class="filter-input" placeholder="Cari Invoice...">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Merchant</label>
+                <input type="text" name="merchant" value="{{ request('merchant') }}" class="filter-input" placeholder="Nama Merchant...">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Customer</label>
+                <input type="text" name="customer" value="{{ request('customer') }}" class="filter-input" placeholder="Nama Customer...">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Status</label>
+                <select name="status" class="filter-input">
+                    <option value="">Semua Status</option>
+                    <option value="PAID" @selected(request('status') == 'PAID')>PAID</option>
+                    <option value="PENDING" @selected(request('status') == 'PENDING')>PENDING</option>
+                    <option value="EXPIRED" @selected(request('status') == 'EXPIRED')>EXPIRED</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Payment Channel</label>
+                <input type="text" name="payment_channel" value="{{ request('payment_channel') }}" class="filter-input" placeholder="Payment Channel...">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Dari Tanggal</label>
+                <input type="date" name="start_date" value="{{ request('start_date') }}" class="filter-input">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Sampai Tanggal</label>
+                <input type="date" name="end_date" value="{{ request('end_date') }}" class="filter-input">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-navy-950/60 mb-1.5">Tampilkan</label>
+                <select name="per_page" onchange="this.form.submit()" class="filter-input">
+                    @foreach([25,50,100,200,500,1000] as $n)
+                        <option value="{{ $n }}" @selected((int)request('per_page') === $n)>{{ $n }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex items-end gap-3 lg:col-span-2">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 bg-navy-700 hover:bg-navy-800 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                    Terapkan Filter
+                </button>
+                <a href="{{ route('import.casdana') }}" class="text-navy-950/50 hover:text-rust-600 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors">Reset</a>
+            </div>
+        </form>
+    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            $('.status-select').select2({
-                theme: 'bootstrap-5',
-                placeholder: "Semua Status",
-                allowClear: true,
-                width: '100%'
-            });
-        });
-    </script>
+    {{-- ============ FORM IMPORT ============ --}}
+    <div id="importForm" class="hidden mt-6 bg-white rounded-2xl shadow-card p-6">
+        <h2 class="text-lg font-semibold text-navy-950 mb-4">Upload File Excel / CSV</h2>
+        <form action="{{ route('import.casdana.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="flex gap-4 items-end flex-wrap">
+                <div class="flex-1 min-w-[240px]">
+                    <label class="block text-sm font-medium text-navy-950/70 mb-2">Pilih File</label>
+                    <input type="file" name="import_file"
+                           class="block w-full text-sm text-navy-950/60 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-navy-700/10 file:text-navy-700 hover:file:bg-navy-700/20"
+                           accept=".xlsx,.xls,.csv" required>
+                </div>
+                <button type="submit" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-semibold text-sm transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    Import Sekarang
+                </button>
+            </div>
+            <p class="text-xs text-navy-950/40 mt-2">Format yang didukung: .xlsx, .xls, .csv (max 10MB)</p>
+        </form>
+    </div>
 
-</body>
-</html>
+    {{-- ============ TABEL ============ --}}
+    <div class="mt-6 bg-white rounded-2xl shadow-card overflow-x-auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="text-left">Invoice Number</th>
+                    <th class="text-left">Merchant</th>
+                    <th class="text-left">Customer</th>
+                    <th class="text-left">Status</th>
+                    <th class="text-left">Payment Date</th>
+                    <th class="text-left">Payment Channel</th>
+                    <th class="text-left">Payment Code</th>
+                    <th class="text-right">Amount (IDR)</th>
+                    <th class="sticky-col-aksi text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($casdanaTransactions as $transaction)
+                <tr>
+                    <td class="font-medium text-navy-950">{{ $transaction->invoice_number }}</td>
+                    <td>{{ $transaction->merchant ?? '-' }}</td>
+                    <td>{{ $transaction->customer ?? '-' }}</td>
+                    <td>
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                            @if(in_array(strtoupper($transaction->status ?? ''), ['SETTLED','PAID'])) bg-emerald-100 text-emerald-700
+                            @elseif(strtoupper($transaction->status ?? '') == 'PENDING') bg-amber-100 text-amber-800
+                            @else bg-red-100 text-red-700 @endif">
+                            {{ $transaction->status ?? '-' }}
+                        </span>
+                    </td>
+                    <td>{{ $transaction->payment_date ? $transaction->payment_date->format('d/m/Y H:i') : '-' }}</td>
+                    <td>{{ $transaction->payment_channel ?? '-' }}</td>
+                    <td>{{ $transaction->payment_code ?? '-' }}</td>
+                    <td class="text-right font-semibold nominal">
+                        Rp {{ number_format($transaction->amount ?? 0, 0, ',', '.') }}
+                    </td>
+                    <td class="sticky-col-aksi text-center">
+                        <div class="flex items-center justify-center gap-3">
+                            <a href="{{ route('import.casdana.edit', $transaction->id) }}"
+                               class="inline-flex text-navy-700 hover:text-rust-600 transition-colors" title="Edit">
+                                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 3Z"/><path d="m14.5 7.5 2 2"/></svg>
+                            </a>
+                            <button type="button" onclick="if(confirm('Yakin hapus?')) document.getElementById('delete-form-{{ $transaction->id }}').submit()"
+                                    class="inline-flex text-red-500 hover:text-red-700 transition-colors" title="Hapus">
+                                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                            </button>
+                            <form id="delete-form-{{ $transaction->id }}" action="{{ route('import.casdana.destroy', $transaction->id) }}" method="POST" class="hidden">
+                                @csrf
+                                @method('DELETE')
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="9" class="text-center py-16 text-navy-950/40">
+                        Tidak ada data yang sesuai filter.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+
+            @if($casdanaTransactions->count() > 0)
+            <tfoot>
+                <tr class="bg-navy-950/[0.03] border-t-2 border-navy-950/10 font-semibold">
+                    <td colspan="7" class="text-right pr-4 py-3 text-navy-950/70">Total Amount</td>
+                    <td class="text-right py-3 nominal text-base text-navy-950">
+                        Rp {{ number_format($totalAmount ?? $casdanaTransactions->sum('amount'), 0, ',', '.') }}
+                    </td>
+                    <td></td>
+                </tr>
+            </tfoot>
+            @endif
+        </table>
+    </div>
+
+    @if($casdanaTransactions->count() > 0)
+    <div class="mt-6 text-sm text-navy-950/60 flex justify-between items-center flex-wrap gap-3 pager">
+        <div>
+            Menampilkan <strong class="text-navy-950">{{ $casdanaTransactions->count() }}</strong> data
+            <span class="text-navy-950/40">(Total: {{ $casdanaTransactions->total() }} data)</span>
+        </div>
+        <div>{{ $casdanaTransactions->withQueryString()->links('pagination::tailwind') }}</div>
+    </div>
+    @endif
+
+@endsection
