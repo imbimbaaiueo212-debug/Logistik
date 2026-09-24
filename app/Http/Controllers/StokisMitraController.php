@@ -16,6 +16,7 @@ class StokisMitraController extends Controller
     $perPage = $request->get('per_page', 50);   // default 50
 
     $stokis = StokisMitra::query()
+        ->where('status', 'aktif')          // <-- baris baru
         ->when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('no_cab', 'like', "%{$search}%")
@@ -36,9 +37,68 @@ class StokisMitraController extends Controller
 
     public function import(Request $request)
 {
+    $request->validate([
+        'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+    ]);
+
     Excel::import(new StokisMitraImport, $request->file('file'));
     return redirect()->route('stokis.index')
                 ->with('success', '✅ Data berhasil diimport!');
+}
 
+    public function edit($id)
+{
+    $stokis = StokisMitra::findOrFail($id);
+
+    return view('stokis.edit', compact('stokis'));
+}
+
+    public function update(Request $request, $id)
+{
+    $stokis = StokisMitra::findOrFail($id);
+
+    $validated = $request->validate([
+        'no_cab' => 'required|string|max:20|unique:stokis_mitra,no_cab,' . $stokis->id,
+        'nama_stokis_db_kemitraan' => 'nullable|string|max:255',
+        'nama_stokis_db_bimbashop' => 'nullable|string|max:255',
+        'no_induk_mitra' => 'nullable|string|max:255',
+        'nama_mitra' => 'nullable|string|max:255',
+        'email' => 'nullable|email|max:255',
+        'no_hp' => 'nullable|string|max:30',
+        'related_form_pembukaan_unit_aktif' => 'nullable|string',
+        'related_formulir_kerjasama_english' => 'nullable|string',
+        'db_kemitraan_db_bimbashop' => 'nullable|string|max:255',
+        'related_unit_bimba_aiueo' => 'nullable|string',
+        'related_formulir_kerjasama_mk_mm' => 'nullable|string',
+        'related_pengajuan_perubahan' => 'nullable|string',
+        'item_sku' => 'nullable|string',
+        'ops_stokist' => 'nullable|string|max:255',
+    ]);
+
+    $stokis->update($validated);
+
+    return redirect()->route('stokis.index')
+                ->with('success', '✅ Data stokis berhasil diperbarui!');
+}
+
+    public function destroy($id)
+{
+    $stokis = StokisMitra::findOrFail($id);
+    $stokis->delete();
+
+    return redirect()->route('stokis.index')
+                ->with('success', '✅ Data stokis berhasil dihapus!');
+}
+public function pasifkan($id)
+{
+    $stokis = StokisMitra::where('status', 'aktif')->findOrFail($id);
+
+    // Sengaja tidak pakai update([...]) supaya aman walau $fillable model belum memuat kolom baru
+    $stokis->status = 'pasif';
+    $stokis->tanggal_pasif = now();
+    $stokis->save();
+
+    return redirect()->route('stokis.index')
+        ->with('success', 'Stokis ' . $stokis->no_cab . ' dipindahkan ke Stokis Pasif.');
 }
 }

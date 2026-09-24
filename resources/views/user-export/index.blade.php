@@ -1,221 +1,260 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database User Export - biMBA AIUEO Logistik</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+@extends('layouts.panel')
 
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        
-        .table-container {
-            overflow-x: auto;
-            max-height: 70vh;
-        }
-        
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            min-width: 2000px;
-        }
-        
-        th, td {
-            padding: 12px 8px;
-            font-size: 0.875rem;
-            vertical-align: top;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        th {
-            background-color: #f8fafc;
-            font-weight: 600;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            font-size: 0.8rem;
-        }
-        
-        tr:hover { background-color: #f1f5f9; }
-        
-        .truncate {
-            max-width: 160px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .wide { min-width: 180px; }
-        .medium { min-width: 130px; }
-        .narrow { min-width: 80px; }
-    </style>
-</head>
-<body class="bg-gray-50">
+@section('title', 'Database User Export')
 
-    @include('partials.top-nav')
+@push('styles')
+<style>
+    /* ===== Tabel data ===== */
+    .table-wrap { overflow: auto; max-height: 68vh; }
+    .data-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        min-width: 2100px;
+        font-size: 0.8125rem;
+    }
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+        white-space: nowrap;
+        border-bottom: 1px solid rgba(15, 27, 51, 0.06);
+    }
+    .data-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #F4F6FA;
+        color: rgba(15, 27, 51, 0.6);
+        font-weight: 600;
+        font-size: 0.75rem;
+        border-bottom: 1px solid rgba(15, 27, 51, 0.1);
+    }
+    .data-table tbody tr:hover td { background-color: #F7F9FC; }
+    .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .data-table .ctr { text-align: center; }
 
-    <div class="max-w-screen-2xl mx-auto px-6 py-6">
+    /* Teks panjang dipotong "...", isi lengkap muncul saat kursor diarahkan (atribut title) */
+    .cell-clip { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+    .cell-clip-lg { max-width: 280px; }
 
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Database User Export (biMBA Shop)</h1>
-                <p class="text-gray-600">Semua kolom dari tabel user_export_bimba_shop</p>
-            </div>
-            <button onclick="document.getElementById('importForm').classList.toggle('hidden')"
-                    class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 flex items-center gap-2">
-                📤 Import Data Baru
-            </button>
+    /* Kolom ID dan Aksi tetap terlihat saat tabel digeser ke samping */
+    .data-table .sticky-l { position: sticky; left: 0; z-index: 10; background: #fff; }
+    .data-table thead .sticky-l { z-index: 30; background: #F4F6FA; }
+    .data-table .sticky-r { position: sticky; right: 0; z-index: 10; background: #fff; }
+    .data-table thead .sticky-r { z-index: 30; background: #F4F6FA; }
+    .data-table tbody tr:hover .sticky-l,
+    .data-table tbody tr:hover .sticky-r { background-color: #F7F9FC; }
+
+    /* Sembunyikan teks "Showing ..." bawaan pagination Laravel (sudah ada ringkasan sendiri) */
+    .pager nav p { display: none; }
+</style>
+@endpush
+
+@section('content')
+
+    {{-- ============ JUDUL ============ --}}
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Database User Export (biMBA Shop)</h1>
+            <p class="mt-1 text-sm text-navy-950/55">Data dari tabel user_export_bimba_shop</p>
         </div>
 
-        <!-- ==================== FORM IMPORT ==================== -->
-        <div id="importForm" class="hidden bg-white rounded-3xl shadow p-6 mb-8 border border-blue-100">
-            <h3 class="font-semibold text-lg mb-4">Import Data User dari Excel</h3>
-            
-            <form action="{{ route('user-export.import') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="flex flex-col md:flex-row gap-4 items-end">
-                    <div class="flex-1">
-                        <label class="block text-sm text-gray-600 mb-1">Pilih File Excel</label>
-                        <input type="file" name="file" 
-                               accept=".xlsx,.xls,.csv"
-                               class="block w-full text-sm text-gray-500 
-                                      file:mr-4 file:py-3 file:px-6 
-                                      file:rounded-2xl file:border-0 
-                                      file:text-sm file:font-semibold 
-                                      file:bg-blue-50 file:text-blue-700 
-                                      hover:file:bg-blue-100">
-                    </div>
-                    
+        <button type="button"
+                onclick="document.getElementById('importForm').classList.toggle('hidden')"
+                class="inline-flex items-center gap-2 bg-rust-500 hover:bg-rust-600 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            Import Data Baru
+        </button>
+    </div>
+
+    {{-- ============ PESAN SUKSES / GAGAL ============ --}}
+    @if (session('success'))
+        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- ============ FORM IMPORT ============ --}}
+    <div id="importForm" class="hidden mt-5 bg-white rounded-2xl shadow-card p-5 sm:p-6">
+        <h2 class="text-base font-semibold text-navy-950">Import data user dari Excel</h2>
+
+        <form action="{{ route('user-export.import') }}" method="POST" enctype="multipart/form-data" class="mt-4">
+            @csrf
+            <div class="flex flex-col md:flex-row md:items-end gap-4">
+                <div class="flex-1 min-w-0">
+                    <label for="file" class="block text-sm text-navy-950/60 mb-1.5">Pilih file</label>
+                    <input id="file" type="file" name="file" accept=".xlsx,.xls,.csv" required
+                           class="block w-full text-sm text-navy-950/60
+                                  file:mr-4 file:py-2.5 file:px-5
+                                  file:rounded-xl file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-navy-700/10 file:text-navy-700
+                                  hover:file:bg-navy-700/20">
+                </div>
+
+                <div class="flex items-center gap-2">
                     <button type="submit"
-                            class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-2xl font-semibold">
-                        🚀 Upload & Import
+                            class="bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-6 py-2.5 rounded-xl">
+                        Upload dan import
                     </button>
-                    
-                    <button type="button" 
+                    <button type="button"
                             onclick="document.getElementById('importForm').classList.add('hidden')"
-                            class="text-gray-500 hover:text-gray-700 px-5 py-3">
+                            class="text-sm font-medium text-navy-950/60 hover:text-navy-950 px-4 py-2.5">
                         Batal
                     </button>
                 </div>
-            </form>
-            
-            <p class="text-xs text-gray-500 mt-3">
-                Format yang didukung: .xlsx, .xls, .csv • Maksimal 10MB
-            </p>
-        </div>
-        <!-- ==================== END FORM IMPORT ==================== -->
+            </div>
+        </form>
 
-        <!-- Search + Per Page -->
-        <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
-            <form method="GET" class="flex gap-3">
-                <input type="text" name="search" value="{{ request('search') ?? '' }}"
-                       placeholder="Cari ID, Email, Nama..." 
-                       class="border border-gray-300 rounded-2xl px-5 py-3 focus:outline-none focus:border-blue-500 text-base w-80">
-                <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-2xl font-semibold">🔍 Cari</button>
-                @if(request('search'))
-                    <a href="{{ route('user.export') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-2xl font-semibold">Reset</a>
-                @endif
-            </form>
+        <p class="mt-3 text-xs text-navy-950/45">Format yang didukung: .xlsx, .xls, .csv. Ukuran maksimal 10 MB.</p>
+    </div>
 
-            <form method="GET" class="flex items-center gap-2">
-                <input type="hidden" name="search" value="{{ request('search') }}">
-                <label class="text-sm text-gray-600">Tampilkan:</label>
-                <select name="per_page" onchange="this.form.submit()" 
-                        class="border border-gray-300 rounded-2xl px-4 py-3 text-base">
-                    <option value="5"  {{ $perPage == 5 ? 'selected' : '' }}>5</option>
-                    <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
-                    <option value="20" {{ $perPage == 20 ? 'selected' : '' }}>20</option>
-                    <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
-                    <option value="200" {{ $perPage == 200 ? 'selected' : '' }}>200</option>
-                    <option value="500" {{ $perPage == 500 ? 'selected' : '' }}>500</option>
-                </select>
-            </form>
-        </div>
+    {{-- ============ PENCARIAN + JUMLAH PER HALAMAN ============ --}}
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+        <form method="GET" class="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="per_page" value="{{ $perPage }}">
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-navy-950/35 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input type="text" name="search" value="{{ request('search') }}"
+                       placeholder="Cari ID, email, atau nama"
+                       class="w-72 sm:w-80 bg-white border border-navy-950/10 rounded-xl pl-10 pr-4 py-2.5 text-sm placeholder:text-navy-950/35 focus:outline-none focus:border-navy-700">
+            </div>
+            <button type="submit"
+                    class="bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                Cari
+            </button>
+            @if (request('search'))
+                <a href="{{ route('user.export', ['per_page' => $perPage]) }}"
+                   class="text-sm font-medium text-navy-950/60 hover:text-rust-600 px-3 py-2.5">
+                    Reset
+                </a>
+            @endif
+        </form>
 
-        <!-- TABEL -->
-        <div class="bg-white rounded-3xl shadow table-container">
-            <table class="text-sm">
+        <form method="GET" class="flex items-center gap-2">
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <label for="per_page" class="text-sm text-navy-950/55">Tampilkan</label>
+            <select id="per_page" name="per_page" onchange="this.form.submit()"
+                    class="bg-white border border-navy-950/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy-700">
+                @foreach ([5, 10, 20, 50, 100, 200, 500] as $opsi)
+                    <option value="{{ $opsi }}" {{ (int) $perPage === $opsi ? 'selected' : '' }}>{{ $opsi }}</option>
+                @endforeach
+            </select>
+        </form>
+    </div>
+
+    {{-- ============ TABEL ============ --}}
+    <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">
+        <div class="table-wrap">
+            <table class="data-table">
                 <thead>
-                    <tr class="bg-gray-100">
-                        <th class="narrow">ID</th>
-                        <th class="narrow">Cust ID</th>
-                        <th class="medium">User Login</th>
-                        <th class="wide">User Email</th>
-                        <th class="medium">Display Name</th>
-                        <th class="narrow">First Name</th>
-                        <th class="narrow">Last Name</th>
-                        <th class="narrow">Roles</th>
-                        <th class="narrow text-center">Orders</th>
-                        <th class="narrow text-right">Total Spent</th>
-                        <th class="narrow text-right">AOV</th>
-                        <th class="truncate">Billing First</th>
-                        <th class="truncate">Billing Last</th>
-                        <th class="truncate">Billing Phone</th>
-                        <th class="wide truncate">Billing Address</th>
-                        <th class="medium">City</th>
-                        <th class="medium">Shipping First</th>
-                        <th class="medium">Shipping Last</th>
-                        <th class="wide truncate">Shipping Address</th>
-                        <th class="medium">Registered</th>
-                        <th class="medium">Last Update</th>
-                        <th class="narrow text-center">Aksi</th>
+                    <tr>
+                        <th class="sticky-l">ID</th>
+                        <th>Cust ID</th>
+                        <th>User Login</th>
+                        <th>User Email</th>
+                        <th>Display Name</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Roles</th>
+                        <th class="ctr">Orders</th>
+                        <th class="num">Total Spent</th>
+                        <th class="num">AOV</th>
+                        <th>Billing First</th>
+                        <th>Billing Last</th>
+                        <th>Billing Phone</th>
+                        <th>Billing Address</th>
+                        <th>City</th>
+                        <th>Shipping First</th>
+                        <th>Shipping Last</th>
+                        <th>Shipping Address</th>
+                        <th>Registered</th>
+                        <th>Last Update</th>
+                        <th class="ctr sticky-r">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @forelse($users as $user)
-                    <tr class="hover:bg-gray-50">
-                        <td class="font-medium">{{ $user->ID }}</td>
-                        <td>{{ $user->customer_id ?? '-' }}</td>
-                        <td class="truncate">{{ $user->user_login ?? '-' }}</td>
-                        <td class="text-blue-600 hover:underline">{{ $user->user_email ?? '-' }}</td>
-                        <td class="truncate">{{ $user->display_name ?? '-' }}</td>
-                        <td>{{ $user->first_name ?? '-' }}</td>
-                        <td>{{ $user->last_name ?? '-' }}</td>
-                        <td>{{ $user->roles ?? '-' }}</td>
-                        <td class="text-center">{{ $user->orders ?? 0 }}</td>
-                        <td class="text-right">Rp {{ number_format($user->total_spent ?? 0) }}</td>
-                        <td class="text-right">Rp {{ number_format($user->aov ?? 0) }}</td>
-                        <td class="truncate">{{ $user->billing_first_name ?? '-' }}</td>
-                        <td class="truncate">{{ $user->billing_last_name ?? '-' }}</td>
-                        <td class="truncate">{{ $user->billing_phone ?? '-' }}</td>
-                        <td class="truncate">{{ $user->billing_address_1 ?? '-' }}</td>
-                        <td>{{ $user->billing_city ?? '-' }}</td>
-                        <td class="truncate">{{ $user->shipping_first_name ?? '-' }}</td>
-                        <td class="truncate">{{ $user->shipping_last_name ?? '-' }}</td>
-                        <td class="truncate">{{ $user->shipping_address_1 ?? '-' }}</td>
-                        <td>{{ $user->user_registered ? $user->user_registered->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $user->last_update ? $user->last_update->format('d/m/Y') : '-' }}</td>
-                        <td class="text-center">
-                            <button onclick="if(confirm('Yakin hapus?')) window.location.href='{{ route('user-export.destroy', $user->ID) }}'" 
-                                    class="text-red-600 hover:text-red-700 text-lg">🗑</button>
-                        </td>
-                    </tr>
+                <tbody>
+                    @forelse ($users as $user)
+                        <tr>
+                            <td class="sticky-l font-medium">{{ $user->ID }}</td>
+                            <td>{{ $user->customer_id ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->user_login }}">{{ $user->user_login ?? '-' }}</td>
+                            <td class="cell-clip cell-clip-lg" title="{{ $user->user_email }}">
+                                @if ($user->user_email)
+                                    <a href="mailto:{{ $user->user_email }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $user->user_email }}</a>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="cell-clip" title="{{ $user->display_name }}">{{ $user->display_name ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->first_name }}">{{ $user->first_name ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->last_name }}">{{ $user->last_name ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->roles }}">{{ $user->roles ?? '-' }}</td>
+                            <td class="ctr">{{ $user->orders ?? 0 }}</td>
+                            <td class="num">Rp {{ number_format($user->total_spent ?? 0, 0, ',', '.') }}</td>
+                            <td class="num">Rp {{ number_format($user->aov ?? 0, 0, ',', '.') }}</td>
+                            <td class="cell-clip" title="{{ $user->billing_first_name }}">{{ $user->billing_first_name ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->billing_last_name }}">{{ $user->billing_last_name ?? '-' }}</td>
+                            <td>{{ $user->billing_phone ?? '-' }}</td>
+                            <td class="cell-clip cell-clip-lg" title="{{ $user->billing_address_1 }}">{{ $user->billing_address_1 ?? '-' }}</td>
+                            <td>{{ $user->billing_city ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->shipping_first_name }}">{{ $user->shipping_first_name ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $user->shipping_last_name }}">{{ $user->shipping_last_name ?? '-' }}</td>
+                            <td class="cell-clip cell-clip-lg" title="{{ $user->shipping_address_1 }}">{{ $user->shipping_address_1 ?? '-' }}</td>
+                            <td>{{ $user->user_registered ? $user->user_registered->format('d/m/Y') : '-' }}</td>
+                            <td>{{ $user->last_update ? $user->last_update->format('d/m/Y') : '-' }}</td>
+                            <td class="ctr sticky-r">
+                                <form action="{{ route('user-export.destroy', $user->ID) }}" method="POST"
+                                      onsubmit="return confirm('Hapus user {{ $user->ID }}? Data yang dihapus tidak bisa dikembalikan.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" title="Hapus" aria-label="Hapus user {{ $user->ID }}"
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
                     @empty
-                    <tr>
-                        <td colspan="22" class="text-center py-16 text-gray-500">
-                            Belum ada data. Silakan import file Excel.
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="22" class="!text-center py-16 text-navy-950/50">
+                                @if (request('search'))
+                                    Tidak ada data yang cocok dengan "{{ request('search') }}".
+                                @else
+                                    Belum ada data. Klik Import Data Baru untuk mengunggah file Excel.
+                                @endif
+                            </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+    </div>
 
-        <!-- Pagination -->
-        <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center text-base">
-            <div class="text-gray-600">
-                Menampilkan <span class="font-semibold">{{ $users->firstItem() ?? 0 }}</span> 
-                sampai <span class="font-semibold">{{ $users->lastItem() ?? 0 }}</span> 
-                dari total <span class="font-semibold">{{ $users->total() }}</span> data
-            </div>
-            <div>
-                {{ $users->links('pagination::tailwind') }}
-            </div>
+    {{-- ============ PAGINATION ============ --}}
+    <div class="mt-5 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-navy-950/60">
+            Menampilkan
+            <span class="font-semibold text-navy-950">{{ number_format($users->firstItem() ?? 0, 0, ',', '.') }}</span>
+            sampai
+            <span class="font-semibold text-navy-950">{{ number_format($users->lastItem() ?? 0, 0, ',', '.') }}</span>
+            dari
+            <span class="font-semibold text-navy-950">{{ number_format($users->total(), 0, ',', '.') }}</span>
+            data
+        </p>
+        <div class="pager max-w-full overflow-x-auto">
+            {{ $users->onEachSide(1)->links('pagination::tailwind') }}
         </div>
     </div>
-</body>
-</html>
+
+@endsection

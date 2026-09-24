@@ -40,7 +40,10 @@ use App\Http\Controllers\PesananMajalahPuw1Controller;
 use App\Http\Controllers\DatabaseUserController;
 use App\Http\Controllers\OrderManualController;
 use App\Http\Controllers\OrderManualModulController;
+use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\OrderManualSertifikatController;
+use App\Http\Controllers\StokisPasifController;
+
 
 use App\Http\Controllers\DistributionOrderController;
 
@@ -503,9 +506,25 @@ Route::delete('/user-export/{id}', [UserExportController::class, 'destroy'])->na
 
 //stokis apps
 // Stokis Mitra
+// Stokis Aktif
 Route::prefix('stokis-mitra')->name('stokis.')->group(function () {
     Route::get('/', [StokisMitraController::class, 'index'])->name('index');
+    Route::get('/{id}/edit', [StokisMitraController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [StokisMitraController::class, 'update'])->name('update');
+    Route::delete('/{id}', [StokisMitraController::class, 'destroy'])->name('destroy');
     Route::post('/import', [StokisMitraController::class, 'import'])->name('import');
+    Route::post('/{id}/pasifkan', [StokisMitraController::class, 'pasifkan'])->name('pasifkan'); // baru
+});
+
+// Stokis Pasif (baru)
+Route::prefix('stokis-pasif')->name('stokis-pasif.')->group(function () {
+    Route::get('/', [StokisPasifController::class, 'index'])->name('index');
+    Route::get('/create', [StokisPasifController::class, 'create'])->name('create');
+    Route::post('/', [StokisPasifController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [StokisPasifController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [StokisPasifController::class, 'update'])->name('update');
+    Route::post('/{id}/aktifkan', [StokisPasifController::class, 'aktifkan'])->name('aktifkan');
+    Route::delete('/{id}', [StokisPasifController::class, 'destroy'])->name('destroy');
 });
 
 Route::resource('unit-kemitraan-user', UnitKemitraanUserExportController::class);
@@ -971,4 +990,12 @@ Route::prefix('order-manual-modul')
             // Picking list (dipakai di confirmPrintPicking)
             Route::get('/realisasi/picking-list/{id}', [OrderManualSertifikatController::class, 'pickingList'])->name('realisasi.picking-list');
         });
-            
+            // Tambahkan use statement ini di bagian atas routes/web.php,
+// dekat use App\Http\Controllers\ImportController; dkk:
+
+
+// Tambahkan route ini di mana saja setelah baris "Route::resource('users', ...)"
+// (boleh diletakkan tepat sebelum atau sesudah group Route::prefix('import')):
+Route::get('/pengeluaran', [PengeluaranController::class, 'index'])
+    ->middleware('auth')
+    ->name('pengeluaran.index');

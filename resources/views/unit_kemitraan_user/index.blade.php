@@ -1,228 +1,255 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Unit Kemitraan + User Export - biMBA AIUEO</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+@extends('layouts.panel')
 
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        
-        .table-container {
-            overflow-x: auto;
-            max-height: 70vh;
-        }
-        
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            min-width: 1800px;
-        }
-        
-        th, td {
-            padding: 12px 8px;
-            font-size: 0.875rem;
-            vertical-align: top;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        th {
-            background-color: #f8fafc;
-            font-weight: 600;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            font-size: 0.8rem;
-        }
-        
-        tr:hover { background-color: #f1f5f9; }
-        
-        .truncate {
-            max-width: 180px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
+@section('title', 'Unit + User Matching')
 
-    @include('partials.top-nav')
+@push('styles')
+<style>
+    /* ===== Tabel data ===== */
+    .table-wrap { overflow: auto; max-height: 68vh; }
+    .data-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        min-width: 1500px;
+        font-size: 0.8125rem;
+    }
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+        white-space: nowrap;
+        border-bottom: 1px solid rgba(15, 27, 51, 0.06);
+    }
+    .data-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #F4F6FA;
+        color: rgba(15, 27, 51, 0.6);
+        font-weight: 600;
+        font-size: 0.75rem;
+        border-bottom: 1px solid rgba(15, 27, 51, 0.1);
+    }
+    .data-table tbody tr:hover td { background-color: #F7F9FC; }
+    .data-table .ctr { text-align: center; }
 
-    <div class="max-w-screen-2xl mx-auto px-6 py-6">
+    /* Teks panjang dipotong "...", isi lengkap muncul saat kursor diarahkan (atribut title) */
+    .cell-clip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
-        <div class="flex justify-between items-center mb-6">
-            <form action="{{ route('unit-kemitraan-user.generate-match') }}" method="POST" style="display: inline;">
-    @csrf
-    <button type="submit" class="btn btn-success" 
-            onclick="return confirm('Generate matching untuk semua unit yang belum match?')">
-        <i class="fas fa-magic"></i> Generate Match Otomatis
-    </button>
-</form>
+    /* Kolom pertama dan Aksi tetap terlihat saat tabel digeser ke samping */
+    .data-table .sticky-l { position: sticky; left: 0; z-index: 10; background: #fff; }
+    .data-table thead .sticky-l { z-index: 30; background: #F4F6FA; }
+    .data-table .sticky-r { position: sticky; right: 0; z-index: 10; background: #fff; }
+    .data-table thead .sticky-r { z-index: 30; background: #F4F6FA; }
+    .data-table tbody tr:hover .sticky-l,
+    .data-table tbody tr:hover .sticky-r { background-color: #F7F9FC; }
+
+    /* Sembunyikan teks "Showing ..." bawaan pagination Laravel */
+    .pager nav p { display: none; }
+</style>
+@endpush
+
+@section('content')
+
+    @php
+        $inp = 'w-full bg-white border border-navy-950/10 rounded-xl px-3.5 py-2.5 text-sm placeholder:text-navy-950/35 focus:outline-none focus:border-navy-700';
+        $lbl = 'block text-xs font-medium text-navy-950/60 mb-1.5';
+    @endphp
+
+    {{-- ============ JUDUL ============ --}}
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Unit + User Matching</h1>
+            <p class="mt-1 text-sm text-navy-950/55">Mencocokkan No Cab unit kemitraan dengan data user biMBA Shop</p>
         </div>
 
-        <!-- Filter -->
-        <div class="bg-white rounded-3xl shadow p-6 mb-8">
-            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">No Cab</label>
-                    <input type="text" name="no_cab" value="{{ request('no_cab') }}" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3" placeholder="Cari No Cab...">
-                </div>
+        <form action="{{ route('unit-kemitraan-user.generate-match') }}" method="POST"
+              onsubmit="return confirm('Generate matching untuk semua unit yang belum match?')">
+            @csrf
+            <button type="submit"
+                    class="inline-flex items-center gap-2 bg-rust-500 hover:bg-rust-600 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 11-11"/><path d="m13.5 4.5 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"/><path d="M18.5 14l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4Z"/></svg>
+                Generate Match Otomatis
+            </button>
+        </form>
+    </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">NIM / No Induk Mitra</label>
-                    <input type="text" 
-                        name="no_induk_mitra" 
-                        value="{{ request('no_induk_mitra') }}" 
-                        class="w-full border border-gray-300 rounded-xl px-4 py-3" 
-                        placeholder="Cari NIM / No Induk Mitra...">
-                </div>
+    {{-- ============ NOTIFIKASI ============ --}}
+    @if (session('success'))
+        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+    @endif
+    @if (session('warning'))
+        <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ session('warning') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+    @endif
 
-                <!-- Status Pengelolaan -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Pengelolaan</label>
-                    <select name="status_pengelolaan" class="w-full border border-gray-300 rounded-xl px-4 py-3">
-                        <option value="">Semua</option>
-                        <option value="Unit Aktif" {{ request('status_pengelolaan') == 'Unit Aktif' ? 'selected' : '' }}>Unit Aktif</option>
-                        <option value="Unit Pasif" {{ request('status_pengelolaan') == 'Unit Pasif' ? 'selected' : '' }}>Unit Pasif</option>
-                        <option value="all" {{ request('status_pengelolaan') == 'all' ? 'selected' : '' }}>Tampilkan Semua</option>
-                    </select>
-                </div>
+    {{-- ============ FILTER ============ --}}
+    <div class="mt-6 bg-white rounded-2xl shadow-card p-5 sm:p-6">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
 
-                <!-- Mitra Pengelolaan -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mitra Pengelolaan</label>
-                    <select name="mitra_pengelolaan" class="w-full border border-gray-300 rounded-xl px-4 py-3">
-                        <option value="">Semua</option>
-                        <option value="YPAI" {{ request('mitra_pengelolaan') == 'YPAI' ? 'selected' : '' }}>YPAI</option>
-                        <option value="PUW1 | OPS1" {{ request('mitra_pengelolaan') == 'PUW1 | OPS1' ? 'selected' : '' }}>PUW1 | OPS1</option>
-                    </select>
-                </div>
+            <div>
+                <label for="f_no_cab" class="{{ $lbl }}">No Cab</label>
+                <input id="f_no_cab" type="text" name="no_cab" value="{{ request('no_cab') }}" placeholder="Cari No Cab" class="{{ $inp }}">
+            </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
-                        <option value="">Semua Status</option>
-                        <option value="MM" {{ request('status') == 'MM' ? 'selected' : '' }}>MM</option>
-                        <option value="MM 1" {{ request('status') == 'MM 1' ? 'selected' : '' }}>MM 1</option>
-                        <option value="Aktif 1" {{ request('status') == 'Aktif 1' ? 'selected' : '' }}>Aktif 1</option>
-                        <option value="MK 1" {{ request('status') == 'MK 1' ? 'selected' : '' }}>MK 1</option>
-                        <option value="MK" {{ request('status') == 'MK' ? 'selected' : '' }}>MK</option>
-                        <option value="MK Rinda" {{ request('status') == 'MK Rinda' ? 'selected' : '' }}>MK Rinda</option>
-                        <option value="MKU" {{ request('status') == 'MKU' ? 'selected' : '' }}>MKU</option>
-                        <option value="MKU 1" {{ request('status') == 'MKU 1' ? 'selected' : '' }}>MKU 1</option>
-                        <option value="E-biMBA Aktif" {{ request('status') == 'E-biMBA Aktif' ? 'selected' : '' }}>E-biMBA Aktif</option>
-                    </select>
-                </div>
+            <div>
+                <label for="f_nim" class="{{ $lbl }}">NIM / No Induk Mitra</label>
+                <input id="f_nim" type="text" name="no_induk_mitra" value="{{ request('no_induk_mitra') }}" placeholder="Cari NIM" class="{{ $inp }}">
+            </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Matching First Name</label>
-                    <select name="matching_status" class="w-full border border-gray-300 rounded-xl px-4 py-3">
-                        <option value="">Semua</option>
-                        <option value="ditemukan" {{ request('matching_status') == 'ditemukan' ? 'selected' : '' }}>✅ Ditemukan</option>
-                        <option value="tidak_ditemukan" {{ request('matching_status') == 'tidak_ditemukan' ? 'selected' : '' }}>❌ Tidak Ditemukan</option>
-                    </select>
-                </div>
+            <div>
+                <label for="f_status_pengelolaan" class="{{ $lbl }}">Status Pengelolaan</label>
+                <select id="f_status_pengelolaan" name="status_pengelolaan" class="{{ $inp }}">
+                    <option value="">Semua</option>
+                    @foreach (['Unit Aktif' => 'Unit Aktif', 'Unit Pasif' => 'Unit Pasif', 'all' => 'Tampilkan semua'] as $nilai => $teks)
+                        <option value="{{ $nilai }}" {{ request('status_pengelolaan') == $nilai ? 'selected' : '' }}>{{ $teks }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-                <div class="xl:col-span-6 flex gap-3">
-                    <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-blue-700">
-                        🔍 Terapkan Filter
-                    </button>
-                    <a href="{{ route('unit-kemitraan-user.index') }}" 
-                       class="bg-gray-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-600">
-                        Reset
-                    </a>
-                </div>
-            </form>
-        </div>
+            <div>
+                <label for="f_mitra_pengelolaan" class="{{ $lbl }}">Mitra Pengelolaan</label>
+                <select id="f_mitra_pengelolaan" name="mitra_pengelolaan" class="{{ $inp }}">
+                    <option value="">Semua</option>
+                    @foreach (['YPAI', 'PUW1 | OPS1'] as $nilai)
+                        <option value="{{ $nilai }}" {{ request('mitra_pengelolaan') == $nilai ? 'selected' : '' }}>{{ $nilai }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-        <!-- TABEL -->
-        <div class="bg-white rounded-3xl shadow table-container">
-            <table class="text-sm">
+            <div>
+                <label for="f_status" class="{{ $lbl }}">Status</label>
+                <select id="f_status" name="status" class="{{ $inp }}">
+                    <option value="">Semua status</option>
+                    @foreach (['MM', 'MM 1', 'Aktif 1', 'MK 1', 'MK', 'MK Rinda', 'MKU', 'MKU 1', 'E-biMBA Aktif'] as $nilai)
+                        <option value="{{ $nilai }}" {{ request('status') == $nilai ? 'selected' : '' }}>{{ $nilai }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="f_matching" class="{{ $lbl }}">Matching First Name</label>
+                <select id="f_matching" name="matching_status" class="{{ $inp }}">
+                    <option value="">Semua</option>
+                    <option value="ditemukan" {{ request('matching_status') == 'ditemukan' ? 'selected' : '' }}>Ditemukan</option>
+                    <option value="tidak_ditemukan" {{ request('matching_status') == 'tidak_ditemukan' ? 'selected' : '' }}>Tidak ditemukan</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-2 lg:col-span-3 xl:col-span-6 flex items-center gap-2">
+                <button type="submit"
+                        class="bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-6 py-2.5 rounded-xl">
+                    Terapkan filter
+                </button>
+                <a href="{{ route('unit-kemitraan-user.index') }}"
+                   class="text-sm font-medium text-navy-950/60 hover:text-rust-600 px-4 py-2.5">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    {{-- ============ TABEL ============ --}}
+    <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">
+        <div class="table-wrap">
+            <table class="data-table">
                 <thead>
-                    <tr class="bg-gray-100">
-                        <th class="narrow uppercase">No Cab</th>
-                        <th class="medium uppercase">BiMBA AIUEO Unit</th>
-                        <th class="medium uppercase">Nama Mitra</th>
-                        <th class="narrow uppercase">Jenis Unit</th>
-                        <th class="narrow uppercase">Status Pengelolaan</th>
-                        <th class="narrow uppercase">Mitra Pengelolaan</th>
-                        <th class="narrow uppercase">No Induk Mitra</th>
-                        <th class="medium uppercase">No HP</th>
-                        <th class="wide uppercase">Matching First Name</th>
-                        <th class="wide uppercase">User Email</th>
-                        <th class="narrow uppercase">Display Name</th>
-                        <th class="narrow text-center">Aksi</th>
+                    <tr>
+                        <th class="sticky-l">No Cab</th>
+                        <th>biMBA AIUEO Unit</th>
+                        <th>Nama Mitra</th>
+                        <th>Jenis Unit</th>
+                        <th class="ctr">Status Pengelolaan</th>
+                        <th>Mitra Pengelolaan</th>
+                        <th>No Induk Mitra</th>
+                        <th>No HP</th>
+                        <th>Matching First Name</th>
+                        <th>User Email</th>
+                        <th>Display Name</th>
+                        <th class="ctr sticky-r">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @forelse($unitKemitraans as $unit)
+                <tbody>
+                    @forelse ($unitKemitraans as $unit)
                         @php
-                            $noCab = trim((string)$unit->no_cab);
+                            $noCab = trim((string) $unit->no_cab);
 
-                            $matched = $userExports->first(function ($u) use ($noCab) {
-
-                                $billing = trim((string)($u->billing_last_name ?? ''));
-                                $first   = trim((string)($u->first_name ?? ''));
-                                $last    = trim((string)($u->last_name ?? ''));
-
-                                return str_contains($billing, $noCab)
-                                    || str_contains($first, $noCab)
-                                    || str_contains($last, $noCab);
+                            // Cari user yang nama belakang billing / nama depan / nama belakangnya memuat No Cab.
+                            // No Cab kosong tidak dicocokkan (str_contains dengan teks kosong selalu true).
+                            $matched = $noCab === '' ? null : $userExports->first(function ($u) use ($noCab) {
+                                return str_contains(trim((string) ($u->billing_last_name ?? '')), $noCab)
+                                    || str_contains(trim((string) ($u->first_name ?? '')), $noCab)
+                                    || str_contains(trim((string) ($u->last_name ?? '')), $noCab);
                             });
-                            @endphp
-                        <tr class="hover:bg-gray-50">
-                            <td class="font-medium">{{ $unit->no_cab ?? '-' }}</td>
+                        @endphp
+                        <tr>
+                            <td class="sticky-l font-medium">{{ $unit->no_cab ?? '-' }}</td>
                             <td>{{ $unit->bimba_aiueo_unit ?? '-' }}</td>
-                            <td class="truncate">{{ $unit->nama_mitra ?? '-' }}</td>
+                            <td class="cell-clip" title="{{ $unit->nama_mitra }}">{{ $unit->nama_mitra ?? '-' }}</td>
                             <td>{{ $unit->status ?? '-' }}</td>
-                            <!--untuk unit pengelolaan-->
-                            <td>{{ $unit->status_pengelolaan ?? '-' }}</td>
+                            <td class="ctr">
+                                @if ($unit->status_pengelolaan === 'Unit Aktif')
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Unit Aktif</span>
+                                @elseif ($unit->status_pengelolaan === 'Unit Pasif')
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Unit Pasif</span>
+                                @else
+                                    <span class="text-navy-950/35">-</span>
+                                @endif
+                            </td>
                             <td>{{ $unit->mitra_pengelolaan ?? '-' }}</td>
                             <td>{{ $unit->no_induk_mitra ?? '-' }}</td>
                             <td>{{ $unit->no_hp ?? '-' }}</td>
-                            <td class="truncate">
-                                @if($matched)
-                                    <span class="text-green-600 font-medium">{{ $matched->first_name }}</span>
+                            <td class="cell-clip" title="{{ $matched?->first_name }}">
+                                @if ($matched)
+                                    <span class="font-medium text-emerald-700">{{ $matched->first_name }}</span>
                                 @else
-                                    <span class="text-red-500 text-sm">Tidak ditemukan</span>
+                                    <span class="text-rust-600">Tidak ditemukan</span>
                                 @endif
                             </td>
-                            <td class="truncate text-blue-600">{{ $matched ? $matched->user_email : '-' }}</td>
-                            <td class="truncate">{{ $matched ? $matched->display_name : '-' }}</td>
-                            <td class="text-center">
-                                <a href="{{ route('unit-kemitraan.show', $unit) }}" class="text-blue-600 hover:underline">👁</a>
+                            <td class="cell-clip" title="{{ $matched?->user_email }}">
+                                @if ($matched && $matched->user_email)
+                                    <a href="mailto:{{ $matched->user_email }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $matched->user_email }}</a>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="cell-clip" title="{{ $matched?->display_name }}">{{ $matched?->display_name ?? '-' }}</td>
+                            <td class="ctr sticky-r">
+                                <a href="{{ route('unit-kemitraan.show', $unit) }}" title="Lihat" aria-label="Lihat unit"
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-navy-700 hover:bg-navy-700/10 transition-colors">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-16 text-gray-500">
-                                Belum ada data. Silakan import file Excel.
+                            <td colspan="12" class="!text-center py-16 text-navy-950/50">
+                                Tidak ada unit yang cocok dengan filter ini.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        <!-- Pagination -->
-        <div class="mt-8 flex justify-between items-center">
-            <div class="text-gray-600">
-                Menampilkan <strong>{{ $unitKemitraans->firstItem() ?? 0 }}</strong> 
-                sampai <strong>{{ $unitKemitraans->lastItem() ?? 0 }}</strong> 
-                dari <strong>{{ $unitKemitraans->total() }}</strong> data
-            </div>
-            <div>
-                {{ $unitKemitraans->links() }}
-            </div>
-        </div>
-
     </div>
-</body>
-</html>
+
+    {{-- ============ PAGINATION ============ --}}
+    <div class="mt-5 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-navy-950/60">
+            Menampilkan
+            <span class="font-semibold text-navy-950">{{ number_format($unitKemitraans->firstItem() ?? 0, 0, ',', '.') }}</span>
+            sampai
+            <span class="font-semibold text-navy-950">{{ number_format($unitKemitraans->lastItem() ?? 0, 0, ',', '.') }}</span>
+            dari
+            <span class="font-semibold text-navy-950">{{ number_format($unitKemitraans->total(), 0, ',', '.') }}</span>
+            data
+        </p>
+        <div class="pager max-w-full overflow-x-auto">
+            {{ $unitKemitraans->onEachSide(1)->links('pagination::tailwind') }}
+        </div>
+    </div>
+
+@endsection
