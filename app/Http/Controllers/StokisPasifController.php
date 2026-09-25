@@ -87,7 +87,7 @@ class StokisPasifController extends Controller
 
     public function destroy($id)
     {
-        $stokis = StokisMitra::where('status', 'pasif')->findOrFail($id);
+        $stokis = StokisMitra::where('status', 'Pasif')->findOrFail($id);
         $stokis->delete();
 
         return redirect()->route('stokis-pasif.index')
@@ -114,6 +114,7 @@ class StokisPasifController extends Controller
             'item_sku' => 'nullable|string',
             'ops_stokist' => 'nullable|string|max:255',
             'tanggal_pasif' => 'nullable|date',
+            'status' => 'required|in:aktif,pasif',
         ];
     }
 }

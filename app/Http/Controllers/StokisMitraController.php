@@ -73,6 +73,7 @@ class StokisMitraController extends Controller
         'related_pengajuan_perubahan' => 'nullable|string',
         'item_sku' => 'nullable|string',
         'ops_stokist' => 'nullable|string|max:255',
+        'status' => 'required|in:aktif,pasif',
     ]);
 
     $stokis->update($validated);

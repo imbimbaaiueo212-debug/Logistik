@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_approved',
     ];
 
     /**
@@ -47,4 +48,19 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function modules()
+{
+    return $this->belongsToMany(Module::class);
+}
+
+public function hasModule(string $key): bool
+{
+    return $this->role === 'admin' || $this->modules()->where('key', $key)->exists();
+}
+
+public function isAdmin(): bool
+{
+    return $this->role === 'admin';
+}
 }

@@ -58,6 +58,7 @@
             ['No Cab', 'no_cab'],
             ['Nama Stokis Kemitraan', 'nama_stokis_db_kemitraan', 'clip'],
             ['Nama Stokis biMBA Shop', 'nama_stokis_db_bimbashop', 'clip'],
+            ['Status', 'status'],          // ← tambahkan baris ini
             ['No Induk Mitra', 'no_induk_mitra'],
             ['Nama Mitra', 'nama_mitra', 'clip'],
             ['Email', 'email', 'email'],

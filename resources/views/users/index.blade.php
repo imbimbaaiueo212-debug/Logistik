@@ -2,14 +2,21 @@
 
 @section('content')
 
-<a href="{{ route('users.create') }}" class="bg-blue-500 text-white px-3 py-2 rounded">
-    + User
+@if (session('success'))
+    <div class="bg-green-100 text-green-700 text-sm p-3 rounded-lg mb-4">
+        {{ session('success') }}
+    </div>
+@endif
+
+<a href="{{ route('register') }}" class="bg-blue-500 text-white px-3 py-2 rounded">
+    + Tambah User
 </a>
 
 <table class="w-full mt-4 border">
     <tr>
         <th>Name</th>
         <th>Email</th>
+        <th>Role</th>
         <th>Aksi</th>
     </tr>
 
@@ -17,6 +24,12 @@
     <tr class="{{ $user->id == Auth::id() ? 'bg-yellow-100' : '' }}">
         <td class="text-center">{{ $user->name }}</td>
         <td class="text-center">{{ $user->email }}</td>
+        <td class="text-center">
+            <span class="px-2 py-1 rounded-full text-xs
+                {{ $user->role == 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700' }}">
+                {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+            </span>
+        </td>
         <td class="text-center space-x-2">
 
     <!-- EDIT -->

@@ -56,14 +56,18 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
+// ====================== TAMBAH USER / REGISTRASI (khusus admin) ======================
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
+});
 
 // ====================== USERS ======================
 Route::resource('users', UserController::class);
 Route::get('/users/{id}/reset-password', [UserController::class, 'resetForm'])->name('users.reset.form');
 Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset');
-
+Route::get('/users/{id}/access', [UserController::class, 'accessForm'])->name('users.access');
+Route::put('/users/{id}/access', [UserController::class, 'updateAccess'])->name('users.access.update');
 // ====================== ORDER MANUAL ===============
 Route::prefix('import')
     ->name('import.')

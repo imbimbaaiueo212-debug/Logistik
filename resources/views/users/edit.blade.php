@@ -39,13 +39,36 @@
         </div>
 
         <!-- Role -->
-        <div class="mb-6">
+        <div class="mb-4">
             <label class="block mb-1 font-medium">Role</label>
-            <select name="role" class="w-full border p-2 rounded-lg">
-                <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Admin</option>
-                <option value="gudang" {{ $user->role == 'gudang' ? 'selected' : '' }}>Gudang</option>
-                <option value="manager" {{ $user->role == 'manager' ? 'selected' : '' }}>Manager</option>
+            <select name="role" id="roleSelect" class="w-full border p-2 rounded-lg" required>
+                <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin (Full Akses)</option>
+                <option value="gudang" {{ old('role', $user->role) == 'gudang' ? 'selected' : '' }}>User Gudang</option>
+                <option value="customer" {{ old('role', $user->role) == 'customer' ? 'selected' : '' }}>Customer</option>
+                <option value="pic" {{ old('role', $user->role) == 'pic' ? 'selected' : '' }}>PIC</option>
+                <option value="pic_khusus" {{ old('role', $user->role) == 'pic_khusus' ? 'selected' : '' }}>PIC Khusus</option>
             </select>
+            @error('role')
+                <p class="text-red-500 text-sm">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <!-- Akses Modul -->
+        <div class="mb-6" id="moduleWrap">
+            <label class="block mb-1 font-medium">Akses Modul</label>
+            <div class="border p-3 rounded-lg max-h-48 overflow-y-auto">
+                @foreach($modules as $m)
+                    <label class="flex items-center gap-2 mb-1">
+                        <input type="checkbox" name="modules[]" value="{{ $m->id }}"
+                               {{ $user->modules->contains($m->id) ? 'checked' : '' }}>
+                        {{ $m->name }}
+                    </label>
+                @endforeach
+            </div>
+            @error('modules')
+                <p class="text-red-500 text-sm">{{ $message }}</p>
+            @enderror
+            <p class="text-xs text-gray-500 mt-1" id="moduleHint">Customer/PIC hanya boleh pilih 1 akses.</p>
         </div>
 
         <!-- Info Password -->
@@ -87,5 +110,34 @@
     </form>
 
 </div>
+
+<script>
+    const roleSelect = document.getElementById('roleSelect');
+    const moduleWrap = document.getElementById('moduleWrap');
+    const moduleHint = document.getElementById('moduleHint');
+
+    function updateModuleField() {
+        const role = roleSelect.value;
+        const inputs = moduleWrap.querySelectorAll('input[name="modules[]"]');
+
+        // Admin & Gudang: akses otomatis, tidak perlu dipilih manual
+        if (role === 'admin' || role === 'gudang') {
+            moduleWrap.style.display = 'none';
+            return;
+        }
+
+        moduleWrap.style.display = 'block';
+        const single = ['customer', 'pic'].includes(role);
+
+        inputs.forEach(el => { el.type = single ? 'radio' : 'checkbox'; });
+
+        moduleHint.textContent = single
+            ? 'Role ini hanya boleh diberi 1 akses modul.'
+            : 'PIC Khusus boleh diberi lebih dari 1 akses modul.';
+    }
+
+    roleSelect.addEventListener('change', updateModuleField);
+    updateModuleField();
+</script>
 
 @endsection

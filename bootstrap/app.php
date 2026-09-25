@@ -13,7 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
 
     $middleware->alias([
-        'freeze' => \App\Http\Middleware\CheckWarehouseFreeze::class,
+        'freeze'  => \App\Http\Middleware\CheckWarehouseFreeze::class,
+        'module'  => \App\Http\Middleware\CheckModuleAccess::class,
+        'admin'   => \App\Http\Middleware\EnsureUserIsAdmin::class,
     ]);
 
 })

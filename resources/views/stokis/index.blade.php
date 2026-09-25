@@ -58,6 +58,7 @@
             ['No Cab', 'no_cab'],
             ['Nama Stokis Kemitraan', 'nama_stokis_db_kemitraan', 'clip'],
             ['Nama Stokis biMBA Shop', 'nama_stokis_db_bimbashop', 'clip'],
+            ['Status', 'status'],          // ← tambahkan baris ini
             ['No Induk Mitra', 'no_induk_mitra'],
             ['Nama Mitra', 'nama_mitra', 'clip'],
             ['Email', 'email', 'email'],
@@ -70,6 +71,7 @@
             ['Pengajuan Perubahan', 'related_pengajuan_perubahan', 'clip'],
             ['Item SKU', 'item_sku', 'sku'],
             ['Ops Stokist', 'ops_stokist'],
+            
         ];
     @endphp
 
@@ -208,8 +210,6 @@
                                     @endif
                                 </td>
                             @endforeach
-
-                            {{-- Aksi --}}
                            {{-- Aksi --}}
 <td class="ctr sticky-r">
     <div class="inline-flex items-center gap-0.5">

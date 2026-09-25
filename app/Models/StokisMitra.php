@@ -27,6 +27,7 @@ class StokisMitra extends Model
         'related_pengajuan_perubahan',
         'item_sku',
         'ops_stokist',
+        'status',
     ];
 
     // Hapus casts dulu

@@ -1,5 +1,5 @@
 @php
-    // [nama field, label, tipe]. Tipe: text, email, date, textarea
+    // [nama field, label, tipe]. Tipe: text, email, date, textarea, select
     $fields = [
         ['no_cab', 'No Cab', 'text'],
         ['no_induk_mitra', 'No Induk Mitra', 'text'],
@@ -10,6 +10,7 @@
         ['no_hp', 'No HP', 'text'],
         ['ops_stokist', 'Ops Stokist', 'text'],
         ['db_kemitraan_db_bimbashop', 'DB Kemitraan & Shop', 'text'],
+        ['status', 'Status', 'select'],
         ['tanggal_pasif', 'Tanggal Pasif', 'date'],
         ['related_form_pembukaan_unit_aktif', 'Form Pembukaan Unit', 'textarea'],
         ['related_formulir_kerjasama_english', 'Kerjasama English', 'textarea'],
@@ -33,7 +34,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
         @foreach ($fields as [$nama, $label, $tipe])
             @php
-                $val = old($nama, $stokis->{$nama});
+                $val = old($nama, $stokis->{$nama} ?? null);
                 if (is_array($val)) { $val = implode(', ', $val); }
                 if ($tipe === 'date') {
                     $val = filled($val) ? \Illuminate\Support\Carbon::parse($val)->format('Y-m-d') : '';
@@ -47,6 +48,13 @@
 
                 @if ($tipe === 'textarea')
                     <textarea id="{{ $nama }}" name="{{ $nama }}" rows="2" class="{{ $inputCls }}">{{ $val }}</textarea>
+
+                @elseif ($tipe === 'select' && $nama === 'status')
+                    <select id="{{ $nama }}" name="{{ $nama }}" class="{{ $inputCls }}">
+                        <option value="aktif" {{ $val === 'aktif' ? 'selected' : '' }}>Aktif</option>
+                        <option value="pasif" {{ ($val === 'pasif' || blank($val)) ? 'selected' : '' }}>Pasif</option>
+                    </select>
+
                 @else
                     <input id="{{ $nama }}" type="{{ $tipe }}" name="{{ $nama }}" value="{{ $val }}"
                            @if ($nama === 'no_cab') required @endif

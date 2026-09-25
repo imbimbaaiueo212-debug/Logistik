@@ -93,7 +93,7 @@
 {{-- Header --}}
 <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
     <div>
-        <h2 class="text-2xl font-bold text-[#162749]">Manual Pemesanan</h2>
+        <h2 class="text-2xl font-bold text-[#162749]">Data Realisasi Majalah</h2>
         <p class="text-sm text-gray-500 mt-0.5">Kelola data pemesanan manual</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">

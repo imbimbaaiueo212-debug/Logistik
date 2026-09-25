@@ -60,6 +60,15 @@
             </div>
 
             <div>
+                <label class="block text-sm text-gray-600 mb-1">Status</label>
+                <select name="status"
+                        class="w-full border border-gray-300 rounded-2xl px-4 py-2.5 focus:outline-none focus:border-blue-500">
+                    <option value="aktif" {{ old('status', $stokis->status) === 'aktif' ? 'selected' : '' }}>Aktif</option>
+                    <option value="pasif" {{ old('status', $stokis->status) === 'pasif' ? 'selected' : '' }}>Pasif</option>
+                </select>
+            </div>
+
+            <div>
                 <label class="block text-sm text-gray-600 mb-1">No Induk Mitra</label>
                 <input type="text" name="no_induk_mitra" value="{{ old('no_induk_mitra', $stokis->no_induk_mitra) }}"
                        class="w-full border border-gray-300 rounded-2xl px-4 py-2.5 focus:outline-none focus:border-blue-500">

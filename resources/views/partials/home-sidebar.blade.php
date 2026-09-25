@@ -144,8 +144,12 @@
 
     {{-- Logo --}}
     <div class="flex items-center px-5 py-4 border-b shrink-0" style="border-color: rgba(255,255,255,0.08);">
-        <img src="/public/assets/img/logotulisan.png" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
+        <img src="/assets/img/logotulisan.png" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
     </div>
+
+    @php
+        $__u = Auth::user();
+    @endphp
 
     <nav class="flex-1 px-3 py-4">
 
@@ -157,9 +161,22 @@
             </span>
         </a>
 
-        {{-- ================= DATABASE ================= --}}
-        <p class="hs-group-label">Database</p>
+        {{-- Dashboard (Master Data / Gudang) — khusus admin & gudang --}}
+        @if($__u->role === 'admin' || $__u->role === 'gudang')
+        <a href="{{ route('dashboard') }}" class="hs-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                Dashboard
+            </span>
+        </a>
+        @endif
 
+        {{-- ================= DATABASE ================= --}}
+        @if($__u->hasModule('user') || $__u->hasModule('produk') || $__u->hasModule('suplier') || $__u->hasModule('stokis'))
+        <p class="hs-group-label">DATABASE MASTER</p>
+        @endif
+
+        @if($__u->hasModule('user'))
         {{-- User --}}
         @php
             $hsUserActive = request()->routeIs(['user.export','unit-kemitraan.*','unit-kemitraan-user.*']);
@@ -176,7 +193,9 @@
             <a href="{{ route('unit-kemitraan.index') }}" class="hs-sub-link {{ request()->routeIs('unit-kemitraan.*') ? 'active' : '' }}">Unit Kemitraan</a>
             <a href="{{ route('unit-kemitraan-user.index') }}" class="hs-sub-link {{ request()->routeIs('unit-kemitraan-user.*') ? 'active' : '' }}">Unit + User Matching</a>
         </div>
+        @endif
 
+        @if($__u->hasModule('produk'))
         {{-- Produk --}}
         <a href="{{ route('products.index') }}" class="hs-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
             <span class="inline-flex items-center gap-2">
@@ -184,7 +203,9 @@
                 Produk
             </span>
         </a>
+        @endif
 
+        @if($__u->hasModule('suplier'))
         {{-- Suplier --}}
         <a href="{{ route('supplier-product.index') }}" class="hs-link {{ request()->routeIs('supplier-product.*') ? 'active' : '' }}">
             <span class="inline-flex items-center gap-2">
@@ -192,7 +213,9 @@
                 Suplier
             </span>
         </a>
+        @endif
 
+        @if($__u->hasModule('stokis'))
         {{-- Stokis --}}
         @php $hsStokisActive = request()->routeIs('stokis.*', 'stokis-pasif.*'); @endphp
         <button type="button" data-hs-toggle="#hs-stokis" class="hs-toggle {{ $hsStokisActive ? 'open has-active' : '' }}">
@@ -203,14 +226,18 @@
             <svg class="hs-chevron {{ $hsStokisActive ? 'open' : '' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
         </button>
         <div id="hs-stokis" class="hs-sub {{ $hsStokisActive ? 'open' : '' }}">
-    <a href="{{ route('stokis.index') }}" class="hs-sub-link {{ request()->routeIs('stokis.*') ? 'active' : '' }}">Aktif</a>
-    <a href="{{ route('stokis-pasif.index') }}" class="hs-sub-link {{ request()->routeIs('stokis-pasif.*') ? 'active' : '' }}">Pasif</a>
-</div>
+            <a href="{{ route('stokis.index') }}" class="hs-sub-link {{ request()->routeIs('stokis.*') ? 'active' : '' }}">Aktif</a>
+            <a href="{{ route('stokis-pasif.index') }}" class="hs-sub-link {{ request()->routeIs('stokis-pasif.*') ? 'active' : '' }}">Pasif</a>
+        </div>
+        @endif
 
         {{-- ================= APLIKASI PENJUALAN ================= --}}
-        <p class="hs-group-label">Aplikasi Penjualan</p>
+        @if($__u->hasModule('pemesanan') || $__u->hasModule('penjualan') || $__u->hasModule('persiapan') || $__u->hasModule('qc') || $__u->hasModule('distribusi'))
+        <p class="hs-group-label">ADM OPS LOGISTIK</p>
+        @endif
 
-                      {{-- Pemesanan --}}
+        @if($__u->hasModule('pemesanan'))
+        {{-- Pemesanan --}}
         @php
             // [label, nama route, pola route untuk state aktif]
             $hsPasifMenu = [
@@ -242,11 +269,11 @@
             <svg class="hs-chevron {{ $hsPemesananActive ? 'open' : '' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
         </button>
         <div id="hs-pemesanan" class="hs-sub {{ $hsPemesananActive ? 'open' : '' }}">
-            <p class="hs-sub-label">biMBA Shop</p>
+            <p class="hs-sub-label">Entry biMBA Shop</p>
             <a href="{{ route('order.index') }}" class="hs-sub-link {{ request()->routeIs('order.index') ? 'active' : '' }}">Ringkasan Order</a>
             <a href="{{ route('import.bimbashop') }}" class="hs-sub-link {{ request()->routeIs('import.bimbashop','import.bimbashop.*') ? 'active' : '' }}">Import biMBA Shop</a>
 
-            <p class="hs-sub-label">Manual</p>
+            <p class="hs-sub-label">Entry Manual</p>
 
             {{-- Majalah (dropdown) --}}
             <button type="button" data-hs-toggle="#hs-majalah" class="hs-sub-toggle {{ $hsMajalahActive ? 'open has-active' : '' }}">
@@ -277,13 +304,15 @@
                         <a href="{{ route($rute) }}" class="hs-sub-link {{ request()->routeIs($pola) ? 'active' : '' }}">{{ $label }}</a>
                     @endforeach
                 </div>
-                <a href="{{ route('import.manual') }}" class="hs-sub-link {{ request()->routeIs('import.manual','import.manual.*') ? 'active' : '' }}">Manual Pemesanan</a>
+                <a href="{{ route('import.manual') }}" class="hs-sub-link {{ request()->routeIs('import.manual','import.manual.*') ? 'active' : '' }}">Data Realisasi</a>
             </div>
 
             <a href="{{ route('order-manual-modul.manual') }}" class="hs-sub-link {{ request()->routeIs('order-manual-modul.*') ? 'active' : '' }}">Modul</a>
             <a href="{{ route('order-manual-sertifikat.manual') }}" class="hs-sub-link {{ request()->routeIs('order-manual-sertifikat.*') ? 'active' : '' }}">Sertifikat</a>
         </div>
+        @endif
 
+        @if($__u->hasModule('penjualan'))
         {{-- Penjualan --}}
         @php $hsPenjualanActive = request()->routeIs(['import.casdana','import.casdana.*','pengeluaran.*']); @endphp
         <button type="button" data-hs-toggle="#hs-penjualan" class="hs-toggle {{ $hsPenjualanActive ? 'open has-active' : '' }}">
@@ -297,7 +326,9 @@
             <a href="{{ route('import.casdana') }}" class="hs-sub-link {{ request()->routeIs('import.casdana','import.casdana.*') ? 'active' : '' }}">Kasdana</a>
             <a href="{{ route('pengeluaran.index') }}" class="hs-sub-link {{ request()->routeIs('pengeluaran.*') ? 'active' : '' }}">Pengeluaran</a>
         </div>
+        @endif
 
+        @if($__u->hasModule('persiapan'))
         {{-- Persiapan --}}
         <a href="{{ route('picking.index') }}" class="hs-link {{ request()->routeIs('picking.*') ? 'active' : '' }}">
             <span class="inline-flex items-center gap-2">
@@ -305,7 +336,9 @@
                 Persiapan
             </span>
         </a>
+        @endif
 
+        @if($__u->hasModule('qc'))
         {{-- QC --}}
         <a href="{{ route('qc-outgoing.index') }}" class="hs-link {{ request()->routeIs('qc-outgoing.*') ? 'active' : '' }}">
             <span class="inline-flex items-center gap-2">
@@ -313,7 +346,9 @@
                 QC
             </span>
         </a>
+        @endif
 
+        @if($__u->hasModule('distribusi'))
         {{-- Distribusi --}}
         @php $hsDistribusiActive = request()->routeIs('packing.*'); @endphp
         <button type="button" data-hs-toggle="#hs-distribusi" class="hs-toggle {{ $hsDistribusiActive ? 'open has-active' : '' }}">
@@ -332,11 +367,11 @@
             <div class="hs-soon">Tiki <span class="hs-badge-soon">segera</span></div>
             <div class="hs-soon">Dll <span class="hs-badge-soon">segera</span></div>
         </div>
+        @endif
 
     </nav>
 
     {{-- User + Logout --}}
-        {{-- User + Logout --}}
     <div class="border-t p-4 shrink-0" style="border-color: rgba(255,255,255,0.08);">
         <p class="text-sm text-white/80 font-medium mb-2 truncate">
             Halo, {{ Auth::user()->name ?? 'Admin' }}
