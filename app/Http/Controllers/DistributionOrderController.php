@@ -27,7 +27,7 @@ class DistributionOrderController extends Controller
     public function jakartaAktif(Request $request)
 {
     $query = DistributionOrder::with(['jakartaAktif', 'packing'])
-        ->whereHas('jakartaAktif');   // ← use relationship instead of non-existent column
+        ->whereHas('jakartaAktif');
 
     if ($request->filled('status_pengiriman')) {
         $query->where('status_pengiriman', $request->status_pengiriman);
@@ -37,7 +37,14 @@ class DistributionOrderController extends Controller
         $query->where('jenis_pengiriman', $request->jenis_pengiriman);
     }
 
-    
+    // Kolom ekspedisi & service ada langsung di tabel distribution_orders
+    if ($request->filled('ekspedisi')) {
+        $query->where('ekspedisi', $request->ekspedisi);
+    }
+
+    if ($request->filled('service')) {
+        $query->where('service', $request->service);
+    }
 
     if ($request->filled('search')) {
         $search = $request->search;
@@ -52,7 +59,14 @@ class DistributionOrderController extends Controller
         ->paginate(25)
         ->appends($request->query());
 
-    return view('distribution-order.jakarta-aktif', compact('distributionOrders'));
+    // Daftar pilihan untuk dropdown filter Ekspedisi & Service
+    $ekspedisiList = DistributionOrder::whereNotNull('ekspedisi')->where('ekspedisi', '!=', '')
+        ->distinct()->orderBy('ekspedisi')->pluck('ekspedisi');
+
+    $serviceList = DistributionOrder::whereNotNull('service')->where('service', '!=', '')
+        ->distinct()->orderBy('service')->pluck('service');
+
+    return view('distribution-order.jakarta-aktif', compact('distributionOrders', 'ekspedisiList', 'serviceList'));
 }
 
     /**
@@ -154,15 +168,24 @@ public function jakartaPasif(Request $request)
      * Update Distribution Order
      */
     public function update(Request $request, $id)
-    {
-        $distributionOrder = DistributionOrder::findOrFail($id);
+{
+    $distributionOrder = DistributionOrder::findOrFail($id);
 
-        $distributionOrder->update($request->all());
+    $validated = $request->validate([
+        'tgl_pickup'        => 'nullable|date',
+        'awb'               => 'nullable|string|max:100',
+        'status_pengiriman' => 'nullable|string',
+        'tgl_diterima'      => 'nullable|date',
+        'penerima'          => 'nullable|string|max:150',
+        'keterangan'        => 'nullable|string|max:255',
+    ]);
 
-        return redirect()
-            ->back()
-            ->with('success', 'Data berhasil diperbarui');
-    }
+    $distributionOrder->update($validated);
+
+    return redirect()
+        ->back()
+        ->with('success', 'Data berhasil diperbarui');
+}
 
     /**
      * Hapus Distribution Order
