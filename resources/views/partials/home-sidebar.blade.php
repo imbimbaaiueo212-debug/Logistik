@@ -459,45 +459,77 @@
         @endif
 
         @if($__u->hasModule('distribusi'))
-        {{-- Distribusi --}}
-        @php
-            $hsPackingActive = request()->routeIs('packing.*');
-            $hsDistribusiActive = $hsPackingActive;
-        @endphp
-        <button type="button" data-hs-toggle="#hs-distribusi" class="hs-toggle {{ $hsDistribusiActive ? 'open has-active' : '' }}">
-            <span class="inline-flex items-center gap-2">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V7a1 1 0 0 1 1-1h9v10"/><path d="M13 10h4l4 3.5V16h-2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg>
-                Distribusi
-            </span>
-            <svg class="hs-chevron {{ $hsDistribusiActive ? 'open' : '' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+{{-- Distribusi --}}
+@php
+    $hsPackingActive = request()->routeIs('packing.*');
+    $hsEkspedisiActive = request()->routeIs('distribution-order.*') && !request()->filled('ekspedisi');
+    $hsServiceActive = request()->routeIs('distribution-order.*') && request()->filled('ekspedisi');
+    $hsDistribusiActive = $hsPackingActive || $hsEkspedisiActive || $hsServiceActive;
+@endphp
+<button type="button" data-hs-toggle="#hs-distribusi" class="hs-toggle {{ $hsDistribusiActive ? 'open has-active' : '' }}">
+    <span class="inline-flex items-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V7a1 1 0 0 1 1-1h9v10"/><path d="M13 10h4l4 3.5V16h-2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg>
+        Distribusi
+    </span>
+    <svg class="hs-chevron {{ $hsDistribusiActive ? 'open' : '' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+</button>
+<div id="hs-distribusi" class="hs-sub {{ $hsDistribusiActive ? 'open' : '' }}">
+    <div class="hs-sub-inner">
+
+        {{-- Packing (dropdown) --}}
+        <button type="button" data-hs-toggle="#hs-packing" class="hs-sub-toggle {{ $hsPackingActive ? 'open has-active' : '' }}">
+            <span>Packing</span>
+            <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
         </button>
-        <div id="hs-distribusi" class="hs-sub {{ $hsDistribusiActive ? 'open' : '' }}">
+        <div id="hs-packing" class="hs-sub {{ $hsPackingActive ? 'open' : '' }}">
             <div class="hs-sub-inner">
-
-                {{-- Packing (dropdown) --}}
-                <button type="button" data-hs-toggle="#hs-packing" class="hs-sub-toggle {{ $hsPackingActive ? 'open has-active' : '' }}">
-                    <span>Packing</span>
-                    <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <div id="hs-packing" class="hs-sub {{ $hsPackingActive ? 'open' : '' }}">
-                    <div class="hs-sub-inner">
-                        <a href="{{ route('packing.jakarta.aktif') }}" class="hs-sub-link {{ request()->routeIs('packing.jakarta.aktif') ? 'active' : '' }}">Jakarta Aktif</a>
-                        <a href="{{ route('packing.jakarta-pasif') }}" class="hs-sub-link {{ request()->routeIs('packing.jakarta-pasif') ? 'active' : '' }}">Jakarta Pasif</a>
-                        <div class="hs-soon">InterVio (DLC) <span class="hs-badge-soon">segera</span></div>
-                        <div class="hs-soon">English biMBA Talk <span class="hs-badge-soon">segera</span></div>
-                        <a href="{{ route('packing.order-manual') }}" class="hs-sub-link {{ request()->routeIs('packing.order-manual') ? 'active' : '' }}">Order Manual</a>
-                    </div>
-                </div>
-
-                <p class="hs-sub-label">Ekspedisi</p>
-                <div class="hs-soon">Diambil <span class="hs-badge-soon">segera</span></div>
-                <div class="hs-soon">Driver <span class="hs-badge-soon">segera</span></div>
-                <div class="hs-soon">JNE <span class="hs-badge-soon">segera</span></div>
-                <div class="hs-soon">Tiki <span class="hs-badge-soon">segera</span></div>
-                <div class="hs-soon">Dll <span class="hs-badge-soon">segera</span></div>
+                <a href="{{ route('packing.jakarta.aktif') }}" class="hs-sub-link {{ request()->routeIs('packing.jakarta.aktif') ? 'active' : '' }}">Jakarta Aktif</a>
+                <a href="{{ route('packing.jakarta-pasif') }}" class="hs-sub-link {{ request()->routeIs('packing.jakarta-pasif') ? 'active' : '' }}">Jakarta Pasif</a>
+                <div class="hs-soon">InterVio (DLC) <span class="hs-badge-soon">segera</span></div>
+                <div class="hs-soon">English biMBA Talk <span class="hs-badge-soon">segera</span></div>
+                <a href="{{ route('packing.order-manual') }}" class="hs-sub-link {{ request()->routeIs('packing.order-manual') ? 'active' : '' }}">Order Manual</a>
             </div>
         </div>
+
+        {{-- Ekspedisi (dropdown) --}}
+        <button type="button" data-hs-toggle="#hs-ekspedisi" class="hs-sub-toggle {{ $hsEkspedisiActive ? 'open has-active' : '' }}">
+            <span>Ekspedisi</span>
+            <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div id="hs-ekspedisi" class="hs-sub {{ $hsEkspedisiActive ? 'open' : '' }}">
+            <div class="hs-sub-inner">
+                <a href="{{ route('distribution-order.jakarta-aktif') }}" class="hs-sub-link {{ request()->routeIs('distribution-order.jakarta-aktif') && !request()->filled('ekspedisi') ? 'active' : '' }}">Jakarta Aktif</a>
+                <a href="{{ route('distribution-order.jakarta-pasif') }}" class="hs-sub-link {{ request()->routeIs('distribution-order.jakarta-pasif') && !request()->filled('ekspedisi') ? 'active' : '' }}">Jakarta Pasif</a>
+                <div class="hs-soon">InterVio (DLC) <span class="hs-badge-soon">segera</span></div>
+                <div class="hs-soon">English biMBA Talk <span class="hs-badge-soon">segera</span></div>
+                <a href="{{ route('distribution-order.manual') }}" class="hs-sub-link {{ request()->routeIs('distribution-order.manual') && !request()->filled('ekspedisi') ? 'active' : '' }}">Manual</a>
+            </div>
+        </div>
+
+        {{-- Service (dropdown, otomatis dari nama-nama kurir yang ada di data: JNE, TIKI, Lion Parcel, dst) --}}
+        @php $ekspedisiOptions = $ekspedisiOptions ?? collect(); @endphp
+        @if($ekspedisiOptions->isNotEmpty())
+        <button type="button" data-hs-toggle="#hs-service" class="hs-sub-toggle {{ $hsServiceActive ? 'open has-active' : '' }}">
+            <span>Service</span>
+            <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div id="hs-service" class="hs-sub {{ $hsServiceActive ? 'open' : '' }}">
+            <div class="hs-sub-inner">
+                @foreach($ekspedisiOptions as $eks)
+                    <a href="{{ route('distribution-order.jakarta-aktif', ['ekspedisi' => $eks]) }}"
+                       class="hs-sub-link {{ request('ekspedisi') === $eks ? 'active' : '' }}">
+                        {{ $eks }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+        @else
+        <div class="hs-soon">Service <span class="hs-badge-soon">belum ada data</span></div>
         @endif
+
+    </div>
+</div>
+@endif
 
     </nav>
 

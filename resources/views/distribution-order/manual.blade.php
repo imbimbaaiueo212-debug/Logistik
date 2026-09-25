@@ -1,32 +1,38 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distribution Order Manual - biMBA Logistik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        th, td { 
-            padding: 12px 8px; 
-            font-size: 0.875rem; 
-        }
-        /* Style untuk field yang sudah dikunci */
-        input:disabled, select:disabled {
-            background-color: #f3f4f6 !important;
-            color: #6b7280 !important;
-            cursor: not-allowed;
-            border-color: #e5e7eb !important;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
+@extends('layouts.panel')
 
-@include('partials.top-nav')
+@section('title', 'Distribution Order Manual')
 
+@push('styles')
+<style>
+    th, td {
+        padding: 12px 8px;
+        font-size: 0.875rem;
+    }
+    /* Style untuk field yang sudah dikunci */
+    input:disabled, select:disabled {
+        background-color: #f3f4f6 !important;
+        color: #6b7280 !important;
+        cursor: not-allowed;
+        border-color: #e5e7eb !important;
+    }
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fade-in 0.3s ease-out;
+    }
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+@endpush
+
+@section('content')
 <div class="max-w-screen-2xl mx-auto px-6 py-6">
     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
         <div>
@@ -37,7 +43,7 @@
             <p class="text-gray-500 mt-1">Distribusi dari Packing Manual (Majalah / Modul / Sertifikat)</p>
         </div>
 
-        <a href="{{ route('distribution-order.index') }}" 
+        <a href="{{ route('distribution-order.index') }}"
            class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 transition">
             ← Kembali
         </a>
@@ -79,18 +85,18 @@
 
             <div class="md:col-span-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Cari</label>
-                <input type="text" name="search" 
+                <input type="text" name="search"
                        class="w-full border border-gray-300 rounded-2xl px-4 py-3 text-sm"
                        placeholder="No PL / No PS / Nama Unit"
                        value="{{ request('search') }}">
             </div>
 
             <div class="md:col-span-2 flex items-end gap-3">
-                <button type="submit" 
+                <button type="submit"
                         class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-2xl transition">
                     Filter
                 </button>
-                <a href="{{ route('distribution-order.manual') }}" 
+                <a href="{{ route('distribution-order.manual') }}"
                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-2xl text-center transition">
                     Reset
                 </a>
@@ -129,19 +135,19 @@
 
                     <tr class="transition duration-200 hover:bg-gray-50 {{ $isLocked ? 'bg-gray-50' : '' }}" data-id="{{ $item->id }}">
                         <td class="px-4 py-4 text-center font-semibold">{{ $loop->iteration }}</td>
-                        
+
                         <td class="px-4 py-4 font-semibold text-indigo-700">
                             {{ $item->no_pl ?? '-' }}
                         </td>
-                        
+
                         <td class="px-4 py-4">
                             {{ $item->no_ps ?? '-' }}
                         </td>
-                        
+
                         <td class="px-4 py-4">
                             {{ $item->nama_unit ?? '-' }}
                         </td>
-                        
+
                         <td class="px-4 py-4 text-center">
                             @if($item->grup)
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
@@ -151,20 +157,20 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        
+
                         <td class="px-4 py-4">
                             {{ $item->kategori_order ?? '-' }}
                         </td>
-                        
+
                         <td class="px-4 py-4">
                             {{ $item->ekspedisi ?? '-' }}
                         </td>
-                        
+
                         <td class="px-4 py-4">
                             {{ $item->service_pengiriman ?? '-' }}
                         </td>
-                        
-                       <td class="px-4 py-4 text-center">
+
+                        <td class="px-4 py-4 text-center">
                             @php
                                 $beratDariOrder = $item->manualPicking?->manualOrder?->order_weight
                                     ?? $item->berat
@@ -173,15 +179,15 @@
 
                             {{ $beratDariOrder !== null ? number_format($beratDariOrder, 0, ',', '.') : '-' }} gr
                         </td>
-                        
+
                         <td class="px-4 py-4 text-center">
                             {{ $item->berat_aktual !== null ? number_format($item->berat_aktual, 2, ',', '.') : '-' }} Kg
                         </td>
-                        
+
                         <td class="px-4 py-4 text-center font-medium">
                             {{ $item->koli ?? '-' }}
                         </td>
-                        
+
                         <td class="px-3 py-4">
                             <input type="date"
                                    class="tgl-kirim w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -189,7 +195,7 @@
                                    value="{{ $item->tgl_kirim ? $item->tgl_kirim->format('Y-m-d') : '' }}"
                                    {{ $isLocked ? 'disabled' : '' }}>
                         </td>
-                        
+
                         <td class="px-3 py-4">
                             <input type="text"
                                    class="no-resi w-44 border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -198,7 +204,7 @@
                                    placeholder="No. Resi"
                                    {{ $isLocked ? 'disabled' : '' }}>
                         </td>
-                        
+
                         <td class="px-3 py-4">
                             <select class="status-distribusi w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                     data-id="{{ $item->id }}"
@@ -208,7 +214,7 @@
                                 <option value="Selesai" {{ $item->status_distribusi == 'Selesai' ? 'selected' : '' }}>Selesai</option>
                             </select>
                         </td>
-                        
+
                         <td class="px-3 py-4">
                             <input type="text"
                                    class="keterangan w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -217,7 +223,7 @@
                                    placeholder="Catatan..."
                                    {{ $isLocked ? 'disabled' : '' }}>
                         </td>
-                        
+
                         <td class="px-4 py-4 text-center">
                             @if($isLocked)
                                 <button type="button"
@@ -258,15 +264,16 @@
         @endif
     </div>
 </div>
+@endsection
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+@push('scripts')
 <script>
 $(document).ready(function () {
 
     // Fungsi untuk mengunci baris setelah berhasil disimpan (hanya saat status Selesai)
     function lockRow(row) {
         row.find('.tgl-kirim, .no-resi, .status-distribusi, .keterangan').prop('disabled', true);
-        
+
         // Ganti tombol jadi gembok
         row.find('.btn-save').replaceWith(`
             <button type="button" class="text-gray-400 cursor-not-allowed" title="Data sudah dikunci">
@@ -376,22 +383,4 @@ $(document).ready(function () {
     }
 });
 </script>
-
-<style>
-    @keyframes fade-in {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-in {
-        animation: fade-in 0.3s ease-out;
-    }
-    .animate-spin {
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-</style>
-</body>
-</html>
+@endpush

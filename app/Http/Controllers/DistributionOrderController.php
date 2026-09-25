@@ -37,6 +37,8 @@ class DistributionOrderController extends Controller
         $query->where('jenis_pengiriman', $request->jenis_pengiriman);
     }
 
+    
+
     if ($request->filled('search')) {
         $search = $request->search;
         $query->where(function ($q) use ($search) {

@@ -1,21 +1,14 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distribution Order Jakarta Pasif</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        th, td { padding: 12px 8px; font-size: 0.875rem; }
-    </style>
-</head>
-<body class="bg-gray-50">
+@extends('layouts.panel')
 
-@include('partials.top-nav')
+@section('title', 'Distribution Order - Jakarta Pasif')
 
+@push('styles')
+<style>
+    th, td { padding: 12px 8px; font-size: 0.875rem; }
+</style>
+@endpush
+
+@section('content')
 <div class="max-w-screen-2xl mx-auto px-6 py-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
@@ -97,11 +90,9 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($distributionOrders as $item)
-                <tr class="transition duration-200 hover:bg-gray-50">
-                    <form method="POST" action="{{ route('distribution-order.pasif.update', $item->id) }}">
-                        @csrf
-                        @method('PUT')
-
+                    @php $rowFormId = 'row-form-' . $item->id; @endphp
+                    <tr class="transition duration-200 hover:bg-gray-50">
+                        {{-- Form terpisah di luar <tr>, dihubungkan lewat atribut form="{{ $rowFormId }}" pada tiap input/tombol --}}
                         <td class="px-4 py-4 text-center font-semibold">{{ $distributionOrders->firstItem() + $loop->index }}</td>
                         <td class="px-4 py-4 font-semibold">{{ $item->no_pl }}</td>
                         <td class="px-4 py-4">{{ $item->tgl_turun_pl?->format('d/m/Y') ?? '-' }}</td>
@@ -124,7 +115,6 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-
                         <td class="px-4 py-4 text-center whitespace-nowrap">
                             @if($item->berat_aktual !== null && $item->berat_aktual > 0)
                                 {{ rtrim(rtrim(number_format($item->berat_aktual, 2, '.', ''), '0'), '.') }} kg
@@ -132,25 +122,21 @@
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
-
                         <td class="px-3 py-4 text-center">
                             {{ $item->koli ?? '-' }}
                         </td>
-
                         <td class="px-3 py-4">
-                            <input type="date" name="tgl_pickup"
+                            <input type="date" name="tgl_pickup" form="{{ $rowFormId }}"
                                    value="{{ $item->tgl_pickup ? $item->tgl_pickup->format('Y-m-d') : '' }}"
                                    class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
                         </td>
-
                         <td class="px-3 py-4">
-                            <input type="text" name="awb" value="{{ $item->awb ?? $item->no_resi }}"
+                            <input type="text" name="awb" form="{{ $rowFormId }}" value="{{ $item->awb ?? $item->no_resi }}"
                                    placeholder="No. Resi"
                                    class="w-44 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
                         </td>
-
                         <td class="px-3 py-4">
-                            <select name="status_pengiriman"
+                            <select name="status_pengiriman" form="{{ $rowFormId }}"
                                     class="w-44 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
                                 <option value="belum_pickup" {{ $item->status_pengiriman == 'belum_pickup' ? 'selected' : '' }}>Belum Pickup</option>
                                 <option value="pickup" {{ $item->status_pengiriman == 'pickup' ? 'selected' : '' }}>Pickup</option>
@@ -161,39 +147,44 @@
                                 <option value="missing" {{ $item->status_pengiriman == 'missing' ? 'selected' : '' }}>Missing</option>
                             </select>
                         </td>
-
                         <td class="px-3 py-4">
-                            <input type="date" name="tgl_diterima"
+                            <input type="date" name="tgl_diterima" form="{{ $rowFormId }}"
                                    value="{{ $item->tgl_diterima ? $item->tgl_diterima->format('Y-m-d') : '' }}"
                                    class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
                         </td>
-
                         <td class="px-3 py-4">
-                            <input type="text" name="penerima" value="{{ $item->penerima ?? '' }}"
+                            <input type="text" name="penerima" form="{{ $rowFormId }}" value="{{ $item->penerima ?? '' }}"
                                    placeholder="Nama penerima"
                                    class="w-48 border rounded-lg px-3 py-2 text-sm">
                         </td>
-
                         <td class="px-3 py-4">
-                            <input type="text" name="keterangan" value="{{ $item->keterangan ?? '' }}"
+                            <input type="text" name="keterangan" form="{{ $rowFormId }}" value="{{ $item->keterangan ?? '' }}"
                                    placeholder="Catatan"
                                    class="w-48 border rounded-lg px-3 py-2 text-sm">
                         </td>
-
                         <td class="px-4 py-4 text-center">
-                            <button type="submit"
+                            <button type="submit" form="{{ $rowFormId }}"
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
                                 Simpan
                             </button>
                         </td>
-                    </form>
-                </tr>
+                    </tr>
+                    {{-- Form kosong (tanpa isi visual) yang menampung submit baris ini --}}
+                    <tr class="hidden">
+                        <td colspan="17" class="p-0">
+                            <form id="{{ $rowFormId }}" method="POST"
+                                  action="{{ route('distribution-order.pasif.update', $item->id) }}">
+                                @csrf
+                                @method('PUT')
+                            </form>
+                        </td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="17" class="text-center py-12 text-gray-400">
-                        Belum ada data Distribution Order Jakarta Pasif.
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="17" class="text-center py-12 text-gray-400">
+                            Belum ada data Distribution Order Jakarta Pasif.
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
@@ -209,6 +200,4 @@
         @endif
     </div>
 </div>
-
-</body>
-</html>
+@endsection
