@@ -1,43 +1,35 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Picking List - Jakarta Pasif - biMBA AIUEO Logistik</title>
+@extends('layouts.panel')
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+@section('title', 'Picking List - Jakarta Pasif - biMBA Logistik')
 
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        table { border-collapse: collapse; }
-        th, td { padding: 12px 8px; font-size: 0.85rem; }
-        th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
-        tr:hover { background-color: #f8fafc; }
+@push('styles')
+<style>
+    table { border-collapse: collapse; }
+    th, td { padding: 12px 8px; font-size: 0.85rem; }
+    th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
+    tr:hover { background-color: #f8fafc; }
 
-        .processed-row {
-            opacity: 0.65;
-            background-color: #f1f5f9 !important;
-            color: #64748b;
-        }
+    .processed-row {
+        opacity: 0.65;
+        background-color: #f1f5f9 !important;
+        color: #64748b;
+    }
 
-        .pagination { display: flex; gap: 6px; }
-        .pagination li a, .pagination li span {
-            padding: 8px 14px;
-            border-radius: 9999px;
-            font-size: 0.9rem;
-        }
-        .pagination .active span {
-            background-color: #4f46e5;
-            color: white;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
+    .pagination { display: flex; gap: 6px; }
+    .pagination li a, .pagination li span {
+        padding: 8px 14px;
+        border-radius: 9999px;
+        font-size: 0.9rem;
+    }
+    .pagination .active span {
+        background-color: #4f46e5;
+        color: white;
+    }
+</style>
+@endpush
 
-@include('partials.top-nav')
-
-<div class="max-w-screen-2xl mx-auto px-6 py-6">
+@section('content')
+<div class="p-8">
 
     <!-- Header + Filter Kategori -->
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
@@ -262,7 +254,9 @@
         @endif
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -442,5 +436,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-</body>
-</html>
+@endpush

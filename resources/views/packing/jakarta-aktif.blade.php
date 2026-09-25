@@ -1,33 +1,27 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Packing Jakarta Aktif</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        th, td { padding: 12px 8px; font-size: 0.875rem; }
-        
-        tr.locked {
-            opacity: 0.75;
-            background-color: #f1f5f9 !important;
-        }
-        tr.locked td {
-            color: #64748b;
-        }
-        input:disabled, select:disabled {
-            background-color: #e2e8f0;
-            color: #64748b;
-            cursor: not-allowed;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
+@extends('layouts.panel')
 
-@include('partials.top-nav')
+@section('title', 'Packing Jakarta Aktif - biMBA Logistik')
 
+@push('styles')
+<style>
+    th, td { padding: 12px 8px; font-size: 0.875rem; }
+
+    tr.locked {
+        opacity: 0.75;
+        background-color: #f1f5f9 !important;
+    }
+    tr.locked td {
+        color: #64748b;
+    }
+    input:disabled, select:disabled {
+        background-color: #e2e8f0;
+        color: #64748b;
+        cursor: not-allowed;
+    }
+</style>
+@endpush
+
+@section('content')
 <div class="max-w-screen-2xl mx-auto px-6 py-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Packing Jakarta Aktif</h1>
@@ -86,8 +80,8 @@
 
                         <!-- TGL PACKING -->
                         <td class="px-3 py-4">
-                            <input type="date" 
-                                   name="tgl_packing" 
+                            <input type="date"
+                                   name="tgl_packing"
                                    value="{{ $item->tgl_packing ? \Carbon\Carbon::parse($item->tgl_packing)->format('Y-m-d') : '' }}"
                                    class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                    {{ $isLocked ? 'disabled' : '' }} required>
@@ -95,7 +89,7 @@
 
                         <!-- STATUS -->
                         <td class="px-3 py-4">
-                            <select name="status_packing" 
+                            <select name="status_packing"
                                     onchange="changeStatusColor(this)"
                                     class="status-select w-44 rounded-lg border font-semibold px-3 py-2 text-sm"
                                     {{ $isLocked ? 'disabled' : '' }} required>
@@ -108,7 +102,7 @@
 
                         <!-- NAMA PACKER -->
                         <td class="px-3 py-4">
-                            <select name="nama_packer" 
+                            <select name="nama_packer"
                                     class="w-48 border rounded-lg px-3 py-2 text-sm"
                                     {{ $isLocked ? 'disabled' : '' }} required>
                                 <option value="">Pilih Packer</option>
@@ -137,7 +131,7 @@
                         <!-- BERAT AKTUAL -->
                         <td class="px-3 py-4">
                             <div class="flex">
-                                <input type="number" 
+                                <input type="number"
                                        name="berat_aktual"
                                        value="{{ $item->berat_aktual ? (int)$item->berat_aktual : '' }}"
                                        min="0" step="0.01"
@@ -149,7 +143,7 @@
 
                         <!-- KOLI -->
                         <td class="px-3 py-4">
-                            <input type="number" 
+                            <input type="number"
                                    name="koli"
                                    value="{{ $item->koli ?? '' }}"
                                    min="1"
@@ -159,7 +153,7 @@
 
                         <!-- KETERANGAN -->
                         <td class="px-3 py-4">
-                            <input type="text" 
+                            <input type="text"
                                    name="keterangan_packing"
                                    value="{{ $item->keterangan_packing }}"
                                    placeholder="Tambahkan catatan..."
@@ -191,7 +185,9 @@
         </table>
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
 document.querySelectorAll('.packing-form').forEach(form => {
     form.addEventListener('submit', function(e) {
@@ -206,9 +202,9 @@ document.querySelectorAll('.packing-form').forEach(form => {
         if (!tglPacking)   errors.push('Tanggal Packing harus diisi');
         if (!status)       errors.push('Status Packing harus dipilih');
         if (!packer)       errors.push('Nama Packer harus dipilih');
-        if (!beratAktual || parseFloat(beratAktual) <= 0) 
+        if (!beratAktual || parseFloat(beratAktual) <= 0)
             errors.push('Berat Aktual harus diisi dan lebih dari 0');
-        if (!koli || parseInt(koli) < 1) 
+        if (!koli || parseInt(koli) < 1)
             errors.push('Koli harus diisi minimal 1');
 
         if (errors.length > 0) {
@@ -218,6 +214,4 @@ document.querySelectorAll('.packing-form').forEach(form => {
     });
 });
 </script>
-
-</body>
-</html>
+@endpush
