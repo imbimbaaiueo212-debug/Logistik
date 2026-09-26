@@ -73,6 +73,7 @@
             ['No Cab', 'no_cab'],
             ['Nama Stokis Kemitraan', 'nama_stokis_db_kemitraan', 'clip'],
             ['Nama Stokis biMBA Shop', 'nama_stokis_db_bimbashop', 'clip'],
+            ['Ops Stokist', 'ops_stokist', 'ops'],
             ['Status', 'status'],
             ['No Induk Mitra', 'no_induk_mitra'],
             ['Nama Mitra', 'nama_mitra', 'clip'],
@@ -85,7 +86,7 @@
             ['Kerjasama MK/MM', 'related_formulir_kerjasama_mk_mm', 'clip'],
             ['Pengajuan Perubahan', 'related_pengajuan_perubahan', 'clip'],
             ['Item SKU', 'item_sku', 'sku'],
-            ['Ops Stokist', 'ops_stokist', 'ops'],
+            
             ['Tanggal Pasif', 'tanggal_pasif', 'tgl'],
         ];
 
@@ -162,6 +163,28 @@
             </select>
         </form>
     </div>
+
+    {{-- ============ RINGKASAN OPS STOKIST ============ --}}
+<div class="mt-1 grid grid-cols-3 gap-3">
+    <div class="bg-white rounded-xl shadow-card px-4 py-3 flex items-center justify-between">
+        <div>
+            <p class="text-lg font-bold text-navy-950">{{ number_format($totalActive, 0, ',', '.') }}</p>
+        </div>
+        <span class="status-badge status-green">Active</span>
+    </div>
+    <div class="bg-white rounded-xl shadow-card px-4 py-3 flex items-center justify-between">
+        <div>
+            <p class="text-lg font-bold text-navy-950">{{ number_format($totalClosed, 0, ',', '.') }}</p>
+        </div>
+        <span class="status-badge status-red">Closed</span>
+    </div>
+    <div class="bg-white rounded-xl shadow-card px-4 py-3 flex items-center justify-between">
+        <div>
+            <p class="text-lg font-bold text-navy-950">{{ number_format($totalVacuum, 0, ',', '.') }}</p>
+        </div>
+        <span class="status-badge status-red">Vacuum</span>
+    </div>
+</div>
 
     {{-- ============ TABEL ============ --}}
     <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">

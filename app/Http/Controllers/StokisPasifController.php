@@ -9,29 +9,42 @@ use Illuminate\Support\Arr;
 class StokisPasifController extends Controller
 {
     public function index(Request $request)
-    {
-        $search  = $request->get('search');
-        $perPage = (int) $request->get('per_page', 50);
+{
+    $search = $request->get('search');
+    $perPage = $request->get('per_page', 50);
 
-        $stokis = StokisMitra::query()
-            ->where('status', 'pasif')
-            ->when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('no_cab', 'like', "%{$search}%")
-                      ->orWhere('nama_stokis_db_kemitraan', 'like', "%{$search}%")
-                      ->orWhere('nama_stokis_db_bimbashop', 'like', "%{$search}%")
-                      ->orWhere('nama_mitra', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('no_hp', 'like', "%{$search}%")
-                      ->orWhere('ops_stokist', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('no_cab')
-            ->paginate($perPage)
-            ->appends(['search' => $search, 'per_page' => $perPage]);
+    $query = StokisMitra::query()
+        ->where('status', 'PASIF')
+        ->when($search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('no_cab', 'like', "%{$search}%")
+                  ->orWhere('nama_stokis_db_kemitraan', 'like', "%{$search}%")
+                  ->orWhere('nama_stokis_db_bimbashop', 'like', "%{$search}%")
+                  ->orWhere('nama_mitra', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('no_hp', 'like', "%{$search}%")
+                  ->orWhere('ops_stokist', 'like', "%{$search}%");
+            });
+        });
 
-        return view('stokis_pasif.index', compact('stokis', 'search', 'perPage'));
-    }
+    // Hitung total per kategori Ops Stokist (mengikuti filter pencarian yang sama, sebelum pagination)
+    $totalOps = (clone $query)
+        ->selectRaw('LOWER(TRIM(ops_stokist)) as kategori, COUNT(*) as jumlah')
+        ->groupBy('kategori')
+        ->pluck('jumlah', 'kategori');
+
+    $totalActive = $totalOps->get('active', 0);
+    $totalClosed = $totalOps->get('closed', 0);
+    $totalVacuum = $totalOps->get('vacuum', 0);
+
+    $stokis = $query->orderBy('no_cab')
+        ->paginate($perPage)
+        ->appends(['search' => $search, 'per_page' => $perPage]);
+
+    return view('stokis_pasif.index', compact(
+        'stokis', 'search', 'perPage', 'totalActive', 'totalClosed', 'totalVacuum'
+    ));
+}
 
     public function create()
     {
