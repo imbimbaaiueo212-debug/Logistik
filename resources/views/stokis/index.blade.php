@@ -198,6 +198,30 @@
             </select>
         </form>
     </div>
+    {{-- ============ RINGKASAN OPS STOKIST ============ --}}
+    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl shadow-card p-5 flex items-center justify-between">
+            <div>
+                <p class="text-sm text-navy-950/55">Active</p>
+                <p class="mt-1 text-2xl font-bold text-navy-950">{{ number_format($totalActive, 0, ',', '.') }}</p>
+            </div>
+            <span class="status-badge status-green">Active</span>
+        </div>
+        <div class="bg-white rounded-2xl shadow-card p-5 flex items-center justify-between">
+            <div>
+                <p class="text-sm text-navy-950/55">Closed</p>
+                <p class="mt-1 text-2xl font-bold text-navy-950">{{ number_format($totalClosed, 0, ',', '.') }}</p>
+            </div>
+            <span class="status-badge status-red">Closed</span>
+        </div>
+        <div class="bg-white rounded-2xl shadow-card p-5 flex items-center justify-between">
+            <div>
+                <p class="text-sm text-navy-950/55">Vacuum</p>
+                <p class="mt-1 text-2xl font-bold text-navy-950">{{ number_format($totalVacuum, 0, ',', '.') }}</p>
+            </div>
+            <span class="status-badge status-red">Vacuum</span>
+        </div>
+    </div>
 
     {{-- ============ TABEL ============ --}}
     <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">

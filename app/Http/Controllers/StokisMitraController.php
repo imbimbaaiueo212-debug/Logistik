@@ -15,7 +15,7 @@ class StokisMitraController extends Controller
     $search = $request->get('search');
     $perPage = $request->get('per_page', 50);   // default 50
 
-    $stokis = StokisMitra::query()
+    $query = StokisMitra::query()
         ->where('status', 'AKTIF')          // <-- baris baru
         ->when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
@@ -27,12 +27,25 @@ class StokisMitraController extends Controller
                   ->orWhere('no_hp', 'like', "%{$search}%")
                   ->orWhere('ops_stokist', 'like', "%{$search}%");
             });
-        })
-        ->orderBy('no_cab')
+        });
+
+    // Hitung total per kategori Ops Stokist (mengikuti filter pencarian yang sama, sebelum pagination)
+    $totalOps = (clone $query)
+        ->selectRaw('LOWER(TRIM(ops_stokist)) as kategori, COUNT(*) as jumlah')
+        ->groupBy('kategori')
+        ->pluck('jumlah', 'kategori');
+
+    $totalActive = $totalOps->get('active', 0);
+    $totalClosed = $totalOps->get('closed', 0);
+    $totalVacuum = $totalOps->get('vacuum', 0);
+
+    $stokis = $query->orderBy('no_cab')
         ->paginate($perPage)
         ->appends(['search' => $search, 'per_page' => $perPage]);
 
-    return view('stokis.index', compact('stokis', 'search', 'perPage'));
+    return view('stokis.index', compact(
+        'stokis', 'search', 'perPage', 'totalActive', 'totalClosed', 'totalVacuum'
+    ));
 }
 
     public function import(Request $request)
