@@ -47,18 +47,34 @@
 
     /* Sembunyikan teks "Showing ..." bawaan pagination Laravel */
     .pager nav p { display: none; }
+
+    /* Badge Ops Stokist */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+    .status-badge.status-green { background: #DCFCE7; color: #15803D; }
+    .status-badge.status-red   { background: #FEE2E2; color: #B91C1C; }
+    .status-badge.status-gray  { background: #F1F3F7; color: rgba(15, 27, 51, 0.55); }
 </style>
 @endpush
 
 @section('content')
 
     @php
-        // Definisi kolom tabel: [judul, nama field, tipe]. Tipe: text, clip, email, sku
+        // Definisi kolom tabel: [judul, nama field, tipe]. Tipe: text, clip, email, sku, ops
         $kolom = [
             ['No Cab', 'no_cab'],
             ['Nama Stokis Kemitraan', 'nama_stokis_db_kemitraan', 'clip'],
             ['Nama Stokis biMBA Shop', 'nama_stokis_db_bimbashop', 'clip'],
-            ['Status', 'status'],          // ← tambahkan baris ini
+            ['Ops Stokist', 'ops_stokist', 'ops'],
+            ['Status', 'status'],
             ['No Induk Mitra', 'no_induk_mitra'],
             ['Nama Mitra', 'nama_mitra', 'clip'],
             ['Email', 'email', 'email'],
@@ -70,9 +86,17 @@
             ['Kerjasama MK/MM', 'related_formulir_kerjasama_mk_mm', 'clip'],
             ['Pengajuan Perubahan', 'related_pengajuan_perubahan', 'clip'],
             ['Item SKU', 'item_sku', 'sku'],
-            ['Ops Stokist', 'ops_stokist'],
-            
         ];
+
+        // Warna badge Ops Stokist: Active = hijau, Closed & Vacuum = merah, lainnya = abu-abu
+        $warnaOps = function ($val) {
+            $key = strtolower(trim((string) $val));
+            return match ($key) {
+                'active' => 'status-green',
+                'closed', 'vacuum' => 'status-red',
+                default => 'status-gray',
+            };
+        };
     @endphp
 
     {{-- ============ JUDUL ============ --}}
@@ -180,77 +204,76 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        @foreach ($kolom as $i => $kol)
-                            <th class="{{ $i === 0 ? 'sticky-l' : '' }}">{{ $kol[0] }}</th>
-                        @endforeach
-                        <th class="ctr sticky-r">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($stokis as $item)
-                        <tr>
-                            @foreach ($kolom as $i => $kol)
-                                @php
-                                    $tipe = $kol[2] ?? 'text';
-                                    $val  = $item->{$kol[1]};
+                        @forelse ($stokis as $item)
+    <tr>
+        @foreach ($kolom as $i => $kol)
+            @php
+                $tipe = $kol[2] ?? 'text';
+                $val  = $item->{$kol[1]};
 
-                                    // Item SKU bisa berupa array
-                                    if ($tipe === 'sku' && is_array($val)) {
-                                        $val = implode(', ', $val);
-                                    }
-                                    $tampil = filled($val) ? $val : '-';
-                                @endphp
+                // Item SKU bisa berupa array
+                if ($tipe === 'sku' && is_array($val)) {
+                    $val = implode(', ', $val);
+                }
+                // Status ditampilkan dengan huruf awal kapital saja (Aktif / Pasif)
+                if ($kol[1] === 'status' && filled($val)) {
+                    $val = ucfirst(strtolower($val));
+                }
+                $tampil = filled($val) ? $val : '-';
+            @endphp
 
-                                <td class="{{ $i === 0 ? 'sticky-l font-medium' : '' }} {{ in_array($tipe, ['clip', 'sku', 'email']) ? 'cell-clip' : '' }}"
-                                    @if (in_array($tipe, ['clip', 'sku', 'email'])) title="{{ $tampil }}" @endif>
-                                    @if ($tipe === 'email' && filled($val))
-                                        <a href="mailto:{{ $val }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $val }}</a>
-                                    @else
-                                        {{ $tampil }}
-                                    @endif
-                                </td>
-                            @endforeach
-                           {{-- Aksi --}}
-<td class="ctr sticky-r">
-    <div class="inline-flex items-center gap-0.5">
-        <a href="{{ route('stokis.edit', $item->id) }}" title="Edit" aria-label="Edit stokis"
-           class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-amber-600 hover:bg-amber-50 transition-colors">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 3Z"/><path d="m14.5 7.5 2 2"/></svg>
-        </a>
+            <td class="{{ $i === 0 ? 'sticky-l font-medium' : '' }} {{ in_array($tipe, ['clip', 'sku', 'email']) ? 'cell-clip' : '' }}"
+                @if (in_array($tipe, ['clip', 'sku', 'email'])) title="{{ $tampil }}" @endif>
+                @if ($tipe === 'email' && filled($val))
+                    <a href="mailto:{{ $val }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $val }}</a>
+                @elseif ($tipe === 'ops' && filled($val))
+                    <span class="status-badge {{ $warnaOps($val) }}">{{ $val }}</span>
+                @else
+                    {{ $tampil }}
+                @endif
+            </td>
+        @endforeach
+       {{-- Aksi --}}
+        <td class="ctr sticky-r">
+            <div class="inline-flex items-center gap-0.5">
+                <a href="{{ route('stokis.edit', $item->id) }}" title="Edit" aria-label="Edit stokis"
+                class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 3Z"/><path d="m14.5 7.5 2 2"/></svg>
+                </a>
 
-        {{-- Pindah ke Stokis Pasif --}}
-        <form action="{{ route('stokis.pasifkan', $item->id) }}" method="POST"
-              onsubmit="return confirm('Pindahkan stokis ini ke Stokis Pasif?')">
-            @csrf
-            <button type="submit" title="Pindah ke Pasif" aria-label="Pindah ke Stokis Pasif"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-navy-700 hover:bg-navy-700/10 transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v3H4z"/><path d="M5 10v9h14v-9"/><path d="M10 14h4"/></svg>
-            </button>
-        </form>
+                {{-- Pindah ke Stokis Pasif --}}
+                <form action="{{ route('stokis.pasifkan', $item->id) }}" method="POST"
+                    onsubmit="return confirm('Pindahkan stokis ini ke Stokis Pasif?')">
+                    @csrf
+                    <button type="submit" title="Pindah ke Pasif" aria-label="Pindah ke Stokis Pasif"
+                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-navy-700 hover:bg-navy-700/10 transition-colors">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v3H4z"/><path d="M5 10v9h14v-9"/><path d="M10 14h4"/></svg>
+                    </button>
+                </form>
 
-        <form action="{{ route('stokis.destroy', $item->id) }}" method="POST"
-              onsubmit="return confirm('Hapus data stokis ini? Data yang dihapus tidak bisa dikembalikan.')">
-            @csrf
-            @method('DELETE')
-            <button type="submit" title="Hapus" aria-label="Hapus stokis"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-red-600 hover:bg-red-50 transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>
-            </button>
-        </form>
-    </div>
-</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="{{ count($kolom) + 1 }}" class="!text-center py-16 text-navy-950/50">
-                                @if (request('search'))
-                                    Tidak ada data yang cocok dengan "{{ request('search') }}".
-                                @else
-                                    Belum ada data. Klik Import Excel untuk mengunggah data stokis.
-                                @endif
-                            </td>
-                        </tr>
-                    @endforelse
+                <form action="{{ route('stokis.destroy', $item->id) }}" method="POST"
+                    onsubmit="return confirm('Hapus data stokis ini? Data yang dihapus tidak bisa dikembalikan.')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" title="Hapus" aria-label="Hapus stokis"
+                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-navy-950/40 hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>
+                    </button>
+                </form>
+            </div>
+        </td>
+    </tr>
+@empty
+    <tr>
+        <td colspan="{{ count($kolom) + 1 }}" class="!text-center py-16 text-navy-950/50">
+            @if (request('search'))
+                Tidak ada data yang cocok dengan "{{ request('search') }}".
+            @else
+                Belum ada data. Klik Import Excel untuk mengunggah data stokis.
+            @endif
+        </td>
+    </tr>
+@endforelse
                 </tbody>
             </table>
         </div>

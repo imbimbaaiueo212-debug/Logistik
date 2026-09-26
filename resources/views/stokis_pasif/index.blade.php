@@ -47,18 +47,33 @@
 
     /* Sembunyikan teks "Showing ..." bawaan pagination Laravel */
     .pager nav p { display: none; }
+
+    /* Badge Ops Stokist */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+    .status-badge.status-green { background: #DCFCE7; color: #15803D; }
+    .status-badge.status-red   { background: #FEE2E2; color: #B91C1C; }
+    .status-badge.status-gray  { background: #F1F3F7; color: rgba(15, 27, 51, 0.55); }
 </style>
 @endpush
 
 @section('content')
 
     @php
-        // Definisi kolom tabel: [judul, nama field, tipe]. Tipe: text, clip, email, sku, tgl
+        // Definisi kolom tabel: [judul, nama field, tipe]. Tipe: text, clip, email, sku, ops, tgl
         $kolom = [
             ['No Cab', 'no_cab'],
             ['Nama Stokis Kemitraan', 'nama_stokis_db_kemitraan', 'clip'],
             ['Nama Stokis biMBA Shop', 'nama_stokis_db_bimbashop', 'clip'],
-            ['Status', 'status'],          // ← tambahkan baris ini
+            ['Status', 'status'],
             ['No Induk Mitra', 'no_induk_mitra'],
             ['Nama Mitra', 'nama_mitra', 'clip'],
             ['Email', 'email', 'email'],
@@ -70,9 +85,19 @@
             ['Kerjasama MK/MM', 'related_formulir_kerjasama_mk_mm', 'clip'],
             ['Pengajuan Perubahan', 'related_pengajuan_perubahan', 'clip'],
             ['Item SKU', 'item_sku', 'sku'],
-            ['Ops Stokist', 'ops_stokist'],
+            ['Ops Stokist', 'ops_stokist', 'ops'],
             ['Tanggal Pasif', 'tanggal_pasif', 'tgl'],
         ];
+
+        // Warna badge Ops Stokist: Active = hijau, Closed & Vacuum = merah, lainnya = abu-abu
+        $warnaOps = function ($val) {
+            $key = strtolower(trim((string) $val));
+            return match ($key) {
+                'active' => 'status-green',
+                'closed', 'vacuum' => 'status-red',
+                default => 'status-gray',
+            };
+        };
     @endphp
 
     {{-- ============ JUDUL ============ --}}
@@ -166,6 +191,10 @@
                                     if ($tipe === 'tgl' && filled($val)) {
                                         $val = \Illuminate\Support\Carbon::parse($val)->format('d/m/Y');
                                     }
+                                    // Status ditampilkan dengan huruf awal kapital saja (Aktif / Pasif)
+                                    if ($kol[1] === 'status' && filled($val)) {
+                                        $val = ucfirst(strtolower($val));
+                                    }
                                     $tampil = filled($val) ? $val : '-';
                                 @endphp
 
@@ -173,6 +202,8 @@
                                     @if (in_array($tipe, ['clip', 'sku', 'email'])) title="{{ $tampil }}" @endif>
                                     @if ($tipe === 'email' && filled($val))
                                         <a href="mailto:{{ $val }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $val }}</a>
+                                    @elseif ($tipe === 'ops' && filled($val))
+                                        <span class="status-badge {{ $warnaOps($val) }}">{{ $val }}</span>
                                     @else
                                         {{ $tampil }}
                                     @endif

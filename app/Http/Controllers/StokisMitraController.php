@@ -16,7 +16,7 @@ class StokisMitraController extends Controller
     $perPage = $request->get('per_page', 50);   // default 50
 
     $stokis = StokisMitra::query()
-        ->where('status', 'aktif')          // <-- baris baru
+        ->where('status', 'AKTIF')          // <-- baris baru
         ->when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('no_cab', 'like', "%{$search}%")
@@ -73,7 +73,7 @@ class StokisMitraController extends Controller
         'related_pengajuan_perubahan' => 'nullable|string',
         'item_sku' => 'nullable|string',
         'ops_stokist' => 'nullable|string|max:255',
-        'status' => 'required|in:aktif,pasif',
+        'status' => 'required|in:AKTIF,PASIF',
     ]);
 
     $stokis->update($validated);
@@ -92,10 +92,10 @@ class StokisMitraController extends Controller
 }
 public function pasifkan($id)
 {
-    $stokis = StokisMitra::where('status', 'aktif')->findOrFail($id);
+    $stokis = StokisMitra::where('status', 'AKTIF')->findOrFail($id);
 
     // Sengaja tidak pakai update([...]) supaya aman walau $fillable model belum memuat kolom baru
-    $stokis->status = 'pasif';
+    $stokis->status = 'PASIF';
     $stokis->tanggal_pasif = now();
     $stokis->save();
 

@@ -1,112 +1,43 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distribution Order - biMBA Logistik</title>
+@extends('layouts.panel')
 
-    <script src="https://cdn.tailwindcss.com"></script>
+@section('title', 'Distribution Order')
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+@section('content')
 
-    <style>
-        body{
-            font-family:'Poppins',sans-serif;
-        }
-    </style>
+    @include('partials.page-header', [
+        'title'    => 'Distribution Order',
+        'subtitle' => 'Distribusi Barang Keluar',
+    ])
 
-</head>
+    @php
+        $menus = [
+            ['route' => 'distribution-order.jakarta-aktif', 'title' => 'Jakarta Aktif', 'subtitle' => 'Distribution Order Jakarta Aktif'],
+            ['route' => 'distribution-order.jakarta-pasif', 'title' => 'Jakarta Pasif', 'subtitle' => 'Distribution Order Jakarta Pasif'],
+            ['route' => 'distribution-order.intervio', 'title' => 'InterVio (DLC)', 'subtitle' => 'Distribution Order DLC'],
+            ['route' => 'distribution-order.ebt', 'title' => 'English biMBA Talk', 'subtitle' => 'Distribution Order EBT'],
+            ['route' => 'distribution-order.manual', 'title' => 'Manual', 'subtitle' => 'Distribution Order Manual (Majalah / Modul / Sertifikat)', 'icon' => 'box'],
+        ];
+    @endphp
 
-<body class="bg-gray-50">
-
-@include('partials.top-nav')
-
-<div class="flex h-screen overflow-hidden">
-
-    <div class="flex-1 overflow-auto">
-
-        <div class="p-8">
-
-            <div class="flex justify-between items-center mb-8">
-
-                <div>
-
-                    <h2 class="text-3xl font-bold text-gray-800">
-                        Distribution Order
-                    </h2>
-
-                    <p class="text-gray-500 mt-1">
-                        Distribusi Barang Keluar
-                    </p>
-
+    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        @foreach ($menus as $menu)
+            <a href="{{ route($menu['route']) }}"
+               class="group bg-white rounded-2xl shadow-card p-6 hover:shadow-lg transition-all flex flex-col">
+                <div class="w-12 h-12 rounded-xl bg-navy-800/10 text-navy-800 flex items-center justify-center mb-4 group-hover:bg-navy-800 group-hover:text-white transition-colors">
+                    @if (($menu['icon'] ?? 'truck') === 'box')
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>
+                        </svg>
+                    @else
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/>
+                        </svg>
+                    @endif
                 </div>
-
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-
-                {{-- Jakarta Aktif --}}
-                <a href="{{ route('distribution-order.jakarta-aktif') }}" class="group">
-                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                        <div class="text-5xl mb-4">🚚</div>
-                        <h3 class="text-2xl font-semibold mb-2">Jakarta Aktif</h3>
-                        <p class="text-gray-500 text-sm">Distribution Order Jakarta Aktif</p>
-                    </div>
-                </a>
-
-                {{-- Jakarta Pasif --}}
-                <a href="{{ route('distribution-order.jakarta-pasif') }}" class="group">
-                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                        <div class="text-5xl mb-4">🚚</div>
-                        <h3 class="text-2xl font-semibold mb-2">Jakarta Pasif</h3>
-                        <p class="text-gray-500 text-sm">Distribution Order Jakarta Pasif</p>
-                    </div>
-                </a>
-
-                {{-- InterVio --}}
-                <a href="{{ route('distribution-order.intervio') }}" class="group">
-                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                        <div class="text-5xl mb-4">🚚</div>
-                        <h3 class="text-2xl font-semibold mb-2">InterVio (DLC)</h3>
-                        <p class="text-gray-500 text-sm">Distribution Order DLC</p>
-                    </div>
-                </a>
-
-                {{-- EBT --}}
-                <a href="{{ route('distribution-order.ebt') }}" class="group">
-                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full">
-                        <div class="text-5xl mb-4">🚚</div>
-                        <h3 class="text-2xl font-semibold mb-2">English biMBA Talk</h3>
-                        <p class="text-gray-500 text-sm">Distribution Order EBT</p>
-                    </div>
-                </a>
-
-                {{-- Manual --}}
-                <a href="{{ route('distribution-order.manual') }}" class="group">
-                    <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all h-full border-2 border-transparent hover:border-indigo-300">
-                        <div class="text-5xl mb-4">📦</div>
-                        <h3 class="text-2xl font-semibold mb-2">Manual</h3>
-                        <p class="text-gray-500 text-sm">
-                            Distribution Order Manual<br>
-                            (Majalah / Modul / Sertifikat)
-                        </p>
-                    </div>
-                </a>
-
-            </div>
-
-            <div class="mt-12 flex justify-center">
-                <a href="{{ route('home') }}"
-                    class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 px-8 py-3 rounded-2xl font-medium transition-all">
-                    ← Kembali ke Menu Utama
-                </a>
-            </div>
-
-        </div>
-
+                <h3 class="text-base font-semibold text-navy-950">{{ $menu['title'] }}</h3>
+                <p class="text-xs text-navy-950/45 mt-1">{{ $menu['subtitle'] }}</p>
+            </a>
+        @endforeach
     </div>
 
-</div>
-
-</body>
-</html>
+@endsection

@@ -1,77 +1,33 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order - biMBA AIUEO Logistik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        
-        .sidebar-active {
-            background-color: #1e40af;
-            color: white;
-            border-radius: 9999px;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
-    @include('partials.top-nav')
+@extends('layouts.panel')
 
-    <!-- Logout Form -->
-    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
-        @csrf
-    </form>
+@section('title', 'Realisasi Order')
 
-    <div class="flex h-screen overflow-hidden pt-0">
+@section('content')
 
-        <!-- Main Content -->
-        <div class="flex-1 overflow-auto">
-            <div class="p-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-8">Realisasi Order</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    
-                    
-                    <!-- Card 3 -->
-                    <a href="{{ route('order.unit-aktif') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">🎯</div>
-                            <h3 class="text-2xl font-semibold mb-2">Data Order Unit Stokis Aktif</h3>
-                            <p class="text-gray-600"></p>
-                        </div>
-                    </a>
+    @include('partials.page-header', [
+        'title'    => 'Realisasi Order',
+    ])
 
-                     <a href="{{ route('order.unit-pasif') }}" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">🎯</div>
-                            <h3 class="text-2xl font-semibold mb-2">Data Order Unit Stokis Pasif</h3>
-                            <p class="text-gray-600"></p>
-                        </div>
-                    </a>
+    @php
+        $menus = [
+            ['route' => 'order.unit-aktif', 'title' => 'Data Order Unit Stokis Aktif'],
+            ['route' => 'order.unit-pasif', 'title' => 'Data Order Unit Stokis Pasif'],
+            ['route' => null, 'title' => 'Data Order Unit Distribution Point (Dropshipper)'],
+        ];
+    @endphp
 
-                    <a href="#" class="group">
-                        <div class="bg-white rounded-3xl shadow p-8 hover:shadow-xl transition-all">
-                            <div class="text-5xl mb-4">🎯</div>
-                            <h3 class="text-2xl font-semibold mb-2">Data Order Unit Distribution Point (Dropshipper)</h3>
-                            <p class="text-gray-600"></p>
-                        </div>
-                    </a>
-
+    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach ($menus as $menu)
+            <a href="{{ $menu['route'] ? route($menu['route']) : '#' }}"
+               class="group bg-white rounded-2xl shadow-card p-6 hover:shadow-lg transition-all flex flex-col">
+                <div class="w-12 h-12 rounded-xl bg-navy-800/10 text-navy-800 flex items-center justify-center mb-4 group-hover:bg-navy-800 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/>
+                    </svg>
                 </div>
-
-                <!-- Tombol Kembali -->
-                <div class="mt-10 flex justify-center">
-                    <a href="{{ route('home') }}" 
-                       class="flex items-center justify-center gap-2 bg-white border border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-700 px-8 py-3 rounded-2xl font-medium transition-all">
-                        ← Kembali ke Home
-                    </a>
-                </div>
-            </div>
-        </div>
+                <h3 class="text-base font-semibold text-navy-950">{{ $menu['title'] }}</h3>
+            </a>
+        @endforeach
     </div>
 
-</body>
-</html>
+@endsection
