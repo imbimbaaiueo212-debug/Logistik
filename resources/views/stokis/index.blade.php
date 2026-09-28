@@ -165,61 +165,57 @@
         <p class="mt-3 text-xs text-navy-950/45">Format yang didukung: .xlsx, .xls, .csv. Ukuran maksimal 10 MB.</p>
     </div>
 
-    {{-- ============ PENCARIAN + JUMLAH PER HALAMAN ============ --}}
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <form method="GET" class="flex flex-wrap items-center gap-2">
-            <input type="hidden" name="per_page" value="{{ $perPage }}">
-            <div class="relative">
-                <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-navy-950/35 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                <input type="text" name="search" value="{{ request('search') }}"
-                       placeholder="Cari No Cab, stokis, mitra, atau email"
-                       class="w-72 sm:w-96 bg-white border border-navy-950/10 rounded-xl pl-10 pr-4 py-2.5 text-sm placeholder:text-navy-950/35 focus:outline-none focus:border-navy-700">
-            </div>
-            <button type="submit"
-                    class="bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
-                Cari
-            </button>
-            @if (request('search'))
-                <a href="{{ route('stokis.index', ['per_page' => $perPage]) }}"
-                   class="text-sm font-medium text-navy-950/60 hover:text-rust-600 px-3 py-2.5">
-                    Reset
-                </a>
-            @endif
-        </form>
+    {{-- ============ PENCARIAN + RINGKASAN + JUMLAH PER HALAMAN ============ --}}
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+            {{-- Kiri: Search --}}
+            <form method="GET" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="per_page" value="{{ $perPage }}">
+                <div class="relative">
+                    <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-navy-950/35 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Cari No Cab, stokis, mitra, atau email"
+                        class="w-72 sm:w-96 bg-white border border-navy-950/10 rounded-xl pl-10 pr-4 py-2.5 text-sm placeholder:text-navy-950/35 focus:outline-none focus:border-navy-700">
+                </div>
+                <button type="submit"
+                        class="bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                    Cari
+                </button>
+                @if (request('search'))
+                    <a href="{{ route('stokis.index', ['per_page' => $perPage]) }}"
+                    class="text-sm font-medium text-navy-950/60 hover:text-rust-600 px-3 py-2.5">
+                        Reset
+                    </a>
+                @endif
+            </form>
 
-        <form method="GET" class="flex items-center gap-2">
-            <input type="hidden" name="search" value="{{ request('search') }}">
-            <label for="per_page" class="text-sm text-navy-950/55">Tampilkan</label>
-            <select id="per_page" name="per_page" onchange="this.form.submit()"
-                    class="bg-white border border-navy-950/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy-700">
-                @foreach ([5, 10, 20, 50, 100] as $opsi)
-                    <option value="{{ $opsi }}" {{ (int) $perPage === $opsi ? 'selected' : '' }}>{{ $opsi }}</option>
-                @endforeach
-            </select>
-        </form>
-    </div>
-    {{-- ============ RINGKASAN OPS STOKIST ============ --}}
-    <div class="mt-1 grid grid-cols-3 gap-3">
-        <div class="bg-white rounded-xl shadow-card px-4 py-3 flex items-center justify-between">
-            <div>
-                <p class="text-lg font-bold text-navy-950">{{ number_format($totalActive, 0, ',', '.') }}</p>
+            {{-- Tengah: Ringkasan Ops (kecil) --}}
+            <div class="flex items-center gap-2">
+                <div class="bg-white rounded-lg shadow-card px-3 py-1.5 flex items-center gap-2">
+                    <span class="text-sm font-bold text-navy-950">{{ number_format($totalActive, 0, ',', '.') }}</span>
+                    <span class="status-badge status-green">Active</span>
+                </div>
+                <div class="bg-white rounded-lg shadow-card px-3 py-1.5 flex items-center gap-2">
+                    <span class="text-sm font-bold text-navy-950">{{ number_format($totalClosed, 0, ',', '.') }}</span>
+                    <span class="status-badge status-red">Closed</span>
+                </div>
+                <div class="bg-white rounded-lg shadow-card px-3 py-1.5 flex items-center gap-2">
+                    <span class="text-sm font-bold text-navy-950">{{ number_format($totalVacuum, 0, ',', '.') }}</span>
+                    <span class="status-badge status-red">Vacuum</span>
+                </div>
             </div>
-            <span class="status-badge status-green">Active</span>
-        </div>
-        <div class="bg-white rounded-xl shadow-card px-4 py-3 flex items-center justify-between">
-            <div>
-                <p class="text-lg font-bold text-navy-950">{{ number_format($totalClosed, 0, ',', '.') }}</p>
-            </div>
-            <span class="status-badge status-red">Closed</span>
-        </div>
-        <div class="bg-white rounded-xl shadow-card px-4 py-3 flex items-center justify-between">
-            <div>
-                <p class="text-lg font-bold text-navy-950">{{ number_format($totalVacuum, 0, ',', '.') }}</p>
-            </div>
-            <span class="status-badge status-red">Vacuum</span>
-        </div>
-    </div>
 
+            {{-- Kanan: Tampilkan per halaman --}}
+            <form method="GET" class="flex items-center gap-2">
+                <input type="hidden" name="search" value="{{ request('search') }}">
+                <label for="per_page" class="text-sm text-navy-950/55">Tampilkan</label>
+                <select id="per_page" name="per_page" onchange="this.form.submit()"
+                        class="bg-white border border-navy-950/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy-700">
+                    @foreach ([5, 10, 20, 50, 100] as $opsi)
+                        <option value="{{ $opsi }}" {{ (int) $perPage === $opsi ? 'selected' : '' }}>{{ $opsi }}</option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
     {{-- ============ TABEL ============ --}}
     <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">
         <div class="table-wrap">
