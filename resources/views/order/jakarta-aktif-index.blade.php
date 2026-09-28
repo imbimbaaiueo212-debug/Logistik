@@ -278,7 +278,7 @@
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
                             <span>Export Excel</span>
                         </a>
-                        <a href="{{ route('order.jakarta-aktif.menu') }}" class="nav-back">
+                        <a href="{{ route('order.unit-pasif') }}" class="nav-back">
                             <span>Kembali</span>
                         </a>
 

@@ -166,7 +166,23 @@
         transition: transform .15s ease;
     }
     #home-sidebar-toggle:active { transform: scale(0.92); }
-    @media (min-width: 1024px) { #home-sidebar-toggle { display: none; } }
+    /* Tombol tutup di dalam sidebar */
+#home-sidebar-close {
+    width: 32px; height: 32px; margin-left: auto;
+    border-radius: 10px; color: rgba(255,255,255,0.7);
+    display: flex; align-items: center; justify-content: center;
+    transition: background-color .15s ease, color .15s ease;
+}
+#home-sidebar-close:hover { background-color: rgba(255,255,255,0.08); color: #fff; }
+
+/* Desktop: sidebar bisa disembunyikan */
+.lg\:pl-64 { transition: padding-left .2s ease; }
+@media (min-width: 1024px) {
+    #home-sidebar-toggle { display: none; }
+    body.hs-collapsed #home-sidebar-toggle { display: flex; }
+    body.hs-collapsed #home-sidebar { transform: translateX(-100%); }
+    body.hs-collapsed .lg\:pl-64 { padding-left: 0; }
+}
 </style>
 
 {{-- Tombol buka sidebar (mobile only) --}}
@@ -184,8 +200,11 @@
 
     {{-- Logo --}}
     <div class="flex items-center px-5 py-4 border-b shrink-0" style="border-color: rgba(255,255,255,0.08);">
-        <img src="/assets/img/logotulisan.png" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
-    </div>
+    <img src="/assets/img/logotulisan.png" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
+    <button type="button" id="home-sidebar-close" aria-label="Sembunyikan menu">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+</div>
 
     @php
         $__u = Auth::user();
@@ -592,21 +611,44 @@
         link.classList.add('hs-glow');
     });
 
-    // ===== Mobile open/close =====
-    var sidebar = document.getElementById('home-sidebar');
-    var overlay = document.getElementById('home-sidebar-overlay');
+        // ===== Buka/tutup sidebar (mobile: overlay, desktop: geser + simpan state) =====
+    var sidebar   = document.getElementById('home-sidebar');
+    var overlay   = document.getElementById('home-sidebar-overlay');
     var toggleBtn = document.getElementById('home-sidebar-toggle');
+    var closeBtn  = document.getElementById('home-sidebar-close');
+    var KEY = 'hs-collapsed';
+
+    function isDesktop() { return window.innerWidth >= 1024; }
+    function simpan(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
 
     function openSidebar() {
-        sidebar.classList.remove('-translate-x-full');
-        overlay.classList.add('open');
+        if (isDesktop()) {
+            document.body.classList.remove('hs-collapsed');
+            simpan('0');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.add('open');
+        }
     }
     function closeSidebar() {
-        if (window.innerWidth < 1024) sidebar.classList.add('-translate-x-full');
-        overlay.classList.remove('open');
+        if (isDesktop()) {
+            document.body.classList.add('hs-collapsed');
+            simpan('1');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.remove('open');
+        }
     }
 
+    // Pulihkan state terakhir (desktop)
+    try {
+        if (isDesktop() && localStorage.getItem(KEY) === '1') {
+            document.body.classList.add('hs-collapsed');
+        }
+    } catch (e) {}
+
     if (toggleBtn) toggleBtn.addEventListener('click', openSidebar);
-    if (overlay) overlay.addEventListener('click', closeSidebar);
+    if (closeBtn)  closeBtn.addEventListener('click', closeSidebar);
+    if (overlay)   overlay.addEventListener('click', closeSidebar);
 })();
 </script>

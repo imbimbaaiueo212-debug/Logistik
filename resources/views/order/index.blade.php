@@ -10,7 +10,7 @@
 
     @php
         $menus = [
-            ['route' => 'order.unit-aktif', 'title' => 'Data Order Unit Stokis Aktif'],
+            ['route' => null, 'title' => 'Data Order Unit Stokis Aktif'],
             ['route' => 'order.unit-pasif', 'title' => 'Data Order Unit Stokis Pasif'],
             ['route' => null, 'title' => 'Data Order Unit Distribution Point (Dropshipper)'],
         ];
