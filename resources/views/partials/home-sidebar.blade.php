@@ -200,7 +200,7 @@
 
     {{-- Logo --}}
     <div class="flex items-center px-5 py-4 border-b shrink-0" style="border-color: rgba(255,255,255,0.08);">
-    <img src="/assets/img/logotulisan.png" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
+    <img src="{{ asset('public/assets/img/logotulisan.png') }}" alt="biMBA-AIUEO" class="h-8 w-auto object-contain">
     <button type="button" id="home-sidebar-close" aria-label="Sembunyikan menu">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>

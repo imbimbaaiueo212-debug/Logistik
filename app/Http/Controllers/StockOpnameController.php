@@ -163,4 +163,37 @@ class StockOpnameController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function cancel($id)
+{
+    DB::transaction(function () use ($id) {
+
+        $so = StockOpname::with('warehouse')->findOrFail($id);
+
+        // Hanya boleh cancel jika masih draft / submitted (sesuaikan dengan status yang kamu pakai)
+        if (!in_array($so->status, [
+            StockOpname::STATUS_DRAFT,
+            // StockOpname::STATUS_SUBMITTED, // uncomment jika perlu
+        ])) {
+            throw new \Exception('Stock Opname tidak bisa dibatalkan pada status ini');
+        }
+
+        // Unfreeze warehouse
+        if ($so->warehouse && $so->warehouse->is_freeze) {
+            $so->warehouse->update(['is_freeze' => false]);
+        }
+
+        // Update status jadi cancelled (atau hapus, tergantung kebutuhan)
+        $so->update([
+            'status' => StockOpname::STATUS_CANCELLED, // pastikan constant ini ada di model
+        ]);
+
+        // Kalau mau hard delete items + header, ganti dengan:
+        // $so->items()->delete();
+        // $so->delete();
+    });
+
+    return redirect()->route('stock-opname.index')
+        ->with('success', 'Stock Opname berhasil dibatalkan');
+}
 }

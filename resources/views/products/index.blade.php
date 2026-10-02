@@ -25,86 +25,91 @@
         </div>
     </div>
 
-    <form method="GET" class="flex flex-wrap gap-3 mb-5 items-end">
+    <form method="GET" id="filterForm" class="flex flex-wrap gap-3 mb-5 items-end">
 
-    <div>
-        <label class="block text-sm font-medium mb-1">Jenis</label>
-        <select name="jenis" id="filterJenis" class="border rounded px-3 py-2">
-            <option value="">Semua Jenis</option>
-            @foreach($jenisList as $jenis)
-                <option value="{{ $jenis }}"
-                    {{ request('jenis') == $jenis ? 'selected' : '' }}>
-                    {{ $jenis }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Jenis</label>
+            <select name="jenis" id="filterJenis" class="border rounded px-3 py-2">
+                <option value="">Semua Jenis</option>
+                @foreach($jenisList as $jenis)
+                    <option value="{{ $jenis }}" {{ request('jenis') == $jenis ? 'selected' : '' }}>
+                        {{ $jenis }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-    <div>
-        <label class="block text-sm font-medium mb-1">Kategori</label>
-        <select name="kategori" id="filterKategori" class="border rounded px-3 py-2">
-            <option value="">Semua Kategori</option>
-            @foreach($kategoriList as $kategori)
-                <option value="{{ $kategori }}"
-                    {{ request('kategori') == $kategori ? 'selected' : '' }}>
-                    {{ $kategori }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Kategori</label>
+            <select name="kategori" id="filterKategori" class="border rounded px-3 py-2">
+                <option value="">Semua Kategori</option>
+                @foreach($kategoriList as $kategori)
+                    <option value="{{ $kategori }}" {{ request('kategori') == $kategori ? 'selected' : '' }}>
+                        {{ $kategori }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-    <div>
-        <label class="block text-sm font-medium mb-1">Sub Kategori</label>
-        <select name="sub_kategori" id="filterSubKategori" class="border rounded px-3 py-2">
-            <option value="">Semua Sub Kategori</option>
-            @foreach($subKategoriList as $sub)
-                <option value="{{ $sub }}"
-                    {{ request('sub_kategori') == $sub ? 'selected' : '' }}>
-                    {{ $sub }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Sub Kategori</label>
+            <select name="sub_kategori" id="filterSubKategori" class="border rounded px-3 py-2">
+                <option value="">Semua Sub Kategori</option>
+                @foreach($subKategoriList as $sub)
+                    <option value="{{ $sub }}" {{ request('sub_kategori') == $sub ? 'selected' : '' }}>
+                        {{ $sub }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-    <div>
-        <label class="block text-sm font-medium mb-1">Tampilkan</label>
-        <select name="per_page" id="filterPerPage" class="border rounded px-3 py-2">
-            @foreach([10,20,50,100,250,500,1000,5000] as $n)
-                <option value="{{ $n }}"
-                    {{ $perPage == $n ? 'selected' : '' }}>
-                    {{ $n }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">SKU</label>
+            <select name="label" id="filterLabel" class="border rounded px-3 py-2">
+                <option value="">Semua Label</option>
+                @foreach($labelList as $lbl)
+                    <option value="{{ $lbl }}" {{ request('label') == $lbl ? 'selected' : '' }}>
+                        {{ $lbl }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-    <button type="submit"
-            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-        Filter
-    </button>
+        <div>
+            <label class="block text-sm font-medium mb-1">Tampilkan</label>
+            <select name="per_page" id="filterPerPage" class="border rounded px-3 py-2">
+                @foreach([10,20,50,100,250,500,1000,5000] as $n)
+                    <option value="{{ $n }}" {{ $perPage == $n ? 'selected' : '' }}>
+                        {{ $n }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-    <a href="{{ route('products.index') }}"
-       class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-        Reset
-    </a>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Filter
+        </button>
 
-    <button type="button"
-            id="btnEditMulti"
-            onclick="showBulkEditModal()"
-            class="hidden bg-yellow-600 hover:bg-yellow-700 text-white px-5 py-2 rounded font-medium">
-        ✏️ Edit Multi (<span id="selectedCount">0</span>)
-    </button>
+        <a href="{{ route('products.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+            Reset
+        </a>
 
-</form>
+        <button type="button"
+                id="btnEditMulti"
+                onclick="showBulkEditModal()"
+                class="hidden bg-yellow-600 hover:bg-yellow-700 text-white px-5 py-2 rounded font-medium">
+            ✏️ Edit Multi (<span id="selectedCount">0</span>)
+        </button>
 
-    <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">  <!-- sesuaikan angkanya -->
-    <table class="w-full border border-gray-200 text-sm">
+    </form>
+
+    <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
+        <table class="w-full border border-gray-200 text-sm">
             <thead>
                 <tr>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-center">
                         <input type="checkbox" id="checkAll" class="w-4 h-4 cursor-pointer">
                     </th>
-
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-center">No</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-left">Jenis</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-left">Kategori</th>
@@ -127,7 +132,7 @@
                 @forelse($products as $p)
                 <tr class="border-t hover:bg-gray-50">
                     <td class="p-3 text-center">
-                        <input type="checkbox" 
+                        <input type="checkbox"
                                class="product-checkbox w-4 h-4 cursor-pointer"
                                value="{{ $p->id }}"
                                data-kode="{{ $p->kode ?? '' }}"
@@ -156,15 +161,14 @@
                     <td class="text-center">{{ $p->status }}</td>
                     <td class="text-center">{{ $p->isi }}</td>
                     <td class="text-center">
-                        <span class="px-3 py-1 rounded-full text-xs font-medium 
-                            {{ $p->role == 'jual' ? 'bg-green-100 text-green-700' : 
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
+                            {{ $p->role == 'jual' ? 'bg-green-100 text-green-700' :
                                ($p->role == 'tidak_dijual' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700') }}">
                             {{ ucfirst($p->role ?? '') }}
                         </span>
                     </td>
                     <td class="text-center">{{ $p->tanggal_rilis ? \Carbon\Carbon::parse($p->tanggal_rilis)->format('d/m/Y') : '-' }}</td>
                     <td class="p-3 flex gap-2 justify-center">
-                        
                         <form action="{{ route('products.destroy', $p->id) }}" method="POST" onsubmit="return confirm('Yakin hapus?')">
                             @csrf @method('DELETE')
                             <button class="bg-red-500 hover:bg-red-600 px-4 py-1 rounded text-white text-sm">Hapus</button>
@@ -172,7 +176,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="18" class="text-center p-8 text-gray-500">Belum ada data</td></tr>
+                <tr><td colspan="17" class="text-center p-8 text-gray-500">Belum ada data</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -258,95 +262,60 @@
         </form>
     </div>
 </div>
-@endsection
 
- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function() {
-
-    // Select2 untuk filter
-    $('#filterJenis').select2({
-        placeholder: 'Cari Jenis...',
-        allowClear: true,
-        width: '200px'
-    });
-
-    $('#filterKategori').select2({
-        placeholder: 'Cari Kategori...',
-        allowClear: true,
-        width: '200px'
-    });
-
-    $('#filterSubKategori').select2({
-        placeholder: 'Cari Sub Kategori...',
-        allowClear: true,
-        width: '200px'
-    });
-
-    $('#filterPerPage').select2({
-        minimumResultsForSearch: Infinity,
-        width: '120px'
-    });
-
-});
-
-//INI UNTUK AUTO FILTER
 $(document).ready(function () {
+
+    const form = $('#filterForm');
+
+    /*
+    |--------------------------------------------------------------------------
+    | SELECT2
+    |--------------------------------------------------------------------------
+    */
+    $('#filterJenis').select2({ placeholder: 'Cari Jenis...', allowClear: true, width: '200px' });
+    $('#filterKategori').select2({ placeholder: 'Cari Kategori...', allowClear: true, width: '200px' });
+    $('#filterSubKategori').select2({ placeholder: 'Cari Sub Kategori...', allowClear: true, width: '200px' });
+    $('#filterLabel').select2({ placeholder: 'Cari Label...', allowClear: true, width: '200px' });
+    $('#filterPerPage').select2({ minimumResultsForSearch: Infinity, width: '120px' });
 
     /*
     |--------------------------------------------------------------------------
     | AUTO FILTER
     |--------------------------------------------------------------------------
+    | Reset dropdown di bawahnya memakai 'change.select2' supaya tidak
+    | memicu handler 'change' (mencegah submit berkali-kali).
     */
-
     $('#filterJenis').on('change', function () {
-
-        const jenis = $(this).val();
-
-        // Reset kategori & sub kategori
-        $('#filterKategori').val(null).trigger('change');
-        $('#filterSubKategori').val(null).trigger('change');
-
-        // Submit otomatis
-        $(this).closest('form').submit();
+        $('#filterKategori').val(null).trigger('change.select2');
+        $('#filterSubKategori').val(null).trigger('change.select2');
+        $('#filterLabel').val(null).trigger('change.select2');
+        form.submit();
     });
-
 
     $('#filterKategori').on('change', function () {
-
-        const kategori = $(this).val();
-
-        // Reset sub kategori
-        $('#filterSubKategori').val(null).trigger('change');
-
-        // Submit otomatis
-        $(this).closest('form').submit();
+        $('#filterSubKategori').val(null).trigger('change.select2');
+        $('#filterLabel').val(null).trigger('change.select2');
+        form.submit();
     });
-
 
     $('#filterSubKategori').on('change', function () {
-
-        $(this).closest('form').submit();
-
+        $('#filterLabel').val(null).trigger('change.select2');
+        form.submit();
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | PER PAGE AUTO
-    |--------------------------------------------------------------------------
-    */
+    $('#filterLabel').on('change', function () {
+        form.submit();
+    });
 
     $('#filterPerPage').on('change', function () {
-
-        $(this).closest('form').submit();
-
+        form.submit();
     });
-
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const checkAll = document.getElementById('checkAll');
     const checkboxes = document.querySelectorAll('.product-checkbox');
     const btnEditMulti = document.getElementById('btnEditMulti');
@@ -411,3 +380,4 @@ function closeBulkModal() {
     document.getElementById('bulkEditModal').classList.add('hidden');
 }
 </script>
+@endsection

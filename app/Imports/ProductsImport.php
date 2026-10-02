@@ -16,6 +16,8 @@ class ProductsImport implements ToModel, WithStartRow, WithCalculatedFormulas, W
 {
     private int $processed = 0;
     private int $imported = 0;
+    private int $created = 0;
+    private int $updated = 0;
     private int $skipped = 0;
 
     public function startRow(): int
@@ -184,8 +186,15 @@ class ProductsImport implements ToModel, WithStartRow, WithCalculatedFormulas, W
                 ]);
             }
 
-            // ==================== SIMPAN ====================
-            $product = new Product([
+            // Label adalah kunci produk (sama dengan kode SKU dari biMBA Shop)
+            if ($label === '') {
+                $this->skipped++;
+                Log::warning("SKIP - Baris {$excelRow}: Label kosong ({$name})");
+                return null;
+            }
+
+            // ==================== SIMPAN (buat baru / perbarui berdasarkan label) ====================
+            $data = [
                 'name'                   => $name,
                 'label'                  => $label,
                 'jenis'                  => $jenis,
@@ -202,16 +211,29 @@ class ProductsImport implements ToModel, WithStartRow, WithCalculatedFormulas, W
                 'status'                 => $status,
                 'role'                   => $role,
                 'tanggal_rilis'          => $tanggalRilis,
-            ]);
+            ];
+
+            $product = Product::firstOrNew(['label' => $label]);
+            $isNew   = !$product->exists;
+
+            // Produk sudah ada: sel kosong di Excel tidak boleh menimpa data yang ada
+            if (!$isNew) {
+                $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
+            }
+
+            $product->fill($data);
+            $product->save();
 
             $this->imported++;
+            $isNew ? $this->created++ : $this->updated++;
 
             Log::info("✅ BERHASIL Baris {$excelRow} | {$name}", [
                 'tanggal_rilis' => $tanggalRilis,
                 'berat_satuan'  => $beratSatuan,
             ]);
 
-            return $product;
+            // Sudah disimpan di atas; jangan biarkan Laravel Excel menyimpan lagi
+            return null;
 
         } catch (\Exception $e) {
             $this->skipped++;
@@ -227,6 +249,8 @@ class ProductsImport implements ToModel, WithStartRow, WithCalculatedFormulas, W
         Log::info("=== IMPORT SELESAI ===", [
             'processed' => $this->processed,
             'imported'  => $this->imported,
+            'created'   => $this->created,
+            'updated'   => $this->updated,
             'skipped'   => $this->skipped,
         ]);
     }
