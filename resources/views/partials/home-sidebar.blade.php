@@ -350,7 +350,7 @@
 
                         {{-- Unit OPS2 (dropdown) --}}
                         <button type="button" data-hs-toggle="#hs-ops2" class="hs-sub-toggle {{ $hsOps2Active ? 'open has-active' : '' }}">
-                            <span>Unit OPS2</span>
+                            <span>PUW</span>
                             <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
                         </button>
                         <div id="hs-ops2" class="hs-sub {{ $hsOps2Active ? 'open' : '' }}">
@@ -378,7 +378,7 @@
                     </div>
                 </div>
 
-                <a href="{{ route('order-manual-modul.manual.create') }}" class="hs-sub-link {{ request()->routeIs('order-manual-modul.manual.create','order-manual-modul.manual.create.*') ? 'active' : '' }}">Modul</a>
+                <a href="{{ route('order-manual-modul.manual.create') }}" class="hs-sub-link {{ request()->routeIs('order-manual-modul.manual.create','order-manual-modul.manual.create.*') ? 'active' : '' }}">Modul, ATK, Seragam & Lain-lain</a>
                 <a href="{{ route('order-manual-sertifikat.manual.create') }}" class="hs-sub-link {{ request()->routeIs('order-manual-sertifikat.manual.create','order-manual-sertifikat.manual.create.*') ? 'active' : '' }}">Sertifikat</a>
             </div>
         </div>
