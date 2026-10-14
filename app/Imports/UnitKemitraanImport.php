@@ -33,6 +33,9 @@ class UnitKemitraanImport implements
     public int $failedCount  = 0;
     public int $skippedCount = 0;
     public array $failedRows = [];
+    public array $skippedRows = [];
+    public array $duplicateRows = [];
+    private array $seenNoCab = [];
     private int $rowCounter  = 0;
 
     public function __construct()
@@ -290,6 +293,7 @@ class UnitKemitraanImport implements
     public function model(array $row)
     {
         $this->rowCounter++;
+        $csvRow = $this->rowCounter + 1; // +1 karena baris 1 = header (nomor baris di Excel)
 
         // Debug log 5 baris pertama + setiap 500 baris
         if ($this->rowCounter <= 5 || $this->rowCounter % 500 === 0) {
@@ -321,13 +325,53 @@ class UnitKemitraanImport implements
             }
 
             // Skip baris template / kosong
-            if (empty($noCab) || $noCab === '*' || str_contains((string) $idRecordRaw, '*')) {
+            // Hanya baris template (berisi *) dan baris benar-benar kosong yang dilewati.
+            // Baris dengan no_cab kosong ("-") tetap diimport (no_cab = NULL).
+            $skipReason = null;
+            if ($noCab === '*' || str_contains((string) $idRecordRaw, '*')) {
+                $skipReason = 'baris template (berisi *)';
+            } elseif ($noCab === null && $idRecord === null) {
+                $skipReason = 'baris kosong (tanpa ID Record dan No Cab)';
+            }
+
+            if ($skipReason !== null) {
                 $this->skippedCount++;
+                $this->skippedRows[] = [
+                    'baris_excel' => $csvRow,
+                    'alasan'      => $skipReason,
+                    'id_record'   => $idRecordRaw,
+                    'no_cab_raw'  => $noCabRaw,
+                    'nama_unit'   => $row[3] ?? null,
+                ];
+                Log::warning("Import SKIP baris Excel #{$csvRow}: {$skipReason}", [
+                    'id_record'  => $idRecordRaw,
+                    'no_cab_raw' => $noCabRaw,
+                    'nama_unit'  => $row[3] ?? null,
+                ]);
                 return null;
             }
 
+            // Info no_cab kembar di dalam file (tetap disimpan sebagai record terpisah karena id_record berbeda)
+            if ($noCab !== null && isset($this->seenNoCab[$noCab])) {
+                $this->duplicateRows[] = [
+                    'baris_excel'    => $csvRow,
+                    'no_cab'         => $noCab,
+                    'no_cab_raw'     => $noCabRaw,
+                    'id_record'      => $idRecordRaw,
+                    'nama_unit'      => $row[3] ?? null,
+                    'sama_dengan_baris' => $this->seenNoCab[$noCab],
+                ];
+                Log::info("Import no_cab kembar {$noCab}: baris Excel #{$csvRow} sama dengan baris #{$this->seenNoCab[$noCab]} (disimpan terpisah)", [
+                    'no_cab_raw' => $noCabRaw,
+                    'id_record'  => $idRecordRaw,
+                ]);
+            }
+            if ($noCab !== null) {
+                $this->seenNoCab[$noCab] = $csvRow;
+            }
+
             if (empty($idRecord)) {
-                $idRecord = 'AUTO-' . $noCab;
+                $idRecord = 'AUTO-' . ($noCab ?? ('ROW' . $csvRow));
             }
 
             $status = $this->clean($row[4] ?? null);
@@ -490,8 +534,10 @@ class UnitKemitraanImport implements
             ];
 
             // INSERT / UPDATE
+            // Kunci pencocokan = id_record (unik per unit). no_cab BOLEH kembar,
+            // mis. "0049", "0049.A", "0049.TK" sama-sama dinormalisasi jadi 49.
             $existing = UnitKemitraan::withTrashed()
-                ->where('no_cab', $noCab)
+                ->where('id_record', $idRecord)
                 ->first();
 
             if ($existing) {
@@ -562,6 +608,8 @@ class UnitKemitraanImport implements
                     'skipped'              => $this->skippedCount,
                     'total_rows_processed' => $this->rowCounter,
                     'failed_rows_sample'   => array_slice($this->failedRows, 0, 15),
+                    'skipped_rows'         => $this->skippedRows,
+                    'duplicate_no_cab'     => $this->duplicateRows,
                     'memory_peak'          => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
                 ]);
             },
@@ -576,6 +624,8 @@ class UnitKemitraanImport implements
             'skipped'     => $this->skippedCount,
             'total_rows'  => $this->rowCounter,
             'failed_rows' => $this->failedRows,
+            'skipped_rows' => $this->skippedRows,
+            'duplicate_no_cab' => $this->duplicateRows,
         ];
     }
 }
