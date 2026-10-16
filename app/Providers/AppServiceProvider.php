@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-use App\Models\DistributionOrder;
-use App\Models\DistributionPasif;
-use App\Models\ManualDistributionOrder;
+use App\Modules\Distribusi\Models\DistributionOrder;
+use App\Modules\Distribusi\Models\DistributionPasif;
+use App\Modules\Distribusi\Models\ManualDistributionOrder;
 
 class AppServiceProvider extends ServiceProvider
 {
