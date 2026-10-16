@@ -358,8 +358,8 @@ $docNumber = $filteredData->first()->rekap_number
 
     // Reuse view Aktif jika belum ada khusus pasif
     $view = view()->exists('order::order.jakarta-pasif-printed-pdf')
-        ? 'order.jakarta-pasif-printed-pdf'
-        : 'order.jakarta-printed-pdf';
+        ? 'order::order.jakarta-pasif-printed-pdf'
+        : 'order::order.jakarta-printed-pdf';
 
     $pdf = Pdf::loadView($view, [
         'data'      => $filteredData,
@@ -428,8 +428,8 @@ public function printPemesananPasif(Request $request)
     );
 
     $view = view()->exists('order::order.print-pemesanan-pasif')
-        ? 'order.print-pemesanan-pasif'
-        : 'order.print-pemesanan';
+        ? 'order::order.print-pemesanan-pasif'
+        : 'order::order.print-pemesanan';
 
     $pdf = Pdf::loadView($view, [
         'data'        => $filteredData,
@@ -495,8 +495,8 @@ public function printQCPasif(Request $request)
     );
 
     $view = view()->exists('order::order.print-qc-pasif')
-        ? 'order.print-qc-pasif'
-        : 'order.print-qc';
+        ? 'order::order.print-qc-pasif'
+        : 'order::order.print-qc';
 
     $pdf = Pdf::loadView($view, [
         'data'      => $filteredData,
@@ -561,8 +561,8 @@ public function printPackingPasif(Request $request)
     );
 
     $view = view()->exists('order::order.print-packing-pasif')
-        ? 'order.print-packing-pasif'
-        : 'order.print-packing';
+        ? 'order::order.print-packing-pasif'
+        : 'order::order.print-packing';
 
     $pdf = Pdf::loadView($view, [
         'data'      => $filteredData,
@@ -627,8 +627,8 @@ public function printEkspedisiPasif(Request $request)
     );
 
     $view = view()->exists('order::order.print-ekspedisi-pasif')
-        ? 'order.print-ekspedisi-pasif'
-        : 'order.print-ekspedisi';
+        ? 'order::order.print-ekspedisi-pasif'
+        : 'order::order.print-ekspedisi';
 
     $pdf = Pdf::loadView($view, [
         'data'      => $filteredData,

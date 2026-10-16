@@ -483,10 +483,9 @@
             <div id="hs-persiapan" class="hs-sub <?php echo e($hsPersiapanActive ? 'open' : ''); ?>">
                 <div class="hs-sub-inner">
                     <a href="<?php echo e(route('picking.jakarta.aktif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.jakarta.aktif') ? 'active' : ''); ?>">Jakarta Aktif</a>
+                    <a href="<?php echo e(route('picking.logistik.aktif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.logistik.aktif', 'picking.logistik.aktif.*') ? 'active' : ''); ?>">Logistik Aktif</a>
                     <a href="<?php echo e(route('picking.jakarta.pasif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.jakarta.pasif') ? 'active' : ''); ?>">Jakarta Pasif</a>
-                    <div class="hs-soon">InterVio (DLC) <span class="hs-badge-soon">segera</span></div>
-                    <div class="hs-soon">English biMBA Talk <span class="hs-badge-soon">segera</span></div>
-                    <a href="<?php echo e(route('picking.order-manual')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.order-manual') ? 'active' : ''); ?>">Order Manual</a>
+                    <a href="<?php echo e(route('picking.logistik.pasif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.logistik.pasif', 'picking.logistik.pasif.*') ? 'active' : ''); ?>">Logistik Pasif</a>
                 </div>
             </div>
         <?php endif; ?>

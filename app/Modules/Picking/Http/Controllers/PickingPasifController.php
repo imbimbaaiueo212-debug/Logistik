@@ -21,6 +21,25 @@ public function jakartaPasif(Request $request)
 {
     $query = PickingPasif::with(['items', 'realisasiPasif']);
 
+    // Jakarta Pasif dibagi 3 jenis seperti di Penjualan: JKTP (Jakarta Pasif), DLC, EBT.
+    // Data lama tanpa jenis dianggap JKTP.
+    $jenis = strtoupper((string) $request->get('jenis', 'JKTP'));
+    if (! in_array($jenis, ['JKTP', 'DLC', 'EBT'], true)) {
+        $jenis = 'JKTP';
+    }
+
+    // Persiapan hanya menampilkan picking yang Realisasi (RA)-nya sudah di-print.
+    $query->whereHas('realisasiPasif', function ($r) use ($jenis) {
+        $r->whereNotNull('printed_at')
+          ->where(function ($q) use ($jenis) {
+              $q->where('jenis', $jenis);
+
+              if ($jenis === 'JKTP') {
+                  $q->orWhereNull('jenis');
+              }
+          });
+    });
+
     if ($request->filled('kategori')) {
         $query->where('kategori_order', $request->kategori);
     }
@@ -54,7 +73,34 @@ public function jakartaPasif(Request $request)
                   ->paginate(20)
                   ->appends($request->query());
 
-    return view('picking::picking.jakarta.pasif', compact('data'));
+    // Kolom tambahan Persiapan Pasif diambil dari RA Pasif di Penjualan
+    $data->getCollection()->each(function ($row) {
+        $ra = $row->realisasiPasif;
+        $row->setAttribute('nama_stokis', $ra?->nama_stokis);
+        $row->setAttribute('penyebut',    $ra?->penyebut);
+        $row->setAttribute('pengambil',   $ra?->pengambil);
+        $row->setAttribute('ket',         $ra?->ket);
+    });
+
+    return view('picking::picking.persiapan', [
+        'data'            => $data,
+        'judul'           => 'Picking List - ' . ['JKTP' => 'Jakarta Pasif', 'DLC' => 'Jakarta Pasif - DLC', 'EBT' => 'Jakarta Pasif - EBT'][$jenis],
+        'sub'             => 'Daftar Persiapan ' . $jenis . ' (masuk setelah RA Pasif ' . $jenis . ' di-print)',
+        'jenisAktif'      => $jenis,
+        'jenisTabs'       => [
+            'JKTP' => ['label' => 'Jakarta Pasif', 'aktif' => 'bg-blue-600 text-white border-blue-600'],
+            'DLC'  => ['label' => 'DLC',           'aktif' => 'bg-amber-500 text-white border-amber-500'],
+            'EBT'  => ['label' => 'EBT',           'aktif' => 'bg-emerald-600 text-white border-emerald-600'],
+        ],
+        'routeIndex'      => 'picking.jakarta.pasif',
+        'routeChecklist'  => 'picking.pasif.checklist',
+        'routePic'        => 'picking.pasif.pic',
+        'routeStatus'     => 'picking.pasif.status',
+        'relItems'        => 'items',
+        'extraCols'       => true,
+        'showEdit'        => false,
+        'emptyText'       => "Belum ada Persiapan {$jenis}. Data masuk setelah RA Pasif {$jenis} di-print.",
+    ]);
 }
 
 // ==================== JAKARTA PASIF - UPDATE ====================

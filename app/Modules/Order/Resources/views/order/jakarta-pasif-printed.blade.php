@@ -237,6 +237,7 @@
                             </td>
 
                             <td class="text-center">
+                                <div class="flex items-center justify-center gap-4">
                                 @php
                                     $isPickingPrinted = !is_null($item->picking_printed_at ?? $item->pickingPasif?->printed_at ?? null);
                                 @endphp
@@ -253,6 +254,17 @@
                                         </svg>
                                     @endif
                                 </button>
+
+                                    {{-- Tanda Terima Produk (A6) --}}
+                                    <a href="{{ route('order.realisasi-pasif.tanda-terima', $item->id) }}"
+                                    target="_blank"
+                                    title="Cetak Tanda Terima Produk"
+                                    class="text-emerald-600 hover:text-emerald-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm7 1.414V7a1 1 0 001 1h1.586L11 5.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         @endforeach

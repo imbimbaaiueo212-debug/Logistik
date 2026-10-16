@@ -494,10 +494,9 @@
             <div id="hs-persiapan" class="hs-sub {{ $hsPersiapanActive ? 'open' : '' }}">
                 <div class="hs-sub-inner">
                     <a href="{{ route('picking.jakarta.aktif') }}" class="hs-sub-link {{ request()->routeIs('picking.jakarta.aktif') ? 'active' : '' }}">Jakarta Aktif</a>
+                    <a href="{{ route('picking.logistik.aktif') }}" class="hs-sub-link {{ request()->routeIs('picking.logistik.aktif', 'picking.logistik.aktif.*') ? 'active' : '' }}">Logistik Aktif</a>
                     <a href="{{ route('picking.jakarta.pasif') }}" class="hs-sub-link {{ request()->routeIs('picking.jakarta.pasif') ? 'active' : '' }}">Jakarta Pasif</a>
-                    <div class="hs-soon">InterVio (DLC) <span class="hs-badge-soon">segera</span></div>
-                    <div class="hs-soon">English biMBA Talk <span class="hs-badge-soon">segera</span></div>
-                    <a href="{{ route('picking.order-manual') }}" class="hs-sub-link {{ request()->routeIs('picking.order-manual') ? 'active' : '' }}">Order Manual</a>
+                    <a href="{{ route('picking.logistik.pasif') }}" class="hs-sub-link {{ request()->routeIs('picking.logistik.pasif', 'picking.logistik.pasif.*') ? 'active' : '' }}">Logistik Pasif</a>
                 </div>
             </div>
         @endif

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\Picking\Http\Controllers\PickingController;
 use App\Modules\Picking\Http\Controllers\PickingManualController;
 use App\Modules\Picking\Http\Controllers\PickingPasifController;
+use App\Modules\Picking\Http\Controllers\PickingLogistikController;
 
 // === PICKING ROUTES ===
 Route::prefix('picking')->name('picking.')->group(function () {
@@ -35,6 +36,19 @@ Route::prefix('picking')->name('picking.')->group(function () {
     Route::post('/pasif/pic', [PickingPasifController::class, 'updatePicPasif'])->name('pasif.pic');
     Route::post('/pasif/status', [PickingPasifController::class, 'updateStatusPasif'])->name('pasif.status');
     
+    // ===== LOGISTIK AKTIF & PASIF (Persiapan, data dari RA yang sudah di-print) =====
+    Route::get('/logistik/aktif', [PickingLogistikController::class, 'aktif'])->name('logistik.aktif');
+    Route::get('/logistik/pasif', [PickingLogistikController::class, 'pasif'])->name('logistik.pasif');
+
+    foreach (['aktif', 'pasif'] as $jenisLogistik) {
+        Route::post("/logistik/{$jenisLogistik}/checklist", [PickingLogistikController::class, 'updateChecklist'])
+            ->defaults('jenis', $jenisLogistik)->name("logistik.{$jenisLogistik}.checklist");
+        Route::post("/logistik/{$jenisLogistik}/pic", [PickingLogistikController::class, 'updatePic'])
+            ->defaults('jenis', $jenisLogistik)->name("logistik.{$jenisLogistik}.pic");
+        Route::post("/logistik/{$jenisLogistik}/status", [PickingLogistikController::class, 'updateStatus'])
+            ->defaults('jenis', $jenisLogistik)->name("logistik.{$jenisLogistik}.status");
+    }
+
     // Checklist, PIC, Status (Normal / Aktif)
     Route::post('/checklist/update', [PickingController::class, 'updateChecklist'])->name('checklist.update');
     Route::post('/pic/update', [PickingController::class, 'updatePic'])->name('pic.update');

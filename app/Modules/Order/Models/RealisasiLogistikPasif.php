@@ -37,6 +37,10 @@ class RealisasiLogistikPasif extends Model
         'logistik_pasif_id',
         'printed_at',
         'picking_printed_at',
+        'tgl_terima',
+        'tgl_picking',
+        'status_persiapan',
+        'pic',
     ];
 
     protected $casts = [
@@ -45,6 +49,8 @@ class RealisasiLogistikPasif extends Model
         'tgl_estimasi' => 'datetime',
         'printed_at'   => 'datetime',
         'picking_printed_at' => 'datetime',
+        'tgl_terima'   => 'datetime',
+        'tgl_picking'  => 'date',
         'jumlah_bayar' => 'decimal:2',
         'order_weight' => 'decimal:2',
     ];

@@ -265,7 +265,12 @@ tbody tr:nth-child(odd){
 
     // Nama stokis: bedakan Aktif vs Pasif
     if ($is_pasif ?? false) {
-        $stokisName = 'Stokis Jakarta Pasif';
+        // Nama ikut jenis order Pasif: JKTP = Stokis Jakarta Pasif, DLC, EBT
+        $stokisName = match (strtoupper((string) ($firstItem?->jenis ?? 'JKTP'))) {
+            'DLC'   => 'DLC',
+            'EBT'   => 'EBT',
+            default => 'Stokis Jakarta Pasif',
+        };
     } else {
         $stokisName = $firstItem?->nama_stokis ?? 'Stokis Jakarta Aktif';
         // Jaga-jaga data salah label

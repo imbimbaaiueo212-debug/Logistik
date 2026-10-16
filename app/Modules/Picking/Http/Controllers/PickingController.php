@@ -88,6 +88,13 @@ class PickingController extends Controller
         'pickingItems.product'
     ]);
 
+    // Persiapan hanya menampilkan picking yang Realisasi (RA)-nya sudah di-print.
+    // Picking lama yang tidak terhubung ke RA tetap tampil.
+    $query->where(function ($q) {
+        $q->whereNull('realisasi_aktif_id')
+          ->orWhereHas('realisasi', fn ($r) => $r->whereNotNull('printed_at'));
+    });
+
     // ==================== FILTER KATEGORI ====================
     if ($request->filled('kategori')) {
         $query->where('kategori_order', $request->kategori);

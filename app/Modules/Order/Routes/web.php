@@ -148,6 +148,9 @@ Route::prefix('order')
         Route::get('/realisasi-pasif/print-ekspedisi', [RealisasiPasifController::class, 'printEkspedisiPasif'])
             ->name('realisasi-pasif.print-ekspedisi');
 
+        Route::get('/realisasi-pasif/tanda-terima/{id}', [RealisasiPasifController::class, 'printTandaTerima'])
+            ->name('realisasi-pasif.tanda-terima');
+
         // =========================
         // PRINT (AKTIF)
         // =========================
