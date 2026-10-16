@@ -524,7 +524,7 @@
                             @endif
                         </div>
                     </td>
-                    <td class="px-4 py-3">{{ $item->billing_last_name ?? '-' }}</td>
+                    <td class="px-4 py-3">{{ strtoupper((string) $item->jenis) === 'DLC' ? ($item->billing_company ?: '-') : ($item->billing_last_name ?? '-') }}</td>
                     <td class="px-4 py-3">{{ $item->kirim ?? '-' }}</td>
                     <td class="px-4 py-3">{{ $item->kab_kota_provinsi ?? '-' }}</td>
 

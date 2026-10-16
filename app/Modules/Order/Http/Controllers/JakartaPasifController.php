@@ -43,6 +43,30 @@ private function jenisDariSku($sku): ?string
     return null;
 }
 
+/**
+ * Nama unit untuk order Pasif.
+ * DLC  : Nama Unit = Billing Name (billing_first_name + billing_last_name di biMBA Shop).
+ * Lain : aturan lama (resolveNamaUnit).
+ */
+private function namaUnitPasif($jenis, $idPesan, $billingCompany, $billingLastName, $default = null, $billingFirstName = null)
+{
+    if (strtoupper(trim((string) $jenis)) === 'DLC') {
+        if ($billingFirstName === null) {
+            $billingFirstName = BimbashopOrder::where('order_id', $idPesan)
+                ->whereNotNull('billing_first_name')
+                ->value('billing_first_name');
+        }
+
+        $billingName = trim(trim((string) $billingFirstName) . ' ' . trim((string) $billingLastName));
+
+        if ($billingName !== '') {
+            return $billingName;
+        }
+    }
+
+    return $this->resolveNamaUnit($billingCompany, $billingLastName, $default);
+}
+
 public function jakartaPasif(Request $request)
 {
     $query = JakartaPasif::query();
@@ -180,7 +204,7 @@ public function syncJktPasifFromBimbashop()
                 $existing->save();
             }
 
-            $nama = $this->resolveNamaUnit($src->billing_company, $src->billing_last_name, $existing->nama_unit);
+            $nama = $this->namaUnitPasif($existing->jenis, $orderId, $src->billing_company, $src->billing_last_name, $existing->nama_unit, $src->billing_first_name);
 
             if ($nama !== '' && $nama !== '-' && $existing->nama_unit !== $nama) {
                 $existing->nama_unit = $nama;
@@ -294,10 +318,13 @@ public function syncJktPasifFromBimbashop()
         // =================================================
         // NAMA UNIT & ALAMAT
         // =================================================
-        $namaUnit = $this->resolveNamaUnit(
+        $namaUnit = $this->namaUnitPasif(
+            $items->map(fn ($i) => $this->jenisDariSku($i->item_sku))->filter()->first(),
+            $orderId,
             $firstItem->billing_company,
             $firstItem->billing_last_name,
-            $firstItem->item_name ?? ($casdana->customer ?? '-')
+            $firstItem->item_name ?? ($casdana->customer ?? '-'),
+            $firstItem->billing_first_name
         );
 
         $kirim = trim(implode(', ', array_filter([
@@ -518,7 +545,9 @@ public function bulkActionJakartaPasif(Request $request)
                 continue;
             }
 
-            $namaUnit = $this->resolveNamaUnit(
+            $namaUnit = $this->namaUnitPasif(
+                $jakarta->jenis,
+                $jakarta->id_pesan,
                 $jakarta->billing_company,
                 $jakarta->billing_last_name,
                 $jakarta->nama_unit

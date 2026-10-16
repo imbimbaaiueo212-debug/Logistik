@@ -528,7 +528,7 @@
                             <?php endif; ?>
                         </div>
                     </td>
-                    <td class="px-4 py-3"><?php echo e($item->billing_last_name ?? '-'); ?></td>
+                    <td class="px-4 py-3"><?php echo e(strtoupper((string) $item->jenis) === 'DLC' ? ($item->billing_company ?: '-') : ($item->billing_last_name ?? '-')); ?></td>
                     <td class="px-4 py-3"><?php echo e($item->kirim ?? '-'); ?></td>
                     <td class="px-4 py-3"><?php echo e($item->kab_kota_provinsi ?? '-'); ?></td>
 
