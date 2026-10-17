@@ -232,11 +232,12 @@
         </div>
     @endif
 
+
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-800">Jakarta Pasif</h1>
-            <p class="text-gray-600">Kelola Data Order Jakarta Pasif (JKTP, DLC, EBT)</p>
+            <p class="text-gray-600">Kelola Data Order Jakarta Pasif (JKTP, DLC, EBT, INV, BSS)</p>
         </div>
 
         <div class="mb-5">
@@ -249,11 +250,11 @@
                         <div class="flex items-center gap-3 flex-wrap">
                             <form action="{{ route('order.jakarta-pasif.sync-jkt') }}"
                                     method="POST"
-                                    onsubmit="return confirm('Yakin ingin melakukan Sync JKTP, DLC, EBT + Casdana?')">
+                                    onsubmit="return confirm('Yakin ingin melakukan Sync JKTP, DLC, EBT, INV, BSS + Casdana?')">
                                 @csrf
                                 <button type="submit" class="btn-action btn-sync">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                                    <span>Sync JKTP/DLC/EBT + Casdana</span>
+                                    <span>Sync JKTP/DLC/EBT/INV/BSS + Casdana</span>
                                 </button>
                             </form>
                         </div>
@@ -403,8 +404,8 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Jenis</label>
                 <select name="jenis" id="filterJenis" class="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5">
-                    <option value="">Semua (JKTP, DLC, EBT)</option>
-                    @foreach(['JKTP', 'DLC', 'EBT'] as $j)
+                    <option value="">Semua (JKTP, DLC, EBT, INV, BSS)</option>
+                    @foreach(['JKTP', 'DLC', 'EBT', 'INV', 'BSS'] as $j)
                         <option value="{{ $j }}" {{ request('jenis') == $j ? 'selected' : '' }}>{{ $j }}</option>
                     @endforeach
                 </select>
@@ -551,7 +552,7 @@
                     <td class="px-4 py-3">
                         @php
                             $jenisItem  = $item->jenis ?: 'JKTP';
-                            $jenisWarna = ['JKTP' => 'bg-blue-100 text-blue-700', 'DLC' => 'bg-amber-100 text-amber-700', 'EBT' => 'bg-emerald-100 text-emerald-700'][$jenisItem] ?? 'bg-gray-100 text-gray-700';
+                            $jenisWarna = ['JKTP' => 'bg-blue-100 text-blue-700', 'DLC' => 'bg-amber-100 text-amber-700', 'EBT' => 'bg-emerald-100 text-emerald-700', 'INV' => 'bg-violet-100 text-violet-700', 'BSS' => 'bg-rose-100 text-rose-700'][$jenisItem] ?? 'bg-gray-100 text-gray-700';
                         @endphp
                         <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $jenisWarna }}">{{ $jenisItem }}</span>
                     </td>
@@ -641,7 +642,7 @@
                 <tr>
                     <td colspan="25" class="text-center py-16 text-gray-500">
                         Belum ada data Jakarta Pasif.<br>
-                        Silakan klik tombol <strong>Sync JKTP/DLC/EBT + Casdana</strong>.
+                        Silakan klik tombol <strong>Sync JKTP/DLC/EBT/INV/BSS + Casdana</strong>.
                     </td>
                 </tr>
                 @endforelse
@@ -780,7 +781,7 @@
         // Masing-masing jenis punya Rekap Aktual sendiri -> wajib pilih JKTP / DLC / EBT
         const jenisDipilih = $('#filterJenis').val();
         if (!jenisDipilih) {
-            alert('Pilih filter Jenis (JKTP, DLC, atau EBT) dan klik Filter dulu, karena tiap jenis punya Rekap Aktual sendiri.');
+            alert('Pilih filter Jenis (JKTP, DLC, EBT, INV, atau BSS) dan klik Filter dulu, karena tiap jenis punya Rekap Aktual sendiri.');
             return;
         }
 

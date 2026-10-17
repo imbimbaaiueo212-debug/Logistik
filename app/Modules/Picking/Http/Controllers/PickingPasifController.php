@@ -24,7 +24,7 @@ public function jakartaPasif(Request $request)
     // Jakarta Pasif dibagi 3 jenis seperti di Penjualan: JKTP (Jakarta Pasif), DLC, EBT.
     // Data lama tanpa jenis dianggap JKTP.
     $jenis = strtoupper((string) $request->get('jenis', 'JKTP'));
-    if (! in_array($jenis, ['JKTP', 'DLC', 'EBT'], true)) {
+    if (! in_array($jenis, ['JKTP', 'DLC', 'EBT', 'INV', 'BSS'], true)) {
         $jenis = 'JKTP';
     }
 
@@ -84,13 +84,15 @@ public function jakartaPasif(Request $request)
 
     return view('picking::picking.persiapan', [
         'data'            => $data,
-        'judul'           => 'Picking List - ' . ['JKTP' => 'Jakarta Pasif', 'DLC' => 'Jakarta Pasif - DLC', 'EBT' => 'Jakarta Pasif - EBT'][$jenis],
+        'judul'           => 'Picking List - ' . ['JKTP' => 'Jakarta Pasif', 'DLC' => 'Jakarta Pasif - DLC', 'EBT' => 'Jakarta Pasif - EBT', 'INV' => 'Jakarta Pasif - INV', 'BSS' => 'Jakarta Pasif - BSS'][$jenis],
         'sub'             => 'Daftar Persiapan ' . $jenis . ' (masuk setelah RA Pasif ' . $jenis . ' di-print)',
         'jenisAktif'      => $jenis,
         'jenisTabs'       => [
             'JKTP' => ['label' => 'Jakarta Pasif', 'aktif' => 'bg-blue-600 text-white border-blue-600'],
             'DLC'  => ['label' => 'DLC',           'aktif' => 'bg-amber-500 text-white border-amber-500'],
             'EBT'  => ['label' => 'EBT',           'aktif' => 'bg-emerald-600 text-white border-emerald-600'],
+            'INV'  => ['label' => 'INV',           'aktif' => 'bg-violet-600 text-white border-violet-600'],
+            'BSS'  => ['label' => 'BSS',           'aktif' => 'bg-rose-600 text-white border-rose-600'],
         ],
         'routeIndex'      => 'picking.jakarta.pasif',
         'routeChecklist'  => 'picking.pasif.checklist',

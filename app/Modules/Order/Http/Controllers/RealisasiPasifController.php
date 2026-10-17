@@ -20,10 +20,10 @@ class RealisasiPasifController extends Controller
     $query = RealisasiPasif::query();
 
     // ==========================
-    // JENIS (rumah): JKTP / DLC / EBT -> masing-masing punya Rekap Aktual sendiri
+    // JENIS (rumah): JKTP / DLC / EBT / INV / BSS -> masing-masing punya Rekap Aktual sendiri
     // ==========================
     $jenis = strtoupper((string) $request->get('jenis', 'JKTP'));
-    if (! in_array($jenis, ['JKTP', 'DLC', 'EBT'], true)) {
+    if (! in_array($jenis, ['JKTP', 'DLC', 'EBT', 'INV', 'BSS'], true)) {
         $jenis = 'JKTP';
     }
 
@@ -119,7 +119,7 @@ class RealisasiPasifController extends Controller
 private function generateRekapNumberPasif($tanggal, $jenis = null)
 {
     $jenis  = strtoupper((string) ($jenis ?: 'JKTP'));
-    $prefix = ['JKTP' => 'RAP', 'DLC' => 'RAD', 'EBT' => 'RAE'][$jenis] ?? 'RAP';
+    $prefix = ['JKTP' => 'RAP', 'DLC' => 'RAD', 'EBT' => 'RAE', 'INV' => 'RAI', 'BSS' => 'RAB'][$jenis] ?? 'RAP';
     $date   = Carbon::parse($tanggal)->format('ymd');
 
     // Kalau tanggal + jenis ini SUDAH punya rekap_number -> pakai yang sama

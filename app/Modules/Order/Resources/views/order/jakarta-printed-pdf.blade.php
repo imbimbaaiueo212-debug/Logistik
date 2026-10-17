@@ -269,6 +269,8 @@ tbody tr:nth-child(odd){
         $stokisName = match (strtoupper((string) ($firstItem?->jenis ?? 'JKTP'))) {
             'DLC'   => 'DLC',
             'EBT'   => 'EBT',
+            'INV'   => 'INV',
+            'BSS'   => 'BSS',
             default => 'Stokis Jakarta Pasif',
         };
     } else {

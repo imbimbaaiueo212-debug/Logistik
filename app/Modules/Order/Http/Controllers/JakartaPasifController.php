@@ -27,9 +27,9 @@ class JakartaPasifController extends Controller
 
 // ====================== JAKARTA PASIF ======================
 /** Jenis (rumah) order Pasif */
-public const JENIS_PASIF = ['JKTP', 'DLC', 'EBT'];
+public const JENIS_PASIF = ['JKTP', 'DLC', 'EBT', 'INV', 'BSS'];
 
-/** Tentukan jenis dari SKU (JKTP / DLC / EBT), null jika bukan salah satunya. */
+/** Tentukan jenis dari SKU (JKTP / DLC / EBT / INV / BSS), null jika bukan salah satunya. */
 private function jenisDariSku($sku): ?string
 {
     $sku = strtoupper(trim((string) $sku));
@@ -162,7 +162,7 @@ public function jakartaPasif(Request $request)
 
 /**
  * Sync dari Bimbashop 
- * JKTP, DLC, dan EBT (semua masuk Jakarta Pasif, dipisah per jenis saat ke Rekap Aktual)
+ * JKTP, DLC, EBT, INV, dan BSS (semua masuk Jakarta Pasif, dipisah per jenis saat ke Rekap Aktual)
  * Catatan: Pasif tidak wajib ada pembayaran di Casdana
  */
 public function syncJktPasifFromBimbashop()
@@ -173,7 +173,7 @@ public function syncJktPasifFromBimbashop()
     $errors      = [];
 
     // =====================================================
-    // AMBIL ORDER YANG SKU-NYA JKTP / DLC / EBT
+    // AMBIL ORDER YANG SKU-NYA JKTP / DLC / EBT / INV / BSS
     // =====================================================
     $bimbashopOrders = BimbashopOrder::where(function ($q) {
             foreach (self::JENIS_PASIF as $j) {

@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Database Stokis Mitra'); ?>
 
 <?php $__env->startPush('styles'); ?>

@@ -400,29 +400,31 @@
 
         <?php if($__u->hasModule('penjualan')): ?>
         
-        <?php
-            
-            // Jakarta di bawah Kasdana membuka halaman Jakarta Aktif dengan penanda ?from=kasdana
-            $hsFromKasdana = request('from') === 'kasdana' && request()->routeIs('order.jakarta-aktif', 'order.jakarta-aktif.*');
+        <?php $hsKasdanaActive = request()->routeIs(['import.casdana', 'import.casdana.*']); ?>
+        <a href="<?php echo e(route('import.casdana')); ?>" class="hs-link <?php echo e($hsKasdanaActive ? 'active' : ''); ?>">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M3.5 10h17"/><path d="M7 15h3"/></svg>
+                Kasdana
+            </span>
+        </a>
 
-            $hsPengeluaranActive = ! $hsFromKasdana && request()->routeIs([
-                'pengeluaran.*',
-                'order.jakarta-aktif','order.jakarta-aktif.*',
-                'order.jakarta-pasif','order.jakarta-pasif.*','order.jakarta-pasif-printed',
-                'order.logistik-pasif','order.logistik-pasif.*','order.logistik-pasif-*','order.realisasi-logistik-pasif.*',
-                'import.manual','import.manual.*',
-                'order-manual-modul.manual','order-manual-modul.manual.*',
-                'order-manual-sertifikat.manual','order-manual-sertifikat.manual.*',
-            ]) && ! request()->routeIs([
-                'order-manual-modul.manual.create','order-manual-modul.manual.create.*',
-                'order-manual-sertifikat.manual.create','order-manual-sertifikat.manual.create.*',
+        
+        <?php
+            $hsJakartaActive = request()->routeIs([
+                'penjualan.jakarta',
+                'order.jakarta-aktif', 'order.jakarta-aktif.*',
+                'order.jakarta-pasif', 'order.jakarta-pasif.*', 'order.jakarta-pasif-printed',
+                'order.jakarta-printed',
+                'order.realisasi.*', 'order.realisasi-pasif.*',
             ]);
-            $hsKasdanaActive  = request()->routeIs(['import.casdana', 'import.casdana.*']);
-            $hsKasdanaMerchant = $hsKasdanaActive ? strtolower((string) request('merchant')) : '';
-            $hsKasdanaJakarta  = $hsFromKasdana;
-            // Logistik = halaman Logistik Aktif (SKU LG), sama seperti Jakarta Aktif
-            $hsKasdanaLogistik = request()->routeIs('order.logistik-aktif', 'order.logistik-aktif.*');
-            $hsPenjualanActive = $hsKasdanaActive || $hsFromKasdana || $hsKasdanaLogistik || $hsPengeluaranActive;
+            $hsLogistikActive = request()->routeIs([
+                'penjualan.logistik',
+                'order.logistik-aktif', 'order.logistik-aktif.*', 'order.logistik-printed', 'order.logistik-picking-list*',
+                'order.realisasi-logistik.*',
+                'order.logistik-pasif', 'order.logistik-pasif.*', 'order.logistik-pasif-*',
+                'order.realisasi-logistik-pasif.*',
+            ]);
+            $hsPenjualanActive = $hsJakartaActive || $hsLogistikActive;
         ?>
         <button type="button" data-hs-toggle="#hs-penjualan" class="hs-toggle <?php echo e($hsPenjualanActive ? 'open has-active' : ''); ?>">
             <span class="inline-flex items-center gap-2">
@@ -434,38 +436,9 @@
         <div id="hs-penjualan" class="hs-sub <?php echo e($hsPenjualanActive ? 'open' : ''); ?>">
             <div class="hs-sub-inner">
                 
-                <div class="hs-sub-split">
-                    <a href="<?php echo e(route('import.casdana')); ?>"
-                       class="hs-sub-link <?php echo e($hsKasdanaActive && ! $hsKasdanaJakarta && ! $hsKasdanaLogistik ? 'active' : ''); ?>">Kasdana (Aktif)</a>
-                    <button type="button" data-hs-toggle="#hs-kasdana" aria-label="Buka pilihan Kasdana"
-                            class="hs-sub-chev <?php echo e($hsKasdanaJakarta || $hsKasdanaLogistik ? 'open' : ''); ?>">
-                        <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                </div>
-                <div id="hs-kasdana" class="hs-sub <?php echo e($hsKasdanaJakarta || $hsKasdanaLogistik ? 'open' : ''); ?>">
-                    <div class="hs-sub-inner">
-                        <a href="<?php echo e(route('order.jakarta-aktif', ['from' => 'kasdana'])); ?>"
-                           class="hs-sub-link <?php echo e($hsKasdanaJakarta ? 'active' : ''); ?>">Jakarta</a>
-                        <a href="<?php echo e(route('order.logistik-aktif')); ?>"
-                           class="hs-sub-link <?php echo e($hsKasdanaLogistik ? 'active' : ''); ?>">Logistik</a>
-                    </div>
-                </div>
-
+                <a href="<?php echo e(route('penjualan.jakarta')); ?>" class="hs-sub-link <?php echo e($hsJakartaActive ? 'active' : ''); ?>">Jakarta</a>
                 
-                <button type="button" data-hs-toggle="#hs-pengeluaran" class="hs-sub-toggle <?php echo e($hsPengeluaranActive ? 'open has-active' : ''); ?>">
-                    <span>Pengeluaran (Pasif)</span>
-                    <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <div id="hs-pengeluaran" class="hs-sub <?php echo e($hsPengeluaranActive ? 'open' : ''); ?>">
-                    <div class="hs-sub-inner">
-                        
-                        <a href="<?php echo e(route('order.jakarta-pasif')); ?>#ra-pasif"
-                           class="hs-sub-link <?php echo e(request()->routeIs('order.jakarta-pasif','order.jakarta-pasif.*','order.jakarta-pasif-printed') ? 'active' : ''); ?>">Jakarta</a>
-                        <a href="<?php echo e(route('order.logistik-pasif')); ?>"
-                           class="hs-sub-link <?php echo e(request()->routeIs('order.logistik-pasif','order.logistik-pasif.*','order.logistik-pasif-*','order.realisasi-logistik-pasif.*') ? 'active' : ''); ?>">Logistik</a>
-                        
-                    </div>
-                </div>
+                <a href="<?php echo e(route('penjualan.logistik')); ?>" class="hs-sub-link <?php echo e($hsLogistikActive ? 'active' : ''); ?>">Logistik</a>
             </div>
         </div>
         <?php endif; ?>

@@ -11,6 +11,7 @@ use App\Modules\Order\Http\Controllers\LogistikPasifController;
 use App\Modules\Order\Http\Controllers\RealisasiLogistikPasifController;
 use App\Modules\Order\Http\Controllers\OrderKategoriController;
 use App\Modules\Order\Http\Controllers\OrderMenuController;
+use App\Modules\Order\Http\Controllers\PenjualanController;
 use App\Modules\Order\Http\Controllers\RealisasiAktifController;
 use App\Modules\Order\Http\Controllers\RealisasiPasifController;
 use App\Modules\Order\Http\Controllers\RealisasiLogistikAktifController;
@@ -31,7 +32,7 @@ Route::prefix('order')
         // =========================
         // JAKARTA AKTIF
         // =========================
-        Route::get('/jakarta-aktif', [JakartaAktifController::class, 'jakartaAktif'])->name('jakarta-aktif');
+        Route::get('/jakarta-aktif', [PenjualanController::class, 'keJakartaAktif'])->name('jakarta-aktif');
         Route::get('/modul', [OrderKategoriController::class, 'modul'])->name('modul');
         Route::get('/majalah', [OrderKategoriController::class, 'majalah'])->name('majalah');
         Route::get('/sertifikat', [OrderKategoriController::class, 'sertifikat'])->name('sertifikat');
@@ -49,7 +50,7 @@ Route::prefix('order')
         // =========================
         // LOGISTIK AKTIF (SKU LG)
         // =========================
-        Route::get('/logistik-aktif', [LogistikAktifController::class, 'logistikAktif'])->name('logistik-aktif');
+        Route::get('/logistik-aktif', [PenjualanController::class, 'keLogistikAktif'])->name('logistik-aktif');
         Route::post('/logistik-aktif/sync-lg', [LogistikAktifController::class, 'syncLgFromBimbashop'])->name('logistik-aktif.sync-lg');
         Route::post('/logistik-aktif/bulk-action', [LogistikAktifController::class, 'bulkActionLogistikAktif'])->name('logistik-aktif.bulk-action');
         Route::get('/logistik-aktif/filtered-ids', [LogistikAktifController::class, 'getFilteredIds'])->name('logistik-aktif.filtered-ids');
@@ -76,7 +77,7 @@ Route::prefix('order')
         // =========================
         // LOGISTIK PASIF (SKU LG, khusus Stokis Pasif)
         // =========================
-        Route::get('/logistik-pasif', [LogistikPasifController::class, 'logistikPasif'])->name('logistik-pasif');
+        Route::get('/logistik-pasif', [PenjualanController::class, 'keLogistikPasif'])->name('logistik-pasif');
         Route::post('/logistik-pasif/sync-lg', [LogistikPasifController::class, 'syncLgFromBimbashop'])->name('logistik-pasif.sync-lg');
         Route::post('/logistik-pasif/bulk-action', [LogistikPasifController::class, 'bulkActionLogistikPasif'])->name('logistik-pasif.bulk-action');
         Route::get('/logistik-pasif/filtered-ids', [LogistikPasifController::class, 'getFilteredIds'])->name('logistik-pasif.filtered-ids');
@@ -103,7 +104,7 @@ Route::prefix('order')
         // =========================
         // JAKARTA PASIF
         // =========================
-        Route::get('/jakarta-pasif', [JakartaPasifController::class, 'jakartaPasif'])->name('jakarta-pasif');
+        Route::get('/jakarta-pasif', [PenjualanController::class, 'keJakartaPasif'])->name('jakarta-pasif');
         Route::post('/jakarta-pasif/import', [JakartaPasifController::class, 'importJakartaPasif'])->name('jakarta-pasif.import');
         Route::post('/jakarta-pasif/sync-jkt', [JakartaPasifController::class, 'syncJktPasifFromBimbashop'])->name('jakarta-pasif.sync-jkt');
         Route::post('/jakarta-pasif/bulk-action', [JakartaPasifController::class, 'bulkActionJakartaPasif'])->name('jakarta-pasif.bulk-action');
@@ -200,3 +201,12 @@ Route::view(
     '/order/jakarta-aktif/realisasi/modul',
     'order::order.jakarta-aktif-modul-menu'
 )->name('order.jakarta-aktif.modul');
+
+// === PENJUALAN: satu halaman Jakarta (semua rumah) dan satu halaman Logistik (semua vendor) ===
+Route::prefix('penjualan')
+    ->name('penjualan.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get('/jakarta',  [PenjualanController::class, 'jakarta'])->name('jakarta');
+        Route::get('/logistik', [PenjualanController::class, 'logistik'])->name('logistik');
+    });

@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Stokis Pasif'); ?>
 
 <?php $__env->startPush('styles'); ?>

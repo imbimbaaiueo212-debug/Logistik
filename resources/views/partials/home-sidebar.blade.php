@@ -399,30 +399,32 @@
         @endif
 
         @if($__u->hasModule('penjualan'))
-        {{-- Penjualan --}}
-        @php
-            
-            // Jakarta di bawah Kasdana membuka halaman Jakarta Aktif dengan penanda ?from=kasdana
-            $hsFromKasdana = request('from') === 'kasdana' && request()->routeIs('order.jakarta-aktif', 'order.jakarta-aktif.*');
+        {{-- Kasdana: berdiri sendiri tepat di bawah Pemesanan --}}
+        @php $hsKasdanaActive = request()->routeIs(['import.casdana', 'import.casdana.*']); @endphp
+        <a href="{{ route('import.casdana') }}" class="hs-link {{ $hsKasdanaActive ? 'active' : '' }}">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M3.5 10h17"/><path d="M7 15h3"/></svg>
+                Kasdana
+            </span>
+        </a>
 
-            $hsPengeluaranActive = ! $hsFromKasdana && request()->routeIs([
-                'pengeluaran.*',
-                'order.jakarta-aktif','order.jakarta-aktif.*',
-                'order.jakarta-pasif','order.jakarta-pasif.*','order.jakarta-pasif-printed',
-                'order.logistik-pasif','order.logistik-pasif.*','order.logistik-pasif-*','order.realisasi-logistik-pasif.*',
-                'import.manual','import.manual.*',
-                'order-manual-modul.manual','order-manual-modul.manual.*',
-                'order-manual-sertifikat.manual','order-manual-sertifikat.manual.*',
-            ]) && ! request()->routeIs([
-                'order-manual-modul.manual.create','order-manual-modul.manual.create.*',
-                'order-manual-sertifikat.manual.create','order-manual-sertifikat.manual.create.*',
+        {{-- Penjualan: Jakarta (filter per rumah) dan Logistik (filter per vendor) --}}
+        @php
+            $hsJakartaActive = request()->routeIs([
+                'penjualan.jakarta',
+                'order.jakarta-aktif', 'order.jakarta-aktif.*',
+                'order.jakarta-pasif', 'order.jakarta-pasif.*', 'order.jakarta-pasif-printed',
+                'order.jakarta-printed',
+                'order.realisasi.*', 'order.realisasi-pasif.*',
             ]);
-            $hsKasdanaActive  = request()->routeIs(['import.casdana', 'import.casdana.*']);
-            $hsKasdanaMerchant = $hsKasdanaActive ? strtolower((string) request('merchant')) : '';
-            $hsKasdanaJakarta  = $hsFromKasdana;
-            // Logistik = halaman Logistik Aktif (SKU LG), sama seperti Jakarta Aktif
-            $hsKasdanaLogistik = request()->routeIs('order.logistik-aktif', 'order.logistik-aktif.*');
-            $hsPenjualanActive = $hsKasdanaActive || $hsFromKasdana || $hsKasdanaLogistik || $hsPengeluaranActive;
+            $hsLogistikActive = request()->routeIs([
+                'penjualan.logistik',
+                'order.logistik-aktif', 'order.logistik-aktif.*', 'order.logistik-printed', 'order.logistik-picking-list*',
+                'order.realisasi-logistik.*',
+                'order.logistik-pasif', 'order.logistik-pasif.*', 'order.logistik-pasif-*',
+                'order.realisasi-logistik-pasif.*',
+            ]);
+            $hsPenjualanActive = $hsJakartaActive || $hsLogistikActive;
         @endphp
         <button type="button" data-hs-toggle="#hs-penjualan" class="hs-toggle {{ $hsPenjualanActive ? 'open has-active' : '' }}">
             <span class="inline-flex items-center gap-2">
@@ -433,50 +435,10 @@
         </button>
         <div id="hs-penjualan" class="hs-sub {{ $hsPenjualanActive ? 'open' : '' }}">
             <div class="hs-sub-inner">
-                {{-- Kasdana: klik label = buka halaman Kasdana (dropdown tetap tertutup), klik panah > = buka dropdown Jakarta / Logistik.
-                     Dropdown hanya terbuka otomatis saat halaman sedang memakai filter Jakarta atau Logistik. --}}
-                <div class="hs-sub-split">
-                    <a href="{{ route('import.casdana') }}"
-                       class="hs-sub-link {{ $hsKasdanaActive && ! $hsKasdanaJakarta && ! $hsKasdanaLogistik ? 'active' : '' }}">Kasdana (Aktif)</a>
-                    <button type="button" data-hs-toggle="#hs-kasdana" aria-label="Buka pilihan Kasdana"
-                            class="hs-sub-chev {{ $hsKasdanaJakarta || $hsKasdanaLogistik ? 'open' : '' }}">
-                        <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                </div>
-                <div id="hs-kasdana" class="hs-sub {{ $hsKasdanaJakarta || $hsKasdanaLogistik ? 'open' : '' }}">
-                    <div class="hs-sub-inner">
-                        <a href="{{ route('order.jakarta-aktif', ['from' => 'kasdana']) }}"
-                           class="hs-sub-link {{ $hsKasdanaJakarta ? 'active' : '' }}">Jakarta</a>
-                        <a href="{{ route('order.logistik-aktif') }}"
-                           class="hs-sub-link {{ $hsKasdanaLogistik ? 'active' : '' }}">Logistik</a>
-                    </div>
-                </div>
-
-                {{-- Pengeluaran = rekap RA (Rekap Aktual): Aktif, Jakarta Pasif, Logistik Pasif, Manual, Modul, Sertifikat --}}
-                <button type="button" data-hs-toggle="#hs-pengeluaran" class="hs-sub-toggle {{ $hsPengeluaranActive ? 'open has-active' : '' }}">
-                    <span>Pengeluaran (Pasif)</span>
-                    <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <div id="hs-pengeluaran" class="hs-sub {{ $hsPengeluaranActive ? 'open' : '' }}">
-                    <div class="hs-sub-inner">
-                        {{-- Sementara disembunyikan (aktifkan kembali nanti):
-                        <a href="{{ route('order.jakarta-aktif') }}#ra-aktif"
-                           class="hs-sub-link {{ request()->routeIs('order.jakarta-aktif','order.jakarta-aktif.*') ? 'active' : '' }}">Aktif</a>
-                        --}}
-                        <a href="{{ route('order.jakarta-pasif') }}#ra-pasif"
-                           class="hs-sub-link {{ request()->routeIs('order.jakarta-pasif','order.jakarta-pasif.*','order.jakarta-pasif-printed') ? 'active' : '' }}">Jakarta</a>
-                        <a href="{{ route('order.logistik-pasif') }}"
-                           class="hs-sub-link {{ request()->routeIs('order.logistik-pasif','order.logistik-pasif.*','order.logistik-pasif-*','order.realisasi-logistik-pasif.*') ? 'active' : '' }}">Logistik</a>
-                        {{-- Sementara disembunyikan (aktifkan kembali nanti): Majalah, Modul, Sertifikat
-                        <a href="{{ route('import.manual') }}#rekap-manual"
-                           class="hs-sub-link {{ request()->routeIs('import.manual','import.manual.*') ? 'active' : '' }}">Majalah</a>
-                        <a href="{{ route('order-manual-modul.manual') }}#ra-modul"
-                           class="hs-sub-link {{ request()->routeIs('order-manual-modul.manual') || (request()->routeIs('order-manual-modul.manual.*') && !request()->routeIs('order-manual-modul.manual.create','order-manual-modul.manual.create.*')) ? 'active' : '' }}">Modul</a>
-                        <a href="{{ route('order-manual-sertifikat.manual') }}#ra-sertifikat"
-                           class="hs-sub-link {{ request()->routeIs('order-manual-sertifikat.manual') || (request()->routeIs('order-manual-sertifikat.manual.*') && !request()->routeIs('order-manual-sertifikat.manual.create','order-manual-sertifikat.manual.create.*')) ? 'active' : '' }}">Sertifikat</a>
-                        --}}
-                    </div>
-                </div>
+                {{-- Jakarta: Semua, JKT, JKTP, DLC, EBT, INV, BSS (filter ada di halamannya) --}}
+                <a href="{{ route('penjualan.jakarta') }}" class="hs-sub-link {{ $hsJakartaActive ? 'active' : '' }}">Jakarta</a>
+                {{-- Logistik: Semua, Vendor Aktif, Vendor Pasif (filter ada di halamannya) --}}
+                <a href="{{ route('penjualan.logistik') }}" class="hs-sub-link {{ $hsLogistikActive ? 'active' : '' }}">Logistik</a>
             </div>
         </div>
         @endif
