@@ -12,6 +12,7 @@ use App\Modules\Pengadaan\Models\GoodsReceipt;
 use App\Modules\Pengadaan\Models\GoodsReceiptItem;
 use App\Modules\Order\Models\JakartaAktif;
 use App\Modules\Order\Models\JakartaPasif;
+use App\Modules\Order\Support\RumahJakarta;
 use App\Modules\Distribusi\Models\ManualDistributionOrder;
 use App\Modules\OrderManual\Models\ManualModulOrder;
 use App\Modules\Import\Models\ManualOrder;
@@ -60,12 +61,15 @@ class HomeController extends Controller
         // Order yang belum diproses (is_processed = 0 / NULL)
         $belumDiproses = fn ($q) => $q->where('is_processed', 0)->orWhereNull('is_processed');
 
+        // Semua tabel order "pasif": JKTP (jakarta_pasif) + DLC, EBT, INV, BSS (tabel sendiri-sendiri)
+        $tabelPasif = array_map(fn ($r) => RumahJakarta::header($r), RumahJakarta::PASIF);
+
         // =====================================================================
         // 1. ORDER HARI INI  (Aktif, Pasif, Manual: Majalah, Modul, Sertifikat)
         // =====================================================================
         $orderHariIni = [
             'Aktif'      => $this->hitung(fn () => JakartaAktif::whereDate('tgl_pesan', $today)->count()),
-            'Pasif'      => $this->hitung(fn () => JakartaPasif::whereDate('tgl_pesan', $today)->count()),
+            'Pasif'      => $this->hitung(fn () => collect($tabelPasif)->sum(fn ($m) => $m::whereDate('tgl_pesan', $today)->count())),
             'Majalah'    => $this->hitung(fn () => ManualOrder::whereDate('order_date', $today)->count()),
             'Modul'      => $this->hitung(fn () => ManualModulOrder::whereDate('order_date', $today)->count()),
             'Sertifikat' => $this->hitung(fn () => ManualSertifikatOrder::whereDate('order_date', $today)->count()),
@@ -78,7 +82,7 @@ class HomeController extends Controller
 
         // --- Pemesanan: order yang belum diproses ---
         $pesanAktif = $this->hitung(fn () => JakartaAktif::where($belumDiproses)->count());
-        $pesanPasif = $this->hitung(fn () => JakartaPasif::where($belumDiproses)->count());
+        $pesanPasif = $this->hitung(fn () => collect($tabelPasif)->sum(fn ($m) => $m::where($belumDiproses)->count()));
         $pesanManual = $this->hitung(fn () => ManualOrder::where($belumDiproses)->count())
             + $this->hitung(fn () => ManualModulOrder::where($belumDiproses)->count())
             + $this->hitung(fn () => ManualSertifikatOrder::where($belumDiproses)->count());
@@ -326,6 +330,10 @@ class HomeController extends Controller
         $sumber = [
             [JakartaAktif::class, 'tgl_pesan'],
             [JakartaPasif::class, 'tgl_pesan'],
+            [RumahJakarta::header('DLC'), 'tgl_pesan'],
+            [RumahJakarta::header('EBT'), 'tgl_pesan'],
+            [RumahJakarta::header('INV'), 'tgl_pesan'],
+            [RumahJakarta::header('BSS'), 'tgl_pesan'],
             [ManualOrder::class, 'order_date'],
             [ManualModulOrder::class, 'order_date'],
             [ManualSertifikatOrder::class, 'order_date'],

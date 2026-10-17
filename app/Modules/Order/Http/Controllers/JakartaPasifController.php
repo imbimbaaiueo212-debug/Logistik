@@ -10,6 +10,7 @@ use App\Modules\Order\Models\JakartaPasif;
 use App\Modules\Order\Models\JakartaPasifItem;
 use App\Modules\Master\Models\Product;
 use App\Modules\Order\Models\RealisasiPasif;
+use App\Modules\Order\Support\RumahJakarta;
 use App\Modules\Picking\Models\PickingPasif;
 use App\Modules\Picking\Models\PickingPasifItem;
 use Illuminate\Http\Request;
@@ -162,7 +163,8 @@ public function jakartaPasif(Request $request)
 
 /**
  * Sync dari Bimbashop 
- * JKTP, DLC, EBT, INV, dan BSS (semua masuk Jakarta Pasif, dipisah per jenis saat ke Rekap Aktual)
+ * JKTP -> jakarta_pasif | DLC -> jakarta_dlc | EBT -> jakarta_ebt | INV -> jakarta_inv | BSS -> jakarta_bss
+ * (tiap rumah punya tabel sendiri; ditampilkan bergabung di halaman Jakarta)
  * Catatan: Pasif tidak wajib ada pembayaran di Casdana
  */
 public function syncJktPasifFromBimbashop()
@@ -170,6 +172,7 @@ public function syncJktPasifFromBimbashop()
     $totalOrder  = 0;
     $skipExists  = 0;
     $inserted    = 0;
+    $perRumah    = array_fill_keys(self::JENIS_PASIF, 0);
     $errors      = [];
 
     // =====================================================
@@ -193,7 +196,23 @@ public function syncJktPasifFromBimbashop()
         // =================================================
         // CEK SUDAH ADA
         // =================================================
-        $existing = JakartaPasif::where('id_pesan', $orderId)->first();
+        // Tiap rumah punya tabel sendiri: JKTP -> jakarta_pasif, DLC/EBT/INV/BSS -> jakarta_{rumah}
+        $jenisOrder     = $items->map(fn ($i) => $this->jenisDariSku($i->item_sku))->filter()->first() ?: 'JKTP';
+        $kelasHeader    = RumahJakarta::header($jenisOrder);
+        $kelasItem      = RumahJakarta::item($jenisOrder);
+        $kelasRealisasi = RumahJakarta::realisasi($jenisOrder);
+        $fk             = RumahJakarta::fk($jenisOrder);
+
+        $existing = $kelasHeader::where('id_pesan', $orderId)->first();
+
+        // Order lama yang sudah diproses masih tersimpan di jakarta_pasif -> jangan dibuat ulang
+        if (! $existing
+            && RumahJakarta::punyaTabelSendiri($jenisOrder)
+            && JakartaPasif::where('id_pesan', $orderId)->exists()
+        ) {
+            $skipExists++;
+            continue;
+        }
 
         if ($existing) {
             // Koreksi nama unit (mis. pilih unit tanpa "English" bila no_cab punya 2 nama)
@@ -210,7 +229,7 @@ public function syncJktPasifFromBimbashop()
                 $existing->nama_unit = $nama;
                 $existing->save();
 
-                RealisasiPasif::where('jakarta_pasif_id', $existing->id)
+                $kelasRealisasi::where($fk, $existing->id)
                     ->update(['nama_unit' => $nama, 'updated_at' => now()]);
             }
 
@@ -372,9 +391,9 @@ public function syncJktPasifFromBimbashop()
         // CREATE
         // =================================================
         try {
-            DB::transaction(function () use ($data, $items, $productCache, &$inserted) {
+            DB::transaction(function () use ($data, $items, $productCache, &$inserted, &$perRumah, $jenisOrder, $kelasHeader, $kelasItem, $fk) {
 
-                $jakarta = JakartaPasif::create($data);
+                $jakarta = $kelasHeader::create($data);
 
                 foreach ($items as $item) {
                     $sku = strtoupper(trim($item->item_sku ?? ''));
@@ -386,8 +405,8 @@ public function syncJktPasifFromBimbashop()
                     $qty   = (int) ($item->item_qty ?? 1);
                     $harga = (float) ($item->item_price ?? 0);
 
-                    JakartaPasifItem::create([
-                        'jakarta_pasif_id' => $jakarta->id,
+                    $kelasItem::create([
+                        $fk                => $jakarta->id,
                         'product_id'       => $product?->id,
                         'sku'              => $sku,
                         'label'            => $product?->label ?? $searchCode,
@@ -399,6 +418,7 @@ public function syncJktPasifFromBimbashop()
                 }
 
                 $inserted++;
+                $perRumah[$jenisOrder] = ($perRumah[$jenisOrder] ?? 0) + 1;
             });
 
         } catch (\Throwable $e) {
@@ -410,9 +430,13 @@ public function syncJktPasifFromBimbashop()
     // =====================================================
     // HASIL
     // =====================================================
-    $message = "✅ Sync Jakarta Pasif selesai.<br>"
-             . "Total order JKTP / DLC / EBT ditemukan: <strong>{$totalOrder}</strong><br>"
-             . "Berhasil masuk: <strong>{$inserted}</strong><br>"
+    $rincian = collect($perRumah)
+        ->map(fn ($n, $j) => "{$j}: <strong>{$n}</strong>")
+        ->implode(' &nbsp;|&nbsp; ');
+
+    $message = "✅ Sync JKTP / DLC / EBT / INV / BSS selesai.<br>"
+             . "Total order ditemukan: <strong>{$totalOrder}</strong><br>"
+             . "Berhasil masuk: <strong>{$inserted}</strong> ({$rincian})<br>"
              . "Dilewati (sudah ada): <strong>{$skipExists}</strong>";
 
     if (count($errors) > 0) {
@@ -446,8 +470,15 @@ public function bulkActionJakartaPasif(Request $request)
     $jenisProses = strtoupper(trim((string) $request->input('jenis')));
 
     if (! in_array($jenisProses, self::JENIS_PASIF, true)) {
-        return redirect()->back()->with('error', 'Pilih filter Jenis (JKTP, DLC, atau EBT) dulu sebelum memproses ke Rekap Aktual.');
+        return redirect()->back()->with('error', 'Pilih filter Rumah (JKTP, DLC, EBT, INV, atau BSS) dulu sebelum memproses ke Rekap Aktual.');
     }
+
+    // Tiap rumah punya tabel sendiri
+    $kelasHeader    = RumahJakarta::header($jenisProses);
+    $kelasRealisasi = RumahJakarta::realisasi($jenisProses);
+    $fk             = RumahJakarta::fk($jenisProses);
+    $tabelHeader    = RumahJakarta::tabel($jenisProses);
+    $pakaiPicking   = ! RumahJakarta::punyaTabelSendiri($jenisProses); // picking rumah baru: tahap berikutnya
 
     $updates = json_decode($perItem, true);
 
@@ -463,7 +494,7 @@ public function bulkActionJakartaPasif(Request $request)
         $id = $update['id'] ?? null;
         if (!$id) continue;
 
-        $jakarta = JakartaPasif::find($id);
+        $jakarta = $kelasHeader::find($id);
         if (!$jakarta || $jakarta->is_processed) continue;
 
         // Hanya jenis yang dipilih yang masuk Rekap Aktual
@@ -474,7 +505,7 @@ public function bulkActionJakartaPasif(Request $request)
         $serviceKurir = $update['service_kurir'] ?? $jakarta->service_pengiriman;
         $catatan      = $update['catatan'] ?? null;
 
-        // --- Update header jakarta_pasif ---
+        // --- Update header (jakarta_pasif / jakarta_dlc / jakarta_ebt / ...) ---
         $setClauses = [
             "is_processed = 1",
             "processed_at = ?",
@@ -501,7 +532,7 @@ public function bulkActionJakartaPasif(Request $request)
         }
 
         DB::update(
-            "UPDATE jakarta_pasif SET " . implode(', ', $setClauses) . " WHERE id = ?",
+            "UPDATE {$tabelHeader} SET " . implode(', ', $setClauses) . " WHERE id = ?",
             array_merge($bindings, [$id])
         );
 
@@ -538,7 +569,7 @@ public function bulkActionJakartaPasif(Request $request)
             if ($items->isEmpty()) continue;
 
             // Skip jika realisasi kategori ini sudah ada
-            if (RealisasiPasif::where('jakarta_pasif_id', $jakarta->id)
+            if ($kelasRealisasi::where($fk, $jakarta->id)
                 ->where('kategori_order', $kategoriOrder)
                 ->exists()
             ) {
@@ -581,8 +612,8 @@ public function bulkActionJakartaPasif(Request $request)
             $servicePengiriman = $serviceKurir
                 ?: (in_array(strtolower($statusKirim ?? ''), ['diambil', 'ambil']) ? 'Diambil' : null);
 
-            $realisasi = RealisasiPasif::create([
-                'jakarta_pasif_id'   => $jakarta->id,
+            $realisasi = $kelasRealisasi::create([
+                $fk                  => $jakarta->id,
                 'jenis'              => $jakarta->jenis ?: 'JKTP',
                 'no_pl'              => $jakarta->id_pesan,
                 'tgl_turun_pl'       => $jakarta->tgl_pesan,
@@ -606,7 +637,9 @@ public function bulkActionJakartaPasif(Request $request)
                 'billing_company'    => $jakarta->billing_company,
             ]);
 
-            $this->createPickingPasif($realisasi, $items);
+            if ($pakaiPicking) {
+                $this->createPickingPasif($realisasi, $items);
+            }
         }
 
         $successCount++;
@@ -614,7 +647,8 @@ public function bulkActionJakartaPasif(Request $request)
 
     return redirect()
         ->route($route, ['jenis' => $jenisProses])
-        ->with('success', "$successCount data Jakarta Pasif ({$jenisProses}) berhasil diproses & disimpan ke Rekap Aktual {$jenisProses}!");
+        ->with('success', "$successCount data {$jenisProses} berhasil diproses & disimpan ke Rekap Aktual {$jenisProses}!"
+            . ($pakaiPicking ? '' : '<br><small>Catatan: Picking untuk ' . $jenisProses . ' belum tersambung (tahap berikutnya).</small>'));
 }
 
 /**
@@ -701,7 +735,12 @@ public function getModalDataPasif(Request $request)
         return response()->json([]);
     }
 
-    $data = JakartaPasif::whereIn('id', $ids)
+    $jenis = strtoupper(trim((string) $request->input('jenis')));
+    $kelasHeader = in_array($jenis, self::JENIS_PASIF, true)
+        ? RumahJakarta::header($jenis)
+        : JakartaPasif::class;
+
+    $data = $kelasHeader::whereIn('id', $ids)
         ->select([
             'id', 'id_pesan', 'nama_unit', 'status_pembayaran', 'jenis_bank',
             'pesanan', 'status_kirim', 'payment_date', 'is_processed',
@@ -751,7 +790,12 @@ public function getModalDataPasif(Request $request)
 
 public function getFilteredIdsPasif(Request $request)
 {
-    $query = JakartaPasif::query();
+    $jenisReq    = strtoupper(trim((string) $request->input('jenis')));
+    $kelasHeader = in_array($jenisReq, self::JENIS_PASIF, true)
+        ? RumahJakarta::header($jenisReq)
+        : JakartaPasif::class;
+
+    $query = $kelasHeader::query();
 
     if ($request->filled('start_date')) {
         $query->whereDate('tgl_pesan', '>=', $request->start_date);

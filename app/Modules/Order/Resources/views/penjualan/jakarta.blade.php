@@ -248,22 +248,13 @@
 
                         {{-- KIRI: NAVIGASI --}}
                         <div class="flex items-center gap-3 flex-wrap">
-                            <form action="{{ route('order.jakarta-aktif.sync-jkt') }}"
+                            <form action="{{ route('penjualan.jakarta.sync') }}"
                                     method="POST"
-                                    onsubmit="return confirm('Yakin ingin melakukan Sync JKT + Casdana?')">
+                                    onsubmit="return confirm('Yakin ingin Sync Data (JKT, JKTP, DLC, EBT, INV, BSS + Casdana)?')">
                                 @csrf
                                 <button type="submit" class="btn-action btn-sync">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                                    <span>Sync JKT + Casdana</span>
-                                </button>
-                            </form>
-                            <form action="{{ route('order.jakarta-pasif.sync-jkt') }}"
-                                    method="POST"
-                                    onsubmit="return confirm('Yakin ingin melakukan Sync JKTP, DLC, EBT, INV, BSS + Casdana?')">
-                                @csrf
-                                <button type="submit" class="btn-action btn-sync">
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                                    <span>Sync JKTP/DLC/EBT/INV/BSS + Casdana</span>
+                                    <span>Sync Data</span>
                                 </button>
                             </form>
                         </div>
@@ -870,6 +861,7 @@
             method: 'POST',
             data: {
                 ids: selectedIds,
+                jenis: RUMAH_PASIF ? RUMAH : '',
                 _token: '{{ csrf_token() }}'
             },
             success: function(items) {

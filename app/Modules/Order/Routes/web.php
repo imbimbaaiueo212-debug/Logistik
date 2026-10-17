@@ -208,5 +208,6 @@ Route::prefix('penjualan')
     ->middleware('auth')
     ->group(function () {
         Route::get('/jakarta',  [PenjualanController::class, 'jakarta'])->name('jakarta');
+        Route::post('/jakarta/sync', [PenjualanController::class, 'syncJakartaSemua'])->name('jakarta.sync');
         Route::get('/logistik', [PenjualanController::class, 'logistik'])->name('logistik');
     });

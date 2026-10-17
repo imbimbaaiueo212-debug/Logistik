@@ -7,6 +7,7 @@ use App\Modules\Order\Models\JakartaAktif;
 use App\Modules\Order\Models\JakartaPasif;
 use App\Modules\Order\Models\LogistikAktif;
 use App\Modules\Order\Models\LogistikPasif;
+use App\Modules\Order\Support\RumahJakarta;
 use App\Modules\Master\Models\UnitNamaMismatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,30 +40,49 @@ class PenjualanController extends Controller
             $rumah = '';
         }
 
-        $pakaiAktif = $rumah === '' || $rumah === 'JKT';
-        $pakaiPasif = $rumah === '' || in_array($rumah, JakartaPasifController::JENIS_PASIF, true);
+        $relasi = ['items.product', 'casdana' => fn ($q) => $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer')];
 
-        $data = $this->gabung(
+        // Sumber data: tiap rumah punya tabel sendiri, ditampilkan bergabung di satu halaman.
+        $sumber = [];
+
+        if ($rumah === '' || $rumah === 'JKT') {
+            $sumber['aktif'] = ['kelas' => JakartaAktif::class, 'rel' => $relasi, 'saring' => null];
+        }
+
+        // jakarta_pasif: JKTP, ditambah order lama DLC/EBT/INV/BSS yang sudah terlanjur diproses di sini
+        if ($rumah === '' || in_array($rumah, JakartaPasifController::JENIS_PASIF, true)) {
+            $sumber['pasif'] = [
+                'kelas'  => JakartaPasif::class,
+                'rel'    => $relasi,
+                'saring' => function ($q) use ($rumah) {
+                    if ($rumah !== '') {
+                        $q->where(function ($x) use ($rumah) {
+                            $x->where('jenis', $rumah);
+                            if ($rumah === 'JKTP') {
+                                $x->orWhereNull('jenis'); // data lama tanpa jenis dianggap JKTP
+                            }
+                        });
+                    }
+                },
+            ];
+        }
+
+        foreach (RumahJakarta::BARU as $k) {
+            if ($rumah === '' || $rumah === $k) {
+                $sumber[strtolower($k)] = ['kelas' => RumahJakarta::header($k), 'rel' => $relasi, 'saring' => null];
+            }
+        }
+
+        $data = $this->gabungBanyak(
             $request,
-            $pakaiAktif ? JakartaAktif::class : null,
-            $pakaiPasif ? JakartaPasif::class : null,
-            function ($q) use ($rumah) {
-                // hanya sisi pasif: saring jenis (data lama tanpa jenis dianggap JKTP)
-                if ($rumah !== '' && $rumah !== 'JKT') {
-                    $q->where(function ($x) use ($rumah) {
-                        $x->where('jenis', $rumah);
-                        if ($rumah === 'JKTP') {
-                            $x->orWhereNull('jenis');
-                        }
-                    });
-                }
-            },
-            ['items.product', 'casdana' => fn ($q) => $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer')],
-            ['items.product', 'casdana' => fn ($q) => $q->select('id', 'invoice_number', 'payment_date', 'amount', 'status', 'payment_channel', 'customer')],
-            fn ($m, $sumber) => $sumber === 'aktif' ? 'JKT' : ($m->jenis ?: 'JKTP')
+            $sumber,
+            fn ($m, $kunci) => $kunci === 'aktif' ? 'JKT' : ($m->jenis ?: strtoupper($kunci === 'pasif' ? 'JKTP' : $kunci))
         );
 
-        $kolom = fn (string $k) => $this->daftarDistinct([JakartaAktif::class, JakartaPasif::class], $k);
+        $kolom = fn (string $k) => $this->daftarDistinct(
+            array_map(fn ($r) => RumahJakarta::header($r), RumahJakarta::SEMUA),
+            $k
+        );
 
         $mismatchNoCab = UnitNamaMismatch::where('is_resolved', false)
             ->pluck('no_cab')
@@ -154,6 +174,45 @@ class PenjualanController extends Controller
     }
 
     // =====================================================================
+    // SYNC SATU TOMBOL: tarik semua rumah (JKT, JKTP, DLC, EBT, INV, BSS) dari biMBA Shop + Casdana
+    //   JKT                       -> JakartaAktifController::syncJktFromBimbashop
+    //   JKTP, DLC, EBT, INV, BSS  -> JakartaPasifController::syncJktPasifFromBimbashop
+    // Logika tiap sync TIDAK diubah; di sini hanya dijalankan berurutan lalu pesannya digabung.
+    // =====================================================================
+    public function syncJakartaSemua()
+    {
+        $langkah = [
+            'JKT'                        => [JakartaAktifController::class, 'syncJktFromBimbashop'],
+            'JKTP / DLC / EBT / INV / BSS' => [JakartaPasifController::class, 'syncJktPasifFromBimbashop'],
+        ];
+
+        $sukses = [];
+        $gagal  = [];
+
+        foreach ($langkah as $label => [$kelas, $metode]) {
+            try {
+                app($kelas)->{$metode}();
+                $pesan = session('success');
+                $sukses[] = '<strong>' . $label . '</strong><br>' . ($pesan ?: 'Selesai.');
+            } catch (\Throwable $e) {
+                \Log::error("Sync Jakarta ({$label}) gagal: " . $e->getMessage());
+                $gagal[] = "{$label}: " . $e->getMessage();
+            }
+        }
+
+        $redirect = redirect()->route('penjualan.jakarta');
+
+        if ($sukses) {
+            $redirect->with('success', implode('<hr class="my-2">', $sukses));
+        }
+        if ($gagal) {
+            $redirect->with('error', '❌ Sync gagal:<br>• ' . implode('<br>• ', array_map('e', $gagal)));
+        }
+
+        return $redirect;
+    }
+
+    // =====================================================================
     // Helper
     // =====================================================================
 
@@ -180,29 +239,43 @@ class PenjualanController extends Controller
 
     /**
      * Gabungkan dua tabel (aktif & pasif) menjadi satu daftar berhalaman, urut Order Date.
-     * Yang di-UNION hanya id + tgl_pesan; model lengkap dimuat per halaman dari tabelnya masing-masing.
-     * Tiap baris diberi atribut: sumber ('aktif'|'pasif') dan rumah (label untuk badge).
+     * Dipakai halaman Logistik. Halaman Jakarta memakai gabungBanyak() karena sumbernya lebih dari dua.
      */
     private function gabung(Request $request, ?string $kelasAktif, ?string $kelasPasif, ?\Closure $saringPasif, array $relAktif, array $relPasif, \Closure $labelRumah)
+    {
+        $sumber = [];
+
+        if ($kelasAktif) {
+            $sumber['aktif'] = ['kelas' => $kelasAktif, 'rel' => $relAktif, 'saring' => null];
+        }
+        if ($kelasPasif) {
+            $sumber['pasif'] = ['kelas' => $kelasPasif, 'rel' => $relPasif, 'saring' => $saringPasif];
+        }
+
+        return $this->gabungBanyak($request, $sumber, $labelRumah);
+    }
+
+    /**
+     * Gabungkan BANYAK tabel menjadi satu daftar berhalaman, urut Order Date.
+     * Yang di-UNION hanya id + tgl_pesan; model lengkap dimuat per halaman dari tabelnya masing-masing.
+     * Tiap baris diberi atribut: sumber (kunci sumber, mis. 'aktif'|'pasif'|'dlc') dan rumah (label badge).
+     *
+     * @param array<string, array{kelas: string, rel: array, saring: ?\Closure}> $sumber
+     */
+    private function gabungBanyak(Request $request, array $sumber, \Closure $labelRumah)
     {
         $perPage = (int) $request->get('per_page', 50);
         $perPage = in_array($perPage, [5, 10, 20, 50, 100, 200, 500], true) ? $perPage : 50;
 
         $subs = [];
 
-        if ($kelasAktif) {
-            $q = $kelasAktif::query();
+        foreach ($sumber as $kunci => $def) {
+            $q = $def['kelas']::query();
             $this->terapkanFilter($q, $request);
-            $subs[] = $q->select('id', 'tgl_pesan')->selectRaw("'aktif' as sumber")->toBase();
-        }
-
-        if ($kelasPasif) {
-            $q = $kelasPasif::query();
-            $this->terapkanFilter($q, $request);
-            if ($saringPasif) {
-                $saringPasif($q);
+            if (! empty($def['saring'])) {
+                ($def['saring'])($q);
             }
-            $subs[] = $q->select('id', 'tgl_pesan')->selectRaw("'pasif' as sumber")->toBase();
+            $subs[] = $q->select('id', 'tgl_pesan')->selectRaw("'{$kunci}' as sumber")->toBase();
         }
 
         $union = array_shift($subs);
@@ -220,20 +293,18 @@ class PenjualanController extends Controller
 
         $rows = $page->getCollection();
 
-        $muat = function (?string $kelas, string $sumber, array $rel) use ($rows) {
-            $ids = $rows->where('sumber', $sumber)->pluck('id')->all();
-
-            return ($kelas && $ids)
-                ? $kelas::with($rel)->whereIn('id', $ids)->get()->keyBy('id')
+        // muat model lengkap per sumber
+        $dimuat = [];
+        foreach ($sumber as $kunci => $def) {
+            $ids = $rows->where('sumber', $kunci)->pluck('id')->all();
+            $dimuat[$kunci] = $ids
+                ? $def['kelas']::with($def['rel'])->whereIn('id', $ids)->get()->keyBy('id')
                 : collect();
-        };
-
-        $aktif = $muat($kelasAktif, 'aktif', $relAktif);
-        $pasif = $muat($kelasPasif, 'pasif', $relPasif);
+        }
 
         $page->setCollection(
-            $rows->map(function ($r) use ($aktif, $pasif, $labelRumah) {
-                $m = $r->sumber === 'aktif' ? $aktif->get($r->id) : $pasif->get($r->id);
+            $rows->map(function ($r) use ($dimuat, $labelRumah) {
+                $m = isset($dimuat[$r->sumber]) ? $dimuat[$r->sumber]->get($r->id) : null;
                 if (! $m) {
                     return null;
                 }

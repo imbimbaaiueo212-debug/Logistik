@@ -7,6 +7,7 @@ use App\Modules\Picking\Models\Picking;          // Tambahkan
 use App\Modules\Order\Models\JakartaPasif;
 use App\Modules\Master\Models\Product;
 use App\Modules\Order\Models\RealisasiPasif;
+use App\Modules\Order\Support\RumahJakarta;
 use App\Modules\Picking\Models\PickingPasif;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -17,15 +18,17 @@ class RealisasiPasifController extends Controller
 
     public function jakartaPasifPrinted(Request $request)
 {
-    $query = RealisasiPasif::query();
-
     // ==========================
     // JENIS (rumah): JKTP / DLC / EBT / INV / BSS -> masing-masing punya Rekap Aktual sendiri
+    // (dan tabel sendiri: realisasi_pasif, realisasi_dlc, realisasi_ebt, realisasi_inv, realisasi_bss)
     // ==========================
     $jenis = strtoupper((string) $request->get('jenis', 'JKTP'));
     if (! in_array($jenis, ['JKTP', 'DLC', 'EBT', 'INV', 'BSS'], true)) {
         $jenis = 'JKTP';
     }
+
+    $kelasRealisasi = RumahJakarta::realisasi($jenis);
+    $query = $kelasRealisasi::query();
 
     $query->where(function ($q) use ($jenis) {
         $q->where('jenis', $jenis);
@@ -91,7 +94,7 @@ class RealisasiPasifController extends Controller
     $rekapNumber = $this->generateRekapNumberPasif($tanggal, $jenis);
 
     // Samakan SEMUA baris tanggal ini ke nomor yang sama
-    RealisasiPasif::whereIn('id', $rows->pluck('id'))
+    $kelasRealisasi::whereIn('id', $rows->pluck('id'))
         ->update([
             'rekap_number' => $rekapNumber,
             'updated_at'   => now(),
@@ -123,7 +126,7 @@ private function generateRekapNumberPasif($tanggal, $jenis = null)
     $date   = Carbon::parse($tanggal)->format('ymd');
 
     // Kalau tanggal + jenis ini SUDAH punya rekap_number -> pakai yang sama
-    $existing = RealisasiPasif::whereDate('tgl_turun_pl', $tanggal)
+    $existing = RumahJakarta::realisasi($jenis)::whereDate('tgl_turun_pl', $tanggal)
         ->where(function ($q) use ($jenis) {
             $q->where('jenis', $jenis);
 
