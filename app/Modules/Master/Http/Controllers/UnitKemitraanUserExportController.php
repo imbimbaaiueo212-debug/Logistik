@@ -85,11 +85,8 @@ class UnitKemitraanUserExportController extends Controller
             $query->whereExists(function ($sub) {
                 $sub->selectRaw(1)
                     ->from('user_export_bimba_shop')
-                    ->whereColumn(
-                        'user_export_bimba_shop.billing_last_name',
-                        'like',
-                        DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')")
-                    );
+                    ->whereRaw("TRIM(user_export_bimba_shop.billing_last_name) <> ''")
+                    ->whereRaw("TRIM(LEADING '0' FROM TRIM(user_export_bimba_shop.billing_last_name)) = TRIM(LEADING '0' FROM TRIM(unit_kemitraan.no_cab))");
             });
 
         } elseif ($request->matching_status === 'tidak_ditemukan') {
@@ -97,11 +94,8 @@ class UnitKemitraanUserExportController extends Controller
             $query->whereNotExists(function ($sub) {
                 $sub->selectRaw(1)
                     ->from('user_export_bimba_shop')
-                    ->whereColumn(
-                        'user_export_bimba_shop.billing_last_name',
-                        'like',
-                        DB::raw("CONCAT('%', unit_kemitraan.no_cab, '%')")
-                    );
+                    ->whereRaw("TRIM(user_export_bimba_shop.billing_last_name) <> ''")
+                    ->whereRaw("TRIM(LEADING '0' FROM TRIM(user_export_bimba_shop.billing_last_name)) = TRIM(LEADING '0' FROM TRIM(unit_kemitraan.no_cab))");
             });
 
         }
@@ -134,12 +128,20 @@ class UnitKemitraanUserExportController extends Controller
         'user_email',
         'display_name',
         'first_name',
-        'last_name'
+        'last_name',
+        'billing_last_name'
     )->get();
+
+    // Kunci pencocokan = No Cab (billing_last_name) persis, nol di depan diabaikan.
+    // Tidak memakai pencarian sebagian, jadi 4909 tidak cocok dengan 14909 / 49091.
+    $userByCab = $userExports
+        ->filter(fn ($u) => trim((string) $u->billing_last_name) !== '')
+        ->groupBy(fn ($u) => ltrim(trim((string) $u->billing_last_name), '0'));
 
     return view('master::unit_kemitraan_user.index', compact(
         'unitKemitraans',
-        'userExports'
+        'userExports',
+        'userByCab'
     ));
 }
     /**
@@ -208,7 +210,7 @@ public function generateMatch(Request $request)
                 continue;
             }
 
-            $userExports = UserExportBimbaShop::where('billing_last_name', 'like', "%{$noCab}%")
+            $userExports = UserExportBimbaShop::whereRaw("TRIM(LEADING '0' FROM TRIM(billing_last_name)) = ?", [ltrim($noCab, '0') ?: '0'])
                 ->select('ID', 'billing_last_name')
                 ->get();
 

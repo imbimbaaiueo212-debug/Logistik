@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Database User Export'); ?>
 
 <?php $__env->startPush('styles'); ?>

@@ -23,6 +23,8 @@ class BimbashopOrder extends Model
         'billing_postcode', 'billing_country', 'billing_phone', 'billing_email',
         'shipping_company', 'shipping_state', 'shipping_postcode', 'shipping_country',
         'shipping_phone',
+        'shipping_state_code', 'shipping_method', 'bank',
+        'customer_roles', 'dokan_vendor_name',
     ];
 
     protected $casts = [

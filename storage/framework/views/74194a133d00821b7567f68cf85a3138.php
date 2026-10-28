@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Data Casdana'); ?>
 
 <?php $__env->startPush('styles'); ?>

@@ -91,6 +91,10 @@
             ['Shipping Postcode', 'shipping_postcode'],
             ['Shipping Country', 'shipping_country'],
             ['Shipping Phone', 'shipping_phone'],
+            ['Shipping Method', 'shipping_method', 'clip'],
+            ['Bank', 'bank'],
+            ['Customer Roles', 'customer_roles'],
+            ['Dokan Vendor', 'dokan_vendor_name', 'clip'],
         ];
 
         // Perataan kolom per tipe

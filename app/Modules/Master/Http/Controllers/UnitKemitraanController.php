@@ -161,7 +161,18 @@ class UnitKemitraanController extends Controller
      */
     public function show(UnitKemitraan $unitKemitraan)
     {
-        return view('master::unit_kemitraan.show', compact('unitKemitraan'));
+        // Cari akun biMBA Shop yang cocok: No Cab = billing_last_name (nol di depan diabaikan)
+        $akunShop = null;
+        $noCabN = ltrim(trim((string) $unitKemitraan->no_cab), '0');
+
+        if ($noCabN !== '') {
+            $akunShop = \App\Modules\Master\Models\UserExportBimbaShop::query()
+                ->whereRaw("TRIM(billing_last_name) <> ''")
+                ->whereRaw("TRIM(LEADING '0' FROM TRIM(billing_last_name)) = ?", [$noCabN])
+                ->first();
+        }
+
+        return view('master::unit_kemitraan.show', compact('unitKemitraan', 'akunShop'));
     }
 
     /**

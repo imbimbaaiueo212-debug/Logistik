@@ -222,6 +222,11 @@
 
     @php
         $__u = Auth::user();
+        // Sesi habis / belum login: jangan error, anggap tamu tanpa akses modul
+        if (!$__u) {
+            $__u = new \App\Models\User();
+            $__u->role = 'guest';
+        }
     @endphp
 
     <nav class="flex-1 px-3 py-4">

@@ -36,8 +36,15 @@ class BimbashopImport implements ToCollection, WithHeadingRow
                 }
 
                 // Di dalam try block, ganti create() menjadi:
-BimbashopOrder::create([
-    'order_id'            => $orderId,
+// Satu order bisa punya banyak baris item, jadi kunci = order_id + SKU + nama item
+// (bukan order_id saja). Import ulang file yang sama memperbarui baris lama, tidak menggandakan.
+BimbashopOrder::updateOrCreate(
+    [
+        'order_id'  => $orderId,
+        'item_sku'  => trim($row['item_sku'] ?? ''),
+        'item_name' => trim($row['item_name'] ?? ''),
+    ],
+    [
 
     'order_date'          => !empty($row['order_date']) 
                              ? Carbon::parse($row['order_date'])->format('Y-m-d H:i:s') 
@@ -66,7 +73,12 @@ BimbashopOrder::create([
     'shipping_address_2'  => $row['shipping_address_2'] ?? null,
     'shipping_company'    => $row['shipping_company'] ?? null,
     'shipping_city'       => $row['shipping_city'] ?? null,
-    'shipping_state'      => $row['shipping_state'] ?? null,
+    'shipping_state'      => $row['shipping_state'] ?? $row['shipping_state_code'] ?? null,
+    'shipping_state_code' => $row['shipping_state_code'] ?? null,
+    'shipping_method'     => $row['shipping_method'] ?? null,
+    'bank'                => $row['bank'] ?? null,
+    'customer_roles'      => $row['customer_roles'] ?? null,
+    'dokan_vendor_name'   => $row['dokan_vendor_name'] ?? null,
     'shipping_postcode'   => $row['shipping_postcode'] ?? null,
     'shipping_country'    => $row['shipping_country'] ?? null,
     'shipping_phone'      => $row['shipping_phone'] ?? null,

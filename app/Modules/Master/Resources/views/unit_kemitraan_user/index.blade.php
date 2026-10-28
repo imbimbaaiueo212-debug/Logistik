@@ -10,7 +10,7 @@
         border-collapse: separate;
         border-spacing: 0;
         width: 100%;
-        min-width: 1500px;
+        min-width: 1750px;
         font-size: 0.8125rem;
     }
     .data-table th,
@@ -164,8 +164,10 @@
                         <th>Jenis Unit</th>
                         <th class="ctr">Status Pengelolaan</th>
                         <th>Mitra Pengelolaan</th>
+                        <th class="ctr">Status Operasional</th>
                         <th>No Induk Mitra</th>
                         <th>No HP</th>
+                        <th class="ctr">Akun biMBA Shop</th>
                         <th>Matching First Name</th>
                         <th>User Email</th>
                         <th>Display Name</th>
@@ -177,13 +179,10 @@
                         @php
                             $noCab = trim((string) $unit->no_cab);
 
-                            // Cari user yang nama belakang billing / nama depan / nama belakangnya memuat No Cab.
-                            // No Cab kosong tidak dicocokkan (str_contains dengan teks kosong selalu true).
-                            $matched = $noCab === '' ? null : $userExports->first(function ($u) use ($noCab) {
-                                return str_contains(trim((string) ($u->billing_last_name ?? '')), $noCab)
-                                    || str_contains(trim((string) ($u->first_name ?? '')), $noCab)
-                                    || str_contains(trim((string) ($u->last_name ?? '')), $noCab);
-                            });
+                            // Cocokkan No Cab dengan billing_last_name akun biMBA Shop secara persis (nol di depan diabaikan).
+                            // Akun hanya ada bila unit punya user mitra; bila tidak ada, tampil "Tidak ditemukan".
+                            $noCabN  = ltrim($noCab, '0');
+                            $matched = ($noCab === '' || $noCabN === '') ? null : ($userByCab[$noCabN] ?? collect())->first();
                         @endphp
                         <tr>
                             <td class="sticky-l font-medium">{{ $unit->no_cab ?? '-' }}</td>
@@ -200,8 +199,28 @@
                                 @endif
                             </td>
                             <td>{{ $unit->mitra_pengelolaan ?? '-' }}</td>
+                            <td class="ctr">
+                                {{-- Status Operasional diambil langsung dari data unit mitra (kolom ops) --}}
+                                @php $ops = trim((string) $unit->ops); @endphp
+                                @if ($ops === '')
+                                    <span class="text-navy-950/35">-</span>
+                                @elseif (strcasecmp($ops, 'Active') === 0)
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">{{ $ops }}</span>
+                                @elseif (strcasecmp($ops, 'Closed') === 0)
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">{{ $ops }}</span>
+                                @else
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">{{ $ops }}</span>
+                                @endif
+                            </td>
                             <td>{{ $unit->no_induk_mitra ?? '-' }}</td>
                             <td>{{ $unit->no_hp ?? '-' }}</td>
+                            <td class="ctr">
+                                @if ($matched)
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Ditemukan</span>
+                                @else
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-rust-500/10 text-rust-600 text-xs font-semibold" title="No Cab unit ini tidak cocok dengan akun biMBA Shop mana pun">Tidak ada akun biMBA Shop</span>
+                                @endif
+                            </td>
                             <td class="cell-clip" title="{{ $matched?->first_name }}">
                                 @if ($matched)
                                     <span class="font-medium text-emerald-700">{{ $matched->first_name }}</span>
@@ -226,7 +245,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12" class="!text-center py-16 text-navy-950/50">
+                            <td colspan="14" class="!text-center py-16 text-navy-950/50">
                                 Tidak ada unit yang cocok dengan filter ini.
                             </td>
                         </tr>

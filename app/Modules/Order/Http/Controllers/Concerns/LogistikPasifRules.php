@@ -12,7 +12,7 @@ use App\Modules\Master\Models\UnitKemitraan;
  *  1. Payment Method = bacs (pasti pasif)
  *  2. Billing Name / Company memuat "Jakarta Pasif" atau "Inventaris"
  *     (Stokis Jakarta Pasif, JAKARTA PASIF, Stokis Inventaris biMBA AIUEO)
- *  3. Billing Company berisi angka (no cab) dan di Database Unit Kemitraan unitnya PASIF
+ *  3. Billing Company berisi angka murni (no cab) dan di Database Unit Kemitraan unitnya PASIF
  *
  * Khusus untuk order pasif, angka di Billing Company dicek ke Unit Kemitraan:
  *  - unit AKTIF  -> ditolak, diganti ke Stokis Pasif Inventaris
@@ -37,11 +37,13 @@ trait LogistikPasifRules
         $bacs      = strtolower(trim((string) $src->payment_method)) === 'bacs';
         $namaPasif = str_contains($teks, 'jakarta pasif') || str_contains($teks, 'inventaris');
 
-        // Billing Company yang ada angkanya -> cek Unit Kemitraan
+        // Billing Company berisi angka MURNI (mis. "372", "0065") -> cek Unit Kemitraan.
+        // Kode berawalan huruf seperti "M0065" / "W0023" adalah kode mitra, BUKAN no cab,
+        // jadi tidak dicocokkan ke Unit Kemitraan (kalau dipaksa, "M0065" salah cocok ke no cab 65).
         $unit = null;
         $company = trim((string) $src->billing_company);
 
-        if ($company !== '' && preg_match_all('/\d+/', $company, $m)) {
+        if ($company !== '' && preg_match('/^\d+$/', $company) && preg_match_all('/\d+/', $company, $m)) {
             foreach ($m[0] as $angka) {
                 foreach (array_unique([$angka, ltrim($angka, '0') ?: '0']) as $cand) {
                     $unit = $this->unitKemitraanByNoCab($cand);

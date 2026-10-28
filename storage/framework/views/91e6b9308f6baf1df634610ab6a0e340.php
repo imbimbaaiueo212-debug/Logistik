@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Master Produk'); ?>
 
 <?php $__env->startSection('content'); ?>

@@ -140,6 +140,7 @@ public function syncLgFromBimbashop()
     $updatedUnit = 0;
     $skipAktif   = 0;
     $diganti     = 0;
+    $dipindahAktif = 0;
     $belumCocok  = [];
 
     // =====================================================
@@ -180,6 +181,16 @@ public function syncLgFromBimbashop()
 
                 // Aturan pasif (bacs / Jakarta Pasif / Inventaris / unit di Unit Kemitraan)
                 $rule = $this->cekLogistikPasif($src);
+
+                // Sudah bukan pasif menurut aturan sekarang (stokis aktif) -> hapus dari Pasif
+                // supaya bisa masuk Logistik Aktif lewat Sync LG Aktif. Hanya data yang belum diproses.
+                if (! $rule['pasif'] && ! $resolved['pasif']) {
+                    $existing->items()->delete();
+                    $existing->delete();
+                    $dipindahAktif++;
+                    $skipExists++;
+                    continue;
+                }
 
                 if ($rule['override']) {
                     $resolved['nama_unit'] = $rule['override']['nama_unit'];
@@ -230,21 +241,47 @@ public function syncLgFromBimbashop()
         ->latest('id')
         ->first();
 
-        if (!$casdana) {
-            $skipCasdana++;
-            continue;
+        // Order pasif yang dibayar di luar Casdana (payment bacs / Stokis Jakarta Pasif / Inventaris)
+        // memang tidak punya transaksi Casdana. Tetap diproses jika order sudah dibayar
+        // (status biMBA Shop completed/processing), dengan status pembayaran MANUAL.
+        $tanpaCasdana = false;
+
+        if (! $casdana) {
+            $f    = $items->first();
+            $teks = strtolower(trim(implode(' ', [
+                (string) $f->billing_first_name,
+                (string) $f->billing_last_name,
+                (string) $f->billing_company,
+            ])));
+
+            $bayarLuarCasdana = strtolower(trim((string) $f->payment_method)) === 'bacs'
+                || str_contains($teks, 'jakarta pasif')
+                || str_contains($teks, 'inventaris');
+
+            $sudahBayar = in_array(strtolower(trim((string) $f->status)), ['completed', 'processing'], true);
+
+            if (! $bayarLuarCasdana || ! $sudahBayar) {
+                $skipCasdana++;
+                continue;
+            }
+
+            $tanpaCasdana = true;
         }
 
         // =================================================
         // STATUS PEMBAYARAN
         // =================================================
-        $statusCasdana = strtoupper(
-            trim(
-                $casdana->status ?? ''
-            )
-        );
+        $statusCasdana = $tanpaCasdana
+            ? 'MANUAL'
+            : strtoupper(
+                trim(
+                    $casdana?->status ?? ''
+                )
+            );
 
         if (
+            ! $tanpaCasdana
+            &&
             !in_array(
                 $statusCasdana,
                 [
@@ -260,7 +297,7 @@ public function syncLgFromBimbashop()
         // =====================================================
         // ESTIMASI WAKTU
         // =====================================================
-        $paymentDate       = $casdana->payment_date;
+        $paymentDate       = $casdana?->payment_date;
         $estimasiPrintPl   = null;
         $estimasiPersiapan = null;
 
@@ -561,7 +598,7 @@ public function syncLgFromBimbashop()
             $firstItem->billing_last_name,
             $firstItem->billing_company,
             $firstItem->item_name
-                ?? $casdana->customer
+                ?? $casdana?->customer
                 ?? '-',
             $firstItem->billing_first_name
         );
@@ -676,14 +713,14 @@ public function syncLgFromBimbashop()
                 ),
 
             'total' =>
-                $casdana->amount
+                $casdana?->amount
                 ??
                 $firstItem->order_total
                 ??
                 0,
 
             'jenis_bank' =>
-                $casdana->payment_channel
+                $casdana?->payment_channel
                 ??
                 $firstItem->payment_method,
 
@@ -703,7 +740,7 @@ public function syncLgFromBimbashop()
                 $paymentDate,
 
             'amount' =>
-                $casdana->amount
+                $casdana?->amount
                 ?? 0,
 
             'billing_last_name' =>
@@ -848,6 +885,7 @@ public function syncLgFromBimbashop()
             "✅ Berhasil sync {$inserted} data Logistik Pasif (SKU LG, Stokis Pasif). Nama Unit/Cabang diperbarui: {$updatedUnit}."
                 . ($skipAktif ? " Dilewati (bukan Stokis Pasif): {$skipAktif}." : '')
                 . ($diganti ? " Unit aktif diganti ke Stokis Inventaris: {$diganti}." : '')
+                . ($dipindahAktif ? " Bukan pasif, dihapus dari Pasif (jalankan Sync LG Aktif): {$dipindahAktif}." : '')
                 . (count($belumCocok) ? ' | Belum cocok di Stokis Mitra: ' . implode('; ', $belumCocok) : '')
         );
 }
