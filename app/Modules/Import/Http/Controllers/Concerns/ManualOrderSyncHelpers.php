@@ -421,7 +421,7 @@ if ($group === 'A') {
             $isMismatch = true;
         }
 
-        $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+        $uk = UnitKemitraan::where('no_cab', UnitKemitraan::padNoCab($noCab))->first();
 
         if ($uk) {
             if (!empty($uk->bimba_aiueo_unit)) {

@@ -321,7 +321,8 @@ class UnitKemitraanImport implements
             // Normalisasi no_cab
             $noCab = $this->clean($noCabRaw !== null ? (string) $noCabRaw : null);
             if ($noCab !== null && preg_match('/[0-9]/', $noCab)) {
-                $noCab = (string) (int) preg_replace('/[^0-9]/', '', $noCab);
+                // Ambil angkanya saja lalu beri nol di depan sampai 5 digit (340 -> 00340)
+                $noCab = UnitKemitraan::padNoCab(preg_replace('/[^0-9]/', '', $noCab));
             }
 
             // Skip baris template / kosong

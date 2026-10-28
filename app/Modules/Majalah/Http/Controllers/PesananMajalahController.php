@@ -342,7 +342,7 @@ class PesananMajalahController extends Controller
             }
         }
 
-        $unitKemitraanMap = UnitKemitraan::whereIn('no_cab', $allNoCab->unique())
+        $unitKemitraanMap = UnitKemitraan::whereIn('no_cab', $allNoCab->map(fn ($v) => UnitKemitraan::padNoCab($v))->unique()->values())
             ->get()
             ->keyBy(fn ($u) => trim($u->no_cab));
 
@@ -375,8 +375,10 @@ class PesananMajalahController extends Controller
                     $namaUnit = $unit->nama_unit ?? '-';
                     $mitra = null;
 
-                    if ($noCab && $unitKemitraanMap->has($noCab)) {
-                        $uk = $unitKemitraanMap->get($noCab);
+                    $noCabKey = UnitKemitraan::padNoCab($noCab);
+
+                    if ($noCabKey && $unitKemitraanMap->has($noCabKey)) {
+                        $uk = $unitKemitraanMap->get($noCabKey);
                         if (!empty($uk->bimba_aiueo_unit)) {
                             $namaUnit = $uk->bimba_aiueo_unit;
                         }

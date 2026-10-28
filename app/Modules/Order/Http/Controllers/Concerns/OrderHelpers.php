@@ -98,7 +98,7 @@ private function unitKemitraanByNoCab($noCab)
         return null;
     }
 
-    $units = UnitKemitraan::where('no_cab', $noCab)->get();
+    $units = UnitKemitraan::where('no_cab', UnitKemitraan::padNoCab($noCab))->get();
 
     return $units->first(fn ($u) => stripos((string) $u->bimba_aiueo_unit, 'english') === false)
         ?? $units->first();

@@ -203,7 +203,7 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
         // CEK MISMATCH → TETAP SIMPAN UNIT + CATAT MISMATCH
         // =====================================================
         if ($noCab !== '') {
-            $uk = UnitKemitraan::where('no_cab', $noCab)->first();
+            $uk = UnitKemitraan::where('no_cab', UnitKemitraan::padNoCab($noCab))->first();
 
             if ($uk && !empty($uk->bimba_aiueo_unit)) {
                 $namaMaster = trim($uk->bimba_aiueo_unit);

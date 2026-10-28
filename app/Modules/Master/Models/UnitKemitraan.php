@@ -258,6 +258,40 @@ class UnitKemitraan extends Model
     }
 
     /**
+     * Seragamkan No Cab: angka murni diberi nol di depan sampai 5 digit
+     * (340 -> 00340, 4340 -> 04340, 14340 tetap). Angka lebih dari 5 digit
+     * tidak dipotong. Nilai bukan angka murni (mis. "0049.A") dibiarkan apa adanya.
+     */
+    public static function padNoCab($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (ctype_digit($value)) {
+            $digits = ltrim($value, '0');
+
+            return str_pad($digits, 5, '0', STR_PAD_LEFT);
+        }
+
+        return $value;
+    }
+
+    /**
+     * Setiap simpan (form, import, create/update/fill) otomatis diberi nol di depan.
+     */
+    public function setNoCabAttribute($value): void
+    {
+        $this->attributes['no_cab'] = self::padNoCab($value);
+    }
+
+    /**
      * Scope contoh (opsional)
      */
     public function scopeAktif($query)
