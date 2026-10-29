@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Modules\Master\Models\UnitKemitraan;
 use App\Modules\Master\Models\UserExportBimbaShop;
 use App\Modules\Master\Models\MatchingUserExport;
-use App\Modules\Master\Services\UnitShopComparer;
 use App\Modules\Master\Imports\UnitKemitraanImport;
 use App\Modules\Master\Imports\UserExportBimbaShopImport;
 use Illuminate\Http\Request;
@@ -114,6 +113,13 @@ class UnitKemitraanUserExportController extends Controller
     }
 
     // ==========================
+    // Filter Status Operasional (kolom ops)
+    // ==========================
+    if ($request->filled('ops') && $request->ops !== 'all') {
+        $query->whereRaw('LOWER(TRIM(ops)) = ?', [strtolower(trim($request->ops))]);
+    }
+
+    // ==========================
     // Filter Matching User Export
     // ==========================
     if ($request->filled('matching_status')) {
@@ -142,7 +148,27 @@ class UnitKemitraanUserExportController extends Controller
         }
     }
 
-    // Semua akun biMBA Shop dimuat sekali, dipakai untuk pengecekan kecocokan data
+    $unitKemitraans = $query
+        ->orderBy('id_record', 'desc')
+        ->paginate(50)
+        ->appends($request->query());
+
+    // Pilihan filter Jenis Unit diambil dari data (kolom status di unit_kemitraan), bukan daftar tetap
+    $jenisList = UnitKemitraan::query()
+        ->whereNotNull('status')
+        ->whereRaw("TRIM(status) <> ''")
+        ->distinct()
+        ->orderBy('status')
+        ->pluck('status');
+
+    // Pilihan filter Status Operasional diambil dari data (kolom ops)
+    $opsList = UnitKemitraan::query()
+        ->whereNotNull('ops')
+        ->whereRaw("TRIM(ops) <> ''")
+        ->distinct()
+        ->orderBy('ops')
+        ->pluck('ops');
+
     $userExports = UserExportBimbaShop::select(
         'ID',
         'user_login',
@@ -150,7 +176,6 @@ class UnitKemitraanUserExportController extends Controller
         'display_name',
         'first_name',
         'last_name',
-        'billing_first_name',
         'billing_last_name',
         'billing_email',
         'billing_phone',
@@ -161,50 +186,18 @@ class UnitKemitraanUserExportController extends Controller
         'billing_postcode'
     )->get();
 
-    $comparer = new UnitShopComparer($userExports);
-
-    // ==========================
-    // Filter Hasil Pengecekan (sesuai / beda / tanpa_akun / perlu_dicek)
-    // Dihitung di memori karena perbandingan nama & alamat tidak bisa dibuat di SQL.
-    // ==========================
-    $hasilCek = $request->input('hasil_cek');
-    if (in_array($hasilCek, ['sesuai', 'beda', 'tanpa_akun', 'perlu_dicek'], true)) {
-        $ids = (clone $query)
-            ->select(UnitShopComparer::KOLOM_UNIT)
-            ->get()
-            ->filter(function ($u) use ($comparer, $hasilCek) {
-                $st = $comparer->compare($u)['status'];
-                return $hasilCek === 'perlu_dicek' ? $st !== 'sesuai' : $st === $hasilCek;
-            })
-            ->pluck('id_record')
-            ->all();
-
-        $ids ? $query->whereIn('id_record', $ids) : $query->whereRaw('1 = 0');
-    }
-
-    $unitKemitraans = $query
-        ->orderBy('id_record', 'desc')
-        ->paginate(50)
-        ->appends($request->query());
-
-    // Hasil pengecekan hanya untuk baris yang tampil di halaman ini
-    $cek = [];
-    foreach ($unitKemitraans as $unit) {
-        $cek[$unit->id_record] = $comparer->compare($unit);
-    }
-
-    // Pilihan filter Jenis Unit diambil dari data (kolom status di unit_kemitraan), bukan daftar tetap
-    $jenisList = UnitKemitraan::query()
-        ->whereNotNull('status')
-        ->whereRaw("TRIM(status) <> ''")
-        ->distinct()
-        ->orderBy('status')
-        ->pluck('status');
+    // Kunci pencocokan = No Cab (billing_last_name) persis, nol di depan diabaikan.
+    // Tidak memakai pencarian sebagian, jadi 4909 tidak cocok dengan 14909 / 49091.
+    $userByCab = $userExports
+        ->filter(fn ($u) => trim((string) $u->billing_last_name) !== '')
+        ->groupBy(fn ($u) => ltrim(trim((string) $u->billing_last_name), '0'));
 
     return view('master::unit_kemitraan_user.index', compact(
         'unitKemitraans',
-        'cek',
-        'jenisList'
+        'userExports',
+        'userByCab',
+        'jenisList',
+        'opsList'
     ));
 }
     /**

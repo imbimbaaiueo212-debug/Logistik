@@ -45,11 +45,6 @@
     .data-table tbody tr:hover .sticky-l,
     .data-table tbody tr:hover .sticky-r { background-color: #F7F9FC; }
 
-    /* Kolom hasil pengecekan: teks boleh turun baris */
-    .data-table td.hasil-cell { white-space: normal; min-width: 340px; max-width: 380px; }
-    /* Data biMBA Shop yang tidak sama / kosong dengan data mitra */
-    .data-table tbody td.cell-warn { background-color: #FFF4EC; }
-
     /* Sembunyikan teks "Showing ..." bawaan pagination Laravel */
     .pager nav p { display: none; }
 </style>
@@ -93,10 +88,9 @@
 
     {{-- ============ FILTER ============ --}}
     <div class="mt-6 bg-white rounded-2xl shadow-card p-5 sm:p-6">
-        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <input type="hidden" name="hasil_cek" value="{{ request('hasil_cek') }}">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
 
-            <div class="sm:col-span-2 xl:col-span-2">
+            <div class="sm:col-span-2 lg:col-span-3 xl:col-span-5">
                 <label for="f_q" class="{{ $lbl }}">Cari (No Cab, NIM, nama, email, no HP, alamat)</label>
                 <input id="f_q" type="text" name="q" value="{{ request('q', request('no_cab')) }}" placeholder="Ketik No Cab, NIM, nama, email, no HP, atau alamat" class="{{ $inp }}">
             </div>
@@ -122,6 +116,16 @@
             </div>
 
             <div>
+                <label for="f_ops" class="{{ $lbl }}">Status Operasional</label>
+                <select id="f_ops" name="ops" class="{{ $inp }}">
+                    <option value="">Semua</option>
+                    @foreach ($opsList as $nilai)
+                        <option value="{{ $nilai }}" {{ strcasecmp((string) request('ops'), trim($nilai)) === 0 ? 'selected' : '' }}>{{ $nilai }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
                 <label for="f_status" class="{{ $lbl }}">Jenis Unit</label>
                 <select id="f_status" name="status" class="{{ $inp }}">
                     <option value="">Semua jenis</option>
@@ -140,7 +144,7 @@
                 </select>
             </div>
 
-            <div class="sm:col-span-2 lg:col-span-3 xl:col-span-6 flex items-center gap-2">
+            <div class="sm:col-span-2 lg:col-span-3 xl:col-span-5 flex items-center gap-2">
                 <button type="submit"
                         class="bg-navy-800 hover:bg-navy-900 transition-colors text-white text-sm font-semibold px-6 py-2.5 rounded-xl">
                     Terapkan filter
@@ -153,31 +157,8 @@
         </form>
     </div>
 
-    {{-- ============ HASIL PENGECEKAN (mitra vs biMBA Shop) ============ --}}
-    @php
-        $tabCek = [
-            ''            => 'Semua',
-            'sesuai'      => 'Sesuai',
-            'perlu_dicek' => 'Perlu dicek admin',
-            'beda'        => 'Data berbeda',
-            'tanpa_akun'  => 'Tidak ada akun shop',
-        ];
-        $tabAktif = (string) request('hasil_cek', '');
-    @endphp
-    <div class="mt-4 flex flex-wrap items-center gap-2">
-        <span class="text-xs font-medium text-navy-950/60 mr-1">Hasil pengecekan:</span>
-        @foreach ($tabCek as $nilai => $teks)
-            <a href="{{ request()->fullUrlWithQuery(['hasil_cek' => $nilai !== '' ? $nilai : null, 'page' => null]) }}"
-               class="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors
-                      {{ $tabAktif === $nilai ? 'bg-navy-800 text-white' : 'bg-white text-navy-950/70 border border-navy-950/10 hover:border-navy-700' }}">
-                {{ $teks }}
-            </a>
-        @endforeach
-        <span class="text-xs text-navy-950/45 ml-1">Membandingkan nama, email, no HP, dan alamat mitra dengan akun biMBA Shop (dicocokkan lewat No Cab)</span>
-    </div>
-
     {{-- ============ TABEL ============ --}}
-    <div class="mt-3 bg-white rounded-2xl shadow-card overflow-hidden">
+    <div class="mt-4 bg-white rounded-2xl shadow-card overflow-hidden">
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
@@ -193,7 +174,7 @@
                         <th>Email Mitra</th>
                         <th>No HP Mitra</th>
                         <th>Alamat Mitra</th>
-                        <th>Hasil Pengecekan</th>
+                        <th class="ctr">Akun biMBA Shop</th>
                         <th>Matching First Name</th>
                         <th>Email Unit (biMBA Shop)</th>
                         <th>No Telp Unit (biMBA Shop)</th>
@@ -205,12 +186,12 @@
                 <tbody>
                     @forelse ($unitKemitraans as $unit)
                         @php
-                            // Hasil pengecekan dihitung di controller (UnitShopComparer):
-                            // akun shop dicocokkan lewat No Cab, lalu nama/email/no HP/alamat dibandingkan.
-                            $c       = $cek[$unit->id_record];
-                            $matched = $c['akun'];
-                            $f       = $c['cek'];
-                            $warn    = fn ($k) => in_array($f[$k]['s'] ?? '', ['beda', 'kosong1'], true) ? 'cell-warn' : '';
+                            $noCab = trim((string) $unit->no_cab);
+
+                            // Cocokkan No Cab dengan billing_last_name akun biMBA Shop secara persis (nol di depan diabaikan).
+                            // Akun hanya ada bila unit punya user mitra; bila tidak ada, tampil "Tidak ditemukan".
+                            $noCabN  = ltrim($noCab, '0');
+                            $matched = ($noCab === '' || $noCabN === '') ? null : ($userByCab[$noCabN] ?? collect())->first();
                         @endphp
                         <tr>
                             <td class="sticky-l font-medium">{{ $unit->no_cab ?? '-' }}</td>
@@ -242,12 +223,27 @@
                             </td>
                             <td>{{ $unit->no_induk_mitra ?? '-' }}</td>
                             @php
-                                $emailMitra  = $c['mitra']['email'];
-                                $hpMitra     = $c['mitra']['hp'];
-                                $alamatMitra = $c['mitra']['alamat'];
-                                $emailUnit   = $c['shop']['email'];
-                                $telpUnit    = $c['shop']['hp'];
-                                $alamatUnit  = $c['shop']['alamat'];
+                                // Data MITRA (tabel unit_kemitraan): pakai kolom *_mitra bila terisi, jika kosong pakai kolom mitra biasa
+                                $emailMitra  = trim((string) ($unit->email_mitra ?: $unit->email));
+                                $hpMitra     = trim((string) ($unit->no_hp_mitra ?: $unit->no_hp));
+                                $alamatMitra = trim((string) $unit->alamat_mitra);
+                                if ($alamatMitra === '') {
+                                    $alamatMitra = trim(collect([
+                                        $unit->no_rumah,
+                                        $unit->rt_mitra ? 'RT ' . $unit->rt_mitra : null,
+                                        $unit->rw_mitra ? 'RW ' . $unit->rw_mitra : null,
+                                        $unit->kel_mitra, $unit->kec_mitra, $unit->kota_mitra,
+                                        $unit->provinsi_mitra, $unit->kode_pos_mitra,
+                                    ])->filter(fn ($x) => trim((string) $x) !== '')->implode(', '));
+                                }
+
+                                // Data UNIT (akun biMBA Shop / billing)
+                                $emailUnit  = trim((string) ($matched?->user_email ?: $matched?->billing_email));
+                                $telpUnit   = trim((string) $matched?->billing_phone);
+                                $alamatUnit = $matched ? trim(collect([
+                                    $matched->billing_address_1, $matched->billing_address_2,
+                                    $matched->billing_city, $matched->billing_state, $matched->billing_postcode,
+                                ])->filter(fn ($x) => trim((string) $x) !== '')->implode(', ')) : '';
                             @endphp
                             <td class="cell-clip" title="{{ $emailMitra }}">
                                 @if ($emailMitra !== '')
@@ -256,47 +252,27 @@
                             </td>
                             <td>{{ $hpMitra !== '' ? $hpMitra : '-' }}</td>
                             <td class="cell-clip" style="max-width:320px" title="{{ $alamatMitra }}">{{ $alamatMitra !== '' ? $alamatMitra : '-' }}</td>
-                            <td class="hasil-cell">
-                                @if ($c['status'] === 'sesuai')
-                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Sesuai</span>
-                                    @if ($c['ringkas'] !== '')
-                                        <p class="mt-1 text-xs text-navy-950/55">{{ $c['ringkas'] }}</p>
-                                    @endif
+                            <td class="ctr">
+                                @if ($matched)
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Ditemukan</span>
                                 @else
-                                    @if ($c['status'] === 'beda')
-                                        <span class="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">Data berbeda</span>
-                                    @else
-                                        <span class="inline-block px-2.5 py-0.5 rounded-full bg-rust-500/10 text-rust-600 text-xs font-semibold">Tidak ada akun shop</span>
-                                    @endif
-                                    <ul class="mt-1.5 space-y-0.5 text-xs text-navy-950/75 list-disc pl-4">
-                                        @foreach ($c['masalah'] as $m)
-                                            <li>{{ $m }}</li>
-                                        @endforeach
-                                        @foreach ($c['petunjuk'] as $m)
-                                            <li class="text-navy-700">{{ $m }}</li>
-                                        @endforeach
-                                    </ul>
-                                    <button type="button" data-text="{{ $c['pertanyaan'] }}"
-                                            class="btn-salin mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-navy-700 hover:text-rust-600 border border-navy-950/10 hover:border-rust-500/40 rounded-lg px-2.5 py-1 transition-colors">
-                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
-                                        <span class="btn-salin-teks">Salin pertanyaan untuk admin</span>
-                                    </button>
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-rust-500/10 text-rust-600 text-xs font-semibold" title="No Cab unit ini tidak cocok dengan akun biMBA Shop mana pun">Tidak ada akun biMBA Shop</span>
                                 @endif
                             </td>
-                            <td class="cell-clip {{ $warn('nama') }}" title="{{ $matched?->first_name }}">
+                            <td class="cell-clip" title="{{ $matched?->first_name }}">
                                 @if ($matched)
                                     <span class="font-medium text-emerald-700">{{ $matched->first_name }}</span>
                                 @else
                                     <span class="text-rust-600">Tidak ditemukan</span>
                                 @endif
                             </td>
-                            <td class="cell-clip {{ $warn('email') }}" title="{{ $emailUnit }}">
+                            <td class="cell-clip" title="{{ $emailUnit }}">
                                 @if ($emailUnit !== '')
                                     <a href="mailto:{{ $emailUnit }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $emailUnit }}</a>
                                 @else - @endif
                             </td>
-                            <td class="{{ $warn('hp') }}">{{ $telpUnit !== '' ? $telpUnit : '-' }}</td>
-                            <td class="cell-clip {{ $warn('alamat') }}" style="max-width:320px" title="{{ $alamatUnit }}">{{ $alamatUnit !== '' ? $alamatUnit : '-' }}</td>
+                            <td>{{ $telpUnit !== '' ? $telpUnit : '-' }}</td>
+                            <td class="cell-clip" style="max-width:320px" title="{{ $alamatUnit }}">{{ $alamatUnit !== '' ? $alamatUnit : '-' }}</td>
                             <td class="cell-clip" title="{{ $matched?->display_name }}">{{ $matched?->display_name ?? '-' }}</td>
                             <td class="ctr sticky-r">
                                 <a href="{{ route('unit-kemitraan.show', $unit) }}" title="Lihat" aria-label="Lihat unit"
@@ -332,43 +308,5 @@
             {{ $unitKemitraans->onEachSide(1)->links('pagination::tailwind') }}
         </div>
     </div>
-
-@push('scripts')
-<script>
-    // Salin teks pertanyaan untuk team admin.
-    // Halaman diakses lewat http (bukan https), jadi navigator.clipboard tidak tersedia; dipakai cara cadangan.
-    (function () {
-        function salin(teks) {
-            if (navigator.clipboard && window.isSecureContext) {
-                return navigator.clipboard.writeText(teks);
-            }
-            return new Promise(function (ok, gagal) {
-                var ta = document.createElement('textarea');
-                ta.value = teks;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                try { document.execCommand('copy') ? ok() : gagal(); } catch (e) { gagal(e); }
-                document.body.removeChild(ta);
-            });
-        }
-
-        document.addEventListener('click', function (e) {
-            var btn = e.target.closest('.btn-salin');
-            if (!btn) return;
-            var label = btn.querySelector('.btn-salin-teks');
-            var awal = label.textContent;
-            salin(btn.dataset.text).then(function () {
-                label.textContent = 'Tersalin';
-            }, function () {
-                label.textContent = 'Gagal menyalin';
-            }).then(function () {
-                setTimeout(function () { label.textContent = awal; }, 1500);
-            });
-        });
-    })();
-</script>
-@endpush
 
 @endsection
