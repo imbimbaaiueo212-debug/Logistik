@@ -8,12 +8,14 @@ use App\Modules\Picking\Models\Picking;
 use App\Modules\Picking\Models\PickingItem;
 use App\Modules\Order\Models\JakartaAktif;
 use App\Modules\Qc\Models\QcOutgoing;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguPrintRA;
 use Illuminate\Support\Facades\Auth;   // ← TAMBAHKAN INI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PickingController extends Controller
 {
+    use MenungguPrintRA;
 
     public function index()
     {
@@ -85,15 +87,12 @@ class PickingController extends Controller
 {
     $query = Picking::with([
         'jakartaAktif',
+        'realisasi',
         'pickingItems.product'
     ]);
 
-    // Persiapan hanya menampilkan picking yang Realisasi (RA)-nya sudah di-print.
-    // Picking lama yang tidak terhubung ke RA tetap tampil.
-    $query->where(function ($q) {
-        $q->whereNull('realisasi_aktif_id')
-          ->orWhereHas('realisasi', fn ($r) => $r->whereNotNull('printed_at'));
-    });
+    // Picking tampil begitu order masuk Rekap Aktual. Selama RA-nya belum di-print,
+    // barisnya terkunci (lihat ra_terkunci di bawah) dan baru bisa diproses setelah print.
 
     // ==================== FILTER KATEGORI ====================
     if ($request->filled('kategori')) {
@@ -125,6 +124,10 @@ class PickingController extends Controller
     $data = $query->orderBy('created_at', 'desc')
                   ->paginate(20)
                   ->appends($request->query());
+
+    $data->getCollection()->each(function ($row) {
+        $row->setAttribute('ra_terkunci', $this->raBelumPrint($row->realisasi));
+    });
 
     return view('picking::picking.jakarta.aktif', compact('data'));
 }
@@ -241,7 +244,11 @@ class PickingController extends Controller
 
     public function destroy($id)
 {
-    $picking = Picking::findOrFail($id);
+    $picking = Picking::with('realisasi')->findOrFail($id);
+
+    if ($this->raBelumPrint($picking->realisasi)) {
+        return redirect()->back()->with('error', $this->pesanTerkunci());
+    }
 
     // Hapus data QC yang terkait
     QcOutgoing::where('picking_id', $picking->id)->delete();
@@ -261,7 +268,12 @@ class PickingController extends Controller
 public function updateChecklist(Request $request)
 {
     try {
-        $picking = Picking::findOrFail($request->id);
+        $picking = Picking::with('realisasi')->findOrFail($request->id);
+
+        if ($this->raBelumPrint($picking->realisasi)) {
+            return $this->responTerkunci();
+        }
+
         $checked = $request->boolean('checked');
 
         if ($checked) {
@@ -290,7 +302,11 @@ public function updatePic(Request $request)
         'pic' => 'nullable|in:Asep,Arif,Rama,Riky',
     ]);
 
-    $picking = Picking::findOrFail($request->id);
+    $picking = Picking::with('realisasi')->findOrFail($request->id);
+
+    if ($this->raBelumPrint($picking->realisasi)) {
+        return $this->responTerkunci();
+    }
 
     $picking->pic = $request->pic;
 
@@ -312,8 +328,13 @@ public function updateStatus(Request $request)
             'status_persiapan' => 'required|in:Belum,Sudah',
         ]);
 
-        $picking = Picking::with(['pickingItems','jakartaAktif'])
+        $picking = Picking::with(['pickingItems','jakartaAktif','realisasi'])
     ->findOrFail($request->id);
+
+        if ($this->raBelumPrint($picking->realisasi)) {
+            DB::rollBack();
+            return $this->responTerkunci();
+        }
 
         $picking->status_persiapan = $request->status_persiapan;
 

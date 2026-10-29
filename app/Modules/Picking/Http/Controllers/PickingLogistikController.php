@@ -5,28 +5,31 @@ namespace App\Modules\Picking\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Order\Models\RealisasiLogistikAktif;
 use App\Modules\Order\Models\RealisasiLogistikPasif;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguPrintRA;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Persiapan Logistik Aktif & Logistik Pasif.
  *
- * Data dibaca langsung dari Realisasi (RA) di Penjualan dan baru tampil
- * setelah RA-nya di-print (printed_at terisi). Alur tampilan & aksi sama
- * dengan Persiapan Jakarta Aktif: Cek (waktu terima) -> Status -> PIC.
+ * Data dibaca langsung dari Realisasi (RA) di Penjualan dan tampil begitu masuk
+ * Rekap Aktual, tetapi TERKUNCI sampai RA-nya di-print (printed_at terisi).
+ * Alur tampilan & aksi sama dengan Persiapan Jakarta Aktif: Cek (waktu terima) -> Status -> PIC.
  */
 class PickingLogistikController extends Controller
 {
+    use MenungguPrintRA;
+
     private const CONFIG = [
         'aktif' => [
             'model' => RealisasiLogistikAktif::class,
             'judul' => 'Picking List - Logistik Aktif',
-            'sub'   => 'Daftar Persiapan Logistik Aktif (masuk setelah RA Logistik Aktif di-print)',
+            'sub'   => 'Daftar Persiapan Logistik Aktif (terkunci sampai RA Logistik Aktif di-print)',
         ],
         'pasif' => [
             'model' => RealisasiLogistikPasif::class,
             'judul' => 'Picking List - Logistik Pasif',
-            'sub'   => 'Daftar Persiapan Logistik Pasif (masuk setelah RA Logistik Pasif di-print)',
+            'sub'   => 'Daftar Persiapan Logistik Pasif (terkunci sampai RA Logistik Pasif di-print)',
         ],
     ];
 
@@ -45,8 +48,8 @@ class PickingLogistikController extends Controller
         $cfg   = self::CONFIG[$jenis];
         $model = $cfg['model'];
 
-        // Hanya RA yang sudah di-print
-        $query = $model::query()->whereNotNull('printed_at');
+        // Semua RA tampil; yang belum di-print terkunci (ra_terkunci)
+        $query = $model::query();
 
         if ($request->filled('kategori')) {
             $query->where('kategori_order', $request->kategori);
@@ -98,6 +101,7 @@ class PickingLogistikController extends Controller
                 'penyebut'                 => $r->penyebut,
                 'pengambil'                => $r->pengambil,
                 'ket'                      => $r->ket,
+                'ra_terkunci'              => $this->raBelumPrint($r),
             ];
         }));
 
@@ -112,7 +116,7 @@ class PickingLogistikController extends Controller
             'relItems'        => null,
             'extraCols'       => true,
             'showEdit'        => false,
-            'emptyText'       => 'Belum ada Persiapan Logistik. Data masuk setelah RA di-print.',
+            'emptyText'       => 'Belum ada Persiapan Logistik. Data masuk setelah order diproses ke Rekap Aktual.',
         ]);
     }
 
@@ -122,13 +126,18 @@ class PickingLogistikController extends Controller
     {
         $model = self::CONFIG[$jenis]['model'];
 
-        return $model::whereNotNull('printed_at')->findOrFail($request->id);
+        return $model::findOrFail($request->id);
     }
 
     public function updateChecklist(Request $request, string $jenis)
     {
         try {
             $row     = $this->cari($request, $jenis);
+
+            if ($this->raBelumPrint($row)) {
+                return $this->responTerkunci();
+            }
+
             $checked = $request->boolean('checked');
 
             if ($checked) {
@@ -157,7 +166,12 @@ class PickingLogistikController extends Controller
             'pic' => 'nullable|in:Asep,Arif,Rama,Riky',
         ]);
 
-        $row      = $this->cari($request, $jenis);
+        $row = $this->cari($request, $jenis);
+
+        if ($this->raBelumPrint($row)) {
+            return $this->responTerkunci();
+        }
+
         $row->pic = $request->pic;
         $row->save();
 
@@ -171,7 +185,12 @@ class PickingLogistikController extends Controller
             'status_persiapan' => 'required|in:Belum,Sudah',
         ]);
 
-        $row                   = $this->cari($request, $jenis);
+        $row = $this->cari($request, $jenis);
+
+        if ($this->raBelumPrint($row)) {
+            return $this->responTerkunci();
+        }
+
         $row->status_persiapan = $request->status_persiapan;
 
         if (! $row->tgl_picking) {

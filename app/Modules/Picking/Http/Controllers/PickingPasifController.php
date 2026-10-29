@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Modules\Picking\Models\Picking;
 use App\Modules\Picking\Models\PickingPasif;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguPrintRA;
 use Illuminate\Support\Facades\Auth;   // ← TAMBAHKAN INI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PickingPasifController extends Controller
 {
+    use MenungguPrintRA;
 
 
 /**
@@ -28,10 +30,10 @@ public function jakartaPasif(Request $request)
         $jenis = 'JKTP';
     }
 
-    // Persiapan hanya menampilkan picking yang Realisasi (RA)-nya sudah di-print.
+    // Picking tampil begitu order masuk Rekap Aktual Pasif. Selama RA-nya belum di-print,
+    // barisnya terkunci (ra_terkunci) dan baru bisa diproses setelah print.
     $query->whereHas('realisasiPasif', function ($r) use ($jenis) {
-        $r->whereNotNull('printed_at')
-          ->where(function ($q) use ($jenis) {
+        $r->where(function ($q) use ($jenis) {
               $q->where('jenis', $jenis);
 
               if ($jenis === 'JKTP') {
@@ -80,12 +82,13 @@ public function jakartaPasif(Request $request)
         $row->setAttribute('penyebut',    $ra?->penyebut);
         $row->setAttribute('pengambil',   $ra?->pengambil);
         $row->setAttribute('ket',         $ra?->ket);
+        $row->setAttribute('ra_terkunci', $this->raBelumPrint($ra));
     });
 
     return view('picking::picking.persiapan', [
         'data'            => $data,
         'judul'           => 'Picking List - ' . ['JKTP' => 'Jakarta Pasif', 'DLC' => 'Jakarta Pasif - DLC', 'EBT' => 'Jakarta Pasif - EBT', 'INV' => 'Jakarta Pasif - INV', 'BSS' => 'Jakarta Pasif - BSS'][$jenis],
-        'sub'             => 'Daftar Persiapan ' . $jenis . ' (masuk setelah RA Pasif ' . $jenis . ' di-print)',
+        'sub'             => 'Daftar Persiapan ' . $jenis . ' (terkunci sampai RA Pasif ' . $jenis . ' di-print)',
         'jenisAktif'      => $jenis,
         'jenisTabs'       => [
             'JKTP' => ['label' => 'Jakarta Pasif', 'aktif' => 'bg-blue-600 text-white border-blue-600'],
@@ -101,7 +104,7 @@ public function jakartaPasif(Request $request)
         'relItems'        => 'items',
         'extraCols'       => true,
         'showEdit'        => false,
-        'emptyText'       => "Belum ada Persiapan {$jenis}. Data masuk setelah RA Pasif {$jenis} di-print.",
+        'emptyText'       => "Belum ada Persiapan {$jenis}. Data masuk setelah order diproses ke Rekap Aktual Pasif {$jenis}.",
     ]);
 }
 
@@ -110,7 +113,12 @@ public function jakartaPasif(Request $request)
 public function updateChecklistPasif(Request $request)
 {
     try {
-        $picking = PickingPasif::findOrFail($request->id);
+        $picking = PickingPasif::with('realisasiPasif')->findOrFail($request->id);
+
+        if ($this->raBelumPrint($picking->realisasiPasif)) {
+            return $this->responTerkunci();
+        }
+
         $checked = $request->boolean('checked');
 
         if ($checked) {
@@ -138,7 +146,12 @@ public function updatePicPasif(Request $request)
         'pic' => 'nullable|in:Asep,Arif,Rama,Riky',
     ]);
 
-    $picking = PickingPasif::findOrFail($request->id);
+    $picking = PickingPasif::with('realisasiPasif')->findOrFail($request->id);
+
+    if ($this->raBelumPrint($picking->realisasiPasif)) {
+        return $this->responTerkunci();
+    }
+
     $picking->pic = $request->pic;
     $picking->save();
 
@@ -157,6 +170,11 @@ public function updateStatusPasif(Request $request)
 
         $picking = PickingPasif::with(['items', 'realisasiPasif'])
             ->findOrFail($request->id);
+
+        if ($this->raBelumPrint($picking->realisasiPasif)) {
+            DB::rollBack();
+            return $this->responTerkunci();
+        }
 
         $picking->status_persiapan = $request->status_persiapan;
 

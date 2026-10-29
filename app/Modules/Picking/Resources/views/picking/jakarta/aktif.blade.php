@@ -22,6 +22,18 @@
         color: #64748b;
     }
 
+    /* Picking yang RA-nya belum di-print: tampil tapi terkunci */
+    tr.ra-locked { background-color: #fffbeb; }
+    tr.ra-locked:hover { background-color: #fef3c7; }
+    tr.ra-locked select:disabled,
+    tr.ra-locked input:disabled { cursor: not-allowed; opacity: .55; }
+    .badge-lock {
+        display: inline-flex; align-items: center; gap: 4px;
+        background-color: #fef3c7; color: #92400e;
+        padding: 2px 8px; border-radius: 9999px;
+        font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+    }
+
     .pagination { display: flex; gap: 6px; }
     .pagination li a, .pagination li span {
         padding: 8px 14px;
@@ -129,7 +141,9 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($data as $index => $item)
-                <tr class="hover:bg-gray-50" data-id="{{ $item->id }}">
+                <tr class="hover:bg-gray-50 {{ ($item->ra_terkunci ?? false) ? 'ra-locked' : '' }}"
+                    data-id="{{ $item->id }}"
+                    data-locked="{{ ($item->ra_terkunci ?? false) ? 1 : 0 }}">
                     <td class="px-4 py-3 text-center">{{ $index + 1 }}</td>
                     <td class="px-4 py-3">{{ $item->no_pl ?? '-' }}</td>
                     <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
@@ -226,7 +240,7 @@
                             @if($item->status_persiapan == 'Sudah') bg-green-100 text-green-700
                             @elseif($item->status_persiapan == 'Belum') bg-red-100 text-red-700
                             @endif"
-                            data-id="{{ $item->id }}">
+                            data-id="{{ $item->id }}" {{ ($item->ra_terkunci ?? false) ? 'disabled' : '' }}>
 
                             <option value="Belum" {{ $item->status_persiapan == 'Belum' || empty($item->status_persiapan) ? 'selected' : '' }}>Belum</option>
                             <option value="Sudah" {{ $item->status_persiapan == 'Sudah' ? 'selected' : '' }}>Sudah</option>
@@ -244,7 +258,7 @@
 
                     <!-- PIC -->
                     <td class="extra-col px-4 py-3 text-center {{ $item->tgl_terima ? '' : 'hidden' }}">
-                        <select class="pic-select border rounded-lg px-2 py-1 text-sm" data-id="{{ $item->id }}">
+                        <select class="pic-select border rounded-lg px-2 py-1 text-sm" data-id="{{ $item->id }}" {{ ($item->ra_terkunci ?? false) ? 'disabled' : '' }}>
                             <option value="">-- Pilih --</option>
                             <option value="Asep" {{ $item->pic == 'Asep' ? 'selected' : '' }}>Asep</option>
                             <option value="Arif" {{ $item->pic == 'Arif' ? 'selected' : '' }}>Arif</option>
@@ -259,7 +273,8 @@
                                 <input type="checkbox"
                                     class="w-4 h-4 accent-emerald-600 checklist-item"
                                     data-id="{{ $item->id }}"
-                                    {{ $item->tgl_terima ? 'checked' : '' }}>
+                                    {{ $item->tgl_terima ? 'checked' : '' }}
+                                    {{ ($item->ra_terkunci ?? false) ? 'disabled' : '' }}>
                                 <span class="text-emerald-600 text-xs font-medium">Cek</span>
                             </label>
 
@@ -274,6 +289,14 @@
                                 <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd"/></svg>
                             </a>
                         </div>
+                        @if($item->ra_terkunci ?? false)
+                        <div class="mt-1.5">
+                            <span class="badge-lock" title="Selesaikan print di Rekap Aktual terlebih dahulu">
+                                <svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd"/></svg>
+                                Menunggu print RA
+                            </span>
+                        </div>
+                        @endif
                     </td>
                 </tr>
                 @empty
@@ -357,9 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const completed = isRowCompleted(row);
 
-        row.querySelector('.checklist-item')?.toggleAttribute('disabled', completed);
-        row.querySelector('.status-select')?.toggleAttribute('disabled', completed);
-        row.querySelector('.pic-select')?.toggleAttribute('disabled', completed);
+        // Terkunci sampai RA di-print di Rekap Aktual (tidak bisa dibuka dari sini)
+        const locked = row.dataset.locked === '1';
+        const nonaktif = completed || locked;
+
+        row.querySelector('.checklist-item')?.toggleAttribute('disabled', nonaktif);
+        row.querySelector('.status-select')?.toggleAttribute('disabled', nonaktif);
+        row.querySelector('.pic-select')?.toggleAttribute('disabled', nonaktif);
 
         row.querySelectorAll('a').forEach(a => {
 
@@ -367,8 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.href.includes('edit') ||
                 a.getAttribute('onclick')
             ) {
-                a.style.pointerEvents = completed ? 'none' : 'auto';
-                a.style.opacity = completed ? '.4' : '1';
+                a.style.pointerEvents = nonaktif ? 'none' : 'auto';
+                a.style.opacity = nonaktif ? '.4' : '1';
             }
 
         });
