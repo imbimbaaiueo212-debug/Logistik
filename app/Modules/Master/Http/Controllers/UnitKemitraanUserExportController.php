@@ -23,18 +23,55 @@ class UnitKemitraanUserExportController extends Controller
 {
     $query = UnitKemitraan::query();
 
-    // ==========================
-    // Filter No Cabang
-    // ==========================
-    if ($request->filled('no_cab')) {
-        $query->where('no_cab', 'like', '%' . trim($request->no_cab) . '%');
-    }
+    // ---- Pencocokan No Cab <-> billing_last_name (nol di depan diabaikan) ----
+    // Dibuat TANPA subquery berkorelasi: daftar No Cab dari biMBA Shop diambil sekali,
+    // lalu dipakai sebagai daftar IN. Cara lama (EXISTS per baris unit) memindai tabel
+    // biMBA Shop untuk setiap unit sehingga bisa memakan puluhan detik.
+    $normCab     = fn ($v) => ltrim(trim((string) $v), '0');
+    $unitCabExpr = "TRIM(LEADING '0' FROM TRIM(unit_kemitraan.no_cab))";
+    $inList      = fn (array $v) => implode(',', array_fill(0, count($v), '?'));
 
     // ==========================
-    // Filter No Induk Mitra
+    // Pencarian Gabungan (satu kolom)
+    // No Cab, NIM, nama mitra, nama unit, email, no HP/telp, alamat
+    // (data Mitra dari unit_kemitraan + data Unit dari akun biMBA Shop)
     // ==========================
-    if ($request->filled('no_induk_mitra')) {
-        $query->where('no_induk_mitra', 'like', '%' . trim($request->no_induk_mitra) . '%');
+    $cari = trim((string) ($request->input('q') ?? $request->input('no_cab')));
+    if ($cari !== '') {
+        $like = '%' . $cari . '%';
+
+        $query->where(function ($q) use ($like, $normCab, $unitCabExpr, $inList) {
+            // --- sisi MITRA / unit_kemitraan ---
+            $q->where('no_cab', 'like', $like)
+              ->orWhere('no_induk_mitra', 'like', $like)
+              ->orWhere('nama_mitra', 'like', $like)
+              ->orWhere('bimba_aiueo_unit', 'like', $like)
+              ->orWhere('email', 'like', $like)
+              ->orWhere('email_mitra', 'like', $like)
+              ->orWhere('no_hp', 'like', $like)
+              ->orWhere('no_hp_mitra', 'like', $like)
+              ->orWhere('alamat_mitra', 'like', $like);
+
+            // --- sisi UNIT / akun biMBA Shop (dicocokkan lewat No Cab = billing_last_name) ---
+            // Cari dulu akun shop yang cocok (tabel kecil), lalu ambil No Cab-nya.
+            $shopCabs = UserExportBimbaShop::query()
+                ->whereRaw("TRIM(billing_last_name) <> ''")
+                ->where(function ($w) use ($like) {
+                    $w->where('user_email', 'like', $like)
+                      ->orWhere('billing_email', 'like', $like)
+                      ->orWhere('billing_phone', 'like', $like)
+                      ->orWhere('billing_address_1', 'like', $like)
+                      ->orWhere('billing_city', 'like', $like)
+                      ->orWhere('display_name', 'like', $like)
+                      ->orWhere('first_name', 'like', $like);
+                })
+                ->pluck('billing_last_name')
+                ->map($normCab)->filter()->unique()->values()->all();
+
+            if (! empty($shopCabs)) {
+                $q->orWhereRaw("{$unitCabExpr} IN ({$inList($shopCabs)})", $shopCabs);
+            }
+        });
     }
 
     // ==========================
@@ -80,47 +117,42 @@ class UnitKemitraanUserExportController extends Controller
     // ==========================
     if ($request->filled('matching_status')) {
 
+        $allCabs = UserExportBimbaShop::query()
+            ->whereRaw("TRIM(billing_last_name) <> ''")
+            ->pluck('billing_last_name')
+            ->map($normCab)->filter()->unique()->values()->all();
+
         if ($request->matching_status === 'ditemukan') {
 
-            $query->whereExists(function ($sub) {
-                $sub->selectRaw(1)
-                    ->from('user_export_bimba_shop')
-                    ->whereRaw("TRIM(user_export_bimba_shop.billing_last_name) <> ''")
-                    ->whereRaw("TRIM(LEADING '0' FROM TRIM(user_export_bimba_shop.billing_last_name)) = TRIM(LEADING '0' FROM TRIM(unit_kemitraan.no_cab))");
-            });
+            if (empty($allCabs)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereRaw("{$unitCabExpr} IN ({$inList($allCabs)})", $allCabs);
+            }
 
         } elseif ($request->matching_status === 'tidak_ditemukan') {
 
-            $query->whereNotExists(function ($sub) {
-                $sub->selectRaw(1)
-                    ->from('user_export_bimba_shop')
-                    ->whereRaw("TRIM(user_export_bimba_shop.billing_last_name) <> ''")
-                    ->whereRaw("TRIM(LEADING '0' FROM TRIM(user_export_bimba_shop.billing_last_name)) = TRIM(LEADING '0' FROM TRIM(unit_kemitraan.no_cab))");
-            });
-
+            if (! empty($allCabs)) {
+                $query->where(function ($w) use ($unitCabExpr, $inList, $allCabs) {
+                    $w->whereNull('unit_kemitraan.no_cab')
+                      ->orWhereRaw("{$unitCabExpr} NOT IN ({$inList($allCabs)})", $allCabs);
+                });
+            }
         }
-    }
-
-    // ==========================
-    // Search
-    // ==========================
-    if ($request->filled('search')) {
-
-        $search = trim($request->search);
-
-        $query->where(function ($q) use ($search) {
-            $q->where('no_cab', 'like', "%{$search}%")
-              ->orWhere('nama_mitra', 'like', "%{$search}%")
-              ->orWhere('bimba_aiueo_unit', 'like', "%{$search}%")
-              ->orWhere('alamat_unit', 'like', "%{$search}%")
-              ->orWhere('provinsi', 'like', "%{$search}%");
-        });
     }
 
     $unitKemitraans = $query
         ->orderBy('id_record', 'desc')
         ->paginate(50)
         ->appends($request->query());
+
+    // Pilihan filter Jenis Unit diambil dari data (kolom status di unit_kemitraan), bukan daftar tetap
+    $jenisList = UnitKemitraan::query()
+        ->whereNotNull('status')
+        ->whereRaw("TRIM(status) <> ''")
+        ->distinct()
+        ->orderBy('status')
+        ->pluck('status');
 
     $userExports = UserExportBimbaShop::select(
         'ID',
@@ -129,7 +161,14 @@ class UnitKemitraanUserExportController extends Controller
         'display_name',
         'first_name',
         'last_name',
-        'billing_last_name'
+        'billing_last_name',
+        'billing_email',
+        'billing_phone',
+        'billing_address_1',
+        'billing_address_2',
+        'billing_city',
+        'billing_state',
+        'billing_postcode'
     )->get();
 
     // Kunci pencocokan = No Cab (billing_last_name) persis, nol di depan diabaikan.
@@ -141,7 +180,8 @@ class UnitKemitraanUserExportController extends Controller
     return view('master::unit_kemitraan_user.index', compact(
         'unitKemitraans',
         'userExports',
-        'userByCab'
+        'userByCab',
+        'jenisList'
     ));
 }
     /**

@@ -10,7 +10,7 @@
         border-collapse: separate;
         border-spacing: 0;
         width: 100%;
-        min-width: 1750px;
+        min-width: 2900px;
         font-size: 0.8125rem;
     }
     .data-table th,
@@ -90,14 +90,9 @@
     <div class="mt-6 bg-white rounded-2xl shadow-card p-5 sm:p-6">
         <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
 
-            <div>
-                <label for="f_no_cab" class="{{ $lbl }}">No Cab</label>
-                <input id="f_no_cab" type="text" name="no_cab" value="{{ request('no_cab') }}" placeholder="Cari No Cab" class="{{ $inp }}">
-            </div>
-
-            <div>
-                <label for="f_nim" class="{{ $lbl }}">NIM / No Induk Mitra</label>
-                <input id="f_nim" type="text" name="no_induk_mitra" value="{{ request('no_induk_mitra') }}" placeholder="Cari NIM" class="{{ $inp }}">
+            <div class="sm:col-span-2 xl:col-span-2">
+                <label for="f_q" class="{{ $lbl }}">Cari (No Cab, NIM, nama, email, no HP, alamat)</label>
+                <input id="f_q" type="text" name="q" value="{{ request('q', request('no_cab')) }}" placeholder="Ketik No Cab, NIM, nama, email, no HP, atau alamat" class="{{ $inp }}">
             </div>
 
             <div>
@@ -121,10 +116,10 @@
             </div>
 
             <div>
-                <label for="f_status" class="{{ $lbl }}">Status</label>
+                <label for="f_status" class="{{ $lbl }}">Jenis Unit</label>
                 <select id="f_status" name="status" class="{{ $inp }}">
-                    <option value="">Semua status</option>
-                    @foreach (['MM', 'MM 1', 'Aktif 1', 'MK 1', 'MK', 'MK Rinda', 'MKU', 'MKU 1', 'E-biMBA Aktif'] as $nilai)
+                    <option value="">Semua jenis</option>
+                    @foreach ($jenisList as $nilai)
                         <option value="{{ $nilai }}" {{ request('status') == $nilai ? 'selected' : '' }}>{{ $nilai }}</option>
                     @endforeach
                 </select>
@@ -166,10 +161,14 @@
                         <th>Mitra Pengelolaan</th>
                         <th class="ctr">Status Operasional</th>
                         <th>No Induk Mitra</th>
-                        <th>No HP</th>
+                        <th>Email Mitra</th>
+                        <th>No HP Mitra</th>
+                        <th>Alamat Mitra</th>
                         <th class="ctr">Akun biMBA Shop</th>
                         <th>Matching First Name</th>
-                        <th>User Email</th>
+                        <th>Email Unit (biMBA Shop)</th>
+                        <th>No Telp Unit (biMBA Shop)</th>
+                        <th>Alamat Unit (biMBA Shop)</th>
                         <th>Display Name</th>
                         <th class="ctr sticky-r">Aksi</th>
                     </tr>
@@ -213,7 +212,36 @@
                                 @endif
                             </td>
                             <td>{{ $unit->no_induk_mitra ?? '-' }}</td>
-                            <td>{{ $unit->no_hp ?? '-' }}</td>
+                            @php
+                                // Data MITRA (tabel unit_kemitraan): pakai kolom *_mitra bila terisi, jika kosong pakai kolom mitra biasa
+                                $emailMitra  = trim((string) ($unit->email_mitra ?: $unit->email));
+                                $hpMitra     = trim((string) ($unit->no_hp_mitra ?: $unit->no_hp));
+                                $alamatMitra = trim((string) $unit->alamat_mitra);
+                                if ($alamatMitra === '') {
+                                    $alamatMitra = trim(collect([
+                                        $unit->no_rumah,
+                                        $unit->rt_mitra ? 'RT ' . $unit->rt_mitra : null,
+                                        $unit->rw_mitra ? 'RW ' . $unit->rw_mitra : null,
+                                        $unit->kel_mitra, $unit->kec_mitra, $unit->kota_mitra,
+                                        $unit->provinsi_mitra, $unit->kode_pos_mitra,
+                                    ])->filter(fn ($x) => trim((string) $x) !== '')->implode(', '));
+                                }
+
+                                // Data UNIT (akun biMBA Shop / billing)
+                                $emailUnit  = trim((string) ($matched?->user_email ?: $matched?->billing_email));
+                                $telpUnit   = trim((string) $matched?->billing_phone);
+                                $alamatUnit = $matched ? trim(collect([
+                                    $matched->billing_address_1, $matched->billing_address_2,
+                                    $matched->billing_city, $matched->billing_state, $matched->billing_postcode,
+                                ])->filter(fn ($x) => trim((string) $x) !== '')->implode(', ')) : '';
+                            @endphp
+                            <td class="cell-clip" title="{{ $emailMitra }}">
+                                @if ($emailMitra !== '')
+                                    <a href="mailto:{{ $emailMitra }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $emailMitra }}</a>
+                                @else - @endif
+                            </td>
+                            <td>{{ $hpMitra !== '' ? $hpMitra : '-' }}</td>
+                            <td class="cell-clip" style="max-width:320px" title="{{ $alamatMitra }}">{{ $alamatMitra !== '' ? $alamatMitra : '-' }}</td>
                             <td class="ctr">
                                 @if ($matched)
                                     <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Ditemukan</span>
@@ -228,13 +256,13 @@
                                     <span class="text-rust-600">Tidak ditemukan</span>
                                 @endif
                             </td>
-                            <td class="cell-clip" title="{{ $matched?->user_email }}">
-                                @if ($matched && $matched->user_email)
-                                    <a href="mailto:{{ $matched->user_email }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $matched->user_email }}</a>
-                                @else
-                                    -
-                                @endif
+                            <td class="cell-clip" title="{{ $emailUnit }}">
+                                @if ($emailUnit !== '')
+                                    <a href="mailto:{{ $emailUnit }}" class="text-navy-700 hover:text-rust-600 hover:underline">{{ $emailUnit }}</a>
+                                @else - @endif
                             </td>
+                            <td>{{ $telpUnit !== '' ? $telpUnit : '-' }}</td>
+                            <td class="cell-clip" style="max-width:320px" title="{{ $alamatUnit }}">{{ $alamatUnit !== '' ? $alamatUnit : '-' }}</td>
                             <td class="cell-clip" title="{{ $matched?->display_name }}">{{ $matched?->display_name ?? '-' }}</td>
                             <td class="ctr sticky-r">
                                 <a href="{{ route('unit-kemitraan.show', $unit) }}" title="Lihat" aria-label="Lihat unit"
@@ -245,7 +273,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="14" class="!text-center py-16 text-navy-950/50">
+                            <td colspan="18" class="!text-center py-16 text-navy-950/50">
                                 Tidak ada unit yang cocok dengan filter ini.
                             </td>
                         </tr>
