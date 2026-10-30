@@ -13,6 +13,7 @@ use App\Modules\Picking\Providers\PickingServiceProvider;
 use App\Modules\Qc\Providers\QcServiceProvider;
 use App\Modules\Stok\Providers\StokServiceProvider;
 use App\Providers\AppServiceProvider;
+use App\Modules\Kalender\Providers\KalenderServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -30,4 +31,6 @@ return [
     PackingServiceProvider::class,
     OrderManualServiceProvider::class,
     KeuanganServiceProvider::class,
+    KalenderServiceProvider::class,
+
 ];

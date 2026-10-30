@@ -51,6 +51,7 @@
         ['key' => 'total',           'label' => 'Order Total', 'align' => 'right'],
         ['key' => 'payment_method',  'label' => 'Payment Channel'],
         ['key' => 'status_bayar',    'label' => 'Status Bayar'],
+        ['key' => 'shop',            'label' => 'biMBA Shop'],
         ['key' => 'status',          'label' => 'Status'],
         ['key' => 'tgl_proses',      'label' => 'Tanggal Proses', 'align' => 'center'],
     ];
@@ -67,6 +68,8 @@
             'options' => ['cash' => 'Cash', 'transfer' => 'Transfer', 'manual' => 'Manual'], 'empty' => 'Semua'],
         ['name' => 'status',         'label' => 'Status',    'type' => 'select',
             'options' => ['pending' => 'Pending', 'processing' => 'Processing', 'completed' => 'Completed'], 'empty' => 'Semua Status'],
+        ['name' => 'shop',           'label' => 'biMBA Shop', 'type' => 'select',
+            'options' => ['menunggu' => 'Menunggu biMBA Shop', 'cocok' => 'Sudah cocok'], 'empty' => 'Semua'],
         ['name' => 'start_date',     'label' => 'Dari Tanggal',   'type' => 'date'],
         ['name' => 'end_date',       'label' => 'Sampai Tanggal', 'type' => 'date'],
         ['name' => 'per_page',       'label' => 'Tampilkan', 'type' => 'select',
@@ -107,6 +110,14 @@
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
             Rekap Aktual Manual
         </a>
+        <form action="{{ route('import.manual.cocokkan-shop') }}" method="POST">
+            @csrf
+            <button type="submit"
+                    class="inline-flex items-center gap-2 border border-[#28447F] text-[#28447F] hover:bg-[#28447F]/5 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4.5 4.5L19 7"/></svg>
+                Cocokkan dengan biMBA Shop
+            </button>
+        </form>
         <form action="{{ route('import.sync-pesanan-majalah') }}" method="POST"
               onsubmit="return confirm('Yakin Sync semua Pesanan Majalah ke Manual Pemesanan?')">
             @csrf
@@ -310,6 +321,17 @@
                                 @elseif($key === 'status_bayar')
                                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">MANUAL</span>
 
+                                @elseif($key === 'shop')
+                                    @if(!\App\Modules\Import\Services\ShopMatcher::requiresShop($order))
+                                        <span class="text-gray-400">-</span>
+                                    @elseif($order->is_synced_bimba)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                              title="Order biMBA Shop {{ $order->bimba_order_id }}">Cocok</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200"
+                                              title="Belum ada order biMBA Shop dengan no cabang dan edisi yang sama">Menunggu biMBA Shop</span>
+                                    @endif
+
                                 @elseif($key === 'status')
                                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">{{ ucfirst($order->status ?? 'Pending') }}</span>
 
@@ -497,9 +519,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         requestJson(URL_IDS + '?' + qs.toString())
             .then(function (res) {
-                if (!res.count) { setBar('Tidak ada data yang belum diproses.', 'err'); return; }
+                if (!res.count) {
+                    setBar(res.held ? res.held + ' data ditahan, menunggu biMBA Shop. Import biMBA Shop dulu.' : 'Tidak ada data yang belum diproses.', 'err');
+                    return;
+                }
                 selectedIds = res.ids;
-                setBar(res.count + ' data akan diproses');
+                setBar(res.count + ' data akan diproses' + (res.held ? ', ' + res.held + ' ditahan (menunggu biMBA Shop)' : ''));
                 loadModalData();
             })
             .catch(function () { setBar('Gagal mengambil data.', 'err'); });
@@ -511,7 +536,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function rowHtml(item) {
-        var locked = Boolean(item.is_processed);
+        var waiting = item.shop_ready === false && !item.is_processed;
+        var locked = Boolean(item.is_processed) || waiting;
         var distribusi = String(item.status_kirim || 'Dikirim').trim();
         var diambil = distribusi === 'Diambil';
         var jasa = diambil ? 'Diambil Sendiri' : (item.jasa_kurir || 'Lion Parcel');
@@ -523,7 +549,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (locked) {
             cDist = badge(distribusi, 'bg-emerald-100 text-emerald-700');
             cJasa = cSvc = '<span class="text-sm text-gray-500">Terkunci</span>';
-            cCatatan = '<span class="text-xs text-gray-500 italic">Sudah diproses' + (item.processed_at ? ' pada ' + esc(item.processed_at) : '') + '</span>';
+            cCatatan = waiting
+                ? '<span class="text-xs text-amber-700 italic">Menunggu biMBA Shop</span>'
+                : '<span class="text-xs text-gray-500 italic">Sudah diproses' + (item.processed_at ? ' pada ' + esc(item.processed_at) : '') + '</span>';
         } else {
             cDist = badge(distribusi, 'bg-blue-100 text-blue-700');
             cJasa = '<input type="text" list="dl-kurir" class="jasa-kurir ' + CTL + '" value="' + esc(jasa) + '" placeholder="Pilih atau ketik jasa kurir"' + dis + '>';

@@ -11,6 +11,8 @@ use App\Modules\Order\Models\JakartaPasifItem;
 use App\Modules\Master\Models\Product;
 use App\Modules\Order\Models\RealisasiPasif;
 use App\Modules\Order\Support\RumahJakarta;
+use App\Modules\Order\Support\KategoriOrder;
+use App\Modules\Order\Support\NamaDlc;
 use App\Modules\Picking\Models\PickingPasif;
 use App\Modules\Picking\Models\PickingPasifItem;
 use Illuminate\Http\Request;
@@ -46,7 +48,7 @@ private function jenisDariSku($sku): ?string
 
 /**
  * Nama unit untuk order Pasif.
- * DLC  : Nama Unit = Billing Name (billing_first_name + billing_last_name di biMBA Shop).
+ * DLC  : Nama Unit = Billing Name (billing_first_name + billing_last_name di biMBA Shop), nama guru dibuang.
  * Lain : aturan lama (resolveNamaUnit).
  */
 private function namaUnitPasif($jenis, $idPesan, $billingCompany, $billingLastName, $default = null, $billingFirstName = null)
@@ -61,7 +63,8 @@ private function namaUnitPasif($jenis, $idPesan, $billingCompany, $billingLastNa
         $billingName = trim(trim((string) $billingFirstName) . ' ' . trim((string) $billingLastName));
 
         if ($billingName !== '') {
-            return $billingName;
+            // Buang nama guru: "<murid> <NIM> <guru> <unit>" -> "<murid> <NIM> <unit>"
+            return NamaDlc::bersih($billingName);
         }
     }
 
@@ -546,23 +549,14 @@ public function bulkActionJakartaPasif(Request $request)
         }
 
         // Grouping kategori
-        $groups = [
-            'Modul'      => collect(),
-            'Majalah'    => collect(),
-            'Sertifikat' => collect(),
-        ];
+        // Kalender punya kelompok sendiri (tidak digabung ke Modul)
+        $groups = [];
+        foreach (KategoriOrder::SEMUA as $namaKategori) {
+            $groups[$namaKategori] = collect();
+        }
 
         foreach ($allItems as $item) {
-            $kategori = trim($item->product?->kategori ?? '');
-            $kategoriLower = strtolower($kategori);
-
-            if (str_contains($kategoriLower, 'majalah')) {
-                $groups['Majalah']->push($item);
-            } elseif (str_contains($kategoriLower, 'sertifikat')) {
-                $groups['Sertifikat']->push($item);
-            } else {
-                $groups['Modul']->push($item);
-            }
+            $groups[KategoriOrder::dari($item)]->push($item);
         }
 
         foreach ($groups as $kategoriOrder => $items) {

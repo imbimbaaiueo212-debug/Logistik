@@ -4,6 +4,7 @@ namespace App\Modules\Import\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Import\Models\ManualOrder;
+use App\Modules\Import\Services\ShopMatcher;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Modules\Import\Imports\ManualOrderImport;        // ← Tambahkan ini
 use App\Modules\Master\Models\UnitNamaMismatch;
@@ -48,6 +49,16 @@ class ManualOrderController extends Controller
     // ===== FILTER GRUP (BARU) =====
     if ($request->filled('grup')) {
         $query->where('grup', $request->grup);
+    }
+
+    // ===== FILTER STATUS biMBA SHOP (Majalah) =====
+    if ($request->shop === 'menunggu') {
+        $query->whereRaw("UPPER(TRIM(product_sku)) REGEXP '^M[0-9]{2,4}$'")
+              ->where(function ($q) {
+                  $q->where('is_synced_bimba', false)->orWhereNull('is_synced_bimba');
+              });
+    } elseif ($request->shop === 'cocok') {
+        $query->where('is_synced_bimba', true);
     }
 
     if ($request->filled('start_date')) {
@@ -114,11 +125,18 @@ public function getManualFilteredIds(Request $request)
         $query->where('status', $request->status);
     }
 
-    $ids = $query->pluck('id');
+    // Gerbang biMBA Shop: cocokkan dulu, lalu tahan yang belum ada di Shop
+    $matcher = app(ShopMatcher::class);
+    $matcher->syncManual();
+
+    $orders = $query->get();
+    $ready  = $orders->filter(fn ($o) => $matcher->isReady($o));
+    $ids    = $ready->pluck('id');
 
     return response()->json([
         'ids'   => $ids->values(),
         'count' => $ids->count(),
+        'held'  => $orders->count() - $ready->count(),
     ]);
 }
 
@@ -140,9 +158,11 @@ public function getManualModalData(Request $request)
         ])
         ->all();
 
+    $matcher = app(ShopMatcher::class);
+
     $data = ManualOrder::whereIn('id', $ids)
         ->get()
-        ->map(function ($item) use ($mismatchMap) {
+        ->map(function ($item) use ($mismatchMap, $matcher) {
             $isManualMajalah = true;
 
             $jasaKurir = $item->ekspedisi;
@@ -179,6 +199,7 @@ public function getManualModalData(Request $request)
                 'service_kurir'     => $service,
                 'grup'              => $item->grup ?? null,
                 'is_processed'      => (bool) $item->is_processed,
+                'shop_ready'        => $matcher->isReady($item),
                 'processed_at'      => $item->processed_at
                     ? Carbon::parse($item->processed_at)->format('d/m/Y H:i')
                     : null,
@@ -214,6 +235,11 @@ public function bulkActionManual(Request $request)
     $now = Carbon::now('Asia/Jakarta');
     $successCount = 0;
 
+    // Gerbang biMBA Shop: Majalah hanya boleh diproses bila sudah cocok dengan order di Shop
+    $matcher = app(ShopMatcher::class);
+    $matcher->syncManual(array_values(array_filter(array_column($updates, 'id'))));
+    $ditahan = [];
+
     foreach ($updates as $update) {
         $id = $update['id'] ?? null;
         if (!$id) {
@@ -222,6 +248,11 @@ public function bulkActionManual(Request $request)
 
         $order = ManualOrder::find($id);
         if (!$order || $order->is_processed) {
+            continue;
+        }
+
+        if (!$matcher->isReady($order)) {
+            $ditahan[] = $order->customer_name ?: $order->order_id;
             continue;
         }
 
@@ -438,9 +469,32 @@ public function bulkActionManual(Request $request)
         }
     }
 
+    $pesan = "{$successCount} data berhasil diproses!";
+
+    if (!empty($ditahan)) {
+        $contoh = implode(', ', array_slice($ditahan, 0, 5)) . (count($ditahan) > 5 ? ', ...' : '');
+
+        return redirect()
+            ->route('import.manual')
+            ->with($successCount > 0 ? 'success' : 'error',
+                $pesan . ' ' . count($ditahan) . " data ditahan karena belum ada di biMBA Shop: {$contoh}");
+    }
+
     return redirect()
         ->route('import.manual')
-        ->with('success', "{$successCount} data berhasil diproses!");
+        ->with('success', $pesan);
+}
+
+// =========================================================
+// COCOKKAN MANUAL DENGAN biMBA SHOP (tombol di halaman Manual)
+// =========================================================
+public function cocokkanShop()
+{
+    $hasil = app(ShopMatcher::class)->syncManual();
+
+    return redirect()
+        ->route('import.manual')
+        ->with('success', "Pencocokan biMBA Shop selesai. Cocok: {$hasil['cocok']}, masih menunggu biMBA Shop: {$hasil['menunggu']}.");
 }
 
 // =========================================================

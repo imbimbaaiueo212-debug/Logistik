@@ -53,6 +53,9 @@ Route::prefix('import')
         Route::get('/manual/filtered-ids', [ManualOrderController::class, 'getManualFilteredIds'])
             ->name('manual.filtered-ids');
 
+        Route::post('/manual/cocokkan-shop', [ManualOrderController::class, 'cocokkanShop'])
+            ->name('manual.cocokkan-shop');
+
         Route::post('/manual/get-modal-data', [ManualOrderController::class, 'getManualModalData'])
             ->name('manual.get-modal-data');
 

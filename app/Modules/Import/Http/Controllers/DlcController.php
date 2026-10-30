@@ -198,8 +198,9 @@ public function dlcShow($id)
 {
     $periode = DlcPeriode::with('pesanan')->findOrFail($id);
     $total   = $periode->pesanan->sum('qty');
+    $rekap   = app(\App\Modules\Import\Services\DlcRekapMajalah::class)->hitung($periode);
 
-    return view('import::import.dlc.show', compact('periode', 'total'));
+    return view('import::import.dlc.show', compact('periode', 'total', 'rekap'));
 }
 
 // =========================================================

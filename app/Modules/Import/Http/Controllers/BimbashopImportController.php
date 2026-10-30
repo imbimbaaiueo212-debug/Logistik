@@ -7,6 +7,7 @@ use App\Modules\Import\Imports\BimbashopImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use App\Modules\Import\Models\BimbashopOrder;
+use App\Modules\Import\Services\ShopMatcher;
 use Illuminate\Support\Facades\Log;
 use App\Modules\Import\Http\Controllers\Concerns\ManualOrderSyncHelpers;
 
@@ -85,15 +86,17 @@ class BimbashopImportController extends Controller
             Log::info("Import berhasil: " . $originalName);
 
             // === SYNC MANUAL ===
+            $info = '';
             try {
-                $result = $this->syncManualFromBimbashopCasdana();
-                Log::info("Sync Manual dari Bimbashop/Casdana: " . json_encode($result));
+                $result = app(ShopMatcher::class)->syncManual();
+                Log::info("Pencocokan Manual dengan biMBA Shop: " . json_encode($result));
+                $info = " Pencocokan Manual: {$result['cocok']} cocok, {$result['menunggu']} masih menunggu biMBA Shop.";
             } catch (\Throwable $e) {
-                Log::error("Sync Manual gagal: " . $e->getMessage());
+                Log::error("Pencocokan Manual gagal: " . $e->getMessage());
             }
 
             return redirect()->route('import.bimbashop')
-                             ->with('success', '✅ Data biMBA Shop berhasil diimport! File: ' . $originalName);
+                             ->with('success', 'Data biMBA Shop berhasil diimport! File: ' . $originalName . '.' . $info);
 
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             // Error validasi Excel (heading, format, dll)

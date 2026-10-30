@@ -8,6 +8,7 @@ use App\Modules\Majalah\Models\PesananMajalah;
 use App\Modules\Majalah\Imports\PesananMajalahImport;
 use App\Modules\Master\Models\UnitKemitraan;
 use App\Modules\Import\Models\ManualOrder;
+use App\Modules\Import\Services\ShopMatcher;
 use App\Modules\Master\Models\UnitNamaMismatch;
 use App\Modules\Order\Models\JakartaAktif;
 use Illuminate\Support\Facades\DB;
@@ -346,6 +347,10 @@ class PesananMajalahController extends Controller
             ->get()
             ->keyBy(fn ($u) => trim($u->no_cab));
 
+        // Gerbang biMBA Shop: hanya unit yang no cabangnya sudah ada di order Shop (edisi sama)
+        $edisiShop = ShopMatcher::edisiFrom($pesananMajalah->judul, $pesananMajalah->bulan, $pesananMajalah->periode);
+        $shopSet   = app(ShopMatcher::class)->setMajalah($edisiShop);
+
         $productName = 'Pesanan Majalah Edisi '
             . ($pesananMajalah->judul ?? '')
             . ' bulan '
@@ -364,6 +369,13 @@ class PesananMajalahController extends Controller
                     }
 
                     $noCab = trim($unit->no_cabang ?? '');
+
+                    if (! isset($shopSet[ShopMatcher::noCabKey($noCab)])) {
+                        $skipped++;
+                        $skippedList[] = ($unit->nama_unit ?? 'Unit #' . $unit->id) . ' (menunggu biMBA Shop)';
+                        continue;
+                    }
+
                     $idPesan = 'PM' . $pesananMajalah->id . '-' . $unit->id;
 
                     if (JakartaAktif::where('id_pesan', $idPesan)->exists()) {

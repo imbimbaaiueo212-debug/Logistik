@@ -339,7 +339,22 @@
                 'order-manual.*','import.dlc.*',
             ]);
 
-            $hsPemesananActive = $hsMajalahActive || request()->routeIs([
+            // Kalender: [label, nama route, pola route untuk state aktif]
+            $hsKalPasifMenu = [
+                ['Daftar Pasif',       'kalender.pasif.list',         ['kalender.pasif.list*', 'kalender.pasif.show']],
+                ['Spare Pasif 3%',     'kalender.pasif.spare',        ['kalender.pasif.spare*']],
+                ['Bacaan Unit',        'kalender.pasif.bacaan',       ['kalender.pasif.bacaan*']],
+                ['Import',             'kalender.pasif.rekap',        ['kalender.pasif.rekap*', 'kalender.pasif.create']],
+                ['Create Manual',      'kalender.pasif.manual.index', ['kalender.pasif.manual*']],
+                ['Report Angka Cetak', 'kalender.report-angka-cetak', ['kalender.report-angka-cetak*']],
+            ];
+            $hsKalPasifActive = request()->routeIs(['kalender.pasif.*', 'kalender.report-angka-cetak*']);
+            $hsKalPuwActive   = request()->routeIs([
+                'pesanan-kalender.*','pesanan-kalender-kotamadya.*','pesanan-kalender-puw1.*',
+            ]);
+            $hsKalenderActive = $hsKalPuwActive || $hsKalPasifActive || request()->routeIs('kalender.dlc.*');
+
+            $hsPemesananActive = $hsMajalahActive || $hsKalenderActive || request()->routeIs([
                 'order.index','import.bimbashop','import.bimbashop.*',
                 'order-manual-modul.manual.create','order-manual-modul.manual.create.*',
                 'order-manual-sertifikat.manual.create','order-manual-sertifikat.manual.create.*',
@@ -394,6 +409,42 @@
                             </div>
                         </div>
 
+                    </div>
+                </div>
+
+                {{-- Kalender (dropdown) --}}
+                <button type="button" data-hs-toggle="#hs-kalender" class="hs-sub-toggle {{ $hsKalenderActive ? 'open has-active' : '' }}">
+                    <span>Kalender</span>
+                    <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <div id="hs-kalender" class="hs-sub {{ $hsKalenderActive ? 'open' : '' }}">
+                    <div class="hs-sub-inner">
+                        <button type="button" data-hs-toggle="#hs-kalender-puw" class="hs-sub-toggle {{ $hsKalPuwActive ? 'open has-active' : '' }}">
+                            <span>PUW</span>
+                            <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                        <div id="hs-kalender-puw" class="hs-sub {{ $hsKalPuwActive ? 'open' : '' }}">
+                            <div class="hs-sub-inner">
+                                <a href="{{ route('pesanan-kalender.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-kalender.*') ? 'active' : '' }}">KORWIL</a>
+                                <a href="{{ route('pesanan-kalender-kotamadya.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-kalender-kotamadya.*') ? 'active' : '' }}">PINWIL</a>
+                                <a href="{{ route('pesanan-kalender-puw1.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-kalender-puw1.*') ? 'active' : '' }}">JABODETABEK (PUW1)</a>
+                            </div>
+                        </div>
+
+                        <a href="{{ route('kalender.dlc.index') }}" class="hs-sub-link {{ request()->routeIs('kalender.dlc.*') ? 'active' : '' }}">DLC</a>
+
+                        {{-- Unit Pasif Kalender (dropdown) --}}
+                        <button type="button" data-hs-toggle="#hs-kalender-pasif" class="hs-sub-toggle {{ $hsKalPasifActive ? 'open has-active' : '' }}">
+                            <span>Unit Pasif</span>
+                            <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                        <div id="hs-kalender-pasif" class="hs-sub {{ $hsKalPasifActive ? 'open' : '' }}">
+                            <div class="hs-sub-inner">
+                                @foreach($hsKalPasifMenu as [$label, $rute, $pola])
+                                    <a href="{{ route($rute) }}" class="hs-sub-link {{ request()->routeIs($pola) ? 'active' : '' }}">{{ $label }}</a>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </div>
 

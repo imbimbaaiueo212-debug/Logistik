@@ -22,6 +22,10 @@
     .data-table tfoot td:first-child { position: static; }
     .data-table th.col-aksi, .data-table td.col-aksi { position: sticky; right: 0; z-index: 10; }
     .data-table thead th.col-aksi { z-index: 30; }
+    .data-table th.col-num, .data-table td.col-num { width: 120px; text-align: center; }
+    .data-table th.col-status, .data-table td.col-status { width: 150px; text-align: center; }
+    .data-table th.col-aksi, .data-table td.col-aksi { width: 80px; }
+    .badge-status { display: inline-block; min-width: 92px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; text-align: center; }
     .cell-clip { display: block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 @endpush
@@ -31,7 +35,10 @@
     $kolom = [
         ['key' => 'no',        'label' => 'No'],
         ['key' => 'nama_unit', 'label' => 'Nama Unit', 'clip' => true, 'class' => 'font-medium text-gray-800'],
-        ['key' => 'qty',       'label' => 'Qty',       'align' => 'right', 'class' => 'font-semibold'],
+        ['key' => 'qty',       'label' => 'Qty Pesan', 'cls' => 'col-num', 'class' => 'font-semibold'],
+        ['key' => 'proses',    'label' => 'Proses',    'cls' => 'col-num', 'class' => 'font-semibold text-green-700'],
+        ['key' => 'sisa',      'label' => 'Sisa',      'cls' => 'col-num', 'class' => 'font-semibold'],
+        ['key' => 'status',    'label' => 'Status',    'cls' => 'col-status'],
     ];
     $info = [
         ['Edisi',       $periode->edisi],
@@ -76,7 +83,7 @@
             <thead>
                 <tr>
                     @foreach($kolom as $k)
-                        <th style="text-align: {{ $k['align'] ?? 'left' }}">{{ $k['label'] }}</th>
+                        <th class="{{ $k['cls'] ?? '' }}">{{ $k['label'] }}</th>
                     @endforeach
                     <th class="col-aksi" style="text-align: center">Aksi</th>
                 </tr>
@@ -85,11 +92,28 @@
                 @foreach($periode->pesanan as $index => $item)
                     <tr>
                         @foreach($kolom as $k)
-                            <td class="{{ $k['class'] ?? '' }}" style="text-align: {{ $k['align'] ?? 'left' }}">
+                            <td class="{{ $k['cls'] ?? '' }} {{ $k['class'] ?? '' }}">
                                 @if($k['key'] === 'no')
                                     {{ $index + 1 }}
                                 @elseif($k['key'] === 'qty')
                                     {{ number_format($item->qty) }}
+                                @elseif($k['key'] === 'proses')
+                                    {{ number_format($rekap['baris'][$item->id]['proses'] ?? 0) }}
+                                @elseif($k['key'] === 'sisa')
+                                    @php $sisa = $rekap['baris'][$item->id]['sisa'] ?? $item->qty; @endphp
+                                    <span class="{{ $sisa < 0 ? 'text-red-600' : ($sisa === 0 ? 'text-green-700' : 'text-[#E85D2A]') }}">{{ number_format($sisa) }}</span>
+                                @elseif($k['key'] === 'status')
+                                    @php
+                                        $st = $rekap['baris'][$item->id]['status'] ?? 'Belum masuk';
+                                        $petaWarna = [
+                                            'Belum masuk' => 'background:#f1f3f6;color:#6b7280',
+                                            'Kurang'      => 'background:#fef3c7;color:#92400e',
+                                            'Sesuai'      => 'background:#dcfce7;color:#166534',
+                                            'Lebih'       => 'background:#fee2e2;color:#991b1b',
+                                        ];
+                                        $warna = $petaWarna[$st] ?? 'background:#f1f3f6;color:#6b7280';
+                                    @endphp
+                                    <span class="badge-status" style="{{ $warna }}">{{ $st }}</span>
                                 @else
                                     <span class="cell-clip" title="{{ $item->{$k['key']} }}">{{ $item->{$k['key']} }}</span>
                                 @endif
@@ -107,14 +131,37 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="{{ count($kolom) - 1 }}" style="text-align: right">Jumlah</td>
-                    <td style="text-align: right" class="text-[#E85D2A]">{{ number_format($total) }}</td>
+                    <td colspan="2" style="text-align: right">Jumlah</td>
+                    <td class="col-num text-[#E85D2A]">{{ number_format($total) }}</td>
+                    <td class="col-num text-green-700">{{ number_format($rekap['total']['proses']) }}</td>
+                    <td class="col-num {{ $rekap['total']['sisa'] < 0 ? 'text-red-600' : 'text-[#E85D2A]' }}">{{ number_format($rekap['total']['sisa']) }}</td>
+                    <td class="col-status"></td>
                     <td class="col-aksi"></td>
                 </tr>
             </tfoot>
         </table>
     </div>
 </div>
+
+{{-- Order Shop DLC yang unitnya tidak dikenali --}}
+@if(!empty($rekap['tidak_dikenali']))
+<div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden mt-4">
+    <div class="px-5 py-3 bg-amber-50 text-sm text-amber-900 font-medium">
+        {{ count($rekap['tidak_dikenali']) }} order biMBA Shop {{ $periode->edisi }} (DLC) belum cocok dengan unit mana pun di atas
+        &mdash; periksa penulisan unit di Billing Name atau tambahkan unitnya.
+    </div>
+    <div class="data-table-wrap" style="max-height: 280px">
+        <table class="data-table">
+            <thead><tr><th>Order Shop</th><th>Billing Name</th><th style="text-align:right">Qty</th></tr></thead>
+            <tbody>
+                @foreach($rekap['tidak_dikenali'] as $t)
+                    <tr><td>{{ $t['order_id'] }}</td><td>{{ $t['billing_name'] }}</td><td style="text-align:right">{{ $t['qty'] }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
 
 {{-- Modal edit qty --}}
 <div id="editModal" class="fixed inset-0 bg-[#0F1B33]/50 hidden items-center justify-center z-50">
