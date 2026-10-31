@@ -214,6 +214,7 @@
                                     <div class="font-medium">
                                         {{ $item->nama_barang ?? $item->kategori_order ?? 'Majalah' }}
                                     </div>
+                                    <x-hold-barang :row="$item" />
                                 </td>
                                 <td>
                                     <div>{{ $item->pengiriman ?? '-' }}</div>

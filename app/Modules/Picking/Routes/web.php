@@ -8,6 +8,7 @@ use App\Modules\Picking\Http\Controllers\PickingController;
 use App\Modules\Picking\Http\Controllers\PickingManualController;
 use App\Modules\Picking\Http\Controllers\PickingPasifController;
 use App\Modules\Picking\Http\Controllers\PickingLogistikController;
+use App\Modules\Picking\Http\Controllers\KetersediaanBarangController;
 
 // === PICKING ROUTES ===
 Route::prefix('picking')->name('picking.')->group(function () {
@@ -48,6 +49,11 @@ Route::prefix('picking')->name('picking.')->group(function () {
         Route::post("/logistik/{$jenisLogistik}/status", [PickingLogistikController::class, 'updateStatus'])
             ->defaults('jenis', $jenisLogistik)->name("logistik.{$jenisLogistik}.status");
     }
+
+    // Barang Majalah/Kalender sudah datang (membuka HOLD Picking)
+    Route::get('/barang', [KetersediaanBarangController::class, 'index'])->name('barang.index');
+    Route::post('/barang', [KetersediaanBarangController::class, 'store'])->name('barang.store');
+    Route::post('/barang-datang', [KetersediaanBarangController::class, 'update'])->name('barang.update');
 
     // Checklist, PIC, Status (Normal / Aktif)
     Route::post('/checklist/update', [PickingController::class, 'updateChecklist'])->name('checklist.update');

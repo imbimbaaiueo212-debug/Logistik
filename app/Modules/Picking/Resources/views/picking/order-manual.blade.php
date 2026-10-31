@@ -104,6 +104,8 @@
         </div>
     </div>
 
+    @include('picking::picking.partials.hold-banner')
+
     <!-- Filter -->
     <div class="bg-white rounded-3xl shadow p-6 mb-6">
         <form method="GET" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
@@ -197,7 +199,7 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($data as $index => $item)
-                <tr class="hover:bg-gray-50" data-id="{{ $item->id }}">
+                <tr class="hover:bg-gray-50 {{ !empty($item->barang_belum_datang) ? 'bg-red-50' : '' }}" data-id="{{ $item->id }}" data-locked="{{ !empty($item->barang_belum_datang) ? 1 : 0 }}">
                     <td class="px-4 py-3 text-center">{{ $index + 1 }}</td>
                     <td class="px-4 py-3">{{ $item->no_pl ?? '-' }}</td>
                     <td class="px-4 py-3">{{ $item->no_ps ?? '-' }}</td>
@@ -266,7 +268,7 @@
                             @if($item->status_persiapan == 'Sudah') bg-green-100 text-green-700
                             @elseif($item->status_persiapan == 'Belum') bg-red-100 text-red-700
                             @endif"
-                            data-id="{{ $item->id }}">
+                            data-id="{{ $item->id }}" {{ !empty($item->barang_belum_datang) ? 'disabled' : '' }}>
                             <option value="Belum" {{ $item->status_persiapan == 'Belum' || empty($item->status_persiapan) ? 'selected' : '' }}>Belum</option>
                             <option value="Sudah" {{ $item->status_persiapan == 'Sudah' ? 'selected' : '' }}>Sudah</option>
                         </select>
@@ -279,7 +281,7 @@
                         @endif
                     </td>
                     <td class="extra-col px-4 py-3 text-center {{ $item->tgl_terima ? '' : 'hidden' }}">
-                        <select class="pic-select border rounded-lg px-2 py-1 text-sm" data-id="{{ $item->id }}">
+                        <select class="pic-select border rounded-lg px-2 py-1 text-sm" data-id="{{ $item->id }}" {{ !empty($item->barang_belum_datang) ? 'disabled' : '' }}>
                             <option value="">-- Pilih --</option>
                             <option value="Asep" {{ $item->pic == 'Asep' ? 'selected' : '' }}>Asep</option>
                             <option value="Arif" {{ $item->pic == 'Arif' ? 'selected' : '' }}>Arif</option>
@@ -293,7 +295,7 @@
                                 <input type="checkbox"
                                     class="w-4 h-4 accent-emerald-600 checklist-item"
                                     data-id="{{ $item->id }}"
-                                    {{ $item->tgl_terima ? 'checked' : '' }}>
+                                    {{ $item->tgl_terima ? 'checked' : '' }} {{ !empty($item->barang_belum_datang) ? 'disabled' : '' }}>
                                 <span class="text-emerald-600 text-xs font-medium">Cek</span>
                             </label>
                             <a href="{{ route('picking.edit', $item->id) }}"
@@ -302,6 +304,7 @@
                                onclick="if(confirm('Hapus Picking ini?')) window.location.href='{{ route('picking.destroy', $item->id) }}'"
                                class="text-red-600 hover:text-red-800 transition-colors" title="Hapus">🗑</a>
                         </div>
+                        @include('picking::picking.partials.badge-hold')
                     </td>
                 </tr>
                 @empty

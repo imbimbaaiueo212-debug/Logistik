@@ -12,6 +12,11 @@ class PickingServiceProvider extends ServiceProvider
         return dirname(__DIR__) . ($sub ? DIRECTORY_SEPARATOR . $sub : '');
     }
 
+    public function register(): void
+    {
+        $this->app->singleton(\App\Modules\Picking\Services\KetersediaanBarangService::class);
+    }
+
     public function boot(): void
     {
         // View dipanggil dengan namespace modul: view('picking::<folder>.<nama>')

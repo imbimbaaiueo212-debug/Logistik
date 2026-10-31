@@ -515,6 +515,7 @@
                     <a href="<?php echo e(route('picking.logistik.aktif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.logistik.aktif', 'picking.logistik.aktif.*') ? 'active' : ''); ?>">Logistik Aktif</a>
                     <a href="<?php echo e(route('picking.jakarta.pasif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.jakarta.pasif') ? 'active' : ''); ?>">Jakarta Pasif</a>
                     <a href="<?php echo e(route('picking.logistik.pasif')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.logistik.pasif', 'picking.logistik.pasif.*') ? 'active' : ''); ?>">Logistik Pasif</a>
+                    <a href="<?php echo e(route('picking.barang.index')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('picking.barang.*') ? 'active' : ''); ?>">Barang Datang (Majalah/Kalender)</a>
                 </div>
             </div>
         <?php endif; ?>

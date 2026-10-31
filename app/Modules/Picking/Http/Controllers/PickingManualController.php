@@ -5,12 +5,15 @@ namespace App\Modules\Picking\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Modules\Picking\Models\Picking;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguBarang;
+use App\Modules\Picking\Services\KetersediaanBarangService;
 use Illuminate\Support\Facades\Auth;   // ← TAMBAHKAN INI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PickingManualController extends Controller
 {
+    use MenungguBarang;
 
 
 public function orderManual(Request $request)
@@ -54,6 +57,12 @@ public function orderManual(Request $request)
                   ->paginate(20)
                   ->appends($request->query());
 
+    // HOLD: Majalah/Kalender yang barangnya belum datang (tampil tapi tidak bisa diproses)
+    $ketersediaan = app(KetersediaanBarangService::class);
+    $data->getCollection()->each(function ($row) use ($ketersediaan) {
+        $row->setAttribute('barang_belum_datang', $ketersediaan->belumDatang($row));
+    });
+
     // ===== Data untuk Select2 =====
     $noPlList = \App\Modules\Picking\Models\ManualPicking::whereNotNull('no_pl')
         ->where('no_pl', '!=', '')
@@ -81,8 +90,12 @@ public function orderManual(Request $request)
 public function updateChecklistManual(Request $request)
 {
     try {
-        $picking = \App\Modules\Picking\Models\ManualPicking::findOrFail($request->id);
+        $picking = \App\Modules\Picking\Models\ManualPicking::with('pickingItems')->findOrFail($request->id);
         $checked = $request->boolean('checked');
+
+        if ($checked && ($belum = $this->barangBelumDatang($picking))) {
+            return $this->responBarangBelumDatang($belum);
+        }
 
         if ($checked) {
             $picking->tgl_terima  = now();
@@ -109,7 +122,12 @@ public function updatePicManual(Request $request)
         'pic' => 'nullable|in:Asep,Arif,Rama,Riky',
     ]);
 
-    $picking = \App\Modules\Picking\Models\ManualPicking::findOrFail($request->id);
+    $picking = \App\Modules\Picking\Models\ManualPicking::with('pickingItems')->findOrFail($request->id);
+
+    if ($belum = $this->barangBelumDatang($picking)) {
+        return $this->responBarangBelumDatang($belum);
+    }
+
     $picking->pic = $request->pic;
     $picking->save();
 
@@ -128,6 +146,11 @@ public function updateStatusManual(Request $request)
 
         $picking = \App\Modules\Picking\Models\ManualPicking::with('pickingItems')
             ->findOrFail($request->id);
+
+        if ($request->status_persiapan === 'Sudah' && ($belum = $this->barangBelumDatang($picking))) {
+            DB::rollBack();
+            return $this->responBarangBelumDatang($belum);
+        }
 
         $picking->status_persiapan = $request->status_persiapan;
 

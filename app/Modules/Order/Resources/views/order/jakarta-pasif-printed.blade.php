@@ -217,6 +217,7 @@
                                 <div class="font-medium">
                                     {{ $kategoriDisplay }}
                                 </div>
+                                <x-hold-barang :row="$item" />
                             </td>
 
                             <td class="text-center">

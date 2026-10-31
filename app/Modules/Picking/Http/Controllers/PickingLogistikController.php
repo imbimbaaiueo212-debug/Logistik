@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Order\Models\RealisasiLogistikAktif;
 use App\Modules\Order\Models\RealisasiLogistikPasif;
 use App\Modules\Picking\Http\Controllers\Concerns\MenungguPrintRA;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguBarang;
+use App\Modules\Picking\Services\KetersediaanBarangService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  */
 class PickingLogistikController extends Controller
 {
-    use MenungguPrintRA;
+    use MenungguPrintRA, MenungguBarang;
 
     private const CONFIG = [
         'aktif' => [
@@ -81,7 +83,9 @@ class PickingLogistikController extends Controller
                       ->appends($request->query());
 
         // Samakan nama field dengan Persiapan Jakarta Aktif agar view bisa dipakai bersama
-        $data->setCollection($data->getCollection()->map(function ($r) {
+        $ketersediaan = app(KetersediaanBarangService::class);
+
+        $data->setCollection($data->getCollection()->map(function ($r) use ($ketersediaan) {
             return (object) [
                 'id'                       => $r->id,
                 'no_pl'                    => $r->no_pl,
@@ -102,6 +106,7 @@ class PickingLogistikController extends Controller
                 'pengambil'                => $r->pengambil,
                 'ket'                      => $r->ket,
                 'ra_terkunci'              => $this->raBelumPrint($r),
+                'barang_belum_datang'      => $ketersediaan->belumDatang($r),
             ];
         }));
 
@@ -140,6 +145,10 @@ class PickingLogistikController extends Controller
 
             $checked = $request->boolean('checked');
 
+            if ($checked && ($belum = $this->barangBelumDatang($row))) {
+                return $this->responBarangBelumDatang($belum);
+            }
+
             if ($checked) {
                 $row->tgl_terima  = now();
                 $row->tgl_picking = now()->toDateString();
@@ -172,6 +181,10 @@ class PickingLogistikController extends Controller
             return $this->responTerkunci();
         }
 
+        if ($belum = $this->barangBelumDatang($row)) {
+            return $this->responBarangBelumDatang($belum);
+        }
+
         $row->pic = $request->pic;
         $row->save();
 
@@ -189,6 +202,10 @@ class PickingLogistikController extends Controller
 
         if ($this->raBelumPrint($row)) {
             return $this->responTerkunci();
+        }
+
+        if ($request->status_persiapan === 'Sudah' && ($belum = $this->barangBelumDatang($row))) {
+            return $this->responBarangBelumDatang($belum);
         }
 
         $row->status_persiapan = $request->status_persiapan;

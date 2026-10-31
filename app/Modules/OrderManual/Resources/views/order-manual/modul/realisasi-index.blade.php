@@ -110,6 +110,7 @@
                             <td>
                                 <span class="font-medium text-navy-950">{{ $item->kategori_order ?? '-' }}</span>
                                 <div class="text-xs text-navy-950/45">{{ $item->nama_barang ?? '' }}</div>
+                                <x-hold-barang :row="$item" />
                             </td>
                             <td>
                                 <div class="text-navy-950">{{ $item->status_kirim ?? $item->ekspedisi ?? '-' }}</div>

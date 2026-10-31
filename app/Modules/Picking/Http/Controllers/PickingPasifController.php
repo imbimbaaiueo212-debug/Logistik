@@ -7,13 +7,15 @@ use Illuminate\Http\Request;
 use App\Modules\Picking\Models\Picking;
 use App\Modules\Picking\Models\PickingPasif;
 use App\Modules\Picking\Http\Controllers\Concerns\MenungguPrintRA;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguBarang;
+use App\Modules\Picking\Services\KetersediaanBarangService;
 use Illuminate\Support\Facades\Auth;   // ← TAMBAHKAN INI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PickingPasifController extends Controller
 {
-    use MenungguPrintRA;
+    use MenungguPrintRA, MenungguBarang;
 
 
 /**
@@ -76,8 +78,11 @@ public function jakartaPasif(Request $request)
                   ->appends($request->query());
 
     // Kolom tambahan Persiapan Pasif diambil dari RA Pasif di Penjualan
-    $data->getCollection()->each(function ($row) {
+    $ketersediaan = app(KetersediaanBarangService::class);
+
+    $data->getCollection()->each(function ($row) use ($ketersediaan) {
         $ra = $row->realisasiPasif;
+        $row->setAttribute('barang_belum_datang', $ketersediaan->belumDatang($row));
         $row->setAttribute('nama_stokis', $ra?->nama_stokis);
         $row->setAttribute('penyebut',    $ra?->penyebut);
         $row->setAttribute('pengambil',   $ra?->pengambil);
@@ -121,6 +126,10 @@ public function updateChecklistPasif(Request $request)
 
         $checked = $request->boolean('checked');
 
+        if ($checked && ($belum = $this->barangBelumDatang($picking))) {
+            return $this->responBarangBelumDatang($belum);
+        }
+
         if ($checked) {
             $picking->tgl_terima  = now();
             $picking->tgl_picking = now()->toDateString();
@@ -152,6 +161,10 @@ public function updatePicPasif(Request $request)
         return $this->responTerkunci();
     }
 
+    if ($belum = $this->barangBelumDatang($picking)) {
+        return $this->responBarangBelumDatang($belum);
+    }
+
     $picking->pic = $request->pic;
     $picking->save();
 
@@ -174,6 +187,11 @@ public function updateStatusPasif(Request $request)
         if ($this->raBelumPrint($picking->realisasiPasif)) {
             DB::rollBack();
             return $this->responTerkunci();
+        }
+
+        if ($request->status_persiapan === 'Sudah' && ($belum = $this->barangBelumDatang($picking))) {
+            DB::rollBack();
+            return $this->responBarangBelumDatang($belum);
         }
 
         $picking->status_persiapan = $request->status_persiapan;

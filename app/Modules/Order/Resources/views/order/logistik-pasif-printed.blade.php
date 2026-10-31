@@ -120,7 +120,7 @@
                                     <td class="text-center">{{ $loop->iteration }}</td>
                                     <td class="text-center font-medium whitespace-nowrap">{{ $item->no_pl ?? '-' }}</td>
                                     <td class="wrap">{{ $item->nama_unit ?? '-' }}</td>
-                                    <td class="wrap text-sm">{{ $item->nama_barang ?? '-' }}</td>
+                                    <td class="wrap text-sm">{{ $item->nama_barang ?? '-' }}<x-hold-barang :row="$item" /></td>
                                     <td class="text-center">
                                         <div>{{ $item->pengiriman ?? '-' }}</div>
                                         <div class="text-xs text-gray-500">{{ $item->service_pengiriman ?? '-' }}</div>

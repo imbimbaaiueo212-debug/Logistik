@@ -81,6 +81,8 @@
         </div>
     </div>
 
+    @include('picking::picking.partials.hold-banner')
+
     <!-- Filter -->
     @if(!empty($jenisTabs))
     <div class="flex flex-wrap items-center gap-2 mb-4">
@@ -160,9 +162,9 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($data as $index => $item)
-                <tr class="hover:bg-gray-50 {{ ($item->ra_terkunci ?? false) ? 'ra-locked' : '' }}"
+                <tr class="hover:bg-gray-50 {{ (($item->ra_terkunci ?? false) || !empty($item->barang_belum_datang)) ? 'ra-locked' : '' }}"
                     data-id="{{ $item->id }}"
-                    data-locked="{{ ($item->ra_terkunci ?? false) ? 1 : 0 }}">
+                    data-locked="{{ (($item->ra_terkunci ?? false) || !empty($item->barang_belum_datang)) ? 1 : 0 }}">
                     <td class="px-4 py-3 text-center">{{ $index + 1 }}</td>
                     <td class="px-4 py-3">{{ $item->no_pl ?? '-' }}</td>
                     <td class="px-4 py-3">{{ $item->nama_unit ?? '-' }}</td>
@@ -265,7 +267,7 @@
                             @if($item->status_persiapan == 'Sudah') bg-green-100 text-green-700
                             @elseif($item->status_persiapan == 'Belum') bg-red-100 text-red-700
                             @endif"
-                            data-id="{{ $item->id }}" {{ ($item->ra_terkunci ?? false) ? 'disabled' : '' }}>
+                            data-id="{{ $item->id }}" {{ (($item->ra_terkunci ?? false) || !empty($item->barang_belum_datang)) ? 'disabled' : '' }}>
 
                             <option value="Belum" {{ $item->status_persiapan == 'Belum' || empty($item->status_persiapan) ? 'selected' : '' }}>Belum</option>
                             <option value="Sudah" {{ $item->status_persiapan == 'Sudah' ? 'selected' : '' }}>Sudah</option>
@@ -283,7 +285,7 @@
 
                     <!-- PIC -->
                     <td class="extra-col px-4 py-3 text-center {{ $item->tgl_terima ? '' : 'hidden' }}">
-                        <select class="pic-select border rounded-lg px-2 py-1 text-sm" data-id="{{ $item->id }}" {{ ($item->ra_terkunci ?? false) ? 'disabled' : '' }}>
+                        <select class="pic-select border rounded-lg px-2 py-1 text-sm" data-id="{{ $item->id }}" {{ (($item->ra_terkunci ?? false) || !empty($item->barang_belum_datang)) ? 'disabled' : '' }}>
                             <option value="">-- Pilih --</option>
                             <option value="Asep" {{ $item->pic == 'Asep' ? 'selected' : '' }}>Asep</option>
                             <option value="Arif" {{ $item->pic == 'Arif' ? 'selected' : '' }}>Arif</option>
@@ -299,7 +301,7 @@
                                     class="w-4 h-4 accent-emerald-600 checklist-item"
                                     data-id="{{ $item->id }}"
                                     {{ $item->tgl_terima ? 'checked' : '' }}
-                                    {{ ($item->ra_terkunci ?? false) ? 'disabled' : '' }}>
+                                    {{ (($item->ra_terkunci ?? false) || !empty($item->barang_belum_datang)) ? 'disabled' : '' }}>
                                 <span class="text-emerald-600 text-xs font-medium">Cek</span>
                             </label>
 
@@ -316,6 +318,7 @@
                             </a>
                             @endif
                         </div>
+                        @include('picking::picking.partials.badge-hold')
                         @if($item->ra_terkunci ?? false)
                         <div class="mt-1.5">
                             <span class="badge-lock" title="Selesaikan print di Rekap Aktual terlebih dahulu">

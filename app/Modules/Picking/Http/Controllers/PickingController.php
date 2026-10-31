@@ -9,13 +9,15 @@ use App\Modules\Picking\Models\PickingItem;
 use App\Modules\Order\Models\JakartaAktif;
 use App\Modules\Qc\Models\QcOutgoing;
 use App\Modules\Picking\Http\Controllers\Concerns\MenungguPrintRA;
+use App\Modules\Picking\Http\Controllers\Concerns\MenungguBarang;
+use App\Modules\Picking\Services\KetersediaanBarangService;
 use Illuminate\Support\Facades\Auth;   // ← TAMBAHKAN INI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PickingController extends Controller
 {
-    use MenungguPrintRA;
+    use MenungguPrintRA, MenungguBarang;
 
     public function index()
     {
@@ -125,8 +127,12 @@ class PickingController extends Controller
                   ->paginate(20)
                   ->appends($request->query());
 
-    $data->getCollection()->each(function ($row) {
+    $ketersediaan = app(KetersediaanBarangService::class);
+
+    $data->getCollection()->each(function ($row) use ($ketersediaan) {
         $row->setAttribute('ra_terkunci', $this->raBelumPrint($row->realisasi));
+        // HOLD: Majalah/Kalender yang barangnya belum datang (tampil tapi tidak bisa diproses)
+        $row->setAttribute('barang_belum_datang', $ketersediaan->belumDatang($row));
     });
 
     return view('picking::picking.jakarta.aktif', compact('data'));
@@ -276,6 +282,10 @@ public function updateChecklist(Request $request)
 
         $checked = $request->boolean('checked');
 
+        if ($checked && ($belum = $this->barangBelumDatang($picking))) {
+            return $this->responBarangBelumDatang($belum);
+        }
+
         if ($checked) {
             $picking->tgl_terima = now();
             // JANGAN otomatis set ke Sudah, biarkan user yang pilih status
@@ -308,6 +318,10 @@ public function updatePic(Request $request)
         return $this->responTerkunci();
     }
 
+    if ($belum = $this->barangBelumDatang($picking)) {
+        return $this->responBarangBelumDatang($belum);
+    }
+
     $picking->pic = $request->pic;
 
     $picking->save();
@@ -334,6 +348,12 @@ public function updateStatus(Request $request)
         if ($this->raBelumPrint($picking->realisasi)) {
             DB::rollBack();
             return $this->responTerkunci();
+        }
+
+        // HOLD: tidak boleh lanjut ke QC selama barang (majalah/kalender) belum datang
+        if ($request->status_persiapan === 'Sudah' && ($belum = $this->barangBelumDatang($picking))) {
+            DB::rollBack();
+            return $this->responBarangBelumDatang($belum);
         }
 
         $picking->status_persiapan = $request->status_persiapan;
