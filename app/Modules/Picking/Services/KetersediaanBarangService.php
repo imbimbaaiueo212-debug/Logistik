@@ -27,6 +27,15 @@ use Illuminate\Support\Collection;
  */
 class KetersediaanBarangService
 {
+    /**
+     * Acuan penomoran edisi Majalah: Oktober 2026 = M163, naik 1 setiap bulan
+     * (Nov 2026 = M164, Des 2026 = M165, Jan 2027 = M166, dst).
+     * Ubah angka ini bila penomoran bergeser.
+     */
+    public const ACUAN_TAHUN  = 2026;
+    public const ACUAN_BULAN  = 10;
+    public const ACUAN_EDISI  = 163;
+
     /** @var array<string,bool>|null  "Jenis|kode" => true (sudah datang) */
     private ?array $datang = null;
 
@@ -197,6 +206,8 @@ class KetersediaanBarangService
      */
     public function daftar(): Collection
     {
+        $this->daftarkanEdisiBulanIni();
+
         $terdaftar = KetersediaanBarang::all()->keyBy(fn ($r) => $r->jenis . '|' . $r->kode);
         $hitung    = [];
 
@@ -224,6 +235,31 @@ class KetersediaanBarangService
         return collect(array_values($semua))
             ->sortBy([['status', 'asc'], ['jenis', 'asc'], ['kode', 'desc']])
             ->values();
+    }
+
+    /** Kode edisi Majalah untuk sebuah tanggal, mis. Oktober 2026 => M163. Null bila sebelum acuan. */
+    public function edisiUntuk(\Carbon\CarbonInterface $tgl): ?string
+    {
+        $selisih = ($tgl->year - self::ACUAN_TAHUN) * 12 + ($tgl->month - self::ACUAN_BULAN);
+
+        return $selisih < 0 ? null : 'M' . (self::ACUAN_EDISI + $selisih);
+    }
+
+    /**
+     * Edisi bulan berjalan otomatis terdaftar sebagai "belum datang" (tanpa menimpa yang sudah ada),
+     * jadi edisi baru muncul sendiri di daftar tiap awal bulan.
+     */
+    public function daftarkanEdisiBulanIni(): void
+    {
+        $kode = $this->edisiUntuk(now());
+        if ($kode === null) {
+            return;
+        }
+
+        KetersediaanBarang::firstOrCreate(
+            ['jenis' => 'Majalah', 'kode' => $kode],
+            ['status' => 'belum_datang']
+        );
     }
 
     /** Hanya yang masih menunggu barang (untuk banner di halaman Picking). */
