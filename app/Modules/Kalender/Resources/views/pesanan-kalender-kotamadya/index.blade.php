@@ -177,7 +177,7 @@
                             </td>
 
                             <td>{{ $item->bulan ?? '-' }}</td>
-                            <td class="ctr">{{ $item->tahun ?? '-' }}</td>
+                            <td class="ctr">{{ $item->kode_kalender ?? '-' }}</td>
                             <td class="ctr">{{ $namaPeriode($item->periode) ?? '-' }}</td>
                             <td class="ctr font-medium">{{ number_format($item->total_units ?? 0, 0, ',', '.') }}</td>
                             <td class="ctr font-semibold text-emerald-700">{{ number_format($item->total_pesanan ?? 0, 0, ',', '.') }}</td>

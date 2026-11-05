@@ -4,6 +4,7 @@ namespace App\Modules\Kalender\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\Kalender\Support\KodeKalender;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -48,5 +49,10 @@ class PesananKalenderKotamadya extends Model
             'pesanan_kalender_kotamadya_id',
             'id'
         );
+    }
+
+    public function getKodeKalenderAttribute(): ?string
+    {
+        return KodeKalender::dariTahun($this->tahun);
     }
 }

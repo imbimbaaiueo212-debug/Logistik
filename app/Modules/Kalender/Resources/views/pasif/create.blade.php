@@ -6,7 +6,7 @@
 @php
     $ctl = 'w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]';
     $fields = [
-        ['name' => 'edisi',   'label' => 'Edisi',   'default' => '2027',      'ph' => '2027', 'req' => true, 'span' => 'sm:col-span-3'],
+        ['name' => 'edisi',   'label' => 'Edisi',   'default' => 'KLD27',     'ph' => 'KLD27', 'req' => true, 'span' => 'sm:col-span-3'],
         ['name' => 'no_ps',   'label' => 'No PS',   'default' => '',          'ph' => 'Opsional',            'span' => 'sm:col-span-3'],
         ['name' => 'periode', 'label' => 'Periode', 'default' => 'Juni 2026', 'ph' => 'Juni 2026',           'span' => 'sm:col-span-2'],
         ['name' => 'bulan',   'label' => 'Bulan',   'default' => 'Juni',      'ph' => '',                    'span' => 'sm:col-span-2'],

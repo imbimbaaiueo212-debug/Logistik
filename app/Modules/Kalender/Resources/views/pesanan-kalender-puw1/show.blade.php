@@ -85,7 +85,7 @@
         $info = [
             ['Judul', $data->judul ?? '-'],
             ['Bulan', $data->bulan ?? '-'],
-            ['Tahun', $data->tahun ?? '-'],
+            ['Kode Kalender', $data->kode_kalender ?? '-'],
             ['Periode', $periodeText],
             ['Contact Person', $contactText, true],
         ];

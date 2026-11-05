@@ -5,6 +5,7 @@ namespace App\Modules\Kalender\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Kalender\Models\KalenderDlcPeriode;
 use App\Modules\Kalender\Models\KalenderDlcPesanan;
+use App\Modules\Kalender\Support\KodeKalender;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -69,12 +70,14 @@ public function dlcStore(Request $request)
 
     DB::beginTransaction();
     try {
+        $edisi = KodeKalender::normalize($request->edisi);
+
         $periode = KalenderDlcPeriode::create([
-            'edisi'      => strtoupper(trim($request->edisi)),
-            'judul'      => $request->judul ?: 'Kalender ' . strtoupper($request->edisi),
+            'edisi'      => $edisi,
+            'judul'      => $request->judul ?: 'Kalender ' . $edisi,
             'periode'    => $request->periode,
             'bulan'      => $request->bulan,
-            'tahun'      => $request->tahun,
+            'tahun'      => $request->tahun ?: KodeKalender::tahun($edisi),
             'status'     => 'aktif',
             'created_by' => Auth::id(),
         ]);
@@ -133,12 +136,14 @@ public function dlcUpdate(Request $request, $id)
     ]);
 
     // Update header
+    $edisi = KodeKalender::normalize($validated['edisi']);
+
     $periode->update([
-        'edisi'   => $validated['edisi'],
+        'edisi'   => $edisi,
         'judul'   => $validated['judul'] ?? null,
         'periode' => $validated['periode'] ?? null,
         'bulan'   => $validated['bulan'] ?? null,
-        'tahun'   => $validated['tahun'] ?? null,
+        'tahun'   => $validated['tahun'] ?? KodeKalender::tahun($edisi),
         'status'  => $validated['status'],
         'no_ps'   => $validated['no_ps'] ?? null,
     ]);

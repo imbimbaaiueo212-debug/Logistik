@@ -29,8 +29,9 @@
                 <label for="edisi" class="block text-sm font-medium text-gray-700 mb-1">Edisi <span class="text-red-500">*</span></label>
                 <select name="edisi" id="edisi" required class="{{ $input }}">
                     <option value="">-- Pilih Edisi --</option>
-                    @for($i = 150; $i <= 180; $i++)
-                        <option value="M{{ $i }}" {{ old('edisi') === "M$i" ? 'selected' : '' }}>M{{ $i }}</option>
+                    @for($y = 2025; $y <= 2030; $y++)
+                        @php $kode = 'KLD' . substr((string) $y, 2); @endphp
+                        <option value="{{ $kode }}" {{ old('edisi') === $kode ? 'selected' : '' }}>{{ $kode }} (Kalender {{ $y }})</option>
                     @endfor
                 </select>
             </div>
@@ -48,8 +49,8 @@
             </div>
 
             <div>
-                <label for="bulan" class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
-                <input type="text" name="bulan" id="bulan" value="{{ old('bulan') }}" readonly
+                <label for="tahun" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                <input type="text" name="tahun" id="tahun" value="{{ old('tahun') }}" readonly
                        placeholder="Terisi otomatis" class="{{ $input }} bg-gray-50">
             </div>
         </div>
@@ -86,21 +87,16 @@
 @push('scripts')
 <script>
     (function () {
-        var namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
         var edisiEl = document.getElementById('edisi');
         var judulEl = document.getElementById('judul');
-        var bulanEl = document.getElementById('bulan');
+        var tahunEl = document.getElementById('tahun');
 
         function isiOtomatis() {
-            var edisi = edisiEl.value;
-            if (!edisi) { judulEl.value = ''; bulanEl.value = ''; return; }
+            var m = edisiEl.value.match(/^KLD(\d{2})$/);
+            if (!m) { judulEl.value = ''; tahunEl.value = ''; return; }
 
-            // 2027 = Juli (indeks 6); tiap edisi maju satu bulan
-            var nomor = parseInt(edisi.replace('M', ''), 10);
-            var bulan = namaBulan[(((nomor - 159 + 6) % 12) + 12) % 12];
-
-            bulanEl.value = bulan;
-            judulEl.value = 'Kalender ' + edisi + ' (' + bulan + ')';
+            tahunEl.value = 2000 + parseInt(m[1], 10);
+            judulEl.value = 'Kalender ' + edisiEl.value;
         }
 
         edisiEl.addEventListener('change', isiOtomatis);

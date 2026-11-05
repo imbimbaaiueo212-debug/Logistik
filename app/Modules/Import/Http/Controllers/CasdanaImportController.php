@@ -75,9 +75,10 @@ public function casdanaStore(Request $request)
         Log::info("Mulai import Casdana: " . $originalName);
 
         // Proses Import
-        Excel::import(new \App\Modules\Import\Imports\CasdanaImport, $file);
+        $import = new \App\Modules\Import\Imports\CasdanaImport;
+        Excel::import($import, $file);
 
-        Log::info("Import Casdana berhasil: " . $originalName);
+        Log::info("Import Casdana berhasil: {$originalName} (baru: {$import->created}, update: {$import->updated})");
         // === SYNC MANUAL ===
 
         try {
@@ -88,7 +89,7 @@ public function casdanaStore(Request $request)
         }
 
         return redirect()->route('import.casdana')
-                         ->with('success', '✅ Data Casdana berhasil diimport! File: ' . $originalName);
+                         ->with('success', "✅ Data Casdana berhasil diimport! File: {$originalName} — {$import->created} baru, {$import->updated} diperbarui");
 
     } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
         $failures = $e->failures();

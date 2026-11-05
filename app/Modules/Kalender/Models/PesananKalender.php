@@ -4,6 +4,7 @@ namespace App\Modules\Kalender\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\Kalender\Support\KodeKalender;
 
 class PesananKalender extends Model
 {
@@ -33,4 +34,9 @@ class PesananKalender extends Model
 {
     return $this->hasMany(PesananKalenderKotamadya::class, 'pesanan_kalender_id');
 }
+
+    public function getKodeKalenderAttribute(): ?string
+    {
+        return KodeKalender::dariTahun($this->tahun);
+    }
 }

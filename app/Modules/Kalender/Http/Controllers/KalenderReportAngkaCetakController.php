@@ -13,6 +13,7 @@ use App\Modules\Kalender\Models\PesananKalenderPuw1;
 use App\Modules\Kalender\Models\PesananKalenderUnit;
 use App\Modules\Kalender\Models\PesananKalenderUnitKotamadya;
 use App\Modules\Kalender\Models\PesananKalenderUnitPuw1;
+use App\Modules\Kalender\Support\KodeKalender;
 use Illuminate\Http\Request;
 
 class KalenderReportAngkaCetakController extends Controller
@@ -24,7 +25,7 @@ class KalenderReportAngkaCetakController extends Controller
      */
     public function reportAngkaCetak(Request $request)
     {
-        $norm = fn ($v) => strtoupper(trim((string) $v));
+        $norm = fn ($v) => KodeKalender::normalize($v);
 
         $edisiList = collect()
             ->merge(PesananKalender::whereNotNull('tahun')->pluck('tahun'))
@@ -49,7 +50,7 @@ class KalenderReportAngkaCetakController extends Controller
             ]);
         }
 
-        $tahun = ctype_digit($selectedEdisi) ? (int) $selectedEdisi : null;
+        $tahun = KodeKalender::tahun($selectedEdisi);
 
         // ---------------- Unit Aktif (KORWIL, PINWIL, JABODETABEK PUW1)
         $qtyKorwil = $tahun === null ? 0 : (int) PesananKalenderUnit::whereHas(
@@ -72,14 +73,17 @@ class KalenderReportAngkaCetakController extends Controller
         $totalAktif = array_sum(array_column($rowsAktif, 'qty'));
 
         // ---------------- Unit Pasif
-        $periodeEdisi = fn ($q) => $q->where('status', 'aktif')->whereRaw('UPPER(TRIM(edisi)) = ?', [$selectedEdisi]);
+        $varian = KodeKalender::varian($selectedEdisi);
+        $in     = implode(',', array_fill(0, count($varian), '?'));
+
+        $periodeEdisi = fn ($q) => $q->where('status', 'aktif')->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian);
 
         $qtyDlc    = (int) KalenderDlcPesanan::whereHas('periode', $periodeEdisi)->sum('qty');
         $qtyPasif  = (int) KalenderPasifPesanan::whereHas('periode', $periodeEdisi)->sum('qty');
         $qtyBacaan = (int) KalenderBacaanPesanan::whereHas('periode', $periodeEdisi)->sum('bacaan_unit');
         $qtyManual = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)->sum('jumlah');
         $qtySpare  = (int) KalenderSparePasif::where('status', 'aktif')
-            ->whereRaw('UPPER(TRIM(edisi)) = ?', [$selectedEdisi])
+            ->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian)
             ->sum('spare');
 
         $rowsPasif = [

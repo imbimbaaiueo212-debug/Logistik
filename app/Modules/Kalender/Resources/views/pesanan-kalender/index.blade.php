@@ -182,7 +182,7 @@
                             </td>
 
                             <td>{{ $item->bulan ?? '-' }}</td>
-                            <td class="ctr">{{ $item->tahun ?? '-' }}</td>
+                            <td class="ctr">{{ $item->kode_kalender ?? '-' }}</td>
                             <td class="ctr">{{ $namaPeriode($item->periode) ?? '-' }}</td>
                             <td class="ctr font-medium">{{ number_format($totalUnits, 0, ',', '.') }}</td>
                             <td class="ctr font-semibold">{{ number_format($totalPesanan, 0, ',', '.') }}</td>

@@ -290,7 +290,7 @@ class ProductController extends Controller
 
         $products = Product::whereIn('id', $ids)->get();
 
-        $fields = ['kode', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan',
+        $fields = ['kode', 'label', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan',
                    'harga_beli', 'harga_jual', 'role', 'status', 'tanggal_rilis'];
 
         $result = [];
@@ -320,6 +320,21 @@ class ProductController extends Controller
             if ($request->filled($field)) {
                 $updateData[$field] = $request->$field;
             }
+        }
+
+        // Label adalah kunci unik produk (dipakai saat import), jadi hanya boleh untuk 1 produk
+        if ($request->filled('label')) {
+            $label = trim($request->label);
+
+            if (count($request->selected_products) > 1) {
+                return redirect()->back()->with('error', 'Label hanya bisa diubah satu per satu (pilih 1 produk).');
+            }
+
+            if (Product::where('label', $label)->whereNotIn('id', $request->selected_products)->exists()) {
+                return redirect()->back()->with('error', "Label {$label} sudah dipakai produk lain.");
+            }
+
+            $updateData['label'] = $label;
         }
 
         if (empty($updateData)) {

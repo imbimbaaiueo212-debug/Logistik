@@ -51,8 +51,7 @@ class BimbashopImportController extends Controller
 
     // === Per Page ===
     $perPage = $request->get('per_page', 5);           // default 5
-    $perPage = in_array($perPage, [5, 10, 25, 50, 100, 200, 500]) ? $perPage : 5
-    ; // security
+    $perPage = in_array((int) $perPage, [5, 10, 25, 50, 100, 200, 500]) ? (int) $perPage : 5; // security
 
     $bimbashopOrders = $query
                         ->latest()
@@ -67,7 +66,17 @@ class BimbashopImportController extends Controller
     public function bimbashopStore(Request $request)
     {
         $request->validate([
-            'import_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'import_file' => [
+                'required',
+                'file',
+                'max:10240',
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    if (!in_array($ext, ['xlsx', 'xls', 'csv'], true)) {
+                        $fail('File harus bertipe xlsx, xls, atau csv.');
+                    }
+                },
+            ],
         ]);
 
         try {
@@ -108,13 +117,13 @@ class BimbashopImportController extends Controller
 
             Log::error("Import Validation Error: " . $errorMsg);
             
-            return redirect()->route('import.index')
+            return redirect()->route('import.bimbashop')
                              ->with('error', '❌ ' . $errorMsg);
 
         } catch (\Exception $e) {
             Log::error("Import Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             
-            return redirect()->route('import.index')
+            return redirect()->route('import.bimbashop')
                              ->with('error', '❌ Gagal mengimport data: ' . $e->getMessage());
         }
     }

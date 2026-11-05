@@ -4,6 +4,7 @@ namespace App\Modules\Kalender\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\Kalender\Support\KodeKalender;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PesananKalenderPuw1 extends Model
@@ -35,5 +36,10 @@ class PesananKalenderPuw1 extends Model
             PesananKalenderUnitPuw1::class,
             'pesanan_kalender_puw1_id'
         );
+    }
+
+    public function getKodeKalenderAttribute(): ?string
+    {
+        return KodeKalender::dariTahun($this->tahun);
     }
 }

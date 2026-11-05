@@ -136,6 +136,7 @@
                                class="product-checkbox w-4 h-4 cursor-pointer"
                                value="{{ $p->id }}"
                                data-kode="{{ $p->kode ?? '' }}"
+                               data-label="{{ $p->label ?? '' }}"
                                data-kategori="{{ $p->kategori ?? '' }}"
                                data-sub-kategori="{{ $p->sub_kategori ?? '' }}"
                                data-name="{{ $p->name ?? '' }}"
@@ -214,6 +215,11 @@
                 <div>
                     <label class="block text-sm font-medium mb-1">Sub Kategori</label>
                     <input type="text" name="sub_kategori" id="input-sub_kategori" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Label</label>
+                    <input type="text" name="label" id="input-label" class="w-full border border-gray-300 rounded-lg px-4 py-3 disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Kosongkan jika tidak diubah">
+                    <small id="hint-label" class="text-gray-500">Hanya bisa diubah satu per satu</small>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium mb-1">Nama Produk</label>
@@ -359,6 +365,13 @@ function showBulkEditModal() {
 
     // Isi data lama
     document.getElementById('input-kode').value = getSameValue(selected, 'kode');
+
+    // Label = kunci unik produk: hanya bisa diedit bila 1 produk dipilih
+    const labelEl = document.getElementById('input-label');
+    const satuProduk = selected.length === 1;
+    labelEl.disabled = !satuProduk;
+    labelEl.value = satuProduk ? getSameValue(selected, 'label') : '';
+    labelEl.placeholder = satuProduk ? 'Kosongkan jika tidak diubah' : 'Pilih 1 produk untuk mengubah label';
     document.getElementById('input-kategori').value = getSameValue(selected, 'kategori');
     document.getElementById('input-sub_kategori').value = getSameValue(selected, 'subKategori');
     document.getElementById('input-name').value = getSameValue(selected, 'name');

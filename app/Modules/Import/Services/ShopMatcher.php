@@ -54,7 +54,14 @@ class ShopMatcher
     public static function tahunFrom(?string ...$texts): ?string
     {
         foreach ($texts as $t) {
-            if ($t !== null && preg_match('/(?<!\d)(20\d{2})(?!\d)/', $t, $m)) {
+            if ($t === null) {
+                continue;
+            }
+            // SKU kalender: KLD27 => 2027
+            if (preg_match('/(?<![A-Za-z0-9])KLD\s*(\d{2})(?!\d)/i', $t, $m)) {
+                return '20' . $m[1];
+            }
+            if (preg_match('/(?<!\d)(20\d{2})(?!\d)/', $t, $m)) {
                 return $m[1];
             }
         }

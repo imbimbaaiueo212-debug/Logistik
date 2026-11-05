@@ -11,6 +11,7 @@ use App\Modules\Kalender\Models\KalenderDlcPeriode;
 use App\Modules\Kalender\Models\KalenderDlcPesanan;
 use App\Modules\Kalender\Models\KalenderPasifPesanan;
 use App\Modules\Kalender\Models\KalenderBacaanPesanan;
+use App\Modules\Kalender\Support\KodeKalender;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -57,6 +58,8 @@ public function pasifStore(Request $request)
     ]);
 
     try {
+        $edisi = KodeKalender::normalize($request->edisi);
+
         $file = $request->file('import_file');
         $originalName = $file->getClientOriginalName();
         $filename = time() . '_' . $originalName;
@@ -66,8 +69,8 @@ public function pasifStore(Request $request)
 
         // 1. Periode Unit Pasif (Qty)
         $pasifPeriode = KalenderPasifPeriode::create([
-            'edisi'      => strtoupper(trim($request->edisi)),
-            'judul'      => 'Kalender biMBA ' . strtoupper($request->edisi),
+            'edisi'      => $edisi,
+            'judul'      => 'Kalender biMBA ' . $edisi,
             'periode'    => $request->periode,
             'bulan'      => $request->bulan,
             'tahun'      => $request->tahun,
@@ -79,8 +82,8 @@ public function pasifStore(Request $request)
 
         // 2. Periode Bacaan Unit (database terpisah, no_ps sendiri)
         $bacaanPeriode = KalenderBacaanPeriode::create([
-            'edisi'      => strtoupper(trim($request->edisi)),
-            'judul'      => 'Bacaan Unit ' . strtoupper($request->edisi),
+            'edisi'      => $edisi,
+            'judul'      => 'Bacaan Unit ' . $edisi,
             'periode'    => $request->periode,
             'bulan'      => $request->bulan,
             'tahun'      => $request->tahun,
@@ -207,24 +210,20 @@ private function syncSparePasifData(): void
         ->merge(KalenderDlcPeriode::where('status', 'aktif')->pluck('edisi'))
         ->merge(KalenderPasifPeriode::where('status', 'aktif')->pluck('edisi'))
         ->merge(KalenderBacaanPeriode::where('status', 'aktif')->pluck('edisi'))
-        ->map(fn ($e) => strtoupper(trim($e)))
+        ->map(fn ($e) => KodeKalender::normalize($e))
         ->filter()
         ->unique()
         ->sort()
         ->values();
 
     foreach ($edisiList as $edisi) {
-        $dlcTotal = (int) KalenderDlcPesanan::whereHas('periode', function ($q) use ($edisi) {
-            $q->where('status', 'aktif')->whereRaw('UPPER(TRIM(edisi)) = ?', [$edisi]);
-        })->sum('qty');
+        $varian = KodeKalender::varian($edisi);
+        $in     = implode(',', array_fill(0, count($varian), '?'));
+        $cocok  = fn ($q) => $q->where('status', 'aktif')->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian);
 
-        $pasifTotal = (int) KalenderPasifPesanan::whereHas('periode', function ($q) use ($edisi) {
-            $q->where('status', 'aktif')->whereRaw('UPPER(TRIM(edisi)) = ?', [$edisi]);
-        })->sum('qty');
-
-        $bacaanTotal = (int) KalenderBacaanPesanan::whereHas('periode', function ($q) use ($edisi) {
-            $q->where('status', 'aktif')->whereRaw('UPPER(TRIM(edisi)) = ?', [$edisi]);
-        })->sum('bacaan_unit');
+        $dlcTotal    = (int) KalenderDlcPesanan::whereHas('periode', $cocok)->sum('qty');
+        $pasifTotal  = (int) KalenderPasifPesanan::whereHas('periode', $cocok)->sum('qty');
+        $bacaanTotal = (int) KalenderBacaanPesanan::whereHas('periode', $cocok)->sum('bacaan_unit');
 
         $grandTotal = $dlcTotal + $pasifTotal + $bacaanTotal;
         $spareRaw   = $grandTotal * 0.03;
