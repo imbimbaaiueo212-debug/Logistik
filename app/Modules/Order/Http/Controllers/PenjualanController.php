@@ -96,6 +96,7 @@ class PenjualanController extends Controller
             'data'            => $data,
             'rumah'           => $rumah,
             'listStatusBayar' => $kolom('status_pembayaran'),
+            'listChannel'     => $kolom('jenis_bank'),
             'listPesanan'     => $kolom('pesanan'),
             'listNamaUnit'    => $kolom('nama_unit'),
             'listGrup'        => $kolom('grup'),
@@ -181,10 +182,24 @@ class PenjualanController extends Controller
     // =====================================================================
     public function syncJakartaSemua()
     {
+    // Sync order besar: jangan dibatasi 60 detik bawaan PHP
+    @set_time_limit(0);
+    @ini_set('memory_limit', '1024M');
+
         $langkah = [
             'JKT'                        => [JakartaAktifController::class, 'syncJktFromBimbashop'],
             'JKTP / DLC / EBT / INV / BSS' => [JakartaPasifController::class, 'syncJktPasifFromBimbashop'],
         ];
+
+        // Rapikan data lama: wallet -> DEPOSIT, other -> LICENSI (sebelumnya MANUAL)
+        foreach (array_map(fn ($r) => RumahJakarta::header($r), RumahJakarta::SEMUA) as $kelas) {
+            try {
+                $kelas::where('status_pembayaran', 'MANUAL')->whereRaw("LOWER(TRIM(jenis_bank)) = 'wallet'")->update(['status_pembayaran' => 'DEPOSIT']);
+                $kelas::where('status_pembayaran', 'MANUAL')->whereRaw("LOWER(TRIM(jenis_bank)) = 'other'")->update(['status_pembayaran' => 'LICENSI']);
+            } catch (\Throwable $e) {
+                \Log::warning('Backfill status bayar gagal: ' . $e->getMessage());
+            }
+        }
 
         $sukses = [];
         $gagal  = [];
@@ -224,7 +239,7 @@ class PenjualanController extends Controller
                 $q->where($f, 'like', '%' . $r->input($f) . '%');
             }
         }
-        foreach (['status_pembayaran', 'status_pesan', 'validasi', 'grup'] as $f) {
+        foreach (['status_pembayaran', 'status_pesan', 'validasi', 'grup', 'jenis_bank'] as $f) {
             if ($r->filled($f)) {
                 $q->where($f, $r->input($f));
             }

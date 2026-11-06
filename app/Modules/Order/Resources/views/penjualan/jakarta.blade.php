@@ -391,6 +391,19 @@
                 </select>
             </div>
 
+            {{-- Payment Channel --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Channel</label>
+                <select name="jenis_bank" id="filterChannel" class="w-full">
+                    <option value="">Semua Channel</option>
+                    @foreach($listChannel ?? [] as $c)
+                        <option value="{{ $c }}" {{ request('jenis_bank') == $c ? 'selected' : '' }}>
+                            {{ $c }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Dari Tanggal --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
@@ -786,7 +799,7 @@
     }
 
     $(document).ready(function() {
-        $('#filterPesanan, #filterNamaUnit, #filterStatusBayar').select2({
+        $('#filterPesanan, #filterNamaUnit, #filterStatusBayar, #filterChannel').select2({
             placeholder: 'Pilih / cari...',
             allowClear: true,
             width: '100%',
@@ -838,6 +851,7 @@
                 nama_unit: $('input[name="nama_unit"]').val() || '',
                 pesanan: $('input[name="pesanan"]').val() || '',
                 status_pembayaran: $('#filterStatusBayar').val() || '',
+                jenis_bank: $('#filterChannel').val() || '',
                 jenis: RUMAH_PASIF ? RUMAH : ''
             },
             success: function(response) {

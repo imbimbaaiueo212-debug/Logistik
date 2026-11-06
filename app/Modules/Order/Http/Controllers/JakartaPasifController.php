@@ -87,6 +87,9 @@ public function jakartaPasif(Request $request)
     if ($request->filled('status_pembayaran')) {
         $query->where('status_pembayaran', $request->status_pembayaran);
     }
+    if ($request->filled('jenis_bank')) {
+        $query->where('jenis_bank', $request->jenis_bank);
+    }
     if ($request->filled('status_pesan')) {
         $query->where('status_pesan', $request->status_pesan);
     }
@@ -172,23 +175,44 @@ public function jakartaPasif(Request $request)
  */
 public function syncJktPasifFromBimbashop()
 {
+    // Sync order besar: jangan dibatasi 60 detik bawaan PHP
+    @set_time_limit(0);
+    @ini_set('memory_limit', '1024M');
+
     $totalOrder  = 0;
     $skipExists  = 0;
     $inserted    = 0;
     $perRumah    = array_fill_keys(self::JENIS_PASIF, 0);
     $errors      = [];
+    $skipData    = [];
+    $masukTanpa  = 0;
 
     // =====================================================
     // AMBIL ORDER YANG SKU-NYA JKTP / DLC / EBT / INV / BSS
     // =====================================================
+    // Tambahan: order Payment Method wallet / other dengan SKU apa pun (mis. -SMG, -SBY)
+    // ikut ditarik ke Jakarta, karena halaman Jakarta menampung semuanya. SKU LG tetap milik Logistik.
     $bimbashopOrders = BimbashopOrder::where(function ($q) {
             foreach (self::JENIS_PASIF as $j) {
                 $q->orWhere('item_sku', 'like', "%{$j}%");
             }
+            $q->orWhere(function ($w) {
+                $w->whereIn(DB::raw('LOWER(TRIM(payment_method))'), ['wallet', 'other'])
+                  ->where('item_sku', 'not like', '%-LG%');
+            });
         })
         ->get()
-        ->filter(fn ($o) => $this->jenisDariSku($o->item_sku) !== null)
-        ->groupBy('order_id');
+        ->groupBy('order_id')
+        ->filter(function ($items) {
+            if ($items->contains(fn ($o) => $this->jenisDariSku($o->item_sku) !== null)) {
+                return true;
+            }
+
+            // Tidak ada SKU rumah Jakarta: hanya wallet/other, dan bukan milik sync JKT (SKU mengandung JKT)
+            $wo = in_array(strtolower(trim((string) $items->first()->payment_method)), ['wallet', 'other'], true);
+
+            return $wo && ! $items->contains(fn ($o) => stripos((string) $o->item_sku, 'JKT') !== false);
+        });
 
     $totalOrder = $bimbashopOrders->count();
 
@@ -205,6 +229,31 @@ public function syncJktPasifFromBimbashop()
         $kelasItem      = RumahJakarta::item($jenisOrder);
         $kelasRealisasi = RumahJakarta::realisasi($jenisOrder);
         $fk             = RumahJakarta::fk($jenisOrder);
+
+        // Order wallet/other tanpa SKU rumah Jakarta (mis. -SMG): masuk ke jakarta_pasif bila data lengkap
+        $tanpaRumah = $items->map(fn ($i) => $this->jenisDariSku($i->item_sku))->filter()->isEmpty();
+
+        if ($tanpaRumah) {
+            $sudahAda = \App\Modules\Order\Models\JakartaAktif::where('id_pesan', $orderId)->exists()
+                || JakartaPasif::where('id_pesan', $orderId)->exists()
+                || \App\Modules\Order\Models\LogistikAktif::where('id_pesan', $orderId)->exists()
+                || \App\Modules\Order\Models\LogistikPasif::where('id_pesan', $orderId)->exists()
+                || collect(RumahJakarta::BARU)->contains(fn ($k) => RumahJakarta::header($k)::where('id_pesan', $orderId)->exists());
+
+            if ($sudahAda) {
+                $skipExists++;
+                continue;
+            }
+
+            $cek = $this->cekTanpaCasdana($items->first(), false);
+
+            if (! $cek['lengkap']) {
+                $skipData[] = "{$orderId} ({$cek['kurang']})";
+                continue;
+            }
+
+            $masukTanpa++;
+        }
 
         $existing = $kelasHeader::where('id_pesan', $orderId)->first();
 
@@ -254,7 +303,7 @@ public function syncJktPasifFromBimbashop()
 
         $statusCasdana = $casdana
             ? strtoupper(trim($casdana->status ?? ''))
-            : 'MANUAL';   // default kalau tidak ada Casdana
+            : $this->statusBayarTanpaCasdana($firstItem->payment_method);   // wallet=DEPOSIT, other=LICENSI, lainnya MANUAL
 
         $paymentDate = $casdana->payment_date ?? $firstItem->order_date ?? now();
         $amount      = $casdana->amount ?? $firstItem->order_total ?? 0;
@@ -440,7 +489,9 @@ public function syncJktPasifFromBimbashop()
     $message = "✅ Sync JKTP / DLC / EBT / INV / BSS selesai.<br>"
              . "Total order ditemukan: <strong>{$totalOrder}</strong><br>"
              . "Berhasil masuk: <strong>{$inserted}</strong> ({$rincian})<br>"
-             . "Dilewati (sudah ada): <strong>{$skipExists}</strong>";
+             . "Dilewati (sudah ada): <strong>{$skipExists}</strong>"
+             . ($masukTanpa ? "<br>Wallet/Other (SKU non-Jakarta) masuk: <strong>{$masukTanpa}</strong>" : '')
+             . (count($skipData) ? '<br>Wallet/Other belum lengkap, tidak diproses: ' . e(implode('; ', $skipData)) : '');
 
     if (count($errors) > 0) {
         $message .= "<br><br>❌ Error (" . count($errors) . "):<br>"
@@ -811,6 +862,9 @@ public function getFilteredIdsPasif(Request $request)
     }
     if ($request->filled('status_pembayaran')) {
         $query->where('status_pembayaran', $request->status_pembayaran);
+    }
+    if ($request->filled('jenis_bank')) {
+        $query->where('jenis_bank', $request->jenis_bank);
     }
     if ($request->filled('jenis') && in_array($request->jenis, self::JENIS_PASIF, true)) {
         $query->where('jenis', $request->jenis);

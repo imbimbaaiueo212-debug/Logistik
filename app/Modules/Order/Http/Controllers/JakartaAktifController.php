@@ -42,6 +42,9 @@ public function jakartaAktif(Request $request)
     if ($request->filled('status_pembayaran')) {
         $query->where('status_pembayaran', $request->status_pembayaran);
     }
+    if ($request->filled('jenis_bank')) {
+        $query->where('jenis_bank', $request->jenis_bank);
+    }
     if ($request->filled('status_pesan')) {
         $query->where('status_pesan', $request->status_pesan);
     }
@@ -213,10 +216,16 @@ private function getUnitTidakPesanMajalah(): array
  */
 public function syncJktFromBimbashop()
 {
+    // Sync order besar: jangan dibatasi 60 detik bawaan PHP
+    @set_time_limit(0);
+    @ini_set('memory_limit', '1024M');
+
     $totalOrder  = 0;
     $skipExists  = 0;
     $skipCasdana = 0;
     $skipStatus  = 0;
+    $skipData    = [];   // wallet/other yang datanya belum lengkap
+    $masukTanpa  = 0;    // wallet/other yang masuk tanpa Casdana
     $inserted    = 0;
 
     $excludedSkus = [
@@ -253,7 +262,16 @@ public function syncJktFromBimbashop()
         ->get()
         ->groupBy('order_id');
 
-    $totalOrder = $bimbashopOrders->count();
+    // Buang order yang sudah ada dengan SATU query (bukan satu query per order)
+    $sudahAda = JakartaAktif::whereIn('id_pesan', $bimbashopOrders->keys()->all())
+        ->pluck('id_pesan')
+        ->map(fn ($v) => (string) $v)
+        ->flip();
+
+    $skipExists = $sudahAda->count();
+    $bimbashopOrders = $bimbashopOrders->reject(fn ($items, $id) => $sudahAda->has((string) $id));
+
+    $totalOrder = $bimbashopOrders->count() + $skipExists;
 
     // =====================================================
     // LOOP ORDER
@@ -296,37 +314,47 @@ public function syncJktFromBimbashop()
         ->latest('id')
         ->first();
 
-        if (!$casdana) {
-            $skipCasdana++;
-            continue;
+        // Payment Method wallet / other: boleh masuk Jakarta walau tidak ada Casdana,
+        // ATAU Casdana-nya ada tapi belum SUCCESS/SETTLED (wallet/other memang dibayar di luar Casdana).
+        // No Cabang tidak diwajibkan: Jakarta menampung semua rumah (JKT, JKTP, DLC, EBT, INV, BSS)
+        // dan Nama Unit bisa berasal dari Billing Company.
+        $tanpaCasdana = false;
+
+        $casdanaOk = $casdana
+            && in_array(strtoupper(trim($casdana->status ?? '')), ['SUCCESS', 'SETTLED'], true);
+
+        if (! $casdanaOk) {
+            $cek = $this->cekTanpaCasdana($firstItem, false);
+
+            if (! $cek['metode']) {
+                if ($casdana) {
+                    $skipStatus++;
+                } else {
+                    $skipCasdana++;
+                }
+                continue;
+            }
+
+            if (! $cek['lengkap']) {
+                $skipData[] = "{$orderId} ({$cek['kurang']})";
+                continue;
+            }
+
+            $tanpaCasdana = true;
+            $masukTanpa++;
         }
 
         // =================================================
         // STATUS PEMBAYARAN
         // =================================================
-        $statusCasdana = strtoupper(
-            trim(
-                $casdana->status ?? ''
-            )
-        );
-
-        if (
-            !in_array(
-                $statusCasdana,
-                [
-                    'SUCCESS',
-                    'SETTLED'
-                ]
-            )
-        ) {
-            $skipStatus++;
-            continue;
-        }
+        $statusCasdana = $tanpaCasdana
+            ? $this->statusBayarTanpaCasdana($firstItem->payment_method)
+            : strtoupper(trim($casdana?->status ?? ''));
 
         // =====================================================
         // ESTIMASI WAKTU
         // =====================================================
-        $paymentDate       = $casdana->payment_date;
+        $paymentDate       = ($tanpaCasdana ? null : $casdana?->payment_date) ?? ($tanpaCasdana ? $firstItem->order_date : null);
         $estimasiPrintPl   = null;
         $estimasiPersiapan = null;
 
@@ -625,7 +653,7 @@ public function syncJktFromBimbashop()
             $firstItem->billing_company,
             $firstItem->billing_last_name,
             $firstItem->item_name
-                ?? $casdana->customer
+                ?? $casdana?->customer
                 ?? '-'
         );
 
@@ -709,14 +737,14 @@ public function syncJktFromBimbashop()
                 ),
 
             'total' =>
-                $casdana->amount
+                ($tanpaCasdana ? null : $casdana?->amount)
                 ??
                 $firstItem->order_total
                 ??
                 0,
 
             'jenis_bank' =>
-                $casdana->payment_channel
+                ($tanpaCasdana ? null : $casdana?->payment_channel)
                 ??
                 $firstItem->payment_method,
 
@@ -736,7 +764,8 @@ public function syncJktFromBimbashop()
                 $paymentDate,
 
             'amount' =>
-                $casdana->amount
+                ($tanpaCasdana ? null : $casdana?->amount)
+                ?? $firstItem->order_total
                 ?? 0,
 
             'billing_last_name' =>
@@ -879,6 +908,8 @@ public function syncJktFromBimbashop()
         ->with(
             'success',
             "✅ Berhasil sync {$inserted} data JKT murni!"
+                . ($masukTanpa ? " Wallet/Other lolos cek, masuk tanpa Casdana: {$masukTanpa}." : '')
+                . (count($skipData) ? ' | Wallet/Other belum lengkap, tidak diproses: ' . implode('; ', $skipData) : '')
         );
 }
 
@@ -1560,6 +1591,9 @@ public function getFilteredIds(Request $request)
 
     if ($request->filled('status_pembayaran')) {
         $query->where('status_pembayaran', $request->status_pembayaran);
+    }
+    if ($request->filled('jenis_bank')) {
+        $query->where('jenis_bank', $request->jenis_bank);
     }
 
     // =====================================================

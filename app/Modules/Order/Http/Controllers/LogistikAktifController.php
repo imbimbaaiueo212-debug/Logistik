@@ -136,6 +136,8 @@ public function syncLgFromBimbashop()
     $skipExists  = 0;
     $skipCasdana = 0;
     $skipStatus  = 0;
+    $skipData    = [];   // wallet/other yang datanya belum lengkap
+    $masukTanpa  = 0;    // wallet/other yang masuk tanpa Casdana
     $inserted    = 0;
     $updatedUnit = 0;
     $skipPasif   = 0;
@@ -231,21 +233,40 @@ public function syncLgFromBimbashop()
         ->latest('id')
         ->first();
 
+        // Payment Method wallet / other tidak punya Casdana: boleh masuk bila data lengkap
+        $tanpaCasdana = false;
+
         if (!$casdana) {
-            $skipCasdana++;
-            continue;
+            $cek = $this->cekTanpaCasdana($firstItem, false);
+
+            if (! $cek['metode']) {
+                $skipCasdana++;
+                continue;
+            }
+
+            if (! $cek['lengkap']) {
+                $skipData[] = "{$orderId} ({$cek['kurang']})";
+                continue;
+            }
+
+            $tanpaCasdana = true;
+            $masukTanpa++;
         }
 
         // =================================================
         // STATUS PEMBAYARAN
         // =================================================
-        $statusCasdana = strtoupper(
-            trim(
-                $casdana->status ?? ''
-            )
-        );
+        $statusCasdana = $tanpaCasdana
+            ? 'MANUAL'
+            : strtoupper(
+                trim(
+                    $casdana?->status ?? ''
+                )
+            );
 
         if (
+            !$tanpaCasdana
+            &&
             !in_array(
                 $statusCasdana,
                 [
@@ -261,7 +282,7 @@ public function syncLgFromBimbashop()
         // =====================================================
         // ESTIMASI WAKTU
         // =====================================================
-        $paymentDate       = $casdana->payment_date;
+        $paymentDate       = $casdana?->payment_date ?? ($tanpaCasdana ? $firstItem->order_date : null);
         $estimasiPrintPl   = null;
         $estimasiPersiapan = null;
 
@@ -562,7 +583,7 @@ public function syncLgFromBimbashop()
             $firstItem->billing_last_name,
             $firstItem->billing_company,
             $firstItem->item_name
-                ?? $casdana->customer
+                ?? $casdana?->customer
                 ?? '-',
             $firstItem->billing_first_name
         );
@@ -664,14 +685,14 @@ public function syncLgFromBimbashop()
                 ),
 
             'total' =>
-                $casdana->amount
+                $casdana?->amount
                 ??
                 $firstItem->order_total
                 ??
                 0,
 
             'jenis_bank' =>
-                $casdana->payment_channel
+                $casdana?->payment_channel
                 ??
                 $firstItem->payment_method,
 
@@ -691,7 +712,7 @@ public function syncLgFromBimbashop()
                 $paymentDate,
 
             'amount' =>
-                $casdana->amount
+                $casdana?->amount
                 ?? 0,
 
             'billing_last_name' =>
@@ -834,6 +855,8 @@ public function syncLgFromBimbashop()
         ->with(
             'success',
             "✅ Berhasil sync {$inserted} data Logistik (SKU LG). Nama Unit/Cabang diperbarui: {$updatedUnit}."
+                . ($masukTanpa ? " Wallet/Other lolos cek, masuk tanpa Casdana: {$masukTanpa}." : '')
+                . (count($skipData) ? ' | Wallet/Other belum lengkap, tidak diproses: ' . implode('; ', $skipData) : '')
                 . ($skipPasif + $dipindahPasif ? " Stokis pasif dialihkan ke Logistik Pasif: " . ($skipPasif + $dipindahPasif) . '.' : '')
                 . (count($belumCocok) ? ' | Belum cocok di Stokis Mitra: ' . implode('; ', $belumCocok) : '')
         );

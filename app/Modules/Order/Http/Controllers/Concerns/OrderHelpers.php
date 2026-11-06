@@ -104,6 +104,68 @@ private function unitKemitraanByNoCab($noCab)
         ?? $units->first();
 }
 
+/**
+ * Aturan masuk Penjualan TANPA Casdana untuk Payment Method wallet / other.
+ *
+ * Order biMBA Shop dengan payment_method "wallet" atau "other" tidak punya transaksi Casdana,
+ * tapi tetap boleh masuk jika datanya lengkap:
+ *  - status order biMBA Shop sudah dibayar (completed / processing)
+ *  - No Cabang ada (billing_last_name)  [hanya jika $wajibNoCab]
+ *  - Nama Unit ada (hasil resolveNamaUnit bukan kosong / "-")
+ *  - total order lebih dari 0
+ * Yang lolos diberi status pembayaran MANUAL dan mengikuti alur biasa (edit, proses, picking).
+ *
+ * @return array{metode: bool, lengkap: bool, kurang: string}
+ */
+private function cekTanpaCasdana($f, bool $wajibNoCab = true): array
+{
+    $metode = in_array(strtolower(trim((string) $f->payment_method)), ['wallet', 'other'], true);
+
+    if (! $metode) {
+        return ['metode' => false, 'lengkap' => false, 'kurang' => ''];
+    }
+
+    $kurang = [];
+
+    $statusOrder = preg_replace('/^wc-/', '', strtolower(trim((string) $f->status)));
+
+    if (! in_array($statusOrder, ['completed', 'processing'], true)) {
+        $kurang[] = 'order belum dibayar (status ' . (trim((string) $f->status) ?: '-') . ')';
+    }
+
+    if ($wajibNoCab && trim((string) $f->billing_last_name) === '') {
+        $kurang[] = 'No Cabang kosong';
+    }
+
+    $namaUnit = $this->resolveNamaUnit($f->billing_company, $f->billing_last_name, null);
+    if (trim((string) $namaUnit) === '' || trim((string) $namaUnit) === '-') {
+        $kurang[] = 'Nama Unit kosong';
+    }
+
+    if ((float) ($f->order_total ?? 0) <= 0) {
+        $kurang[] = 'total order 0';
+    }
+
+    return [
+        'metode'  => true,
+        'lengkap' => $kurang === [],
+        'kurang'  => implode(', ', $kurang),
+    ];
+}
+
+/**
+ * Status pembayaran untuk order tanpa Casdana berdasarkan Payment Method:
+ * wallet -> DEPOSIT, other -> LICENSI, selain itu MANUAL.
+ */
+private function statusBayarTanpaCasdana($paymentMethod): string
+{
+    return match (strtolower(trim((string) $paymentMethod))) {
+        'wallet' => 'DEPOSIT',
+        'other'  => 'LICENSI',
+        default  => 'MANUAL',
+    };
+}
+
 private function resolveNamaUnit($billingCompany, $billingLastName, $defaultNamaUnit = null)
 {
     $billingCompany  = trim($billingCompany ?? '');

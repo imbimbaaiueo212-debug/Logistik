@@ -136,6 +136,8 @@ public function syncLgFromBimbashop()
     $skipExists  = 0;
     $skipCasdana = 0;
     $skipStatus  = 0;
+    $skipData    = [];   // wallet/other yang datanya belum lengkap
+    $masukTanpa  = 0;    // wallet/other yang masuk tanpa Casdana
     $inserted    = 0;
     $updatedUnit = 0;
     $skipAktif   = 0;
@@ -259,6 +261,20 @@ public function syncLgFromBimbashop()
                 || str_contains($teks, 'inventaris');
 
             $sudahBayar = in_array(strtolower(trim((string) $f->status)), ['completed', 'processing'], true);
+
+            // Payment Method wallet / other: boleh masuk bila datanya lengkap (Nama Unit dll)
+            $cekWO = $this->cekTanpaCasdana($f, false);
+
+            if ($cekWO['metode']) {
+                if (! $cekWO['lengkap']) {
+                    $skipData[] = "{$orderId} ({$cekWO['kurang']})";
+                    continue;
+                }
+
+                $bayarLuarCasdana = true;
+                $sudahBayar       = true;
+                $masukTanpa++;
+            }
 
             if (! $bayarLuarCasdana || ! $sudahBayar) {
                 $skipCasdana++;
@@ -883,6 +899,8 @@ public function syncLgFromBimbashop()
         ->with(
             'success',
             "✅ Berhasil sync {$inserted} data Logistik Pasif (SKU LG, Stokis Pasif). Nama Unit/Cabang diperbarui: {$updatedUnit}."
+                . ($masukTanpa ? " Wallet/Other lolos cek, masuk tanpa Casdana: {$masukTanpa}." : '')
+                . (count($skipData) ? ' | Wallet/Other belum lengkap, tidak diproses: ' . implode('; ', $skipData) : '')
                 . ($skipAktif ? " Dilewati (bukan Stokis Pasif): {$skipAktif}." : '')
                 . ($diganti ? " Unit aktif diganti ke Stokis Inventaris: {$diganti}." : '')
                 . ($dipindahAktif ? " Bukan pasif, dihapus dari Pasif (jalankan Sync LG Aktif): {$dipindahAktif}." : '')
