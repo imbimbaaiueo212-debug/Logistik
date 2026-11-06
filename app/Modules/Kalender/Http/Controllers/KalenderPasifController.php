@@ -153,10 +153,22 @@ public function pasifRekap()
     $periodes = KalenderPasifPeriode::withCount('pesanan')
         ->withSum('pesanan', 'qty')
         ->withSum('pesanan', 'bacaan_unit')
+        ->withSum('pesanan', 'humas')
         ->latest()
         ->paginate(20);
 
-    return view('kalender::pasif.rekap', compact('periodes'));
+    // Grand total seluruh periode (bukan hanya halaman yang tampil)
+    $grand = [
+        'periode' => KalenderPasifPeriode::count(),
+        'unit'    => (int) KalenderPasifPesanan::count(),
+        'murid'   => (int) KalenderPasifPesanan::sum('qty'),
+        'relawan' => (int) KalenderPasifPesanan::sum('bacaan_unit'),
+        'humas'   => (int) KalenderPasifPesanan::sum('humas'),
+    ];
+    $grand['relawanx2'] = $grand['relawan'] * 2;
+    $grand['total']     = $grand['murid'] + $grand['relawanx2'] + $grand['humas'];
+
+    return view('kalender::pasif.rekap', compact('periodes', 'grand'));
 }
 
 public function pasifRekapShow($id)

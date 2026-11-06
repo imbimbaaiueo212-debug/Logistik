@@ -4,14 +4,6 @@
 
 @section('content')
 @php
-    $kolom = [
-        ['key' => 'no',        'label' => 'No'],
-        ['key' => 'no_cab',    'label' => 'Cabang',    'class' => 'font-medium'],
-        ['key' => 'nama_unit', 'label' => 'Nama Unit', 'class' => 'font-semibold text-[#162749]'],
-        ['key' => 'qty',       'label' => 'Qty',       'align' => 'center', 'type' => 'number', 'class' => 'font-medium text-[#28447F]'],
-        ['key' => 'telepon',   'label' => 'Telepon'],
-        ['key' => 'alamat',    'label' => 'Alamat',    'clip' => true],
-    ];
     $subtitle = ($periode->periode ?? trim($periode->bulan . ' ' . $periode->tahun))
               . ($periode->no_ps ? ' | No PS: ' . $periode->no_ps : '');
 @endphp
@@ -25,11 +17,7 @@
 @include('partials.flash')
 @include('partials.stat-cards', ['stats' => [
     ['Total Unit', $periode->pesanan->count()],
-    ['Total Qty', number_format($total), true],
+    ['Total Kalender', number_format($periode->pesanan->sum(fn ($r) => $r->total_kalender)), true],
 ]])
-@include('partials.pasif-table', [
-    'kolom'  => $kolom,
-    'rows'   => $periode->pesanan,
-    'kosong' => 'Belum ada unit pada periode ini.',
-])
+@include('kalender::pasif._tabel-unit', ['rows' => $periode->pesanan])
 @endsection

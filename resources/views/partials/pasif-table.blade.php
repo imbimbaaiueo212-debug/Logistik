@@ -1,7 +1,7 @@
 {{--
     Tabel data Unit Pasif (dipakai halaman daftar dan detail).
     Param  : $kolom, $rows (collection / paginator)
-    Opsi   : $detailRoute, $editRoute, $destroyRoute (nama route, param id), $noPsUrl, $kosong, $kosongLink = ['url'=>, 'label'=>]
+    Opsi   : $footer = [key kolom => teks] (baris total di bawah tabel), $detailRoute, $editRoute, $destroyRoute (nama route, param id), $noPsUrl, $kosong, $kosongLink = ['url'=>, 'label'=>]
     Kolom  : key, label, align, class, clip, type (badge|pill|number|input), value (closure), suffix, pillClass, decimals
              key 'no' = nomor urut otomatis
 --}}
@@ -15,6 +15,7 @@
     $adaAksi      = $detailRoute || $editRoute || $destroyRoute;
     $adaInput     = collect($kolom)->contains('type', 'input');
     $paginated    = method_exists($rows, 'hasPages');
+    $footer       = $footer ?? null;
 @endphp
 
 @push('styles')
@@ -35,6 +36,11 @@
     .data-table thead th:first-child { z-index: 30; }
     .data-table th.col-aksi, .data-table td.col-aksi { position: sticky; right: 0; z-index: 10; }
     .data-table thead th.col-aksi { z-index: 30; }
+    .data-table tfoot td {
+        position: sticky; bottom: 0; z-index: 15; padding: 12px 16px; white-space: nowrap;
+        background: #eef1f6; font-weight: 700; color: #162749; border-top: 2px solid #162749;
+    }
+    .data-table tfoot td:first-child { z-index: 25; }
     .cell-clip { display: block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pager nav p { display: none; }
 
@@ -145,6 +151,18 @@
                     </tr>
                 @endforelse
             </tbody>
+            @if(!empty($footer))
+                <tfoot>
+                    <tr>
+                        @foreach($kolom as $k)
+                            <td style="text-align: {{ $k['align'] ?? 'left' }}">{{ $footer[$k['key']] ?? '' }}</td>
+                        @endforeach
+                        @if($adaAksi)
+                            <td class="col-aksi"></td>
+                        @endif
+                    </tr>
+                </tfoot>
+            @endif
         </table>
     </div>
 </div>
