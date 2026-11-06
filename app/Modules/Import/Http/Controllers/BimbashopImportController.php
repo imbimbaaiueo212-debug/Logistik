@@ -58,7 +58,15 @@ class BimbashopImportController extends Controller
                         ->paginate($perPage)
                         ->appends($request->query());
 
-    return view('import::import.bimbashop', compact('bimbashopOrders'));
+    // Pilihan filter Payment Method diambil langsung dari data order (nilai unik kolom payment_method)
+    $paymentMethods = BimbashopOrder::query()
+        ->whereNotNull('payment_method')
+        ->where('payment_method', '!=', '')
+        ->distinct()
+        ->orderBy('payment_method')
+        ->pluck('payment_method');
+
+    return view('import::import.bimbashop', compact('bimbashopOrders', 'paymentMethods'));
 }
     /**
      * Proses Import Data

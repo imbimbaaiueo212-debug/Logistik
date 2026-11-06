@@ -108,7 +108,11 @@
             ['billing_name', 'Billing Name', 'Nama billing'],
         ];
 
-        $optPayment = ['bacs' => 'bacs', 'lunas_payment_gateway' => 'lunas_payment_gateway'];
+        // Payment Method: dari data order (controller); nilai yang sedang dipilih tetap tampil walau tak ada lagi di data
+        $optPayment = collect($paymentMethods ?? [])->mapWithKeys(fn ($m) => [$m => $m]);
+        if (filled(request('payment_method')) && !$optPayment->has(request('payment_method'))) {
+            $optPayment->put(request('payment_method'), request('payment_method'));
+        }
         $optStatus  = ['completed' => 'Completed', 'processing' => 'Processing', 'on-hold' => 'On Hold', 'pending' => 'Pending'];
         $perPage    = (int) request('per_page', $bimbashopOrders->perPage());
 
