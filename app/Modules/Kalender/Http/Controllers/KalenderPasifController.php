@@ -170,16 +170,34 @@ public function pasifRekapShow($id)
 
 
 
-public function sparePasif()
+public function sparePasif(Request $request)
 {
-    // ===== Auto generate / refresh =====
-    $this->syncSparePasifData();
-
-    $data = KalenderSparePasif::where('status', 'aktif')
-        ->orderBy('edisi')
+    // Daftar periode Unit Pasif aktif (terbaru dulu) untuk pilihan di halaman
+    $periodes = KalenderPasifPeriode::where('status', 'aktif')
+        ->orderByDesc('id')
         ->get();
 
-    return view('kalender::pasif.spare', compact('data'));
+    $periode = $request->filled('periode')
+        ? $periodes->firstWhere('id', (int) $request->periode)
+        : $periodes->first();
+
+    $rows = $periode
+        ? KalenderPasifPesanan::where('pasif_periode_id', $periode->id)->orderBy('id')->get()
+        : collect();
+
+    // Ringkasan: TOTAL per unit = MURID + (RELAWAN x 2) + HUMAS
+    $sum = [
+        'unit'      => $rows->count(),
+        'murid'     => (int) $rows->sum('qty'),
+        'relawan'   => (int) $rows->sum('bacaan_unit'),
+        'relawanx2' => (int) $rows->sum('bacaan_unit') * 2,
+        'humas'     => (int) $rows->sum('humas'),
+    ];
+    $sum['total']  = $sum['murid'] + $sum['relawanx2'] + $sum['humas'];
+    $sum['spare']  = (int) round($sum['total'] * 0.03);
+    $sum['lembar'] = $sum['spare'] <= 0 ? 0 : (int) ceil($sum['spare'] / 200);
+
+    return view('kalender::pasif.spare', compact('periodes', 'periode', 'rows', 'sum'));
 }
 
 /**

@@ -14,6 +14,7 @@ class KalenderPasifPesanan extends Model
         'no_cab',
         'qty',
         'bacaan_unit',
+        'humas',
         'telepon',
         'alamat',
         'keterangan',
@@ -22,5 +23,17 @@ class KalenderPasifPesanan extends Model
     public function periode()
     {
         return $this->belongsTo(KalenderPasifPeriode::class, 'pasif_periode_id');
+    }
+
+    /** RELAWAN @2 exp = relawan x 2 (tiap relawan mendapat 2 kalender). */
+    public function getRelawanExpAttribute(): int
+    {
+        return (int) $this->bacaan_unit * 2;
+    }
+
+    /** TOTAL = MURID + RELAWAN @2 exp + HUMAS. */
+    public function getTotalKalenderAttribute(): int
+    {
+        return (int) $this->qty + $this->relawan_exp + (int) $this->humas;
     }
 }

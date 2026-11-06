@@ -6,8 +6,21 @@ use App\Modules\Kalender\Models\KalenderPasifPesanan;
 use App\Modules\Kalender\Models\KalenderBacaanPesanan;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 
-class KalenderPasifImport implements ToCollection
+/**
+ * Import rekap pemesanan kalender Unit Pasif.
+ *
+ * Format baru (kolom A kosong):
+ *   1 NO | 2 CABANG | 3 biMBA-AIUEO UNIT | 4 MURID | 5 RELAWAN | 6 RELAWAN @2 exp (rumus)
+ *   7 HUMAS 10 + Pajangan Unit | 8 TOTAL (rumus) | 9 NO TELP | 10 ALAMAT
+ *
+ * Format lama (tanpa kolom Humas), dikenali dari header yang tidak memuat "HUMAS":
+ *   1 NO | 2 CABANG | 3 UNIT | 4 qty | 5 Bacaan Unit | 6 NO TELP | 7 ALAMAT
+ *
+ * Kolom rumus tidak dibaca: @2 exp dan TOTAL dihitung ulang dari MURID, RELAWAN, HUMAS.
+ */
+class KalenderPasifImport implements ToCollection, WithCalculatedFormulas
 {
     protected $pasifPeriodeId;
     protected $bacaanPeriodeId;
@@ -20,59 +33,79 @@ class KalenderPasifImport implements ToCollection
 
     public function collection(Collection $rows)
     {
+        $formatBaru = $this->formatBaru($rows);
+
         foreach ($rows as $index => $row) {
-            // Skip header (baris 1–4 di Excel)
+            // Baris 1-4 Excel = judul & header
             if ($index < 4) {
                 continue;
             }
 
-            // Struktur kolom Excel (kolom A kosong):
-            // 0 = kosong
-            // 1 = NO
-            // 2 = CABANG
-            // 3 = biMBA-AIUEO UNIT
-            // 4 = MAJALAH (qty)
-            // 5 = Bacaan Unit
-            // 6 = NO TELP
-            // 7 = ALAMAT
-
             $no       = $row[1] ?? null;
             $cabang   = trim((string) ($row[2] ?? ''));
             $namaUnit = trim((string) ($row[3] ?? ''));
-            $qty      = (int) ($row[4] ?? 0);
-            $bacaan   = (int) ($row[5] ?? 0);
-            $telepon  = trim((string) ($row[6] ?? ''));
-            $alamat   = trim((string) ($row[7] ?? ''));
 
-            // Skip baris kosong / total
+            // Lewati baris kosong / baris TOTAL
             if ($namaUnit === '' || !is_numeric($no)) {
                 continue;
             }
 
-            // 1. Simpan ke Unit Pasif (Qty Kalender)
-            if ($qty > 0) {
+            $murid   = $this->angka($row[4] ?? 0);
+            $relawan = $this->angka($row[5] ?? 0);
+
+            if ($formatBaru) {
+                $humas   = $this->angka($row[7] ?? 0);
+                $telepon = trim((string) ($row[9] ?? ''));
+                $alamat  = trim((string) ($row[10] ?? ''));
+            } else {
+                $humas   = 0;
+                $telepon = trim((string) ($row[6] ?? ''));
+                $alamat  = trim((string) ($row[7] ?? ''));
+            }
+
+            // 1. Unit Pasif
+            if ($murid > 0 || $relawan > 0 || $humas > 0) {
                 KalenderPasifPesanan::create([
                     'pasif_periode_id' => $this->pasifPeriodeId,
                     'nama_unit'        => $namaUnit,
                     'no_cab'           => $cabang ?: null,
-                    'qty'              => $qty,
-                    'bacaan_unit'      => $bacaan,
+                    'qty'              => $murid,
+                    'bacaan_unit'      => $relawan,
+                    'humas'            => $humas,
                     'telepon'          => $telepon ?: null,
                     'alamat'           => $alamat ?: null,
                 ]);
             }
 
-            // 2. Simpan ke Bacaan Unit (tabel terpisah)
-            if ($this->bacaanPeriodeId && $bacaan > 0) {
+            // 2. Bacaan Unit (tabel terpisah)
+            if ($this->bacaanPeriodeId && $relawan > 0) {
                 KalenderBacaanPesanan::create([
                     'bacaan_periode_id' => $this->bacaanPeriodeId,
                     'nama_unit'         => $namaUnit,
                     'no_cab'            => $cabang ?: null,
-                    'bacaan_unit'       => $bacaan,
+                    'bacaan_unit'       => $relawan,
                     'telepon'           => $telepon ?: null,
                     'alamat'            => $alamat ?: null,
                 ]);
             }
         }
+    }
+
+    private function formatBaru(Collection $rows): bool
+    {
+        foreach ($rows->take(5) as $row) {
+            foreach ($row as $cell) {
+                if (stripos((string) $cell, 'HUMAS') !== false) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function angka($v): int
+    {
+        return is_numeric($v) ? (int) round((float) $v) : 0;
     }
 }

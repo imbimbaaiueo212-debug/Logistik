@@ -54,7 +54,7 @@
                           file:mr-3 file:py-1.5 file:px-3.5 file:rounded-lg file:border-0 file:text-sm file:font-medium
                           file:bg-[#162749]/5 file:text-[#28447F] hover:file:bg-[#162749]/10">
             <p class="text-xs text-gray-400 mt-2">
-                Format kolom: NO | CABANG | biMBA-AIUEO UNIT | MAJALAH | Bacaan Unit | NO TELP | ALAMAT
+                Format kolom: NO | CABANG | biMBA-AIUEO UNIT | MURID | RELAWAN | RELAWAN @2 exp | HUMAS 10 + Pajangan Unit | TOTAL | NO TELP | ALAMAT
             </p>
         </div>
 
