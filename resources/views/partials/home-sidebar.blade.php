@@ -350,7 +350,7 @@
             ];
             $hsKalPasifActive = request()->routeIs(['kalender.pasif.*', 'kalender.report-angka-cetak*']);
             $hsKalPuwActive   = request()->routeIs([
-                'pesanan-kalender.*','pesanan-kalender-kotamadya.*','pesanan-kalender-puw1.*',
+                'kalender.puw','pesanan-kalender.*','pesanan-kalender-kotamadya.*','pesanan-kalender-puw1.*',
             ]);
             $hsKalenderActive = $hsKalPuwActive || $hsKalPasifActive || request()->routeIs('kalender.dlc.*');
 
@@ -419,17 +419,7 @@
                 </button>
                 <div id="hs-kalender" class="hs-sub {{ $hsKalenderActive ? 'open' : '' }}">
                     <div class="hs-sub-inner">
-                        <button type="button" data-hs-toggle="#hs-kalender-puw" class="hs-sub-toggle {{ $hsKalPuwActive ? 'open has-active' : '' }}">
-                            <span>PUW</span>
-                            <svg class="hs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                        </button>
-                        <div id="hs-kalender-puw" class="hs-sub {{ $hsKalPuwActive ? 'open' : '' }}">
-                            <div class="hs-sub-inner">
-                                <a href="{{ route('pesanan-kalender.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-kalender.*') ? 'active' : '' }}">KORWIL</a>
-                                <a href="{{ route('pesanan-kalender-kotamadya.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-kalender-kotamadya.*') ? 'active' : '' }}">PINWIL</a>
-                                <a href="{{ route('pesanan-kalender-puw1.index') }}" class="hs-sub-link {{ request()->routeIs('pesanan-kalender-puw1.*') ? 'active' : '' }}">JABODETABEK (PUW1)</a>
-                            </div>
-                        </div>
+                        <a href="{{ route('kalender.puw') }}" class="hs-sub-link {{ $hsKalPuwActive ? 'active' : '' }}">PUW</a>
 
                         <a href="{{ route('kalender.dlc.index') }}" class="hs-sub-link {{ request()->routeIs('kalender.dlc.*') ? 'active' : '' }}">DLC</a>
 

@@ -8,6 +8,7 @@ use App\Modules\Kalender\Http\Controllers\PesananKalenderController;
 use App\Modules\Kalender\Http\Controllers\PesananKalenderKotamadyaController;
 use App\Modules\Kalender\Http\Controllers\PesananKalenderPuw1Controller;
 use App\Modules\Kalender\Http\Controllers\KalenderDlcController;
+use App\Modules\Kalender\Http\Controllers\KalenderPuwController;
 use App\Modules\Kalender\Http\Controllers\KalenderPasifController;
 use App\Modules\Kalender\Http\Controllers\KalenderPasifBacaanController;
 use App\Modules\Kalender\Http\Controllers\KalenderPasifManualController;
@@ -252,6 +253,13 @@ Route::prefix('kalender')
     ->name('kalender.')
     ->middleware('auth')
     ->group(function () {
+
+        // ---------------------------- PUW (satu halaman, tanpa dropdown)
+        Route::get('/puw', [KalenderPuwController::class, 'index'])->name('puw');
+        Route::post('/puw', [KalenderPuwController::class, 'store'])->name('puw.store');
+        Route::put('/puw/{id}/qty', [KalenderPuwController::class, 'updateQty'])->whereNumber('id')->name('puw.qty');
+        Route::post('/puw/{id}/refresh', [KalenderPuwController::class, 'refresh'])->whereNumber('id')->name('puw.refresh');
+        Route::delete('/puw/{id}', [KalenderPuwController::class, 'destroy'])->whereNumber('id')->name('puw.destroy');
 
         // ---------------------------- DLC
         Route::prefix('dlc')->name('dlc.')->group(function () {
