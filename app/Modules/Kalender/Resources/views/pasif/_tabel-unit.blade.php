@@ -13,6 +13,12 @@
     ];
     $sum['relawanx2'] = $sum['relawan'] * 2;
     $sum['total']     = $sum['murid'] + $sum['relawanx2'] + $sum['humas'];
+
+    // Spare Pasif 3% (opsional; halaman lain tanpa spare tampil seperti biasa)
+    $spareQty    = (int) ($spareQty ?? 0);
+    $tampilSpare = $spareQty > 0;
+    $grand       = $sum['total'] + $spareQty;
+    $labelSpare  = 'Spare Pasif 3%' . (! empty($cetakKe) ? ' (Cetak ke-' . $cetakKe . ')' : '');
 @endphp
 @push('styles')
 <style>
@@ -24,7 +30,10 @@
     }
     .spare-table tbody td { padding: 10px 16px; border-bottom: 1px solid #eef0f5; background: #fff; white-space: nowrap; }
     .spare-table tbody tr:hover td { background: #f7f8fb; }
-    .spare-table tfoot td { position: sticky; bottom: 0; z-index: 15; padding: 12px 16px; background: #eef1f6; font-weight: 700; color: #162749; border-top: 2px solid #162749; white-space: nowrap; }
+    .spare-table tfoot td { position: sticky; z-index: 15; box-sizing: border-box; height: 44px; line-height: 20px; padding: 12px 16px; background: #eef1f6; font-weight: 700; color: #162749; white-space: nowrap; }
+    .spare-table tfoot tr.foot-total td { border-top: 2px solid #162749; bottom: {{ $tampilSpare ? '88px' : '0' }}; }
+    .spare-table tfoot tr.foot-spare td { background: #fff6f1; color: #D14E1F; border-top: 1px solid #f3d9cc; bottom: 44px; }
+    .spare-table tfoot tr.foot-grand td { background: #162749; color: #fff; bottom: 0; }
     .spare-table th:first-child, .spare-table td:first-child { position: sticky; left: 0; z-index: 10; }
     .spare-table thead th:first-child { z-index: 30; }
     .spare-table tfoot td:first-child { z-index: 25; }
@@ -74,7 +83,7 @@
             </tbody>
             @if($rows->isNotEmpty())
                 <tfoot>
-                    <tr>
+                    <tr class="foot-total">
                         <td></td>
                         <td></td>
                         <td>TOTAL</td>
@@ -86,6 +95,26 @@
                         <td></td>
                         <td></td>
                     </tr>
+                    @if($tampilSpare)
+                        <tr class="foot-spare">
+                            <td></td>
+                            <td></td>
+                            <td>{{ $labelSpare }}</td>
+                            <td></td><td></td><td></td><td></td>
+                            <td style="text-align:right">{{ $n($spareQty) }}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr class="foot-grand">
+                            <td></td>
+                            <td></td>
+                            <td>GRAND TOTAL</td>
+                            <td></td><td></td><td></td><td></td>
+                            <td style="text-align:right">{{ $n($grand) }}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    @endif
                 </tfoot>
             @endif
         </table>

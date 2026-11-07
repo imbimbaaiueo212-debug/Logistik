@@ -178,6 +178,7 @@ class PenjualanController extends Controller
     // SYNC SATU TOMBOL: tarik semua rumah (JKT, JKTP, DLC, EBT, INV, BSS) dari biMBA Shop + Casdana
     //   JKT                       -> JakartaAktifController::syncJktFromBimbashop
     //   JKTP, DLC, EBT, INV, BSS  -> JakartaPasifController::syncJktPasifFromBimbashop
+    //   Kalender PUW              -> KalenderPuwController::syncKeJakartaAktif (data PUW, bukan Korwil)
     // Logika tiap sync TIDAK diubah; di sini hanya dijalankan berurutan lalu pesannya digabung.
     // =====================================================================
     public function syncJakartaSemua()
@@ -189,6 +190,7 @@ class PenjualanController extends Controller
         $langkah = [
             'JKT'                        => [JakartaAktifController::class, 'syncJktFromBimbashop'],
             'JKTP / DLC / EBT / INV / BSS' => [JakartaPasifController::class, 'syncJktPasifFromBimbashop'],
+            'Kalender PUW'               => [\App\Modules\Kalender\Http\Controllers\KalenderPuwController::class, 'syncKeJakartaAktif'],
         ];
 
         // Rapikan data lama: wallet -> DEPOSIT, other -> LICENSI (sebelumnya MANUAL)

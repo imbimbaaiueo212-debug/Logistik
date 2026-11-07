@@ -15,10 +15,26 @@ class KalenderPasifPeriode extends Model
         'bulan',
         'tahun',
         'no_ps',
+        'cetak_ke',
         'status',
         'created_by',
         'grup',
     ];
+
+    /**
+     * Total Spare Pasif 3% (input manual) untuk edisi periode ini.
+     * Jika "Cetak ke" sudah diisi, hanya spare dengan tahap yang sama yang ikut dihitung.
+     * Jika belum diisi, semua spare edisi ini dihitung.
+     */
+    public function spareQty(): int
+    {
+        $varian = \App\Modules\Kalender\Support\KodeKalender::varian($this->edisi);
+
+        return (int) \App\Modules\Kalender\Models\KalenderSpareManual::query()
+            ->whereRaw('UPPER(TRIM(edisi)) IN (' . implode(',', array_fill(0, count($varian), '?')) . ')', $varian)
+            ->when($this->cetak_ke, fn ($q) => $q->where('tahap', (int) $this->cetak_ke))
+            ->sum('qty');
+    }
 
     public function pesanan()
     {

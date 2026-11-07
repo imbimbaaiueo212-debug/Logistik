@@ -38,8 +38,11 @@
         ['key' => 'edisi',           'label' => 'Edisi',       'class' => 'font-semibold text-[#162749]'],
         ['key' => 'periode',         'label' => 'Periode',     'value' => function ($p) { return $p->periode ?? trim($p->bulan . ' ' . $p->tahun); }],
         ['key' => 'no_ps',           'label' => 'No PS',       'type' => 'input'],
+        ['key' => 'cetak_ke',        'label' => 'Cetak ke',    'type' => 'cetak'],
         ['key' => 'pesanan_count',   'label' => 'Jumlah Unit', 'align' => 'center', 'type' => 'number'],
         ['key' => 'pesanan_sum_qty', 'label' => 'Total Qty',   'align' => 'center', 'type' => 'number', 'class' => 'font-semibold'],
+        ['key' => 'spare_qty',       'label' => 'Spare 3%',    'align' => 'center', 'type' => 'number'],
+        ['key' => 'grand_total',     'label' => 'Grand Total', 'align' => 'center', 'type' => 'number', 'class' => 'font-bold text-[#E85D2A]'],
         ['key' => 'status',          'label' => 'Status',      'type' => 'badge'],
     ];
 @endphp
@@ -71,13 +74,13 @@
             </thead>
             <tbody>
                 @forelse($periodes as $periode)
-                    <tr>
+                    <tr data-row="{{ $periode->id }}">
                         @foreach($kolom as $k)
                             @php
                                 $v = isset($k['value']) ? $k['value']($periode) : data_get($periode, $k['key']);
                                 $tipe = $k['type'] ?? null;
                             @endphp
-                            <td class="{{ $k['class'] ?? '' }}" style="text-align: {{ $k['align'] ?? 'left' }}">
+                            <td data-cell="{{ $k['key'] }}" class="{{ $k['class'] ?? '' }}" style="text-align: {{ $k['align'] ?? 'left' }}">
                                 @if($tipe === 'badge')
                                     <span class="px-2.5 py-1 text-xs rounded-full font-medium {{ $v === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
                                         {{ $v === 'aktif' ? 'Aktif' : 'Nonaktif' }}
@@ -90,6 +93,15 @@
                                                placeholder="Isi No PS" aria-label="No PS {{ $periode->edisi }}"
                                                class="no-ps-input w-32 border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]">
                                         <button type="button" title="Simpan No PS" aria-label="Simpan No PS" class="btn-save-nops">
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+                                        </button>
+                                    </div>
+                                @elseif($tipe === 'cetak')
+                                    <div class="nops-wrap inline-flex items-center gap-1.5">
+                                        <input type="number" min="1" max="20" value="{{ $v }}" data-id="{{ $periode->id }}"
+                                               data-field="cetak_ke" data-path="cetak" placeholder="1 / 2" aria-label="Cetak ke {{ $periode->edisi }}"
+                                               class="no-ps-input w-20 border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40 focus:border-[#E85D2A]">
+                                        <button type="button" title="Simpan Cetak ke" aria-label="Simpan Cetak ke" class="btn-save-nops">
                                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
                                         </button>
                                     </div>
@@ -148,7 +160,7 @@
         function pulihkan(btn) {
             btn.classList.remove('is-ok', 'is-err');
             btn.innerHTML = ICON_SAVE;
-            btn.title = 'Simpan No PS';
+            btn.title = 'Simpan';
             btn.disabled = false;
         }
 
@@ -163,19 +175,33 @@
             var input = btn.closest('.nops-wrap').querySelector('.no-ps-input');
             btn.disabled = true;
 
-            fetch(baseUrl + '/' + input.dataset.id + '/no-ps', {
+            var path = input.dataset.path || 'no-ps';
+            var field = input.dataset.field || 'no_ps';
+            var payload = {};
+            payload[field] = input.value.trim();
+
+            fetch(baseUrl + '/' + input.dataset.id + '/' + path, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrf,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ no_ps: input.value.trim() })
+                body: JSON.stringify(payload)
             })
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 btn.disabled = false;
                 tandai(btn, !!data.success, data.success ? 'Tersimpan' : (data.message || 'Gagal menyimpan'));
+
+                // Cetak ke berubah -> Spare 3% dan Grand Total ikut berubah tanpa refresh
+                if (data.success && data.spare_qty !== undefined) {
+                    var tr = btn.closest('tr');
+                    var spare = tr.querySelector('[data-cell="spare_qty"]');
+                    var grand = tr.querySelector('[data-cell="grand_total"]');
+                    if (spare) spare.textContent = data.spare_qty;
+                    if (grand) grand.textContent = data.grand_total;
+                }
             })
             .catch(function () {
                 btn.disabled = false;

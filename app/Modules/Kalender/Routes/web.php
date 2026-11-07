@@ -10,6 +10,7 @@ use App\Modules\Kalender\Http\Controllers\PesananKalenderPuw1Controller;
 use App\Modules\Kalender\Http\Controllers\KalenderDlcController;
 use App\Modules\Kalender\Http\Controllers\KalenderPuwController;
 use App\Modules\Kalender\Http\Controllers\KalenderPasifController;
+use App\Modules\Kalender\Http\Controllers\KalenderSparePasifController;
 use App\Modules\Kalender\Http\Controllers\KalenderPasifBacaanController;
 use App\Modules\Kalender\Http\Controllers\KalenderPasifManualController;
 use App\Modules\Kalender\Http\Controllers\KalenderReportAngkaCetakController;
@@ -281,10 +282,16 @@ Route::prefix('kalender')
 
             Route::put('/{id}/no-ps', [KalenderPasifController::class, 'pasifUpdateNoPs'])
                 ->whereNumber('id')->name('update-no-ps');
+            Route::put('/{id}/cetak', [KalenderPasifController::class, 'pasifUpdateCetak'])
+                ->whereNumber('id')->name('update-cetak');
 
             // Spare Pasif 3%
-            Route::get('/spare', [KalenderPasifController::class, 'sparePasif'])->name('spare');
-            Route::put('/spare/{id}/no-ps', [KalenderPasifController::class, 'sparePasifUpdateNoPs'])->name('spare.update-no-ps');
+            // Berdiri sendiri (dibuat manual, bukan dari import Kalender)
+            Route::get('/spare', [KalenderSparePasifController::class, 'index'])->name('spare');
+            Route::post('/spare', [KalenderSparePasifController::class, 'store'])->name('spare.store');
+            Route::get('/spare/{id}/edit', [KalenderSparePasifController::class, 'edit'])->whereNumber('id')->name('spare.edit');
+            Route::put('/spare/{id}', [KalenderSparePasifController::class, 'update'])->whereNumber('id')->name('spare.update');
+            Route::delete('/spare/{id}', [KalenderSparePasifController::class, 'destroy'])->whereNumber('id')->name('spare.destroy');
 
             // Bacaan Unit
             Route::get('/bacaan', [KalenderPasifBacaanController::class, 'pasifBacaan'])->name('bacaan');

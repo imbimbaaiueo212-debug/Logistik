@@ -5,9 +5,12 @@ namespace App\Modules\Kalender\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Kalender\Models\KalenderPuwPeriode;
 use App\Modules\Kalender\Models\KalenderPuwUnit;
+use App\Modules\Import\Services\ShopMatcher;
 use App\Modules\Master\Models\UnitKemitraan;
+use App\Modules\Order\Models\JakartaAktif;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Kalender > PUW (satu halaman, tanpa dropdown), disimpan per edisi (KLD27, KLD28, ...).
@@ -132,6 +135,115 @@ class KalenderPuwController extends Controller
 
         return redirect()->route('kalender.puw', ['periode' => $periode->id])
             ->with('success', "Data edisi {$periode->edisi} diperbarui: {$periode->units()->count()} unit.");
+    }
+
+    /**
+     * Dipanggil dari tombol "Sync Data" di Penjualan > Jakarta (PenjualanController@syncJakartaSemua).
+     * Menarik unit PUW semua edisi Kalender ke jakarta_aktif.
+     *  - qty > 0
+     *  - no cabang sudah ada di order Kalender biMBA Shop untuk tahun yang sama (ShopMatcher)
+     *  - id_pesan = KP-{EDISI}-{NO_CAB}: aman dijalankan berulang dan aman setelah "Tarik Ulang Data"
+     */
+    public function syncKeJakartaAktif()
+    {
+        $created = 0;
+        $skippedSudah = 0;
+        $menungguShop = 0;
+        $qtyNol = 0;
+        $errors = [];
+
+        $shop = app(ShopMatcher::class);
+
+        foreach (KalenderPuwPeriode::orderBy('tahun')->get() as $periode) {
+            $shopSet     = $shop->setKalender($periode->tahun);
+            $productName = 'Pesanan Kalender PUW ' . $periode->edisi;
+            $units       = KalenderPuwUnit::where('periode_id', $periode->id)->orderBy('no')->get();
+
+            $ukMap = UnitKemitraan::whereIn('no_cab', $units->pluck('no_cab')->filter()->map(fn ($v) => UnitKemitraan::padNoCab($v))->unique()->values())
+                ->get()
+                ->keyBy(fn ($u) => trim($u->no_cab));
+
+            $sudah = JakartaAktif::where('id_pesan', 'like', 'KP-' . $periode->edisi . '-%')
+                ->pluck('id_pesan')
+                ->flip();
+
+            foreach ($units as $unit) {
+                $noCab = trim((string) $unit->no_cab);
+
+                if ((int) $unit->qty <= 0) {
+                    $qtyNol++;
+                    continue;
+                }
+
+                $key = ShopMatcher::noCabKey($noCab);
+
+                if ($key === '' || ! isset($shopSet[$key])) {
+                    $menungguShop++;
+                    continue;
+                }
+
+                $idPesan = 'KP-' . $periode->edisi . '-' . $key;
+
+                if ($sudah->has($idPesan)) {
+                    $skippedSudah++;
+                    continue;
+                }
+
+                $namaUnit = $unit->nama_unit ?: '-';
+                $mitra    = null;
+                $uk       = $ukMap->get(UnitKemitraan::padNoCab($noCab));
+
+                if ($uk) {
+                    if (! empty($uk->bimba_aiueo_unit)) {
+                        $namaUnit = $uk->bimba_aiueo_unit;
+                    }
+                    $mitra = $uk->mitra_pengelolaan ?? null;
+                }
+
+                try {
+                    JakartaAktif::create([
+                        'tgl_input'          => now()->format('Y-m-d'),
+                        'tgl_pesan'          => now(),
+                        'kirim'              => $unit->alamat_unit ?: $namaUnit,
+                        'no_telpon'          => $unit->no_telp_unit,
+                        'alamat_kirim'       => $unit->alamat_unit,
+                        'kab_kota_provinsi'  => $unit->kab_kota,
+                        'ongkir'             => 0,
+                        'nama_unit'          => $namaUnit,
+                        'pesanan'            => $productName,
+                        'harga'              => 0,
+                        'berat'              => 0,
+                        'item_qty'           => (int) $unit->qty,
+                        'total'              => 0,
+                        'jenis_bank'         => null,
+                        'status_pembayaran'  => 'MANUAL',
+                        'status_pesan'       => 'pending',
+                        'id_pesan'           => $idPesan,
+                        'status'             => 'aktif',
+                        'payment_date'       => null,
+                        'billing_last_name'  => $noCab,
+                        'billing_company'    => $mitra,
+                        'status_kirim'       => 'Diambil',
+                        'estimasi_print_pl'  => null,
+                        'estimasi_persiapan' => null,
+                    ]);
+
+                    $created++;
+                } catch (\Throwable $e) {
+                    $errors[] = ($unit->nama_unit ?: $idPesan) . ': ' . $e->getMessage();
+                    Log::error('Sync Kalender PUW ke Jakarta Aktif gagal', ['unit_id' => $unit->id, 'error' => $e->getMessage()]);
+                }
+            }
+        }
+
+        $pesan = "✅ Kalender PUW: <strong>{$created}</strong> unit masuk."
+            . " Sudah ada: {$skippedSudah}, menunggu biMBA Shop: {$menungguShop}, qty 0: {$qtyNol}.";
+
+        if ($errors) {
+            $pesan .= '<br>❌ Error: ' . e(implode(' | ', array_slice($errors, 0, 3)));
+        }
+
+        return redirect()->route('penjualan.jakarta')->with('success', $pesan);
     }
 
     public function destroy($id)

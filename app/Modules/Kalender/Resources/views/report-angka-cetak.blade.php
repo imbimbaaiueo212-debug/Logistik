@@ -35,6 +35,7 @@
                 'total'       => $report['total_aktif'],
                 'total_label' => 'Total Pemesanan Unit Aktif',
                 'hint'        => [],
+                'compare'     => true,
             ],
             [
                 'label'       => 'Unit Pasif',
@@ -42,6 +43,7 @@
                 'total'       => $report['total_pasif'],
                 'total_label' => 'Total Pemesanan Unit Pasif',
                 'hint'        => [],
+                'compare'     => false,
             ],
         ];
     @endphp
@@ -60,6 +62,11 @@
                     <h3 class="text-base font-semibold text-[#162749]">{{ $g['label'] }}</h3>
                     <span class="text-xs text-gray-500">Order Kalender biMBA, Edisi {{ $report['edisi'] }}</span>
                 </div>
+                @if($g['compare'])
+                    <p class="px-5 py-2 text-xs text-gray-500 bg-gray-50 border-b border-gray-100">
+                        Qty = sudah dibayar (Casdana). Order Shop = seluruh order biMBA Shop. Selisih = Order Shop dikurangi Qty (belum dibayar / belum masuk Casdana).
+                    </p>
+                @endif
 
                 {{-- Daftar (scroll sendiri, header tetap) --}}
                 <div class="overflow-auto" style="max-height: calc(100vh - 470px); min-height: 240px;">
@@ -69,11 +76,16 @@
                                 <th class="sticky top-0 z-10 bg-[#162749] text-white text-left font-semibold py-2.5 px-5 w-24">Kode</th>
                                 <th class="sticky top-0 z-10 bg-[#162749] text-white text-left font-semibold py-2.5 px-5">Kategori Pemesanan</th>
                                 <th class="sticky top-0 z-10 bg-[#162749] text-white text-right font-semibold py-2.5 px-5 w-28">Qty</th>
+                                @if($g['compare'])
+                                    <th class="sticky top-0 z-10 bg-[#162749] text-white text-right font-semibold py-2.5 px-4 w-28 whitespace-nowrap">Order Shop</th>
+                                    <th class="sticky top-0 z-10 bg-[#162749] text-white text-right font-semibold py-2.5 px-4 w-24">Selisih</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach($g['rows'] as $row)
-                                <tr class="hover:bg-gray-50">
+                                @php $subtotal = $row['subtotal'] ?? false; @endphp
+                                <tr class="{{ $subtotal ? 'bg-[#EADFC4] font-semibold' : 'hover:bg-gray-50' }}">
                                     <td class="py-2 px-5 font-medium text-gray-700 whitespace-nowrap">{{ $row['kode'] }}</td>
                                     <td class="py-2 px-5 text-gray-700">
                                         {{ $row['label'] }}
@@ -84,6 +96,16 @@
                                     <td class="py-2 px-5 text-right font-semibold {{ $row['qty'] > 0 ? 'text-gray-800' : 'text-gray-400' }}">
                                         {{ number_format($row['qty']) }}
                                     </td>
+                                    @if($g['compare'])
+                                        @php
+                                            $semua   = $row['semua'] ?? null;
+                                            $selisih = $semua === null ? null : $semua - $row['qty'];
+                                        @endphp
+                                        <td class="py-2 px-4 text-right text-gray-600">{{ $semua === null ? '' : number_format($semua) }}</td>
+                                        <td class="py-2 px-4 text-right font-semibold {{ $selisih === null || $selisih === 0 ? 'text-gray-300' : 'text-[#D14E1F]' }}">
+                                            {{ $selisih === null ? '' : number_format($selisih) }}
+                                        </td>
+                                    @endif
                                 </tr>
                             @endforeach
                         </tbody>

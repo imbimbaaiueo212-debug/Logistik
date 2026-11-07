@@ -38,6 +38,15 @@ public function pasifIndex()
         ->latest()
         ->paginate(20);
 
+    // Spare Pasif 3% + Total Kalender (murid + relawan x2 + humas) per periode
+    $periodes->getCollection()->each(function ($p) {
+        $p->spare_qty = $p->spareQty();
+        $p->total_kalender = (int) $p->pesanan()->sum('qty')
+            + (int) $p->pesanan()->sum('bacaan_unit') * 2
+            + (int) $p->pesanan()->sum('humas');
+        $p->grand_total = $p->total_kalender + $p->spare_qty;
+    });
+
     return view('kalender::pasif.index', compact('periodes'));
 }
 
@@ -114,10 +123,11 @@ public function pasifStore(Request $request)
 
 public function pasifShow($id)
 {
-    $periode = KalenderPasifPeriode::with('pesanan')->findOrFail($id);
-    $total   = $periode->pesanan->sum('qty');
+    $periode  = KalenderPasifPeriode::with('pesanan')->findOrFail($id);
+    $total    = $periode->pesanan->sum('qty');
+    $spareQty = $periode->spareQty();
 
-    return view('kalender::pasif.show', compact('periode', 'total'));
+    return view('kalender::pasif.show', compact('periode', 'total', 'spareQty'));
 }
 
 public function pasifDestroy($id)
@@ -142,6 +152,30 @@ public function pasifUpdateNoPs(Request $request, $id)
         'success' => true,
         'message' => 'No PS berhasil diupdate',
         'no_ps'   => $periode->no_ps,
+    ]);
+}
+
+public function pasifUpdateCetak(Request $request, $id)
+{
+    $request->validate([
+        'cetak_ke' => 'nullable|integer|min:1|max:20',
+    ]);
+
+    $periode = KalenderPasifPeriode::findOrFail($id);
+    $periode->update(['cetak_ke' => $request->filled('cetak_ke') ? (int) $request->cetak_ke : null]);
+
+    // Spare mengikuti Cetak ke, jadi dikirim balik agar tabel di halaman langsung berubah
+    $spare = $periode->spareQty();
+    $total = (int) $periode->pesanan()->sum('qty')
+        + (int) $periode->pesanan()->sum('bacaan_unit') * 2
+        + (int) $periode->pesanan()->sum('humas');
+
+    return response()->json([
+        'success'     => true,
+        'message'     => 'Cetak ke berhasil diupdate',
+        'cetak_ke'    => $periode->cetak_ke,
+        'spare_qty'   => number_format($spare),
+        'grand_total' => number_format($total + $spare),
     ]);
 }
 
