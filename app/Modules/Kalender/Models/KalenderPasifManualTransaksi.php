@@ -16,6 +16,7 @@ class KalenderPasifManualTransaksi extends Model
         'tgl_pesan',
         'minggu',
         'nama_unit',
+        'status_unit',
         'label',
         'jumlah',
         'pesanan',

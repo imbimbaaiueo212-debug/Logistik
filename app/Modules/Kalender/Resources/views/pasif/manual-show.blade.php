@@ -10,6 +10,8 @@
         ['key' => 'tgl_pesan', 'label' => 'Tgl Pesan',
             'value' => function ($i) { return $i->tgl_pesan ? \Carbon\Carbon::parse($i->tgl_pesan)->format('d/m/Y') : null; }],
         ['key' => 'nama_unit', 'label' => 'Nama Unit', 'class' => 'font-semibold text-[#162749]'],
+        ['key' => 'status_unit', 'label' => 'Status Unit',
+            'value' => function ($i) { return $i->status_unit ? ucfirst($i->status_unit) : null; }],
         ['key' => 'label',     'label' => 'Label', 'type' => 'pill'],
         ['key' => 'jumlah',    'label' => 'Jumlah', 'align' => 'center', 'type' => 'number', 'class' => 'font-semibold'],
         ['key' => 'ekspedisi', 'label' => 'Ekspedisi'],

@@ -8,7 +8,7 @@
     'subtitle' => 'Input manual data unit pasif (tanpa import Excel)',
 ])
 @include('partials.flash')
-@include('partials.pasif-manual-form', [
+@include('partials.kalender-pasif-manual-form', [
     'action' => route('kalender.pasif.manual.store'),
     'cancel' => route('kalender.pasif.manual.index'),
     'submit' => 'Simpan Data Manual',

@@ -4,8 +4,8 @@ namespace App\Modules\Kalender\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Import\Models\BimbashopOrder;
-use App\Modules\Import\Models\CasdanaTransaction;
 use App\Modules\Import\Services\ShopMatcher;
+use App\Modules\Import\Services\ShopStatusSync;
 use App\Modules\Kalender\Models\KalenderBacaanPesanan;
 use App\Modules\Kalender\Models\KalenderDlcPesanan;
 use App\Modules\Kalender\Models\KalenderPasifManualTransaksi;
@@ -13,35 +13,40 @@ use App\Modules\Kalender\Models\KalenderPasifPesanan;
 use App\Modules\Kalender\Models\KalenderPuwUnit;
 use App\Modules\Kalender\Models\KalenderSpareManual;
 use App\Modules\Kalender\Support\KodeKalender;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Report Angka Cetak Kalender, mengikuti susunan Excel "Report Angka Cetak".
+ * Report Angka Cetak Kalender, mengikuti susunan Excel "Report Angka Cetak" (rumus SUMIFS).
  *
- *  Kode A (Unit Aktif)  = order Kalender di biMBA Shop yang SUDAH BAYAR (ada di Casdana: SUCCESS / SETTLED).
- *  Kode P (Unit Pasif)  = tanpa pembayaran Casdana (souvenir). PUW masuk P7, jadi A1 (PUW) selalu 0.
- *  Baris yang menunya belum ada tetap tampil dengan nilai 0; begitu menunya ada, angkanya otomatis terisi.
+ *  Kode A (Unit Aktif) = qty order Kalender di biMBA Shop berstatus processing (sudah dibayar), per kode stokis di SKU,
+ *                        dipecah menurut tanggal order ke kolom Periode 1 / Periode 2.
+ *  SOUV                = PUW (A1) dan seluruh Unit Pasif (kode P), tanpa pembayaran.
+ *  Order Shop          = seluruh order Kalender di biMBA Shop (bukan batal / gagal / refund).
+ *  Selisih             = Order Shop dikurangi (Periode 1 + Periode 2).
  *
- * Korwil / Pinwil / PUW1 lama tidak dipakai lagi.
+ * Sebelum dihitung, order Shop yang masih on-hold tetapi sudah SETTLED / SUCCESS di Casdana
+ * otomatis diubah menjadi processing (ShopStatusSync), jadi angka tidak tertahan di on-hold.
  */
 class KalenderReportAngkaCetakController extends Controller
 {
     /** Kode stokis (token SKU) per kelompok, sesuai Excel. */
     private const STOKIS_PASIF = [
-        'SMG' => 'Stokis Semarang', 'SBY' => 'Stokis Surabaya', 'SGN' => 'Stokis Sragen',
+        'SMG' => 'Semarang', 'SBY' => 'Surabaya', 'SGN' => 'Sragen', 'YYK' => 'Yogyakarta',
     ];
 
     private const STOKIS_AKTIF = [
-        'TNG1' => 'Stokis Tangerang 1', 'BKS1' => 'Stokis Bekasi 1', 'SRG1' => 'Stokis Serang 1',
-        'TNG2' => 'Stokis Tangerang 2', 'BGR1' => 'Stokis Bogor 1', 'BGRT' => 'Stokis Bogor 2',
-        'DPK1' => 'Stokis Depok 1', 'SKB1' => 'Stokis Sukabumi 1', 'KNG' => 'Stokis Kuningan 1',
-        'IDM' => 'Stokis Indramayu 1', 'SKB2' => 'Stokis Sukabumi 2', 'SNG' => 'Stokis Subang 1',
-        'KWG1' => 'Stokis Karawang 1', 'PWK' => 'Stokis Purwakarta 1', 'BDG1' => 'Stokis Bandung 1',
-        'BDG2' => 'Stokis Bandung 2', 'CIL1' => 'Stokis Cilincing 1', 'SRG2' => 'Stokis Serang 2',
-        'DPR1' => 'Stokis Denpasar 1', 'KWG2' => 'Stokis Karawang 2', 'BGR3' => 'Stokis Bogor 3',
-        'YYK1' => 'Stokis Yogyakarta 1', 'CRB1' => 'Stokis Cirebon 1',
-        // ada di sync Jakarta / report Majalah tetapi tidak di Excel: dimasukkan agar tidak salah masuk ke Stokis Jakarta
-        'TNG3' => 'Stokis Tangerang 3', 'PKL1' => 'Stokis Pekalongan 1',
+        'TNG1' => 'Tangerang 1', 'BKS1' => 'Bekasi 1', 'SRG1' => 'Serang 1',
+        'TNG2' => 'Tangerang 2', 'BGR1' => 'Bogor 1', 'BGRT' => 'Bogor 2',
+        'DPK1' => 'Depok 1', 'SKB1' => 'Sukabumi 1', 'KNG' => 'Kuningan 1',
+        'IDM' => 'Indramayu 1', 'SKB2' => 'Sukabumi 2', 'SNG' => 'Subang 1',
+        'KWG1' => 'Karawang 1', 'PWK' => 'Purwakarta 1', 'BDG1' => 'Bandung 1',
+        'BDG2' => 'Bandung 2', 'CIL1' => 'Cilincing 1', 'SRG2' => 'Serang 2',
+        'DPR1' => 'Denpasar 1', 'KWG2' => 'Karawang 2', 'BGR3' => 'Bogor 3',
+        'YYK1' => 'Yogyakarta 1', 'CRB1' => 'Cirebon 1',
+        // ada di sync Jakarta tetapi tidak di Excel: dimasukkan agar tidak salah masuk ke Stokis Jakarta
+        'TNG3' => 'Tangerang 3', 'PKL1' => 'Pekalongan 1',
     ];
 
     private const PENGELOLA = [
@@ -50,6 +55,9 @@ class KalenderReportAngkaCetakController extends Controller
 
     /** Rumah Jakarta pasif: bukan Unit Aktif, tidak dihitung di kode A. */
     private const BUKAN_AKTIF = ['JKTP', 'DLC', 'EBT', 'INV', 'BSS'];
+
+    /** Status Shop yang dianggap sudah dibayar. */
+    private const STATUS_DIBAYAR = ['processing', 'completed'];
 
     public function reportAngkaCetak(Request $request)
     {
@@ -69,10 +77,28 @@ class KalenderReportAngkaCetakController extends Controller
 
         $selectedEdisi = $norm($request->get('edisi', $edisiList->last() ?? ''));
 
+        // Rentang tanggal order Periode 1 dan Periode 2 (boleh kosong)
+        $p1 = $this->rentang($request->get('p1_dari'), $request->get('p1_sampai'));
+        $p2 = $this->rentang($request->get('p2_dari'), $request->get('p2_sampai'));
+
+        $filter = [
+            'p1_dari' => $request->get('p1_dari'), 'p1_sampai' => $request->get('p1_sampai'),
+            'p2_dari' => $request->get('p2_dari'), 'p2_sampai' => $request->get('p2_sampai'),
+            'semua_tanggal' => $p1 === null && $p2 === null,
+        ];
+
         if ($selectedEdisi === '') {
             return view('kalender::report-angka-cetak', [
-                'edisiList' => $edisiList, 'selectedEdisi' => null, 'report' => null,
+                'edisiList' => $edisiList, 'selectedEdisi' => null, 'report' => null, 'filter' => $filter,
             ]);
+        }
+
+        // On-hold di biMBA Shop yang sudah SETTLED / SUCCESS di Casdana -> processing
+        $dinaikkan = 0;
+        try {
+            $dinaikkan = ShopStatusSync::naikkanOnHold();
+        } catch (\Throwable $e) {
+            Log::error('Report Angka Cetak Kalender: sync on-hold gagal: ' . $e->getMessage());
         }
 
         $tahun  = KodeKalender::tahun($selectedEdisi);
@@ -81,37 +107,54 @@ class KalenderReportAngkaCetakController extends Controller
 
         $periodeEdisi = fn ($q) => $q->where('status', 'aktif')->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian);
 
-        // ======================= UNIT AKTIF (kode A): biMBA Shop + Casdana =======================
-        $hasilShop  = $tahun === null ? ['bayar' => [], 'semua' => []] : $this->qtyBimbaShop($tahun);
-        $shop       = $hasilShop['bayar'];   // [token => qty] yang sudah dibayar, '_JKT' = tanpa kode stokis
-        $shopSemua  = $hasilShop['semua'];   // [token => qty] seluruh order biMBA Shop (pembanding)
+        // ======================= UNIT AKTIF (kode A): biMBA Shop =======================
+        $hasil = $tahun === null
+            ? ['qty' => [], 'semua' => [], 'belum_bayar' => 0]
+            : $this->qtyBimbaShop($tahun, $p1, $p2);
+
+        $qty   = $hasil['qty'];     // [token => ['p1' => n, 'p2' => n]] order dibayar (processing / completed)
+        $semua = $hasil['semua'];   // [token => n] seluruh order Shop
+
+        $qtyPuw = (int) KalenderPuwUnit::whereHas('periode', fn ($q) => $q->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian))->sum('qty');
+
+        // Create Manual Kalender: unit berstatus AKTIF masuk ke baris A (kolom SOUV, karena tanpa pembayaran Shop,
+        // sehingga angka Periode / Order Shop / Selisih yang mengikuti Excel tidak berubah)
+        $manualAktif = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)
+            ->where('status_unit', 'aktif')->sum('jumlah');
+
+        $barisJakarta = $this->shopBaris('A', 'Unit Aktif - Stokis Jakarta', '_JKT', $qty, $semua);
+        if ($manualAktif > 0) {
+            $barisJakarta['souv']   += $manualAktif;
+            $barisJakarta['total']  += $manualAktif;
+            $barisJakarta['catatan'] = 'termasuk ' . number_format($manualAktif) . ' dari Create Manual (unit aktif)';
+        }
 
         $aktif = [
-            $this->baris('A',  'Unit Aktif - Stokis Jakarta', (int) ($shop['_JKT'] ?? 0), null, (int) ($shopSemua['_JKT'] ?? 0)),
-            // PUW tidak ada pembayaran Casdana -> selalu 0 di sini, nilainya ada di P7
-            $this->baris('A1', 'PUW - Stokis Logistik (masuk P7)', 0),
-            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $shop, $shopSemua), 'Unit Aktif - Stokis Pasif :'),
-            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $shop, $shopSemua), 'Unit Aktif - Stokis Aktif :'),
-            $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $shop, $shopSemua)),
+            $barisJakarta,
+            // PUW = souvenir, tidak ada pembayaran
+            $this->baris('A1', 'PUW1 - Stokis Logistik', 0, 0, $qtyPuw),
+            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua), 'Unit Aktif - Stokis Pasif'),
+            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua), 'Unit Aktif - Stokis Aktif'),
+            $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua)),
         ];
 
-        // ======================= UNIT PASIF (kode P): tanpa Casdana =======================
+        // ======================= UNIT PASIF (kode P): SOUV =======================
         $qtyMurid  = (int) KalenderPasifPesanan::whereHas('periode', $periodeEdisi)->sum('qty');
         $qtyHumas  = (int) KalenderPasifPesanan::whereHas('periode', $periodeEdisi)->sum('humas');
         $qtySpare  = (int) KalenderSpareManual::whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian)->sum('qty');
         $qtyDlc    = (int) KalenderDlcPesanan::whereHas('periode', $periodeEdisi)->sum('qty');
         $qtyBacaan = (int) KalenderBacaanPesanan::whereHas('periode', $periodeEdisi)->sum('bacaan_unit');
-        $qtyManual = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)->sum('jumlah');
-
-        $qtyPuw = (int) KalenderPuwUnit::whereHas('periode', fn ($q) => $q->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian))->sum('qty');
+        // Create Manual berstatus pasif (data lama tanpa status dianggap pasif)
+        $qtyManual = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)
+            ->where(fn ($q) => $q->where('status_unit', 'pasif')->orWhereNull('status_unit'))->sum('jumlah');
 
         $pasif = [
             $this->induk('P', 'biMBA Unit Pasif', [
-                $this->baris('P01', 'Murid', $qtyMurid),
-                $this->baris('P02', 'Motivator', 0),
-                $this->baris('P03', 'Humas', $qtyHumas),
-                $this->baris('P04', 'Unit biMBA Pasif (Cabang Unit)', 0),
-                $this->baris('P05', 'Spare Untuk Murid Pasif 3%', $qtySpare),
+                $this->souv('P01', 'Murid', $qtyMurid),
+                $this->souv('P02', 'Motivator', 0),
+                $this->souv('P03', 'Humas', $qtyHumas),
+                $this->souv('P04', 'Unit biMBA Pasif (Cabang Unit)', 0),
+                $this->souv('P05', 'Spare Untuk Murid Pasif 3%', $qtySpare),
             ]),
             $this->induk('P1', 'Murid InterVio', $this->nol(['P1.1' => 'Anggrek 1', 'P1.2' => 'Anggrek 2', 'P1.3' => 'Anggrek 3', 'P1.4' => 'Anggrek 4', 'P1.5' => 'Anggrek 5', 'P1.6' => 'Dhuafa', 'P1.7' => 'Khusus'])),
             $this->induk('P2', 'Motivator Intervio', $this->nol(['P2.1' => 'Anggrek 1', 'P2.2' => 'Anggrek 2', 'P2.3' => 'Anggrek 3', 'P2.4' => 'Anggrek 4', 'P2.5' => 'Anggrek 5', 'P2.6' => 'Dhuafa'])),
@@ -119,43 +162,44 @@ class KalenderReportAngkaCetakController extends Controller
             $this->induk('P4', 'Relawan Pembelajar biMBA', $this->nol(['P4.1' => 'Relawan WFO - Kantor', 'P4.2' => 'Relawan WFH - Rumah'])),
             $this->induk('P5', 'biMBA SS', $this->nol(['P5.1' => 'Murid SS', 'P5.2' => 'Official + Pelatih', 'P5.3' => 'Relawan SS', 'P5.4' => 'Relasi biMBA SS'])),
             $this->induk('P6', 'Manajemen biMBA', $this->nol(['P6.B1' => 'biMBA 1', 'P6.B2' => 'biMBA 2', 'P6.B3' => 'biMBA 3', 'P6.B4' => 'biMBA 4', 'P6.B5' => 'biMBA 5', 'P6.B6' => 'biMBA 6'])),
-            // Baru: PUW tidak ada pembayaran Casdana, jadi masuk P7
-            $this->baris('P7', 'PUW (tanpa pembayaran)', $qtyPuw),
             // Souvenir unit yang order ke Jakarta (cek 3 bulan terakhir oleh tim): menunggu aturan hitung
-            $this->baris('P8', 'Souvenir Unit ke Jakarta', 0, 'belum dihitung, menunggu aturan'),
+            $this->baris('P8', 'Souvenir Unit ke Jakarta', 0, 0, 0, null, 'belum dihitung, menunggu aturan'),
             // Menu yang sudah ada di aplikasi tetapi belum punya kode di Excel: tetap dihitung agar tidak hilang
             $this->induk('LN', 'Lainnya (belum ada kode di Excel)', [
-                $this->baris('DLC', 'DLC', $qtyDlc),
-                $this->baris('BCN', 'Bacaan Unit', $qtyBacaan),
-                $this->baris('PSM', 'Pasif Manual', $qtyManual),
+                $this->souv('DLC', 'DLC', $qtyDlc),
+                $this->souv('BCN', 'Bacaan Unit', $qtyBacaan),
+                $this->souv('PSM', 'Pasif Manual', $qtyManual),
             ]),
         ];
 
-        $totalAktif = array_sum(array_column($aktif, 'qty'));
-        $totalPasif = array_sum(array_column($pasif, 'qty'));
+        $totalAktif = array_sum(array_column($aktif, 'total'));
+        $totalPasif = array_sum(array_column($pasif, 'total'));
 
         $report = [
             'edisi'       => $selectedEdisi,
             'rows_aktif'  => $this->ratakan($aktif),
-            'total_aktif' => $totalAktif,
             'rows_pasif'  => $this->ratakan($pasif),
+            'total_aktif' => $totalAktif,
             'total_pasif' => $totalPasif,
             'grand_total' => $totalAktif + $totalPasif,
+            'dinaikkan'   => $dinaikkan,              // baris on-hold -> processing pada pemuatan ini
         ];
 
-        return view('kalender::report-angka-cetak', compact('edisiList', 'selectedEdisi', 'report'));
+        return view('kalender::report-angka-cetak', compact('edisiList', 'selectedEdisi', 'report', 'filter'));
     }
 
-    // ------------------------------------------------------------------ biMBA Shop + Casdana
+    // ------------------------------------------------------------------ biMBA Shop
 
     /**
-     * Qty item Kalender (tahun tertentu) dari order biMBA Shop yang sudah dibayar (Casdana SUCCESS / SETTLED).
-     * Kode stokis dibaca dari potongan SKU (mis. KLD27-TNG1). Tanpa kode stokis dianggap Stokis Jakarta ('_JKT').
+     * Qty item Kalender (tahun tertentu) dari order biMBA Shop.
+     * Kode stokis dibaca dari potongan SKU (mis. KLD27-TNG1). Stokis Jakarta ('_JKT') hanya SKU yang memuat kode JKT (KLD27-JKT); SKU tanpa kode dikenal diabaikan.
      * Rumah pasif Jakarta (JKTP, DLC, EBT, INV, BSS) tidak dihitung sebagai Unit Aktif.
+     *
+     * @return array{qty: array<string, array{p1:int,p2:int}>, semua: array<string,int>, belum_bayar: int}
      */
-    private function qtyBimbaShop(int $tahun): array
+    private function qtyBimbaShop(int $tahun, ?array $p1, ?array $p2): array
     {
-        $orders = BimbashopOrder::query()
+        $baris = BimbashopOrder::query()
             ->where(function ($q) {
                 $q->where('item_sku', 'like', 'KAL%')
                   ->orWhere('item_sku', 'like', 'KLD%')
@@ -168,81 +212,149 @@ class KalenderReportAngkaCetakController extends Controller
                        ->where('status', 'not like', '%refund%');
                 });
             })
-            ->get(['order_id', 'item_sku', 'item_name', 'item_qty']);
+            ->get(['order_id', 'order_date', 'status', 'item_sku', 'item_name', 'item_qty']);
 
-        $orders = $orders->filter(fn ($o) => ShopMatcher::tahunFrom($o->item_sku, $o->item_name) === (string) $tahun);
+        $baris = $baris->filter(fn ($o) => ShopMatcher::tahunFrom($o->item_sku, $o->item_name) === (string) $tahun);
 
-        if ($orders->isEmpty()) {
-            return ['bayar' => [], 'semua' => []];
-        }
+        $semuaTanggal = $p1 === null && $p2 === null;
+        $kodeStokis   = array_merge(array_keys(self::STOKIS_PASIF), array_keys(self::STOKIS_AKTIF), array_keys(self::PENGELOLA));
 
-        // Casdana yang sudah bayar. Nomor invoice bisa berawalan "ID", jadi dibandingkan tanpa awalan itu.
-        $dibayar = [];
-        CasdanaTransaction::query()
-            ->whereIn(\DB::raw('UPPER(TRIM(status))'), ['SUCCESS', 'SETTLED'])
-            ->pluck('invoice_number')
-            ->each(function ($inv) use (&$dibayar) {
-                $inv = trim((string) $inv);
-                $dibayar[$inv] = true;
-                $dibayar[preg_replace('/^ID/i', '', $inv)] = true;
-            });
+        $qty = [];
+        $semua = [];
+        $belumBayar = 0;
 
-        $hasil = [];   // sudah dibayar (Casdana SUCCESS / SETTLED)
-        $semua = [];   // seluruh order (bukan cancel / gagal / refund), dibayar atau belum
-
-        foreach ($orders as $o) {
-            $id = trim((string) $o->order_id);
-
+        foreach ($baris as $o) {
             $token = preg_split('/[^A-Z0-9]+/', strtoupper((string) $o->item_sku), -1, PREG_SPLIT_NO_EMPTY);
 
             if (array_intersect($token, self::BUKAN_AKTIF)) {
                 continue;
             }
 
-            $kunci = '_JKT';
-            foreach (array_merge(array_keys(self::STOKIS_PASIF), array_keys(self::STOKIS_AKTIF), array_keys(self::PENGELOLA)) as $kode) {
+            $kunci = null;
+            foreach ($kodeStokis as $kode) {
                 if (in_array($kode, $token, true)) {
                     $kunci = $kode;
                     break;
                 }
             }
 
-            $qtyItem = max((int) $o->item_qty, 0);
+            // Stokis Jakarta hanya SKU ber-kode JKT (mis. KLD27-JKT).
+            // SKU lain yang tidak dikenal (LG, PUW, dll) tidak lagi ikut tertarik ke Jakarta.
+            if ($kunci === null) {
+                if (! in_array('JKT', $token, true)) {
+                    continue;
+                }
+                $kunci = '_JKT';
+            }
 
-            $semua[$kunci] = ($semua[$kunci] ?? 0) + $qtyItem;
+            $jumlah = max((int) $o->item_qty, 0);
+            $status = preg_replace('/^wc-/', '', strtolower(trim((string) $o->status)));
 
-            if (isset($dibayar[$id])) {
-                $hasil[$kunci] = ($hasil[$kunci] ?? 0) + $qtyItem;
+            // On-hold / pending (belum dibayar) tidak dimasukkan sama sekali ke report,
+            // termasuk kolom Order Shop. On-hold yang sudah SETTLED/SUCCESS sudah jadi processing lewat ShopStatusSync.
+            if (! in_array($status, self::STATUS_DIBAYAR, true)) {
+                continue;
+            }
+
+            $semua[$kunci] = ($semua[$kunci] ?? 0) + $jumlah;
+
+            $kolom = null;
+            if ($semuaTanggal) {
+                $kolom = 'p1';
+            } elseif ($this->dalamRentang($o->order_date, $p1)) {
+                $kolom = 'p1';
+            } elseif ($this->dalamRentang($o->order_date, $p2)) {
+                $kolom = 'p2';
+            }
+
+            if ($kolom !== null) {
+                $qty[$kunci][$kolom] = ($qty[$kunci][$kolom] ?? 0) + $jumlah;
             }
         }
 
-        return ['bayar' => $hasil, 'semua' => $semua];
+        return ['qty' => $qty, 'semua' => $semua, 'belum_bayar' => $belumBayar];
+    }
+
+    /** @return array{0:Carbon|null,1:Carbon|null}|null  null bila kedua tanggal kosong / tidak valid */
+    private function rentang($dari, $sampai): ?array
+    {
+        $parse = function ($v, bool $akhir) {
+            if (blank($v)) {
+                return null;
+            }
+            try {
+                $c = Carbon::parse($v);
+
+                return $akhir ? $c->endOfDay() : $c->startOfDay();
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
+        $a = $parse($dari, false);
+        $b = $parse($sampai, true);
+
+        return ($a === null && $b === null) ? null : [$a, $b];
+    }
+
+    private function dalamRentang($tanggal, ?array $rentang): bool
+    {
+        if ($rentang === null || $tanggal === null) {
+            return false;
+        }
+
+        $t = $tanggal instanceof Carbon ? $tanggal : Carbon::parse($tanggal);
+
+        return ($rentang[0] === null || $t->gte($rentang[0])) && ($rentang[1] === null || $t->lte($rentang[1]));
     }
 
     // ------------------------------------------------------------------ pembentuk baris
 
-    private function baris(string $kode, string $label, int $qty, ?string $catatan = null, ?int $semua = null): array
+    private function baris(string $kode, string $label, int $p1, int $p2 = 0, int $souv = 0, ?int $shop = null, ?string $catatan = null): array
     {
-        return ['kode' => $kode, 'label' => $label, 'qty' => $qty, 'semua' => $semua, 'anak' => [], 'catatan' => $catatan];
-    }
-
-    /** Baris induk: qty = jumlah anak. */
-    private function induk(string $kode, string $label, array $anak, ?string $labelSubtotal = null): array
-    {
-        $semua = array_filter(array_column($anak, 'semua'), fn ($v) => $v !== null);
-
         return [
-            'kode' => $kode, 'label' => $label, 'qty' => array_sum(array_column($anak, 'qty')),
-            'semua' => $semua === [] ? null : (int) array_sum($semua), 'anak' => $anak, 'catatan' => null,
-            'subtotal_label' => $labelSubtotal,   // baris ringkasan seperti di Excel: "Unit Aktif - Stokis Pasif :"
+            'kode' => $kode, 'label' => $label, 'p1' => $p1, 'p2' => $p2, 'souv' => $souv,
+            'total' => $p1 + $p2 + $souv, 'shop' => $shop, 'anak' => [], 'catatan' => $catatan,
         ];
     }
 
-    private function anak(array $daftar, array $shop, array $semua = []): array
+    private function souv(string $kode, string $label, int $souv): array
+    {
+        return $this->baris($kode, $label, 0, 0, $souv);
+    }
+
+    /** Baris yang nilainya dari order biMBA Shop (kolom Periode + Order Shop). */
+    private function shopBaris(string $kode, string $label, string $kunci, array $qty, array $semua): array
+    {
+        return $this->baris(
+            $kode, $label,
+            (int) ($qty[$kunci]['p1'] ?? 0), (int) ($qty[$kunci]['p2'] ?? 0), 0,
+            (int) ($semua[$kunci] ?? 0)
+        );
+    }
+
+    /** Baris induk: nilai = jumlah anak. */
+    private function induk(string $kode, string $label, array $anak, ?string $labelSubtotal = null): array
+    {
+        $shop = array_filter(array_column($anak, 'shop'), fn ($v) => $v !== null);
+
+        return [
+            'kode' => $kode, 'label' => $label,
+            'p1' => array_sum(array_column($anak, 'p1')),
+            'p2' => array_sum(array_column($anak, 'p2')),
+            'souv' => array_sum(array_column($anak, 'souv')),
+            'total' => array_sum(array_column($anak, 'total')),
+            'shop' => $shop === [] ? null : (int) array_sum($shop),
+            'anak' => $anak, 'catatan' => null,
+            'subtotal_label' => $labelSubtotal,   // baris ringkasan seperti di Excel: "Unit Aktif - Stokis Pasif"
+        ];
+    }
+
+    private function anak(array $daftar, array $qty, array $semua): array
     {
         $out = [];
         foreach ($daftar as $kode => $label) {
-            $out[] = $this->baris($kode, $label, (int) ($shop[$kode] ?? 0), null, (int) ($semua[$kode] ?? 0));
+            $out[] = $this->shopBaris($kode, $label, $kode, $qty, $semua);
         }
 
         return $out;
@@ -263,14 +375,24 @@ class KalenderReportAngkaCetakController extends Controller
     {
         $out = [];
         foreach ($baris as $b) {
-            $out[] = ['kode' => $b['kode'], 'label' => $b['label'], 'qty' => $b['qty'], 'semua' => $b['semua'] ?? null, 'level' => 0, 'induk' => ! empty($b['anak']), 'catatan' => $b['catatan']];
+            $adaAnak = ! empty($b['anak']);
+            $subtotal = $adaAnak && ! empty($b['subtotal_label']);
 
-            if (! empty($b['subtotal_label'])) {
-                $out[] = ['kode' => '', 'label' => $b['subtotal_label'], 'qty' => $b['qty'], 'semua' => $b['semua'] ?? null, 'level' => 0, 'induk' => false, 'catatan' => null, 'subtotal' => true];
-            }
+            $out[] = [
+                'kode' => $b['kode'],
+                'label' => $subtotal ? $b['subtotal_label'] : $b['label'],
+                'p1' => $b['p1'], 'p2' => $b['p2'], 'souv' => $b['souv'], 'total' => $b['total'],
+                'shop' => $b['shop'] ?? null,
+                'level' => 0, 'induk' => $adaAnak, 'subtotal' => $subtotal, 'catatan' => $b['catatan'],
+            ];
 
             foreach ($b['anak'] as $a) {
-                $out[] = ['kode' => $a['kode'], 'label' => $a['label'], 'qty' => $a['qty'], 'semua' => $a['semua'] ?? null, 'level' => 1, 'induk' => false, 'catatan' => $a['catatan']];
+                $out[] = [
+                    'kode' => $a['kode'], 'label' => $a['label'],
+                    'p1' => $a['p1'], 'p2' => $a['p2'], 'souv' => $a['souv'], 'total' => $a['total'],
+                    'shop' => $a['shop'] ?? null,
+                    'level' => 1, 'induk' => false, 'subtotal' => false, 'catatan' => $a['catatan'],
+                ];
             }
         }
 

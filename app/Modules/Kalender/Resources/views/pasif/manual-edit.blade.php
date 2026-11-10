@@ -8,7 +8,7 @@
     'subtitle' => 'Ubah data periode & unit pasif manual',
 ])
 @include('partials.flash')
-@include('partials.pasif-manual-form', [
+@include('partials.kalender-pasif-manual-form', [
     'periode' => $periode,
     'action'  => route('kalender.pasif.manual.update', $periode->id),
     'cancel'  => route('kalender.pasif.manual.show', $periode->id),
