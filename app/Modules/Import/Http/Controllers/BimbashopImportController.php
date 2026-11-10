@@ -102,6 +102,16 @@ class BimbashopImportController extends Controller
 
             Log::info("Import berhasil: " . $originalName);
 
+            // === SYNC STATUS: order yang Casdana-nya sudah SUCCESS -> processing ===
+            // (import ulang file Shop mengembalikan status ke on-hold, jadi harus dijalankan lagi di sini)
+            $infoStatus = '';
+            try {
+                $r = app(\App\Modules\Import\Services\CasdanaStatusSync::class)->sync();
+                $infoStatus = " {$r['order_diubah']} order menjadi Processing (Casdana sukses).";
+            } catch (\Throwable $e) {
+                Log::error('Sync status Shop dari Casdana gagal: ' . $e->getMessage());
+            }
+
             // === SYNC MANUAL ===
             $info = '';
             try {
@@ -113,7 +123,7 @@ class BimbashopImportController extends Controller
             }
 
             return redirect()->route('import.bimbashop')
-                             ->with('success', 'Data biMBA Shop berhasil diimport! File: ' . $originalName . '.' . $info);
+                             ->with('success', 'Data biMBA Shop berhasil diimport! File: ' . $originalName . '.' . $infoStatus . $info);
 
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             // Error validasi Excel (heading, format, dll)

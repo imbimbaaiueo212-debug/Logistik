@@ -79,6 +79,16 @@ public function casdanaStore(Request $request)
         Excel::import($import, $file);
 
         Log::info("Import Casdana berhasil: {$originalName} (baru: {$import->created}, update: {$import->updated})");
+        // === SYNC STATUS SHOP: Casdana SUCCESS -> order biMBA Shop jadi processing ===
+        $infoShop = '';
+        try {
+            $r = app(\App\Modules\Import\Services\CasdanaStatusSync::class)->sync();
+            Log::info('Sync status Shop dari Casdana: ' . json_encode($r));
+            $infoShop = " {$r['order_diubah']} order biMBA Shop berubah menjadi Processing.";
+        } catch (\Throwable $e) {
+            Log::error('Sync status Shop dari Casdana gagal: ' . $e->getMessage());
+        }
+
         // === SYNC MANUAL ===
 
         try {
@@ -89,7 +99,7 @@ public function casdanaStore(Request $request)
         }
 
         return redirect()->route('import.casdana')
-                         ->with('success', "✅ Data Casdana berhasil diimport! File: {$originalName} — {$import->created} baru, {$import->updated} diperbarui");
+                         ->with('success', "✅ Data Casdana berhasil diimport! File: {$originalName} — {$import->created} baru, {$import->updated} diperbarui.{$infoShop}");
 
     } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
         $failures = $e->failures();
