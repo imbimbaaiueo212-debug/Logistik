@@ -13,6 +13,7 @@ use App\Modules\Kalender\Models\KalenderPasifPesanan;
 use App\Modules\Kalender\Models\KalenderPuwUnit;
 use App\Modules\Kalender\Models\KalenderSpareManual;
 use App\Modules\Kalender\Support\KodeKalender;
+use App\Modules\OrderManual\Models\ManualCetakOrder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -122,6 +123,30 @@ class KalenderReportAngkaCetakController extends Controller
         $manualAktif = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)
             ->where('status_unit', 'aktif')->sum('jumlah');
 
+        // Create Manual Kalender (gaya Modul): unit AKTIF dibagi per kode stokis di SKU
+        //   JKT / tanpa kode -> baris A (Stokis Jakarta); kode logistik (TNG1, SMG, dst) -> baris stokisnya.
+        // Unit PASIF -> baris Pasif Manual (PSM). Semuanya kolom SOUV (tanpa pembayaran Shop).
+        $cetakAktif = [];
+        $cetakPasif = 0;
+        try {
+            $cetak = ManualCetakOrder::where('jenis', 'kalender')
+                ->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian)
+                ->get(['status_unit', 'kode_stokis', 'qty']);
+
+            foreach ($cetak as $c) {
+                if ($c->status_unit === 'pasif') {
+                    $cetakPasif += (int) $c->qty;
+                    continue;
+                }
+                $kode = $c->kode_stokis ?: 'JKT';
+                $cetakAktif[$kode] = ($cetakAktif[$kode] ?? 0) + (int) $c->qty;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Report Angka Cetak Kalender: manual_cetak_orders belum bisa dibaca: ' . $e->getMessage());
+        }
+        $manualAktif += (int) ($cetakAktif['JKT'] ?? 0);
+        unset($cetakAktif['JKT']);
+
         $barisJakarta = $this->shopBaris('A', 'Unit Aktif - Stokis Jakarta', '_JKT', $qty, $semua);
         if ($manualAktif > 0) {
             $barisJakarta['souv']   += $manualAktif;
@@ -133,9 +158,9 @@ class KalenderReportAngkaCetakController extends Controller
             $barisJakarta,
             // PUW = souvenir, tidak ada pembayaran
             $this->baris('A1', 'PUW1 - Stokis Logistik', 0, 0, $qtyPuw),
-            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua), 'Unit Aktif - Stokis Pasif'),
-            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua), 'Unit Aktif - Stokis Aktif'),
-            $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua)),
+            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua, $cetakAktif), 'Unit Aktif - Stokis Pasif'),
+            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua, $cetakAktif), 'Unit Aktif - Stokis Aktif'),
+            $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua, $cetakAktif)),
         ];
 
         // ======================= UNIT PASIF (kode P): SOUV =======================
@@ -147,6 +172,7 @@ class KalenderReportAngkaCetakController extends Controller
         // Create Manual berstatus pasif (data lama tanpa status dianggap pasif)
         $qtyManual = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)
             ->where(fn ($q) => $q->where('status_unit', 'pasif')->orWhereNull('status_unit'))->sum('jumlah');
+        $qtyManual += $cetakPasif;
 
         $pasif = [
             $this->induk('P', 'biMBA Unit Pasif', [
@@ -350,11 +376,21 @@ class KalenderReportAngkaCetakController extends Controller
         ];
     }
 
-    private function anak(array $daftar, array $qty, array $semua): array
+    private function anak(array $daftar, array $qty, array $semua, array $manual = []): array
     {
         $out = [];
         foreach ($daftar as $kode => $label) {
-            $out[] = $this->shopBaris($kode, $label, $kode, $qty, $semua);
+            $b = $this->shopBaris($kode, $label, $kode, $qty, $semua);
+
+            // pesanan Create Manual unit aktif untuk stokis ini (kolom SOUV)
+            $m = (int) ($manual[$kode] ?? 0);
+            if ($m > 0) {
+                $b['souv']   += $m;
+                $b['total']  += $m;
+                $b['catatan'] = 'termasuk ' . number_format($m) . ' dari Create Manual';
+            }
+
+            $out[] = $b;
         }
 
         return $out;

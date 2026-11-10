@@ -81,3 +81,19 @@ Route::prefix('order-manual-modul')
             // Picking list (dipakai di confirmPrintPicking)
             Route::get('/realisasi/picking-list/{id}', [ManualSertifikatRealisasiController::class, 'pickingList'])->name('realisasi.picking-list');
         });
+
+// ============ CREATE MANUAL KALENDER & MAJALAH (tampilan seperti Create Manual Modul) ============
+use App\Modules\OrderManual\Http\Controllers\Cetak\ManualCetakOrderController;
+
+foreach (['kalender', 'majalah'] as $jenisCetak) {
+    Route::prefix('order-manual-' . $jenisCetak)
+        ->name('order-manual-' . $jenisCetak . '.')
+        ->middleware('auth')
+        ->group(function () use ($jenisCetak) {
+            Route::get('/manual', [ManualCetakOrderController::class, 'manual'])->name('manual')->defaults('jenis', $jenisCetak);
+            Route::get('/manual/create', [ManualCetakOrderController::class, 'manualCreate'])->name('manual.create')->defaults('jenis', $jenisCetak);
+            Route::post('/manual', [ManualCetakOrderController::class, 'manualStore'])->name('manual.store')->defaults('jenis', $jenisCetak);
+            Route::delete('/manual/{manualId}', [ManualCetakOrderController::class, 'manualDestroy'])->name('manual.destroy')->defaults('jenis', $jenisCetak);
+            Route::get('/search-products', [ManualCetakOrderController::class, 'searchProducts'])->name('search-products')->defaults('jenis', $jenisCetak);
+        });
+}

@@ -336,7 +336,7 @@
                 'ops2.*','pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*',
             ]);
             $hsMajalahActive = $hsOps2Active || $hsPasifActive || request()->routeIs([
-                'order-manual.*','import.dlc.*',
+                'order-manual.*','import.dlc.*','order-manual-majalah.*',
             ]);
 
             // Kalender: [label, nama route, pola route untuk state aktif]
@@ -352,7 +352,7 @@
             $hsKalPuwActive   = request()->routeIs([
                 'kalender.puw','pesanan-kalender.*','pesanan-kalender-kotamadya.*','pesanan-kalender-puw1.*',
             ]);
-            $hsKalenderActive = $hsKalPuwActive || $hsKalPasifActive || request()->routeIs('kalender.dlc.*');
+            $hsKalenderActive = $hsKalPuwActive || $hsKalPasifActive || request()->routeIs(['kalender.dlc.*', 'order-manual-kalender.*']);
 
             $hsPemesananActive = $hsMajalahActive || $hsKalenderActive || request()->routeIs([
                 'order.index','import.bimbashop','import.bimbashop.*',
@@ -409,6 +409,8 @@
                             </div>
                         </div>
 
+                        <a href="{{ route('order-manual-majalah.manual.create') }}" class="hs-sub-link {{ request()->routeIs('order-manual-majalah.*') ? 'active' : '' }}">Create Manual Majalah</a>
+
                     </div>
                 </div>
 
@@ -435,6 +437,8 @@
                                 @endforeach
                             </div>
                         </div>
+
+                        <a href="{{ route('order-manual-kalender.manual.create') }}" class="hs-sub-link {{ request()->routeIs('order-manual-kalender.*') ? 'active' : '' }}">Create Manual Kalender</a>
                     </div>
                 </div>
 

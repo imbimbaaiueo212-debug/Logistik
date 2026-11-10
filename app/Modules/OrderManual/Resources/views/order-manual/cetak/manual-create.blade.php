@@ -1,0 +1,800 @@
+@extends('layouts.panel')
+
+@section('title', 'Create Manual ' . ucfirst($jenis))
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .field-label { font-size: 12px; font-weight: 500; color: #0F1B3399; margin-bottom: 4px; display: block; }
+    .field-input {
+        width: 100%;
+        border: 1px solid #0F1B331A;
+        border-radius: 0.75rem;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        background: #fff;
+        color: #0F1B33;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .field-input:focus {
+        outline: none;
+        border-color: #28447F;
+        box-shadow: 0 0 0 3px rgba(40,68,127,0.12);
+    }
+    .field-input:disabled { background: #F8F9FB; color: #0F1B3366; }
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0F1B33;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #0F1B331A;
+    }
+    .link-rust { color: #D14E1F; font-size: 12px; font-weight: 500; text-decoration: none; }
+    .link-rust:hover { text-decoration: underline; }
+
+    .select2-container .select2-selection--single {
+        height: 40px !important;
+        border: 1px solid #0F1B331A !important;
+        border-radius: 0.75rem !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 38px !important;
+        font-size: 13.5px;
+        padding-left: 12px;
+        color: #0F1B33;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 38px !important;
+    }
+    .select2-dropdown { border-radius: 0.75rem !important; border: 1px solid #0F1B331A !important; overflow: hidden; }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #28447F !important;
+    }
+</style>
+@endpush
+
+@section('content')
+
+    {{-- ============ HEADER ============ --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="min-w-0">
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Create Manual {{ ucfirst($jenis) }}</h1>
+            <p class="mt-1 text-sm text-navy-950/55">Input data pesanan {{ $jenis }} secara manual (masuk ke {{ ucfirst($jenis) }}, Report Angka Cetak, lalu Penjualan)</p>
+        </div>
+        <a href="{{ route("order-manual-{$jenis}.manual") }}"
+           class="inline-flex items-center gap-2 bg-white border border-navy-950/10 hover:border-navy-700 text-navy-950/70 hover:text-navy-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Kembali
+        </a>
+    </div>
+
+    {{-- ============ FLASH ============ --}}
+    @if(session('error'))
+        <div class="mt-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm">
+            {!! session('error') !!}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="mt-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm">
+            <ul class="list-disc list-inside space-y-0.5">
+                @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form id="formManualModul" action="{{ route("order-manual-{$jenis}.manual.store") }}" method="POST" class="mt-6">
+        @csrf
+
+        <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                {{-- GENERAL --}}
+                <div>
+                    <div class="section-title">General</div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="field-label">ID Manual</label>
+                            <input type="text" class="field-input"
+                                value="Otomatis (contoh: {{ $prefix }}{{ date('Ymd') }}-0001)" disabled>
+                            <p class="text-xs text-navy-950/40 mt-1">Di-generate otomatis saat disimpan</p>
+                        </div>
+
+                        <div>
+                            <label class="field-label">ID Pesanan (Bimba Shop)</label>
+                            <input type="text" name="order_id" value="{{ old('order_id') }}" class="field-input"
+                                placeholder="Kosongkan jika belum ada">
+                        </div>
+
+                        <div>
+                            <label class="field-label">Date created</label>
+                            <div class="flex items-center gap-2">
+                                <input type="date" name="order_date_date" value="{{ old('order_date_date', date('Y-m-d')) }}" class="field-input" style="flex:1">
+                                <span class="text-navy-950/40 text-sm">@</span>
+                                <input type="time" name="order_date_time" value="{{ old('order_date_time', date('H:i')) }}" class="field-input" style="width:100px">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="field-label">Customer</label>
+                            <select name="customer_id" id="customerSelect" style="width:100%">
+                                <option value="">— Pilih Customer —</option>
+                                @foreach($customers ?? [] as $c)
+                                    <option
+                                        value="{{ $c->ID }}"
+                                        data-display-name="{{ $c->display_name }}"
+                                        data-first-name="{{ $c->first_name ?? $c->billing_first_name }}"
+                                        data-last-name="{{ $c->last_name ?? $c->billing_last_name }}"
+                                        data-email="{{ $c->user_email ?? $c->billing_email }}"
+                                        data-phone="{{ $c->billing_phone ?? '' }}"
+                                        data-company="{{ $c->billing_company ?? '' }}"
+                                        data-address-1="{{ $c->billing_address_1 ?? '' }}"
+                                        data-address-2="{{ $c->billing_address_2 ?? '' }}"
+                                        data-city="{{ $c->billing_city ?? '' }}"
+                                        data-postcode="{{ $c->billing_postcode ?? '' }}"
+                                        data-state="{{ $c->billing_state ?? '' }}"
+                                        data-billing-first="{{ $c->billing_first_name ?? '' }}"
+                                        data-billing-last="{{ $c->billing_last_name ?? '' }}"
+                                        @selected(old('customer_id') == $c->ID)
+                                    >
+                                        {{ $c->display_name }}
+                                        @if($c->user_email) — {{ $c->user_email }} @endif
+                                        (#{{ $c->ID }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <input type="hidden" name="customer_name" id="customer_name" value="{{ old('customer_name') }}">
+                        </div>
+
+                        <div>
+                            <label class="field-label">Status Unit <span class="text-rust-600">*</span></label>
+                            <select name="status_unit" id="statusUnit" required class="field-input">
+                                <option value="">— Pilih Aktif / Pasif —</option>
+                                <option value="aktif" @selected(old('status_unit')=='aktif')>Aktif</option>
+                                <option value="pasif" @selected(old('status_unit')=='pasif')>Pasif</option>
+                            </select>
+                            <input type="hidden" name="no_cab" id="noCab" value="{{ old('no_cab') }}">
+                            <p class="text-xs text-navy-950/40 mt-1">Terisi otomatis dari data unit / stokis bila ditemukan; bisa diubah.</p>
+                        </div>
+
+                        <div>
+                            <label class="field-label">Status Kirim</label>
+                            <select name="status_kirim" id="statusKirim" class="field-input">
+                                <option value="Dikirim" @selected(old('status_kirim','Dikirim')=='Dikirim')>Dikirim</option>
+                                <option value="Diambil" @selected(old('status_kirim')=='Diambil')>Diambil</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="field-label">Ekspedisi</label>
+                            <select name="ekspedisi" id="ekspedisi" class="field-input">
+                                <option value="Lion Parcel">Lion Parcel</option>
+                                <option value="JNE">JNE</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="field-label">Service</label>
+                            <select name="service_pengiriman" id="servicePengiriman" class="field-input"></select>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- BILLING --}}
+                <div>
+                    <div class="section-title">Billing</div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">First name</label>
+                                <input type="text" name="billing_first_name" id="billing_first_name" value="{{ old('billing_first_name') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Last name</label>
+                                <input type="text" name="billing_last_name" id="billing_last_name" value="{{ old('billing_last_name') }}" class="field-input" placeholder="No Cabang">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label">Company</label>
+                            <input type="text" name="billing_company" id="billing_company" value="{{ old('billing_company') }}" class="field-input">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Address line 1</label>
+                                <input type="text" name="billing_address_1" id="billing_address_1" value="{{ old('billing_address_1') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Address line 2</label>
+                                <input type="text" name="billing_address_2" id="billing_address_2" value="{{ old('billing_address_2') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">City</label>
+                                <input type="text" name="billing_city" id="billing_city" value="{{ old('billing_city') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Postcode / ZIP</label>
+                                <input type="text" name="billing_postcode" id="billing_postcode" value="{{ old('billing_postcode') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Country / Region</label>
+                                <select name="billing_country" class="field-input">
+                                    <option value="Indonesia" selected>Indonesia</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">State / County</label>
+                                <input type="text" name="billing_state" id="billing_state" value="{{ old('billing_state') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Email address</label>
+                                <input type="email" name="email" id="email" value="{{ old('email') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Phone</label>
+                                <input type="text" name="phone" id="phone" value="{{ old('phone') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label">Payment method</label>
+                            <select name="payment_method" class="field-input">
+                                <option value="manual" @selected(old('payment_method','manual')=='manual')>Manual</option>
+                                <option value="transfer">Transfer</option>
+                                <option value="cash">Cash</option>
+                                <option value="N/A">N/A</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Sub District (Kelurahan)</label>
+                                <input type="text" name="billing_kelurahan" id="billing_kelurahan" value="{{ old('billing_kelurahan') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">District (Kecamatan)</label>
+                                <input type="text" name="billing_kecamatan" id="billing_kecamatan" value="{{ old('billing_kecamatan') }}" class="field-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- SHIPPING --}}
+                <div>
+                    <div class="flex justify-between items-center mb-3.5 pb-2.5 border-b border-navy-950/10">
+                        <span class="text-sm font-semibold text-navy-950">Shipping</span>
+                        <a href="javascript:void(0)" onclick="copyBillingToShipping()" class="link-rust">Copy billing address</a>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">First name</label>
+                                <input type="text" name="shipping_first_name" id="shipping_first_name" value="{{ old('shipping_first_name') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Last name</label>
+                                <input type="text" name="shipping_last_name" id="shipping_last_name" value="{{ old('shipping_last_name') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label">Company</label>
+                            <input type="text" name="shipping_company" id="shipping_company" value="{{ old('shipping_company') }}" class="field-input">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Address line 1</label>
+                                <input type="text" name="shipping_address_1" id="shipping_address_1" value="{{ old('shipping_address_1') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Address line 2</label>
+                                <input type="text" name="shipping_address_2" id="shipping_address_2" value="{{ old('shipping_address_2') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">City</label>
+                                <input type="text" name="shipping_city" id="shipping_city" value="{{ old('shipping_city') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">Postcode / ZIP</label>
+                                <input type="text" name="shipping_postcode" id="shipping_postcode" value="{{ old('shipping_postcode') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Country / Region</label>
+                                <select name="shipping_country" class="field-input">
+                                    <option value="Indonesia" selected>Indonesia</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">State / County</label>
+                                <input type="text" name="shipping_state" id="shipping_state" value="{{ old('shipping_state') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label">Phone</label>
+                            <input type="text" name="shipping_phone" id="shipping_phone" value="{{ old('shipping_phone') }}" class="field-input">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Sub District (Kelurahan)</label>
+                                <input type="text" name="shipping_kelurahan" id="shipping_kelurahan" value="{{ old('shipping_kelurahan') }}" class="field-input">
+                            </div>
+                            <div>
+                                <label class="field-label">District (Kecamatan)</label>
+                                <input type="text" name="shipping_kecamatan" id="shipping_kecamatan" value="{{ old('shipping_kecamatan') }}" class="field-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label">Customer provided note</label>
+                            <textarea name="catatan" rows="4" class="field-input bg-navy-950/[0.03]">{{ old('catatan') }}</textarea>
+                        </div>
+                        <div>
+                            <label class="field-label">Weight</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number"
+                                    name="order_weight"
+                                    value="{{ old('order_weight') }}"
+                                    step="1"
+                                    min="0"
+                                    class="field-input"
+                                    style="width:130px">
+                                <span class="text-sm text-navy-950/50">g</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        {{-- ITEMS: SKU dari products.label --}}
+        @php
+            $oldItems = old('items', [[
+                'product_id'   => '',
+                'product_sku'  => '',
+                'product_name' => '',
+                'jenis'        => '',
+                'kategori'     => '',
+                'harga_jual'   => '',
+                'qty'          => 1,
+            ]]);
+        @endphp
+
+        <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <div class="text-sm font-semibold text-navy-950">Items / SKU</div>
+                    <p class="text-xs text-navy-950/40 mt-0.5">SKU diambil dari <strong>label</strong> master produk (fallback: sku → kode)</p>
+                </div>
+                <button type="button" onclick="addItemRow()"
+                        class="inline-flex items-center gap-1.5 bg-navy-700/10 hover:bg-navy-700/15 text-navy-700 text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Tambah SKU
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-xs text-navy-950/50 border-b border-navy-950/10">
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:220px">SKU (dari Label Produk) <span class="text-rust-600">*</span></th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:180px">Nama Produk <span class="text-rust-600">*</span></th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:100px">Jenis</th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:120px">Kategori</th>
+                            <th class="pb-2.5 pr-2 font-medium" style="min-width:110px">Harga Jual</th>
+                            <th class="pb-2.5 pr-2 font-medium w-20">Qty <span class="text-rust-600">*</span></th>
+                            <th class="pb-2.5 w-8"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        @foreach($oldItems as $i => $item)
+                        <tr class="item-row border-b border-navy-950/5">
+                            <td class="py-2.5 pr-2">
+                                <select class="sku-select" name="items[{{ $i }}][product_sku]" style="width:100%">
+                                    @if(!empty($item['product_sku']))
+                                        <option value="{{ $item['product_sku'] }}" selected>
+                                            {{ $item['product_sku'] }}@if(!empty($item['product_name'])) — {{ $item['product_name'] }}@endif
+                                        </option>
+                                    @endif
+                                </select>
+                                <input type="hidden" name="items[{{ $i }}][product_id]" class="product-id" value="{{ $item['product_id'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="text" name="items[{{ $i }}][product_name]" required
+                                    class="field-input product-name"
+                                    placeholder="Nama produk"
+                                    value="{{ $item['product_name'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="text" name="items[{{ $i }}][jenis]"
+                                    class="field-input product-jenis"
+                                    placeholder="Jenis"
+                                    value="{{ $item['jenis'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="text" name="items[{{ $i }}][kategori]"
+                                    class="field-input product-kategori"
+                                    placeholder="Kategori"
+                                    value="{{ $item['kategori'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="number"
+                                    name="items[{{ $i }}][harga_jual]"
+                                    step="0.01"
+                                    min="0"
+                                    class="field-input product-harga"
+                                    placeholder="0"
+                                    value="{{ $item['harga_jual'] ?? '' }}">
+                            </td>
+                            <td class="py-2.5 pr-2">
+                                <input type="number" name="items[{{ $i }}][qty]" min="1" required class="field-input"
+                                    value="{{ $item['qty'] ?? 1 }}">
+                            </td>
+                            <td class="py-2.5 text-center">
+                                <button type="button" onclick="removeItemRow(this)" class="text-rust-600 hover:text-rust-600/70 transition-colors">
+                                    <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="bg-rust-600 hover:bg-rust-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                Simpan Order
+            </button>
+            <a href="{{ route("order-manual-{$jenis}.manual") }}" class="px-6 py-2.5 rounded-xl bg-white border border-navy-950/10 hover:border-navy-700 text-navy-950/70 hover:text-navy-700 text-sm font-medium transition-colors">
+                Batal
+            </a>
+        </div>
+    </form>
+
+@endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+let itemIndex = {{ count($oldItems) }};
+const searchProductUrl = @json(route("order-manual-{$jenis}.search-products"));
+
+/**
+ * Inisialisasi Select2 untuk SKU
+ */
+function initSkuSelect(el) {
+    const $el = $(el);
+
+    $el.select2({
+        placeholder: 'Cari SKU / Label / Nama...',
+        allowClear: true,
+        width: '100%',
+        minimumInputLength: 0,
+        ajax: {
+            url: searchProductUrl,
+            dataType: 'json',
+            delay: 250,
+            cache: true,
+            data: function (params) {
+                return { q: params.term || '' };
+            },
+            processResults: function (data) {
+                if (Array.isArray(data)) {
+                    return { results: data };
+                }
+                return { results: data.results || [] };
+            }
+        }
+    });
+
+    // Saat produk dipilih
+    $el.on('select2:select', function (e) {
+        const d = e.params.data;
+        const $row = $(this).closest('.item-row');
+
+        $row.find('.product-id').val(d.product_id || '');
+        $row.find('.product-name').val(d.name || '');
+        $row.find('.product-jenis').val(d.jenis || '');
+        $row.find('.product-kategori').val(d.kategori || '');
+
+        // Simpan harga SATUAN
+        const hargaSatuan = parseFloat(d.harga_jual || d.harga) || 0;
+        $row.find('.sku-select').data('harga-satuan', hargaSatuan);
+
+        // Simpan berat SATUAN
+        $row.find('.sku-select').data('berat', parseFloat(d.berat) || 0);
+
+        // Set harga awal (qty masih 1)
+        $row.find('.product-harga').val(hargaSatuan);
+
+        // Hitung ulang
+        updateHargaJualRow($row);
+        calculateTotalWeight();
+    });
+
+    // Saat SKU di-clear
+    $el.on('select2:clear', function () {
+        const $row = $(this).closest('.item-row');
+        $row.find('.product-id').val('');
+        $row.find('.product-name').val('');
+        $row.find('.product-jenis').val('');
+        $row.find('.product-kategori').val('');
+        $row.find('.product-harga').val('');
+        $row.find('.sku-select').data('harga-satuan', 0);
+        $row.find('.sku-select').data('berat', 0);
+
+        calculateTotalWeight();
+    });
+}
+
+/**
+ * Update Harga Jual = Harga Satuan × Qty
+ */
+function updateHargaJualRow($row) {
+    const hargaSatuan = parseFloat($row.find('.sku-select').data('harga-satuan')) || 0;
+    const qty = parseFloat($row.find('input[name*="[qty]"]').val()) || 1;
+
+    $row.find('.product-harga').val(Math.round(hargaSatuan * qty));
+}
+
+/**
+ * Hitung total berat (gram)
+ */
+function calculateTotalWeight() {
+    let totalKg = 0;
+
+    $('#itemsBody .item-row').each(function () {
+        const beratSatuanKg = parseFloat($(this).find('.sku-select').data('berat')) || 0;
+        const qty = parseFloat($(this).find('input[name*="[qty]"]').val()) || 0;
+        totalKg += beratSatuanKg * qty;
+    });
+
+    const totalGram = totalKg * 1000;
+    $('input[name="order_weight"]').val(totalGram > 0 ? Math.round(totalGram) : '');
+}
+
+/**
+ * Event: saat Qty berubah → update harga jual + berat
+ */
+$(document).on('input change', 'input[name*="[qty]"]', function () {
+    const $row = $(this).closest('.item-row');
+    updateHargaJualRow($row);
+    calculateTotalWeight();
+});
+
+/**
+ * Event: jika user edit manual Harga Jual → anggap sebagai harga satuan baru
+ */
+$(document).on('change', '.product-harga', function () {
+    const $row = $(this).closest('.item-row');
+    const qty = parseFloat($row.find('input[name*="[qty]"]').val()) || 1;
+    const hargaSekarang = parseFloat($(this).val()) || 0;
+
+    // Simpan ulang sebagai harga satuan
+    $row.find('.sku-select').data('harga-satuan', qty > 0 ? (hargaSekarang / qty) : hargaSekarang);
+});
+
+/**
+ * Tambah baris item baru
+ */
+function addItemRow() {
+    const index = document.querySelectorAll('#itemsBody .item-row').length;
+
+    const html = `
+    <tr class="item-row border-b border-navy-950/5">
+        <td class="py-2.5 pr-2">
+            <select class="sku-select" name="items[${index}][product_sku]" style="width:100%"></select>
+            <input type="hidden" name="items[${index}][product_id]" class="product-id" value="">
+        </td>
+        <td class="py-2.5 pr-2">
+            <input type="text" name="items[${index}][product_name]" required class="field-input product-name" placeholder="Nama produk">
+        </td>
+        <td class="py-2.5 pr-2">
+            <input type="text" name="items[${index}][jenis]" class="field-input product-jenis" placeholder="Jenis">
+        </td>
+        <td class="py-2.5 pr-2">
+            <input type="text" name="items[${index}][kategori]" class="field-input product-kategori" placeholder="Kategori">
+        </td>
+        <td class="py-2.5 pr-2">
+            <input type="number" name="items[${index}][harga_jual]" step="0.01" min="0" class="field-input product-harga" placeholder="0">
+        </td>
+        <td class="py-2.5 pr-2">
+            <input type="number" name="items[${index}][qty]" min="1" required class="field-input" value="1">
+        </td>
+        <td class="py-2.5 text-center">
+            <button type="button" onclick="removeItemRow(this)" class="text-rust-600 hover:text-rust-600/70 transition-colors">
+                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </td>
+    </tr>`;
+
+    document.getElementById('itemsBody').insertAdjacentHTML('beforeend', html);
+    initSkuSelect(document.querySelector('#itemsBody .item-row:last-child .sku-select'));
+}
+
+/**
+ * Hapus baris
+ */
+function removeItemRow(btn) {
+    if (document.querySelectorAll('#itemsBody .item-row').length <= 1) {
+        alert('Minimal 1 item');
+        return;
+    }
+    const $row = $(btn).closest('tr');
+    $row.find('.sku-select').select2('destroy');
+    $row.remove();
+    calculateTotalWeight();
+}
+
+/**
+ * Copy Billing → Shipping
+ */
+function copyBillingToShipping() {
+    const map = {
+        shipping_first_name: 'billing_first_name',
+        shipping_last_name:  'billing_last_name',
+        shipping_company:    'billing_company',
+        shipping_address_1:  'billing_address_1',
+        shipping_address_2:  'billing_address_2',
+        shipping_city:       'billing_city',
+        shipping_postcode:   'billing_postcode',
+        shipping_state:      'billing_state',
+        shipping_phone:      'phone',
+        shipping_kelurahan:  'billing_kelurahan',
+        shipping_kecamatan:  'billing_kecamatan',
+    };
+
+    const company = document.getElementById('billing_company').value
+                 || document.getElementById('customer_name').value;
+    document.getElementById('shipping_company').value = company;
+
+    for (const [ship, bill] of Object.entries(map)) {
+        if (ship === 'shipping_company') continue;
+        const el = document.getElementById(ship);
+        const src = document.getElementById(bill) || document.querySelector(`[name="${bill}"]`);
+        if (el && src) el.value = src.value;
+    }
+}
+
+$(document).ready(function () {
+    // Inisialisasi semua select SKU
+    $('.sku-select').each(function () {
+        initSkuSelect(this);
+    });
+
+    // Customer Select2
+    $('#customerSelect').select2({
+        placeholder: '— Pilih Unit / Customer —',
+        allowClear: true,
+        width: '100%'
+    });
+
+    $('#customerSelect').on('change', function () {
+        const opt = $(this).find(':selected');
+
+        if (!opt.val()) {
+            $('#customer_name, #billing_first_name, #billing_last_name, #billing_company, #billing_address_1, #billing_address_2, #billing_city, #billing_postcode, #billing_state, #phone, #email').val('');
+            return;
+        }
+
+        const displayName  = opt.data('display-name') || '';
+        const firstName    = opt.data('first-name') || opt.data('billing-first') || '';
+        const lastName     = opt.data('last-name') || opt.data('billing-last') || '';
+        const email        = opt.data('email') || '';
+        const phone        = opt.data('phone') || '';
+        const company      = opt.data('company') || displayName;
+        const address1     = opt.data('address-1') || '';
+        const address2     = opt.data('address-2') || '';
+        const city         = opt.data('city') || '';
+        const postcode     = opt.data('postcode') || '';
+        const state        = opt.data('state') || '';
+        const billingFirst = opt.data('billing-first') || firstName;
+        const billingLast  = opt.data('billing-last') || lastName;
+
+        $('#customer_name').val(displayName || company);
+        $('#billing_first_name').val(billingFirst);
+        $('#billing_last_name').val(billingLast);
+        $('#billing_company').val(company);
+        $('#billing_address_1').val(address1);
+        $('#billing_address_2').val(address2);
+        $('#billing_city').val(city);
+        $('#billing_postcode').val(postcode);
+        $('#billing_state').val(state);
+        $('#phone').val(phone);
+        $('#email').val(email);
+
+        $('#shipping_first_name').val(billingFirst);
+        $('#shipping_last_name').val(billingLast);
+        $('#shipping_company').val(company);
+        $('#shipping_address_1').val(address1);
+        $('#shipping_address_2').val(address2);
+        $('#shipping_city').val(city);
+        $('#shipping_postcode').val(postcode);
+        $('#shipping_state').val(state);
+        $('#shipping_phone').val(phone);
+    });
+
+    // Status Kirim & Ekspedisi
+    const statusEl    = document.getElementById('statusKirim');
+    const ekspedisiEl = document.getElementById('ekspedisi');
+    const serviceEl   = document.getElementById('servicePengiriman');
+    const form        = document.getElementById('formManualModul');
+
+    const lion = [
+        {v:'REGPACK',l:'REGPACK'},{v:'BOSPACK',l:'BOSPACK'},
+        {v:'JAGOPACK',l:'JAGOPACK'},{v:'BIGPACK',l:'BIGPACK'}
+    ];
+
+    function fillService(opts, sel) {
+        serviceEl.innerHTML = '';
+        opts.forEach(o => serviceEl.add(new Option(o.l, o.v, false, o.v === sel)));
+    }
+
+    function applyStatus() {
+        if (statusEl.value === 'Diambil') {
+            ekspedisiEl.innerHTML = '<option value="Diambil Sendiri">Diambil Sendiri</option>';
+            ekspedisiEl.disabled = true;
+            serviceEl.innerHTML = '<option value="">—</option>';
+            serviceEl.disabled = true;
+        } else {
+            ekspedisiEl.disabled = false;
+            serviceEl.disabled = false;
+            ekspedisiEl.innerHTML = '<option value="Lion Parcel">Lion Parcel</option><option value="JNE">JNE</option>';
+            fillService(ekspedisiEl.value === 'JNE' ? [{v:'REG',l:'REG'}] : lion, ekspedisiEl.value === 'JNE' ? 'REG' : 'REGPACK');
+        }
+    }
+
+    statusEl.addEventListener('change', applyStatus);
+    ekspedisiEl.addEventListener('change', function () {
+        fillService(ekspedisiEl.value === 'JNE' ? [{v:'REG',l:'REG'}] : lion, ekspedisiEl.value === 'JNE' ? 'REG' : 'REGPACK');
+    });
+
+    form.addEventListener('submit', function () {
+        if (statusEl.value === 'Diambil') {
+            ekspedisiEl.disabled = false;
+            serviceEl.disabled = false;
+        }
+        const d = form.querySelector('[name="order_date_date"]').value;
+        const t = form.querySelector('[name="order_date_time"]').value || '00:00';
+        if (d) {
+            let h = form.querySelector('[name="order_date"]');
+            if (!h) {
+                h = document.createElement('input');
+                h.type = 'hidden';
+                h.name = 'order_date';
+                form.appendChild(h);
+            }
+            h.value = d + ' ' + t + ':00';
+        }
+    });
+
+    applyStatus();
+});
+</script>
+<script>
+// Status Unit otomatis dari nama customer / unit
+(function () {
+    const peta = @json($statusMap ?? []);
+    function cari(n) { return n ? peta[String(n).trim().toUpperCase()] : null; }
+    $('#customerSelect').on('change', function () {
+        const o = $(this).find(':selected');
+        if (!o.val()) { return; }
+        const hit = cari(o.data('company')) || cari(o.data('display-name'));
+        if (hit) {
+            $('#statusUnit').val(hit.status);
+            $('#noCab').val(hit.no_cab || '');
+        }
+    });
+})();
+</script>
+@endpush
