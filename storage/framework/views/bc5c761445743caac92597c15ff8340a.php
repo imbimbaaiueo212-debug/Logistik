@@ -327,15 +327,14 @@
                 ['Spare Pasif 3%',     'import.pasif.spare',        ['import.pasif.spare*']],
                 ['Bacaan Unit',        'import.pasif.bacaan',       ['import.pasif.bacaan*']],
                 ['Import',             'import.pasif.rekap',        ['import.pasif.rekap*']],
-                ['Create Manual',      'import.pasif.manual.index', ['import.pasif.manual*']],
-                ['Report Angka Cetak', 'import.report-angka-cetak', ['import.report-angka-cetak*']],
             ];
-            $hsPasifActive = request()->routeIs(['import.pasif.*', 'import.report-angka-cetak*']);
+            $hsPasifActive = request()->routeIs(['import.pasif.*']);
+            $hsRacActive   = request()->routeIs(['import.report-angka-cetak*']);
 
             $hsOps2Active = request()->routeIs([
                 'ops2.*','pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*',
             ]);
-            $hsMajalahActive = $hsOps2Active || $hsPasifActive || request()->routeIs([
+            $hsMajalahActive = $hsOps2Active || $hsPasifActive || $hsRacActive || request()->routeIs([
                 'order-manual.*','import.dlc.*','order-manual-majalah.*',
             ]);
 
@@ -345,14 +344,13 @@
                 ['Spare Pasif 3%',     'kalender.pasif.spare',        ['kalender.pasif.spare*']],
                 ['Bacaan Unit',        'kalender.pasif.bacaan',       ['kalender.pasif.bacaan*']],
                 ['Import',             'kalender.pasif.rekap',        ['kalender.pasif.rekap*', 'kalender.pasif.create']],
-                ['Create Manual',      'kalender.pasif.manual.index', ['kalender.pasif.manual*']],
-                ['Report Angka Cetak', 'kalender.report-angka-cetak', ['kalender.report-angka-cetak*']],
             ];
-            $hsKalPasifActive = request()->routeIs(['kalender.pasif.*', 'kalender.report-angka-cetak*']);
+            $hsKalPasifActive = request()->routeIs(['kalender.pasif.*']);
+            $hsKalRacActive   = request()->routeIs(['kalender.report-angka-cetak*']);
             $hsKalPuwActive   = request()->routeIs([
                 'kalender.puw','pesanan-kalender.*','pesanan-kalender-kotamadya.*','pesanan-kalender-puw1.*',
             ]);
-            $hsKalenderActive = $hsKalPuwActive || $hsKalPasifActive || request()->routeIs(['kalender.dlc.*', 'order-manual-kalender.*']);
+            $hsKalenderActive = $hsKalPuwActive || $hsKalPasifActive || $hsKalRacActive || request()->routeIs(['kalender.dlc.*', 'order-manual-kalender.*']);
 
             $hsPemesananActive = $hsMajalahActive || $hsKalenderActive || request()->routeIs([
                 'order.index','import.bimbashop','import.bimbashop.*',
@@ -411,6 +409,8 @@
 
                         <a href="<?php echo e(route('order-manual-majalah.manual.create')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('order-manual-majalah.*') ? 'active' : ''); ?>">Create Manual Majalah</a>
 
+                        <a href="<?php echo e(route('import.report-angka-cetak')); ?>" class="hs-sub-link <?php echo e($hsRacActive ? 'active' : ''); ?>">Report Angka Cetak</a>
+
                     </div>
                 </div>
 
@@ -439,6 +439,8 @@
                         </div>
 
                         <a href="<?php echo e(route('order-manual-kalender.manual.create')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('order-manual-kalender.*') ? 'active' : ''); ?>">Create Manual Kalender</a>
+
+                        <a href="<?php echo e(route('kalender.report-angka-cetak')); ?>" class="hs-sub-link <?php echo e($hsKalRacActive ? 'active' : ''); ?>">Report Angka Cetak</a>
                     </div>
                 </div>
 
