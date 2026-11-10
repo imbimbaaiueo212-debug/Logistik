@@ -262,9 +262,10 @@ class KalenderReportAngkaCetakController extends Controller
                 }
             }
 
-            // SKU LG (logistik) tanpa kode stokis: stokis dikenali dari nama billing, mis. "Stokis Sukabumi 2 2992.S" -> SKB2
+            // Hanya SKU persis KLDxx-LG (order di logistik): stokis dikenali dari nama billing "Stokis <nama>",
+            // mis. "Stokis Sukabumi 2 2992.S" -> SKB2. Bila nama billing tidak cocok, tidak dimasukkan.
             $viaLg = false;
-            if ($kunci === null && in_array('LG', $token, true)) {
+            if ($kunci === null && $this->skuLogistik($token)) {
                 $kunci = $this->stokisDariNama($o, $namaStokis);
                 $viaLg = $kunci !== null;
             }
@@ -311,20 +312,26 @@ class KalenderReportAngkaCetakController extends Controller
         return ['qty' => $qty, 'semua' => $semua, 'lg' => $lg, 'belum_bayar' => $belumBayar];
     }
 
-    /** Kode stokis dari nama billing yang memuat kata "Stokis" + nama stokis, atau null. */
+    /** SKU persis KLDxx-LG (dua potongan saja: edisi kalender + LG). */
+    private function skuLogistik(array $token): bool
+    {
+        return count($token) === 2 && $token[1] === 'LG' && preg_match('/^KLD\d{2}$/', $token[0]) === 1;
+    }
+
+    /** Kode stokis dari nama billing berpola "Stokis <nama stokis>", atau null. */
     private function stokisDariNama($o, array $daftar): ?string
     {
         $nama = strtoupper(trim(implode(' ', array_filter([
             $o->billing_first_name, $o->billing_last_name, $o->billing_company,
         ]))));
 
-        if ($nama === '' || ! str_contains($nama, 'STOKIS')) {
+        if ($nama === '') {
             return null;
         }
 
         foreach ($daftar as $kode => $label) {
             $pola = str_replace(' ', '\\s*', preg_quote(strtoupper($label), '/'));
-            if (preg_match('/(?<![A-Z0-9])' . $pola . '(?![A-Z0-9])/', $nama)) {
+            if (preg_match('/(?<![A-Z0-9])STOKIS\s+' . $pola . '(?![A-Z0-9])/', $nama)) {
                 return $kode;
             }
         }
