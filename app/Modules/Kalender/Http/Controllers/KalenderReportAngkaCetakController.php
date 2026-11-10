@@ -111,8 +111,9 @@ class KalenderReportAngkaCetakController extends Controller
 
         // ======================= UNIT AKTIF (kode A): biMBA Shop =======================
         $hasil = $tahun === null
-            ? ['qty' => [], 'semua' => [], 'belum_bayar' => 0]
+            ? ['qty' => [], 'semua' => [], 'lg' => [], 'belum_bayar' => 0]
             : $this->qtyBimbaShop($tahun, $p1, $p2);
+        $lg = $hasil['lg'] ?? [];
 
         $qty   = $hasil['qty'];     // [token => ['p1' => n, 'p2' => n]] order dibayar (processing / completed)
         $semua = $hasil['semua'];   // [token => n] seluruh order Shop
@@ -149,8 +150,8 @@ class KalenderReportAngkaCetakController extends Controller
             $barisJakarta,
             // PUW = souvenir, tidak ada pembayaran
             $this->baris('A1', 'PUW1 - Stokis Logistik', 0, 0, $qtyPuw),
-            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua), 'Unit Aktif - Stokis Pasif'),
-            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua), 'Unit Aktif - Stokis Aktif'),
+            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua, $lg), 'Unit Aktif - Stokis Pasif'),
+            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua, $lg), 'Unit Aktif - Stokis Aktif'),
             $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua)),
         ];
 
@@ -230,7 +231,7 @@ class KalenderReportAngkaCetakController extends Controller
                        ->where('status', 'not like', '%refund%');
                 });
             })
-            ->get(['order_id', 'order_date', 'status', 'item_sku', 'item_name', 'item_qty']);
+            ->get(['order_id', 'order_date', 'status', 'payment_method', 'billing_first_name', 'billing_last_name', 'billing_company', 'item_sku', 'item_name', 'item_qty']);
 
         $baris = $baris->filter(fn ($o) => ShopMatcher::tahunFrom($o->item_sku, $o->item_name) === (string) $tahun);
 
@@ -239,7 +240,12 @@ class KalenderReportAngkaCetakController extends Controller
 
         $qty = [];
         $semua = [];
+        $lg = [];          // [kode stokis => qty] pesanan ber-SKU LG yang dikenali lewat nama billing
         $belumBayar = 0;
+
+        // Nama stokis (label terpanjang dulu agar "Yogyakarta 1" didahulukan dari "Yogyakarta")
+        $namaStokis = self::STOKIS_PASIF + self::STOKIS_AKTIF;
+        uasort($namaStokis, fn ($a, $b) => strlen($b) <=> strlen($a));
 
         foreach ($baris as $o) {
             $token = preg_split('/[^A-Z0-9]+/', strtoupper((string) $o->item_sku), -1, PREG_SPLIT_NO_EMPTY);
@@ -256,6 +262,13 @@ class KalenderReportAngkaCetakController extends Controller
                 }
             }
 
+            // SKU LG (logistik) tanpa kode stokis: stokis dikenali dari nama billing, mis. "Stokis Sukabumi 2 2992.S" -> SKB2
+            $viaLg = false;
+            if ($kunci === null && in_array('LG', $token, true)) {
+                $kunci = $this->stokisDariNama($o, $namaStokis);
+                $viaLg = $kunci !== null;
+            }
+
             // Stokis Jakarta hanya SKU ber-kode JKT (mis. KLD27-JKT).
             // SKU lain yang tidak dikenal (LG, PUW, dll) tidak lagi ikut tertarik ke Jakarta.
             if ($kunci === null) {
@@ -270,8 +283,13 @@ class KalenderReportAngkaCetakController extends Controller
 
             // On-hold / pending (belum dibayar) tidak dimasukkan sama sekali ke report,
             // termasuk kolom Order Shop. On-hold yang sudah SETTLED/SUCCESS sudah jadi processing lewat ShopStatusSync.
-            if (! in_array($status, self::STATUS_DIBAYAR, true)) {
+            // Pengecualian: COD / wallet / other dibayar di luar Casdana, tetap dihitung.
+            if (! in_array($status, self::STATUS_DIBAYAR, true) && ! CetakShopMatcher::bayarTanpaCasdana($o->payment_method)) {
                 continue;
+            }
+
+            if ($viaLg) {
+                $lg[$kunci] = ($lg[$kunci] ?? 0) + $jumlah;
             }
 
             $semua[$kunci] = ($semua[$kunci] ?? 0) + $jumlah;
@@ -290,7 +308,28 @@ class KalenderReportAngkaCetakController extends Controller
             }
         }
 
-        return ['qty' => $qty, 'semua' => $semua, 'belum_bayar' => $belumBayar];
+        return ['qty' => $qty, 'semua' => $semua, 'lg' => $lg, 'belum_bayar' => $belumBayar];
+    }
+
+    /** Kode stokis dari nama billing yang memuat kata "Stokis" + nama stokis, atau null. */
+    private function stokisDariNama($o, array $daftar): ?string
+    {
+        $nama = strtoupper(trim(implode(' ', array_filter([
+            $o->billing_first_name, $o->billing_last_name, $o->billing_company,
+        ]))));
+
+        if ($nama === '' || ! str_contains($nama, 'STOKIS')) {
+            return null;
+        }
+
+        foreach ($daftar as $kode => $label) {
+            $pola = str_replace(' ', '\\s*', preg_quote(strtoupper($label), '/'));
+            if (preg_match('/(?<![A-Z0-9])' . $pola . '(?![A-Z0-9])/', $nama)) {
+                return $kode;
+            }
+        }
+
+        return null;
     }
 
     /** @return array{0:Carbon|null,1:Carbon|null}|null  null bila kedua tanggal kosong / tidak valid */
@@ -368,18 +407,16 @@ class KalenderReportAngkaCetakController extends Controller
         ];
     }
 
-    private function anak(array $daftar, array $qty, array $semua, array $manual = []): array
+    private function anak(array $daftar, array $qty, array $semua, array $lg = []): array
     {
         $out = [];
         foreach ($daftar as $kode => $label) {
             $b = $this->shopBaris($kode, $label, $kode, $qty, $semua);
 
-            // pesanan Create Manual unit aktif untuk stokis ini (kolom SOUV)
-            $m = (int) ($manual[$kode] ?? 0);
-            if ($m > 0) {
-                $b['souv']   += $m;
-                $b['total']  += $m;
-                $b['catatan'] = 'termasuk ' . number_format($m) . ' dari Create Manual';
+            // pesanan ber-SKU LG yang dikenali lewat nama billing "Stokis ..."
+            $n = (int) ($lg[$kode] ?? 0);
+            if ($n > 0) {
+                $b['catatan'] = 'termasuk ' . number_format($n) . ' dari pesanan LG (nama billing Stokis)';
             }
 
             $out[] = $b;

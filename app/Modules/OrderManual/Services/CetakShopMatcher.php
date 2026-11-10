@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Log;
  *
  *  - Status awal  : on-hold (tidak dihitung di Report Angka Cetak).
  *  - Processing   : bila order sudah ada di biMBA Shop (no_cab + tahun/edisi sama)
- *                   DAN sudah lunas di Kasdana (SUCCESS / SETTLED / PAID).
+ *                   DAN sudah lunas di Kasdana (SUCCESS / SETTLED / PAID),
+ *                   atau dibayar COD / wallet / other (tanpa Casdana).
  *                   ID order biMBA Shop disimpan di bimba_order_id.
  *  - Angkanya sendiri sudah dihitung lewat order biMBA Shop, jadi Create Manual TIDAK masuk SOUV.
  */
@@ -22,6 +23,18 @@ class CetakShopMatcher
     public const KASDANA_LUNAS = ['SUCCESS', 'SETTLED', 'PAID'];
 
     public const STATUS_SELESAI = ['processing', 'completed'];
+
+    /** Payment method yang dibayar di luar Casdana (COD, wallet, other): dianggap sudah dibayar. */
+    public static function bayarTanpaCasdana(?string $metode): bool
+    {
+        $m = strtolower(trim((string) $metode));
+
+        return $m !== '' && (
+            in_array($m, ['cod', 'wallet', 'other'], true)
+            || str_contains($m, 'cash on delivery')
+            || str_contains($m, 'wallet')
+        );
+    }
 
     /** @return array{processing:int, on_hold:int} */
     public function sync(?string $jenis = null): array
@@ -44,6 +57,7 @@ class CetakShopMatcher
         // ---- biMBA Shop: index per jenis -> tahun/edisi -> no_cab -> [order_id, ...] ----
         $shop = ['kalender' => [], 'majalah' => []];
         $infoShop = [];   // order_id => status shop
+        $tanpaCasdana = []; // order_id => true bila COD / wallet / other
 
         $rows = BimbashopOrder::query()
             ->where(function ($q) {
@@ -54,11 +68,14 @@ class CetakShopMatcher
                 });
             })
             ->orderBy('order_date')->orderBy('id')
-            ->get(['order_id', 'status', 'billing_last_name', 'item_sku', 'item_name']);
+            ->get(['order_id', 'status', 'payment_method', 'billing_last_name', 'item_sku', 'item_name']);
 
         foreach ($rows as $r) {
             $oid = (string) $r->order_id;
             $infoShop[$oid] = preg_replace('/^wc-/', '', strtolower(trim((string) $r->status)));
+            if (self::bayarTanpaCasdana($r->payment_method)) {
+                $tanpaCasdana[$oid] = true;
+            }
 
             $key = ShopMatcher::noCabKey($r->billing_last_name);
             if ($key === '') {
@@ -142,7 +159,8 @@ class CetakShopMatcher
         foreach ($baris as $b) {
             $hit = null;
             foreach ($kandidat[$b->id] as $oid) {
-                $lunas = in_array($kasdana[$oid]['status'] ?? '', self::KASDANA_LUNAS, true);
+                $lunas = in_array($kasdana[$oid]['status'] ?? '', self::KASDANA_LUNAS, true)
+                    || isset($tanpaCasdana[$oid]);
                 $milikLain = isset($terpakai[$oid]) && ! in_array($b->manual_id, $terpakai[$oid], true);
 
                 if ($lunas && ! $milikLain) {
