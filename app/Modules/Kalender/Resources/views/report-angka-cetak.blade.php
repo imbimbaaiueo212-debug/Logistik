@@ -72,6 +72,13 @@
         </div>
     @endif
 
+    @if(($report['manual_menunggu'] ?? 0) > 0)
+        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+            {{ number_format($report['manual_menunggu']) }} qty Create Manual (unit aktif) masih on-hold, belum ada di biMBA Shop dan Kasdana, sehingga belum dihitung.
+            Setelah lengkap, angkanya terhitung lewat order biMBA Shop (bukan SOUV).
+        </div>
+    @endif
+
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-5 py-3.5 border-b border-gray-100">
             <h3 class="text-sm font-bold uppercase tracking-wide text-[#162749]">Proses Pesanan Kalender biMBA ({{ $report['edisi'] }})</h3>

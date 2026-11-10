@@ -7,6 +7,7 @@ use App\Modules\Kalender\Support\UnitManualOptions;
 use App\Modules\Master\Models\Product;
 use App\Modules\Master\Models\UserExportBimbaShop;
 use App\Modules\OrderManual\Models\ManualCetakOrder;
+use App\Modules\OrderManual\Services\CetakShopMatcher;
 use App\Modules\OrderManual\Support\KodeStokisSku;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,11 +36,19 @@ class ManualCetakOrderController extends Controller
     {
         $jenis = $this->jenis($request);
 
+        // Cocokkan dulu dengan biMBA Shop + Kasdana: ada keduanya -> processing, belum -> on-hold
+        try {
+            app(CetakShopMatcher::class)->sync($jenis);
+        } catch (\Throwable $e) {
+            Log::warning("Sinkron Create Manual {$jenis} ke biMBA Shop gagal: " . $e->getMessage());
+        }
+
         $query = ManualCetakOrder::where('jenis', $jenis);
 
         if ($request->filled('order_id')) {
             $query->where(function ($q) use ($request) {
                 $q->where('order_id', 'like', '%' . $request->order_id . '%')
+                  ->orWhere('bimba_order_id', 'like', '%' . $request->order_id . '%')
                   ->orWhere('manual_id', 'like', '%' . $request->order_id . '%');
             });
         }
@@ -266,7 +275,7 @@ class ManualCetakOrderController extends Controller
                     'total'              => $harga,
                     'order_weight'       => (int) ($request->order_weight ?? 0),
                     'payment_method'     => $request->payment_method ?: 'manual',
-                    'status'             => 'pending',
+                    'status'             => 'on-hold',
                     'status_kirim'       => $statusKirim,
                     'ekspedisi'          => $ekspedisi,
                     'service_pengiriman' => $service,
@@ -284,9 +293,18 @@ class ManualCetakOrderController extends Controller
 
             DB::commit();
 
+            // Bila sudah ada di biMBA Shop dan Kasdana, langsung processing
+            $status = 'on-hold';
+            try {
+                app(CetakShopMatcher::class)->sync($jenis);
+                $status = ManualCetakOrder::where('manual_id', $manualId)->value('status') ?: 'on-hold';
+            } catch (\Throwable $e) {
+                Log::warning("Sinkron Create Manual {$jenis} ke biMBA Shop gagal: " . $e->getMessage());
+            }
+
             return redirect()
                 ->route("order-manual-{$jenis}.manual")
-                ->with('success', "Pesanan {$jenis} {$manualId} berhasil disimpan ({$dibuat} item).");
+                ->with('success', "Pesanan {$jenis} {$manualId} berhasil disimpan ({$dibuat} item), status: {$status}.");
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error("Create Manual {$jenis} gagal: " . $e->getMessage());

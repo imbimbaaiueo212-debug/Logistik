@@ -10,6 +10,10 @@
     .data-table tbody tr:hover td { background-color: #F8F9FB; }
     .filter-input { width: 100%; border: 1px solid #0F1B331A; border-radius: 0.75rem; padding: 9px 12px; font-size: 13.5px; background: #fff; color: #0F1B33; }
     .pager nav p { display: none; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+    .badge-hold { background: #FEF3C7; color: #92400E; }
+    .badge-proc { background: #DCFCE7; color: #166534; }
+    .badge-done { background: #E0E7FF; color: #3730A3; }
 </style>
 @endpush
 
@@ -25,6 +29,11 @@
            class="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#D14E1F] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors shrink-0">
             + Create Manual
         </a>
+    </div>
+
+    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+        Status awal <strong>On-hold</strong>. Otomatis menjadi <strong>Processing</strong> setelah pesanan unit ada di biMBA Shop dan sudah lunas di Kasdana;
+        ID biMBA Shop akan muncul di kolom <strong>ID biMBA Shop</strong>. Pesanan yang sudah ada di biMBA Shop tidak dihitung dua kali di Report Angka Cetak.
     </div>
 
     <form method="GET" class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -44,7 +53,7 @@
                 <tr>
                     <th>ID Manual</th><th>Tanggal</th><th>Customer / Unit</th><th>Status Unit</th>
                     <th>SKU</th><th>Produk</th><th class="text-right">Qty</th><th>Stokis</th>
-                    <th>Ekspedisi</th><th>Service</th><th>Status</th><th>Aksi</th>
+                    <th>Ekspedisi</th><th>Service</th><th>Status</th><th>ID biMBA Shop</th><th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,7 +69,18 @@
                     <td>{{ $o->kode_stokis ?: '-' }}</td>
                     <td>{{ $o->ekspedisi }}</td>
                     <td>{{ $o->service_pengiriman }}</td>
-                    <td>{{ $o->synced_penjualan_at ? 'Di Penjualan' : ($o->is_processed ? 'Diproses' : 'Pending') }}</td>
+                    <td>
+                        @if($o->synced_penjualan_at)
+                            <span class="badge badge-done">Di Penjualan</span>
+                        @elseif($o->is_processed)
+                            <span class="badge badge-done">Diproses</span>
+                        @elseif(in_array($o->status, ['processing', 'completed'], true))
+                            <span class="badge badge-proc">Processing</span>
+                        @else
+                            <span class="badge badge-hold" title="Menunggu order di biMBA Shop dan pembayaran di Kasdana">On-hold</span>
+                        @endif
+                    </td>
+                    <td class="font-medium">{{ $o->bimba_order_id ?: '-' }}</td>
                     <td>
                         @if(! $o->is_processed && ! $o->synced_penjualan_at)
                             <form method="POST" action="{{ route("order-manual-{$jenis}.manual.destroy", $o->manual_id) }}"
@@ -72,7 +92,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="12" class="text-center text-navy-950/50 py-10">Belum ada pesanan manual {{ $jenis }}.</td></tr>
+                <tr><td colspan="13" class="text-center text-navy-950/50 py-10">Belum ada pesanan manual {{ $jenis }}.</td></tr>
             @endforelse
             </tbody>
         </table>

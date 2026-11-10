@@ -14,6 +14,7 @@ use App\Modules\Kalender\Models\KalenderPuwUnit;
 use App\Modules\Kalender\Models\KalenderSpareManual;
 use App\Modules\Kalender\Support\KodeKalender;
 use App\Modules\OrderManual\Models\ManualCetakOrder;
+use App\Modules\OrderManual\Services\CetakShopMatcher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -118,49 +119,39 @@ class KalenderReportAngkaCetakController extends Controller
 
         $qtyPuw = (int) KalenderPuwUnit::whereHas('periode', fn ($q) => $q->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian))->sum('qty');
 
-        // Create Manual Kalender: unit berstatus AKTIF masuk ke baris A (kolom SOUV, karena tanpa pembayaran Shop,
-        // sehingga angka Periode / Order Shop / Selisih yang mengikuti Excel tidak berubah)
-        $manualAktif = (int) KalenderPasifManualTransaksi::whereHas('periode', $periodeEdisi)
-            ->where('status_unit', 'aktif')->sum('jumlah');
-
-        // Create Manual Kalender (gaya Modul): unit AKTIF dibagi per kode stokis di SKU
-        //   JKT / tanpa kode -> baris A (Stokis Jakarta); kode logistik (TNG1, SMG, dst) -> baris stokisnya.
-        // Unit PASIF -> baris Pasif Manual (PSM). Semuanya kolom SOUV (tanpa pembayaran Shop).
-        $cetakAktif = [];
-        $cetakPasif = 0;
+        // Create Manual Kalender unit AKTIF TIDAK masuk SOUV.
+        //  - Sudah ada di biMBA Shop + Kasdana -> sudah terhitung lewat order Shop (processing), tidak dihitung lagi.
+        //  - Belum lengkap -> tetap on-hold, belum dihitung.
+        // Unit PASIF tetap ke baris Pasif Manual (PSM, SOUV).
+        $manualMenunggu = 0;
+        $cetakPasif     = 0;
         try {
+            app(CetakShopMatcher::class)->sync('kalender');
+
             $cetak = ManualCetakOrder::where('jenis', 'kalender')
                 ->whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian)
-                ->get(['status_unit', 'kode_stokis', 'qty']);
+                ->get(['status_unit', 'status', 'qty']);
 
             foreach ($cetak as $c) {
                 if ($c->status_unit === 'pasif') {
                     $cetakPasif += (int) $c->qty;
-                    continue;
+                } elseif (! in_array($c->status, CetakShopMatcher::STATUS_SELESAI, true)) {
+                    $manualMenunggu += (int) $c->qty;   // aktif, masih on-hold
                 }
-                $kode = $c->kode_stokis ?: 'JKT';
-                $cetakAktif[$kode] = ($cetakAktif[$kode] ?? 0) + (int) $c->qty;
             }
         } catch (\Throwable $e) {
             Log::warning('Report Angka Cetak Kalender: manual_cetak_orders belum bisa dibaca: ' . $e->getMessage());
         }
-        $manualAktif += (int) ($cetakAktif['JKT'] ?? 0);
-        unset($cetakAktif['JKT']);
 
         $barisJakarta = $this->shopBaris('A', 'Unit Aktif - Stokis Jakarta', '_JKT', $qty, $semua);
-        if ($manualAktif > 0) {
-            $barisJakarta['souv']   += $manualAktif;
-            $barisJakarta['total']  += $manualAktif;
-            $barisJakarta['catatan'] = 'termasuk ' . number_format($manualAktif) . ' dari Create Manual (unit aktif)';
-        }
 
         $aktif = [
             $barisJakarta,
             // PUW = souvenir, tidak ada pembayaran
             $this->baris('A1', 'PUW1 - Stokis Logistik', 0, 0, $qtyPuw),
-            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua, $cetakAktif), 'Unit Aktif - Stokis Pasif'),
-            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua, $cetakAktif), 'Unit Aktif - Stokis Aktif'),
-            $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua, $cetakAktif)),
+            $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua), 'Unit Aktif - Stokis Pasif'),
+            $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua), 'Unit Aktif - Stokis Aktif'),
+            $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua)),
         ];
 
         // ======================= UNIT PASIF (kode P): SOUV =======================
@@ -209,6 +200,7 @@ class KalenderReportAngkaCetakController extends Controller
             'total_pasif' => $totalPasif,
             'grand_total' => $totalAktif + $totalPasif,
             'dinaikkan'   => $dinaikkan,              // baris on-hold -> processing pada pemuatan ini
+            'manual_menunggu' => $manualMenunggu,     // Create Manual aktif yang masih on-hold (belum dihitung)
         ];
 
         return view('kalender::report-angka-cetak', compact('edisiList', 'selectedEdisi', 'report', 'filter'));
