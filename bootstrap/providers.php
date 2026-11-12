@@ -14,6 +14,7 @@ use App\Modules\Qc\Providers\QcServiceProvider;
 use App\Modules\Stok\Providers\StokServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Modules\Kalender\Providers\KalenderServiceProvider;
+use App\Modules\PengeluaranLogistik\Providers\PengeluaranLogistikServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -32,5 +33,6 @@ return [
     OrderManualServiceProvider::class,
     KeuanganServiceProvider::class,
     KalenderServiceProvider::class,
+    PengeluaranLogistikServiceProvider::class,
 
 ];

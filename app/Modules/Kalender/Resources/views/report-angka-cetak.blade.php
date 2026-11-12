@@ -97,18 +97,20 @@
                         <th class="sticky top-0 z-10 bg-[#162749] text-left font-semibold py-2.5 px-4 w-20">Kode</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-left font-semibold py-2.5 px-4">Kategori Pemesanan</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4 whitespace-nowrap">{{ $filter['semua_tanggal'] ? 'Semua tanggal' : 'Periode 1' }}</th>
+                        <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4 whitespace-nowrap">Order LG</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4 whitespace-nowrap">Periode 2</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4">SOUV</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4 border-l border-white/20">TOTAL</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4 whitespace-nowrap">Order Shop</th>
                         <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4">Selisih</th>
+                        <th class="sticky top-0 z-10 bg-[#162749] text-right font-semibold py-2.5 px-4 whitespace-nowrap">Selisih LG</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach([['rows' => $report['rows_aktif'], 'judul' => null], ['rows' => $report['rows_pasif'], 'judul' => 'Unit Pasif (P) - SOUV']] as $blok)
                         @if($blok['judul'])
                             <tr>
-                                <td colspan="8" class="py-2 px-4 text-xs font-semibold uppercase tracking-wide text-white bg-[#28447F]">{{ $blok['judul'] }}</td>
+                                <td colspan="10" class="py-2 px-4 text-xs font-semibold uppercase tracking-wide text-white bg-[#28447F]">{{ $blok['judul'] }}</td>
                             </tr>
                         @endif
 
@@ -116,6 +118,8 @@
                             @php
                                 $shop    = $row['shop'];
                                 $selisih = $shop === null ? null : $shop - ($row['p1'] + $row['p2']);
+                                $lgQty   = $row['lg'] ?? null;
+                                $selisihLg = ($lgQty === null || $lgQty == 0 || $shop === null) ? null : $lgQty - $shop;
                                 $nol     = fn ($v) => $v == 0 ? 'text-gray-300' : 'text-gray-700';
                             @endphp
                             <tr class="{{ $row['subtotal'] ? 'bg-[#EADFC4] font-semibold' : 'hover:bg-gray-50' }}">
@@ -127,12 +131,16 @@
                                     @endif
                                 </td>
                                 <td class="py-2 px-4 text-right {{ $nol($row['p1']) }}">{{ number_format($row['p1']) }}</td>
+                                <td class="py-2 px-4 text-right {{ $lgQty === null ? '' : $nol($lgQty) }}">{{ $lgQty === null ? '' : number_format($lgQty) }}</td>
                                 <td class="py-2 px-4 text-right {{ $nol($row['p2']) }}">{{ number_format($row['p2']) }}</td>
                                 <td class="py-2 px-4 text-right {{ $nol($row['souv']) }}">{{ number_format($row['souv']) }}</td>
                                 <td class="py-2 px-4 text-right font-semibold border-l border-gray-100 {{ $row['total'] > 0 ? 'text-gray-900' : 'text-gray-300' }}">{{ number_format($row['total']) }}</td>
                                 <td class="py-2 px-4 text-right {{ $shop === null ? '' : $nol($shop) }}">{{ $shop === null ? '' : number_format($shop) }}</td>
                                 <td class="py-2 px-4 text-right font-semibold {{ $selisih === null || $selisih === 0 ? 'text-gray-300' : 'text-[#D14E1F]' }}">
                                     {{ $selisih === null ? '' : number_format($selisih) }}
+                                </td>
+                                <td class="py-2 px-4 text-right font-semibold {{ $selisihLg === null || $selisihLg === 0 ? 'text-gray-300' : 'text-[#D14E1F]' }}">
+                                    {{ $selisihLg === null ? '' : ($selisihLg > 0 ? '+' : '') . number_format($selisihLg) }}
                                 </td>
                             </tr>
                         @endforeach
