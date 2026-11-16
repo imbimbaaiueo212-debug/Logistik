@@ -249,6 +249,17 @@
         </a>
         @endif
 
+        {{-- Report Pengeluaran Logistik: khusus admin, diletakkan di bawah Master Gudang --}}
+        @if($__u->isAdmin())
+        @php $hsPengeluaranActive = request()->routeIs('pengeluaran-logistik.*'); @endphp
+        <a href="{{ route('pengeluaran-logistik.index') }}" class="hs-link {{ $hsPengeluaranActive ? 'active' : '' }}">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15v-4"/><path d="M12 15V8"/><path d="M16 15v-6"/></svg>
+                Report Pengeluaran
+            </span>
+        </a>
+        @endif
+
         {{-- ================= DATABASE ================= --}}
         @if($__u->hasModule('user') || $__u->hasModule('produk') || $__u->hasModule('suplier') || $__u->hasModule('stokis'))
         <p class="hs-group-label">DATABASE MASTER</p>
@@ -493,17 +504,6 @@
                 <a href="{{ route('penjualan.logistik') }}" class="hs-sub-link {{ $hsLogistikActive ? 'active' : '' }}">Logistik</a>
             </div>
         </div>
-        @endif
-
-        @if($__u->hasModule('penjualan'))
-        {{-- Report Pengeluaran Logistik: stokis order ke Logistik, unit beli ke stokis, transfer gudang --}}
-        @php $hsPengeluaranActive = request()->routeIs('pengeluaran-logistik.*'); @endphp
-        <a href="{{ route('pengeluaran-logistik.index') }}" class="hs-link {{ $hsPengeluaranActive ? 'active' : '' }}">
-            <span class="inline-flex items-center gap-2">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15v-4"/><path d="M12 15V8"/><path d="M16 15v-6"/></svg>
-                Report Pengeluaran
-            </span>
-        </a>
         @endif
 
         @if($__u->hasModule('persiapan'))

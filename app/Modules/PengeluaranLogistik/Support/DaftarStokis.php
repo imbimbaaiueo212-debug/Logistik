@@ -38,8 +38,8 @@ final class DaftarStokis
         'INV' => 'Inventaris',
     ];
 
-    /** Rumah Jakarta pasif lain: bukan stokis logistik. (JKT dan JKTP sekarang dihitung sebagai stokis.) */
-    public const BUKAN_STOKIS = ['DLC', 'EBT', 'INV', 'BSS'];
+    /** Rumah Jakarta pasif lain: bukan stokis logistik. (JKT, JKTP, dan INV dihitung sebagai stokis.) */
+    public const BUKAN_STOKIS = ['DLC', 'EBT', 'BSS'];
 
     /** @return array<string,string> kode => nama, semua kelompok */
     public static function semua(): array

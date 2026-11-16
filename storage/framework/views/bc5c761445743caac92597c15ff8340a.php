@@ -250,6 +250,17 @@
         <?php endif; ?>
 
         
+        <?php if($__u->isAdmin()): ?>
+        <?php $hsPengeluaranActive = request()->routeIs('pengeluaran-logistik.*'); ?>
+        <a href="<?php echo e(route('pengeluaran-logistik.index')); ?>" class="hs-link <?php echo e($hsPengeluaranActive ? 'active' : ''); ?>">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15v-4"/><path d="M12 15V8"/><path d="M16 15v-6"/></svg>
+                Report Pengeluaran
+            </span>
+        </a>
+        <?php endif; ?>
+
+        
         <?php if($__u->hasModule('user') || $__u->hasModule('produk') || $__u->hasModule('suplier') || $__u->hasModule('stokis')): ?>
         <p class="hs-group-label">DATABASE MASTER</p>
         <?php endif; ?>
@@ -493,17 +504,6 @@
                 <a href="<?php echo e(route('penjualan.logistik')); ?>" class="hs-sub-link <?php echo e($hsLogistikActive ? 'active' : ''); ?>">Logistik</a>
             </div>
         </div>
-        <?php endif; ?>
-
-        <?php if($__u->hasModule('penjualan')): ?>
-        
-        <?php $hsPengeluaranActive = request()->routeIs('pengeluaran-logistik.*'); ?>
-        <a href="<?php echo e(route('pengeluaran-logistik.index')); ?>" class="hs-link <?php echo e($hsPengeluaranActive ? 'active' : ''); ?>">
-            <span class="inline-flex items-center gap-2">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15v-4"/><path d="M12 15V8"/><path d="M16 15v-6"/></svg>
-                Report Pengeluaran
-            </span>
-        </a>
         <?php endif; ?>
 
         <?php if($__u->hasModule('persiapan')): ?>

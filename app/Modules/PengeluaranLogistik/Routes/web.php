@@ -3,6 +3,7 @@
 // ====================== REPORT PENGELUARAN LOGISTIK ======================
 // Di-load oleh PengeluaranLogistikServiceProvider (grup middleware "web").
 // URL: /pengeluaran-logistik/...   Nama route: pengeluaran-logistik.*
+// Akses: khusus admin (user->role === 'admin'). Selain admin mendapat 403.
 
 use App\Modules\PengeluaranLogistik\Http\Controllers\PengeluaranLogistikController;
 use App\Modules\PengeluaranLogistik\Http\Controllers\TransferGudangManualController;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('pengeluaran-logistik')
     ->name('pengeluaran-logistik.')
-    ->middleware('auth')
+    ->middleware(['auth', 'admin'])   // khusus admin (alias 'admin' = EnsureUserIsAdmin)
     ->group(function () {
         Route::get('/', [PengeluaranLogistikController::class, 'index'])->name('index');
 
