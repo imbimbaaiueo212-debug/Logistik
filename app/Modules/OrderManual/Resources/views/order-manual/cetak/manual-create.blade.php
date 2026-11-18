@@ -152,9 +152,10 @@
                         <div>
                             <label class="field-label">Status Unit <span class="text-rust-600">*</span></label>
                             <select name="status_unit" id="statusUnit" required class="field-input">
-                                <option value="">— Pilih Aktif / Pasif —</option>
+                                <option value="">— Pilih Aktif / Pasif / SOUV —</option>
                                 <option value="aktif" @selected(old('status_unit')=='aktif')>Aktif</option>
                                 <option value="pasif" @selected(old('status_unit')=='pasif')>Pasif</option>
+                                <option value="souv" @selected(old('status_unit')=='souv')>SOUV (PUW)</option>
                             </select>
                             <input type="hidden" name="no_cab" id="noCab" value="{{ old('no_cab') }}">
                             <p class="text-xs text-navy-950/40 mt-1">Terisi otomatis dari data unit / stokis bila ditemukan; bisa diubah.</p>

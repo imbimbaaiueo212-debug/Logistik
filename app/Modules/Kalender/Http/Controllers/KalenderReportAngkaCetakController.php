@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  *
  *  Kode A (Unit Aktif) = qty order Kalender di biMBA Shop berstatus processing (sudah dibayar), per kode stokis di SKU,
  *                        dipecah menurut tanggal order ke kolom Periode 1 / Periode 2.
- *  SOUV                = PUW (A1), tanpa pembayaran.
+ *  SOUV                = PUW (A1), tanpa pembayaran. Diisi dari Create Manual Kalender dengan Status Unit = SOUV.
  *  Unit Pasif (P)      = ada di biMBA Shop tanpa Casdana, masuk kolom Periode (bukan SOUV).
  *  Order Shop          = seluruh order Kalender di biMBA Shop (bukan batal / gagal / refund).
  *  Selisih             = Order Shop dikurangi (Periode 1 + Periode 2).
@@ -123,6 +123,7 @@ class KalenderReportAngkaCetakController extends Controller
         // Unit PASIF: Create Manual pasif tidak lagi ditampilkan sebagai baris sendiri (sudah masuk pos masing-masing).
         $manualMenunggu = 0;
         $cetakPasif     = 0;
+        $cetakSouv      = 0;
         try {
             app(CetakShopMatcher::class)->sync('kalender');
 
@@ -133,6 +134,8 @@ class KalenderReportAngkaCetakController extends Controller
             foreach ($cetak as $c) {
                 if ($c->status_unit === 'pasif') {
                     $cetakPasif += (int) $c->qty;
+                } elseif ($c->status_unit === 'souv') {
+                    $cetakSouv += (int) $c->qty;        // SOUV (PUW): tanpa pembayaran, langsung dihitung
                 } elseif (! in_array($c->status, CetakShopMatcher::STATUS_SELESAI, true)) {
                     $manualMenunggu += (int) $c->qty;   // aktif, masih on-hold
                 }
@@ -145,8 +148,8 @@ class KalenderReportAngkaCetakController extends Controller
 
         $aktif = [
             $barisJakarta,
-            // PUW1 sementara 0 (di Excel 0), data PUW belum dihitung ke Report Angka Cetak
-            $this->baris('A1', 'PUW1 - Stokis Logistik', 0, 0, 0),
+            // PUW1 = Create Manual Kalender dengan Status Unit SOUV, masuk kolom SOUV
+            $this->baris('A1', 'PUW1 - Stokis Logistik', 0, 0, $cetakSouv),
             $this->induk('A2', 'Stokis Pasif - Logistik', $this->anak(self::STOKIS_PASIF, $qty, $semua, $lg), 'Unit Aktif - Stokis Pasif'),
             $this->induk('A3', 'Stokis Aktif - Logistik', $this->anak(self::STOKIS_AKTIF, $qty, $semua, $lg), 'Unit Aktif - Stokis Aktif'),
             $this->induk('A4', 'Pengelola Unit Aktif Khusus', $this->anak(self::PENGELOLA, $qty, $semua)),

@@ -43,6 +43,7 @@
             <option value="">Semua status unit</option>
             <option value="aktif" @selected(request('status_unit') === 'aktif')>Aktif</option>
             <option value="pasif" @selected(request('status_unit') === 'pasif')>Pasif</option>
+            <option value="souv" @selected(request('status_unit') === 'souv')>SOUV</option>
         </select>
         <button class="bg-[#162749] hover:bg-[#1D3361] text-white text-sm font-medium px-5 py-2.5 rounded-xl">Filter</button>
     </form>
@@ -62,7 +63,7 @@
                     <td class="font-medium">{{ $o->manual_id }}</td>
                     <td>{{ optional($o->order_date)->format('d/m/Y H:i') }}</td>
                     <td>{{ $o->customer_name }}</td>
-                    <td>{{ ucfirst($o->status_unit) }}</td>
+                    <td>{{ $o->status_unit === 'souv' ? 'SOUV' : ucfirst($o->status_unit) }}</td>
                     <td>{{ $o->product_sku }}</td>
                     <td>{{ $o->product_name }}</td>
                     <td class="text-right font-semibold">{{ number_format($o->qty) }}</td>
@@ -83,11 +84,15 @@
                     <td class="font-medium">{{ $o->bimba_order_id ?: '-' }}</td>
                     <td>
                         @if(! $o->is_processed && ! $o->synced_penjualan_at)
-                            <form method="POST" action="{{ route("order-manual-{$jenis}.manual.destroy", $o->manual_id) }}"
-                                  onsubmit="return confirm('Hapus seluruh item pesanan {{ $o->manual_id }}?')">
-                                @csrf @method('DELETE')
-                                <button class="text-red-600 hover:underline text-xs">Hapus</button>
-                            </form>
+                            <div class="flex items-center gap-3">
+                                <a href="{{ route("order-manual-{$jenis}.manual.edit", $o->manual_id) }}"
+                                   class="text-navy-700 hover:underline text-xs font-medium">Edit</a>
+                                <form method="POST" action="{{ route("order-manual-{$jenis}.manual.destroy", $o->manual_id) }}"
+                                      onsubmit="return confirm('Hapus seluruh item pesanan {{ $o->manual_id }}?')">
+                                    @csrf @method('DELETE')
+                                    <button class="text-red-600 hover:underline text-xs">Hapus</button>
+                                </form>
+                            </div>
                         @endif
                     </td>
                 </tr>

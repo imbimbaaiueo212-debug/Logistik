@@ -93,6 +93,8 @@ foreach (['kalender', 'majalah'] as $jenisCetak) {
             Route::get('/manual', [ManualCetakOrderController::class, 'manual'])->name('manual')->defaults('jenis', $jenisCetak);
             Route::get('/manual/create', [ManualCetakOrderController::class, 'manualCreate'])->name('manual.create')->defaults('jenis', $jenisCetak);
             Route::post('/manual', [ManualCetakOrderController::class, 'manualStore'])->name('manual.store')->defaults('jenis', $jenisCetak);
+            Route::get('/manual/{manualId}/edit', [ManualCetakOrderController::class, 'manualEdit'])->name('manual.edit')->defaults('jenis', $jenisCetak);
+            Route::put('/manual/{manualId}', [ManualCetakOrderController::class, 'manualUpdate'])->name('manual.update')->defaults('jenis', $jenisCetak);
             Route::delete('/manual/{manualId}', [ManualCetakOrderController::class, 'manualDestroy'])->name('manual.destroy')->defaults('jenis', $jenisCetak);
             Route::get('/search-products', [ManualCetakOrderController::class, 'searchProducts'])->name('search-products')->defaults('jenis', $jenisCetak);
         });

@@ -164,7 +164,7 @@ class ManualCetakOrderController extends Controller
 
         $request->validate([
             'customer_name'        => 'required|string|max:150',
-            'status_unit'          => 'required|in:aktif,pasif',
+            'status_unit'          => 'required|in:aktif,pasif,souv',
             'order_id'             => 'nullable|string|max:100',
             'order_date'           => 'nullable|date',
             'billing_last_name'    => 'nullable|string|max:50',
@@ -182,7 +182,8 @@ class ManualCetakOrderController extends Controller
             'items.*.qty'          => 'required|integer|min:1',
         ], [
             'customer_name.required'        => 'Customer / nama unit wajib diisi. Pilih dari dropdown Customer.',
-            'status_unit.required'          => 'Status unit (Aktif / Pasif) wajib dipilih.',
+            'status_unit.required'          => 'Status unit (Aktif / Pasif / SOUV) wajib dipilih.',
+            'status_unit.in'                => 'Status unit harus Aktif, Pasif, atau SOUV.',
             'items.required'                => 'Minimal harus ada 1 item/SKU.',
             'items.*.product_name.required' => 'Nama produk wajib diisi.',
             'items.*.qty.required'          => 'Qty wajib diisi.',
@@ -275,7 +276,8 @@ class ManualCetakOrderController extends Controller
                     'total'              => $harga,
                     'order_weight'       => (int) ($request->order_weight ?? 0),
                     'payment_method'     => $request->payment_method ?: 'manual',
-                    'status'             => 'on-hold',
+                    // SOUV (PUW) tanpa pembayaran: tidak menunggu biMBA Shop / Kasdana, langsung processing
+                    'status'             => $request->status_unit === 'souv' ? 'processing' : 'on-hold',
                     'status_kirim'       => $statusKirim,
                     'ekspedisi'          => $ekspedisi,
                     'service_pengiriman' => $service,
@@ -311,6 +313,136 @@ class ManualCetakOrderController extends Controller
 
             return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
+    }
+
+    // ------------------------------------------------------------------ edit
+
+    /** Pesanan yang sudah diproses / masuk Penjualan tidak boleh diubah (sama seperti Hapus). */
+    private function terkunci($baris): bool
+    {
+        return (clone $baris)->where(fn ($q) => $q->where('is_processed', true)->orWhereNotNull('synced_penjualan_at'))->exists();
+    }
+
+    public function manualEdit(Request $request, string $manualId)
+    {
+        $jenis = $this->jenis($request);
+
+        $baris = ManualCetakOrder::where('jenis', $jenis)->where('manual_id', $manualId);
+        $items = (clone $baris)->orderBy('id')->get();
+        abort_if($items->isEmpty(), 404);
+
+        if ($this->terkunci($baris)) {
+            return redirect()->route("order-manual-{$jenis}.manual")
+                ->with('error', "Pesanan {$manualId} sudah diproses / masuk Penjualan, tidak bisa diedit.");
+        }
+
+        $order = $items->first();
+
+        return view('ordermanual::order-manual.cetak.manual-edit', compact('jenis', 'manualId', 'order', 'items'));
+    }
+
+    public function manualUpdate(Request $request, string $manualId)
+    {
+        $jenis = $this->jenis($request);
+
+        $baris = ManualCetakOrder::where('jenis', $jenis)->where('manual_id', $manualId);
+        $items = (clone $baris)->orderBy('id')->get();
+        abort_if($items->isEmpty(), 404);
+
+        if ($this->terkunci($baris)) {
+            return redirect()->route("order-manual-{$jenis}.manual")
+                ->with('error', "Pesanan {$manualId} sudah diproses / masuk Penjualan, tidak bisa diedit.");
+        }
+
+        $request->validate([
+            'status_unit'        => 'required|in:aktif,pasif,souv',
+            'order_id'           => 'nullable|string|max:100',
+            'order_date_date'    => 'required|date',
+            'order_date_time'    => 'nullable|date_format:H:i',
+            'status_kirim'       => 'nullable|in:Dikirim,Diambil',
+            'ekspedisi'          => 'nullable|string|max:100',
+            'service_pengiriman' => 'nullable|string|max:50',
+            'catatan'            => 'nullable|string',
+            'items'              => 'required|array|min:1',
+            'items.*.qty'        => 'required|integer|min:1',
+        ], [
+            'status_unit.required'  => 'Status unit (Aktif / Pasif / SOUV) wajib dipilih.',
+            'order_date_date.required' => 'Tanggal wajib diisi.',
+            'items.*.qty.required'  => 'Qty wajib diisi.',
+            'items.*.qty.min'       => 'Qty minimal 1.',
+        ]);
+
+        $statusKirim = $request->status_kirim ?: 'Dikirim';
+        $ekspedisi   = $request->ekspedisi;
+        if ($statusKirim === 'Diambil') {
+            $ekspedisi = $ekspedisi ?: 'Diambil Sendiri';
+        }
+
+        $tanggal = $request->order_date_date . ' ' . ($request->order_date_time ?: '00:00') . ':00';
+        $order0  = $items->first();
+
+        // Hasil pencocokan biMBA Shop perlu dihitung ulang bila salah satu ini berubah
+        $cocokUlang = $order0->status_unit !== $request->status_unit
+            || trim((string) $order0->order_id) !== trim((string) $request->order_id);
+        foreach ($items as $it) {
+            if ((int) ($request->input("items.{$it->id}.qty")) !== (int) $it->qty) {
+                $cocokUlang = true;
+            }
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($items as $it) {
+                $qtyBaru = (int) $request->input("items.{$it->id}.qty", $it->qty);
+                $data = [
+                    'status_unit'        => $request->status_unit,
+                    'order_id'           => $request->order_id,
+                    'order_date'         => $tanggal,
+                    'status_kirim'       => $statusKirim,
+                    'ekspedisi'          => $ekspedisi,
+                    'service_pengiriman' => $request->service_pengiriman,
+                    'catatan'            => $request->catatan,
+                    'qty'                => $qtyBaru,
+                ];
+
+                // harga dan total mengikuti qty (sama seperti Create Manual: harga = satuan x qty)
+                if ((int) $it->qty > 0 && $qtyBaru !== (int) $it->qty) {
+                    $data['price'] = round(((float) $it->price) / (int) $it->qty * $qtyBaru, 2);
+                    $data['total'] = round(((float) $it->total) / (int) $it->qty * $qtyBaru, 2);
+                }
+
+                if ($cocokUlang) {
+                    // SOUV tanpa pembayaran -> processing; selain itu kembali on-hold dan dicocokkan ulang
+                    $data['status']           = $request->status_unit === 'souv' ? 'processing' : 'on-hold';
+                    $data['bimba_order_id']   = null;
+                    $data['status_bimbashop'] = null;
+                    $data['status_bayar']     = null;
+                    $data['payment_date']     = null;
+                    $data['shop_synced_at']   = null;
+                }
+
+                $it->update($data);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("Edit Manual {$jenis} gagal: " . $e->getMessage());
+
+            return back()->withInput()->with('error', 'Gagal menyimpan perubahan: ' . $e->getMessage());
+        }
+
+        $status = ManualCetakOrder::where('manual_id', $manualId)->value('status') ?: 'on-hold';
+        try {
+            app(CetakShopMatcher::class)->sync($jenis);
+            $status = ManualCetakOrder::where('manual_id', $manualId)->value('status') ?: 'on-hold';
+        } catch (\Throwable $e) {
+            Log::warning("Sinkron Edit Manual {$jenis} ke biMBA Shop gagal: " . $e->getMessage());
+        }
+
+        return redirect()
+            ->route("order-manual-{$jenis}.manual")
+            ->with('success', "Pesanan {$manualId} berhasil diperbarui, status: {$status}.");
     }
 
     // ------------------------------------------------------------------ hapus

@@ -36,13 +36,24 @@ class CetakShopMatcher
         );
     }
 
+    /** Kunci nama (huruf besar, spasi dirapikan) untuk mencocokkan unit Pasif tanpa no_cab, mis. "JAKARTA PASIF". */
+    public static function namaKey($v): string
+    {
+        return preg_replace('/\s+/', ' ', strtoupper(trim((string) $v)));
+    }
+
     /** @return array{processing:int, on_hold:int} */
     public function sync(?string $jenis = null): array
     {
         $query = ManualCetakOrder::query()
             ->whereNull('synced_penjualan_at')
             ->where(function ($q) {
-                $q->whereNull('status')->orWhereNotIn('status', self::STATUS_SELESAI);
+                $q->whereNull('status')->orWhereNotIn('status', self::STATUS_SELESAI)
+                  // Unit Pasif dinilai ulang selama belum diproses, supaya cocok yang salah bisa dikoreksi
+                  ->orWhere(function ($p) {
+                      $p->where('status_unit', 'pasif')
+                        ->where(fn ($x) => $x->whereNull('is_processed')->orWhere('is_processed', false));
+                  });
             });
 
         if ($jenis !== null) {
@@ -57,6 +68,9 @@ class CetakShopMatcher
         // ---- biMBA Shop: index per jenis -> tahun/edisi -> no_cab -> [order_id, ...] ----
         $shop = ['kalender' => [], 'majalah' => []];
         $infoShop = [];   // order_id => status shop
+        $shopNama = [];   // tahun => namaKey => [order_id => true]  (untuk unit Pasif)
+        $qtyShop  = [];   // order_id => ['total' => qty kalender, 'lines' => [qty per item]]
+        $tglShop  = [];   // order_id => tanggal order Shop (untuk memilih yang terdekat)
         $tanpaCasdana = []; // order_id => true bila COD / wallet / other
 
         $rows = BimbashopOrder::query()
@@ -68,7 +82,7 @@ class CetakShopMatcher
                 });
             })
             ->orderBy('order_date')->orderBy('id')
-            ->get(['order_id', 'status', 'payment_method', 'billing_last_name', 'item_sku', 'item_name']);
+            ->get(['order_id', 'status', 'payment_method', 'billing_first_name', 'billing_last_name', 'item_sku', 'item_name', 'item_qty', 'order_date']);
 
         foreach ($rows as $r) {
             $oid = (string) $r->order_id;
@@ -77,14 +91,32 @@ class CetakShopMatcher
                 $tanpaCasdana[$oid] = true;
             }
 
-            $key = ShopMatcher::noCabKey($r->billing_last_name);
-            if ($key === '') {
-                continue;
+            if ($r->order_date && ! isset($tglShop[$oid])) {
+                $tglShop[$oid] = $r->order_date->getTimestamp();
             }
 
             $sku  = strtoupper(trim((string) $r->item_sku));
             $nama = strtolower((string) $r->item_name);
             $kal  = str_contains($nama, 'kalender') || str_starts_with($sku, 'KAL') || str_starts_with($sku, 'KLD');
+
+            // Unit Pasif (mis. JAKARTA PASIF) dicocokkan lewat nama + qty, karena tidak punya no_cab
+            if ($kal) {
+                $tahunPasif = ShopMatcher::tahunFrom($r->item_sku, $r->item_name);
+                if ($tahunPasif) {
+                    $qtyShop[$oid]['total']   = ($qtyShop[$oid]['total'] ?? 0) + (int) $r->item_qty;
+                    $qtyShop[$oid]['lines'][] = (int) $r->item_qty;
+                    foreach ([self::namaKey($r->billing_last_name), self::namaKey(trim($r->billing_first_name . ' ' . $r->billing_last_name))] as $nk) {
+                        if ($nk !== '') {
+                            $shopNama[$tahunPasif][$nk][$oid] = true;
+                        }
+                    }
+                }
+            }
+
+            $key = ShopMatcher::noCabKey($r->billing_last_name);
+            if ($key === '') {
+                continue;
+            }
 
             if ($kal) {
                 $tahun = ShopMatcher::tahunFrom($r->item_sku, $r->item_name);
@@ -123,6 +155,35 @@ class CetakShopMatcher
                 }
             }
 
+            // 3) Unit PASIF kalender: nama unit (mis. JAKARTA PASIF) + QTY harus sama persis,
+            //    lalu pilih order Shop dengan tanggal paling dekat dengan tanggal pesanan manual.
+            //    Berlaku juga untuk kandidat dari no_cab, karena satu unit bisa punya beberapa order Shop.
+            if ($b->status_unit === 'pasif' && $b->jenis === 'kalender') {
+                $tahun = ShopMatcher::tahunFrom($b->product_sku, $b->product_name);
+                $q     = (int) $b->qty;
+                $ketikId = ($ketik !== '' && isset($infoShop[$ketik])) ? [$ketik] : [];
+
+                $cand = array_values(array_diff($ids, $ketikId));
+                foreach ([$b->customer_name, $b->billing_last_name] as $n) {
+                    $nk = self::namaKey($n);
+                    if ($nk !== '' && $tahun) {
+                        $cand = array_merge($cand, array_map('strval', array_keys($shopNama[$tahun][$nk] ?? [])));
+                    }
+                }
+
+                $cand = array_values(array_filter(array_unique($cand), function ($oid) use ($qtyShop, $q) {
+                    return ($qtyShop[$oid]['total'] ?? null) === $q
+                        || in_array($q, $qtyShop[$oid]['lines'] ?? [], true);
+                }));
+
+                $tglManual = $b->order_date ? $b->order_date->getTimestamp() : null;
+                if ($tglManual !== null) {
+                    usort($cand, fn ($a, $c) => abs(($tglShop[$a] ?? PHP_INT_MAX / 2) - $tglManual) <=> abs(($tglShop[$c] ?? PHP_INT_MAX / 2) - $tglManual));
+                }
+
+                $ids = array_merge($ketikId, $cand);
+            }
+
             $ids = array_values(array_unique($ids));
             $kandidat[$b->id] = $ids;
             $semuaId = array_merge($semuaId, $ids);
@@ -158,9 +219,12 @@ class CetakShopMatcher
 
         foreach ($baris as $b) {
             $hit = null;
+            $pasif = $b->status_unit === 'pasif';
             foreach ($kandidat[$b->id] as $oid) {
+                // Unit Pasif tidak lewat Kasdana: cukup ada di biMBA Shop dan sudah processing / completed
                 $lunas = in_array($kasdana[$oid]['status'] ?? '', self::KASDANA_LUNAS, true)
-                    || isset($tanpaCasdana[$oid]);
+                    || isset($tanpaCasdana[$oid])
+                    || ($pasif && in_array($infoShop[$oid] ?? '', self::STATUS_SELESAI, true));
                 $milikLain = isset($terpakai[$oid]) && ! in_array($b->manual_id, $terpakai[$oid], true);
 
                 if ($lunas && ! $milikLain) {
