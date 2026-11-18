@@ -48,6 +48,7 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
         $this->kabupatenAktif  = null;
         $this->urutanKabupaten = 0;
         $this->mismatchList    = [];
+        $this->colMap          = $this->defaultColMap();
 
         $judul   = null;
         $bulan   = null;
@@ -69,6 +70,12 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
             $fullText = strtoupper(trim(implode(' ', array_filter($cells, fn ($v) => $v !== ''))));
 
             if (str_contains($fullText, 'TOTAL')) {
+                continue;
+            }
+
+            // Baris header kolom: petakan posisi kolom berdasarkan judulnya,
+            // supaya Excel dengan jumlah kolom berbeda tidak membuat data bergeser.
+            if ($this->detectHeader($cells)) {
                 continue;
             }
 
@@ -142,6 +149,51 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
         }
     }
 
+    /** Posisi kolom default (format lama: No, Nama Unit, No Cabang, Jumlah, Alamat, Telepon). */
+    protected array $colMap = ['no' => 0, 'nama' => 1, 'no_cabang' => 2, 'jumlah' => 3, 'alamat' => 4, 'telepon' => 5];
+
+    protected function defaultColMap(): array
+    {
+        return ['no' => 0, 'nama' => 1, 'no_cabang' => 2, 'jumlah' => 3, 'alamat' => 4, 'telepon' => 5];
+    }
+
+    /**
+     * Deteksi baris header & perbarui $this->colMap.
+     * Return true jika baris ini memang header (dan harus dilewati).
+     */
+    protected function detectHeader(array $cells): bool
+    {
+        $map = [];
+
+        foreach ($cells as $i => $cell) {
+            $u = strtoupper(trim((string) $cell));
+            if ($u === '') {
+                continue;
+            }
+
+            if (!isset($map['nama']) && str_contains($u, 'NAMA UNIT')) {
+                $map['nama'] = $i;
+            } elseif (!isset($map['no_cabang']) && preg_match('/^NO\.?\s*CAB/', $u)) {
+                $map['no_cabang'] = $i;
+            } elseif (!isset($map['jumlah']) && str_contains($u, 'JUMLAH')) {
+                $map['jumlah'] = $i;
+            } elseif (!isset($map['alamat']) && str_contains($u, 'ALAMAT')) {
+                $map['alamat'] = $i;
+            } elseif (!isset($map['telepon']) && (str_contains($u, 'TELP') || str_contains($u, 'TELEPON') || str_contains($u, 'TELEPHONE') || preg_match('/\b(HP|WA)\b/', $u))) {
+                $map['telepon'] = $i;
+            } elseif (!isset($map['no']) && preg_match('/^NO\.?$/', $u)) {
+                $map['no'] = $i;
+            }
+        }
+
+        if (isset($map['nama'], $map['jumlah'], $map['alamat'])) {
+            $this->colMap = array_merge($this->defaultColMap(), $map);
+            return true;
+        }
+
+        return false;
+    }
+
     protected function isUnitRow(array $cells, string $fullText): bool
     {
         $no = trim($cells[0] ?? '');
@@ -161,12 +213,15 @@ class PesananMajalahImport implements ToCollection, WithCalculatedFormulas
      */
     protected function importUnit(array $cells, string $fullText): void
     {
-        $no            = $this->cleanValue($cells[0] ?? null);
-        $namaUnit      = $this->cleanValue($cells[1] ?? null);
-        $noCabang      = $this->cleanValue($cells[2] ?? null);
-        $jumlahPesanan = $this->parseJumlah($cells[3] ?? null);
-        $alamat        = $this->cleanValue($cells[4] ?? null);
-        $telepon       = $this->cleanValue($cells[5] ?? null);
+        $c = $this->colMap;
+
+        $no            = $this->cleanValue($cells[$c['no']] ?? null);
+        $namaUnit      = $this->cleanValue($cells[$c['nama']] ?? null);
+        $noCabang      = $this->cleanValue($cells[$c['no_cabang']] ?? null);
+        // Dibulatkan per unit (selaras dengan total di Excel)
+        $jumlahPesanan = round($this->parseJumlah($cells[$c['jumlah']] ?? null));
+        $alamat        = $this->cleanValue($cells[$c['alamat']] ?? null);
+        $telepon       = $this->cleanValue($cells[$c['telepon']] ?? null);
 
         if (empty($namaUnit) || empty($noCabang)) {
             if (preg_match('/^(\d+)\s*([A-Za-z][A-Za-z\s\.]+?)\s*(\d{2,5})\s*(\d{1,4})\s*(.+?)\s*(0\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,5}.*)$/i', $fullText, $m)) {

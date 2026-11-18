@@ -107,7 +107,7 @@
             ['Telepon', 'telepon'],
         ];
 
-        $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
+        $totalPesanan = $units->sum(fn ($u) => round((float) ($u->jumlah_pesanan ?? 0)));
 
         // Daftar nama unit yang tidak match (dari flash session import, atau dari $mismatches)
         $listMismatch = session('unit_nama_mismatch');

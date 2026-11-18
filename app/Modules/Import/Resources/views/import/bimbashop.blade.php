@@ -165,8 +165,8 @@
             @csrf
             <div class="flex flex-col md:flex-row md:items-end gap-4">
                 <div class="flex-1 min-w-0">
-                    <label for="import_file" class="{{ $lbl }}">Pilih file</label>
-                    <input id="import_file" type="file" name="import_file" accept=".xlsx,.xls,.csv" required
+                    <label for="import_file" class="{{ $lbl }}">Pilih file (boleh lebih dari satu)</label>
+                    <input id="import_file" type="file" name="import_file[]" multiple accept=".xlsx,.xls,.csv" required
                            class="block w-full text-sm text-navy-950/60
                                   file:mr-4 file:py-2.5 file:px-5
                                   file:rounded-xl file:border-0
@@ -189,7 +189,7 @@
             </div>
         </form>
 
-        <p class="mt-3 text-xs text-navy-950/45">Format yang didukung: .xlsx, .xls, .csv. Ukuran maksimal 10 MB.</p>
+        <p class="mt-3 text-xs text-navy-950/45">Format yang didukung: .xlsx, .xls, .csv. Ukuran maksimal 10 MB per file, maksimal 30 file sekali upload. Tahan Ctrl / Shift untuk memilih banyak file.</p>
     </div>
 
     {{-- ============ FILTER ============ --}}
@@ -343,6 +343,24 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {{-- ============ TOTAL QTY ============ --}}
+    <div class="mt-4 bg-navy-900 text-white rounded-2xl px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <p class="text-xs uppercase tracking-wide text-white/60">Total Qty (sesuai filter, semua halaman, tanpa cancelled)</p>
+            <p class="text-xs text-white/50 mt-0.5">{{ number_format($totalBaris, 0, ',', '.') }} baris item</p>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="text-right">
+                <p class="text-xs text-white/60">Qty halaman ini</p>
+                <p class="text-lg font-semibold">{{ number_format($bimbashopOrders->getCollection()->reject(fn ($o) => str_contains(strtolower((string) $o->status), 'cancel'))->sum('item_qty'), 0, ',', '.') }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-white/60">Total Qty</p>
+                <p class="text-2xl font-bold text-rust-500">{{ number_format($totalQty, 0, ',', '.') }}</p>
+            </div>
         </div>
     </div>
 

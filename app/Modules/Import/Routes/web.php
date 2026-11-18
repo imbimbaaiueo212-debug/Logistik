@@ -15,6 +15,7 @@ use App\Modules\Import\Http\Controllers\PasifBacaanController;
 use App\Modules\Import\Http\Controllers\PasifController;
 use App\Modules\Import\Http\Controllers\PasifManualController;
 use App\Modules\Import\Http\Controllers\ReportAngkaCetakController;
+use App\Modules\Import\Http\Controllers\RumahAngkaCetakController;
 
 // ====================== ORDER MANUAL ===============
 Route::prefix('import')
@@ -132,6 +133,9 @@ Route::prefix('import')
         // =====================================================
         Route::get('/report-angka-cetak', [ReportAngkaCetakController::class, 'reportAngkaCetak'])
             ->name('report-angka-cetak');
+
+        Route::get('/rumah-angka-cetak', [RumahAngkaCetakController::class, 'index'])
+            ->name('rumah-angka-cetak');
 
         // =====================================================
         // MANUAL PRINTED

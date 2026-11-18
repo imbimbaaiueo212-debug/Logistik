@@ -51,6 +51,7 @@ BimbashopOrder::updateOrCreate(
                              : now(),
 
     'status'              => $row['status'] ?? 'pending',
+    'auto_cancelled_at'   => null, // file Shop = sumber kebenaran; sync Casdana yang menilai ulang
     'order_total'         => (float)($row['order_total'] ?? 0),
     'ship_total'          => (float)($row['ship_total'] ?? 0),
     'discount_total'      => (float)($row['discount_total'] ?? 0),

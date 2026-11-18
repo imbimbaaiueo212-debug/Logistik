@@ -341,11 +341,12 @@
             ];
             $hsPasifActive = request()->routeIs(['import.pasif.*']);
             $hsRacActive   = request()->routeIs(['import.report-angka-cetak*']);
+            $hsRumahActive = request()->routeIs(['import.rumah-angka-cetak*']);
 
             $hsOps2Active = request()->routeIs([
                 'ops2.*','pesanan-majalah.*','pesanan-majalah-kotamadya.*','pesanan-majalah-puw1.*',
             ]);
-            $hsMajalahActive = $hsOps2Active || $hsPasifActive || $hsRacActive || request()->routeIs([
+            $hsMajalahActive = $hsOps2Active || $hsPasifActive || $hsRacActive || $hsRumahActive || request()->routeIs([
                 'order-manual.*','import.dlc.*','order-manual-majalah.*',
             ]);
 
@@ -421,6 +422,7 @@
                         <a href="{{ route('order-manual-majalah.manual.create') }}" class="hs-sub-link {{ request()->routeIs('order-manual-majalah.*') ? 'active' : '' }}">Create Manual Majalah</a>
 
                         <a href="{{ route('import.report-angka-cetak') }}" class="hs-sub-link {{ $hsRacActive ? 'active' : '' }}">Report Angka Cetak</a>
+                        <a href="{{ route('import.rumah-angka-cetak') }}" class="hs-sub-link {{ $hsRumahActive ? 'active' : '' }}">A3 Stokis Aktif - Logistik</a>
 
                     </div>
                 </div>

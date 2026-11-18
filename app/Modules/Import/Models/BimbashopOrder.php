@@ -12,7 +12,7 @@ class BimbashopOrder extends Model
     protected $table = 'bimbashop_orders';
 
     protected $fillable = [
-        'order_id', 'order_date', 'status', 'order_total', 'ship_total',
+        'order_id', 'order_date', 'status', 'auto_cancelled_at', 'order_total', 'ship_total',
         'discount_total', 'refunded_total', 'payment_method', 'order_weight',
         'item_sku', 'item_name', 'item_price', 'item_qty',
         'billing_first_name', 'billing_last_name', 'billing_company',
@@ -29,6 +29,7 @@ class BimbashopOrder extends Model
 
     protected $casts = [
         'order_date' => 'datetime',
+        'auto_cancelled_at' => 'datetime',
         'order_total' => 'decimal:2',
         'ship_total' => 'decimal:2',
         'discount_total' => 'decimal:2',

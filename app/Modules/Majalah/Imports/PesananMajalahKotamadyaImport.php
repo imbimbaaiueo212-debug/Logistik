@@ -112,7 +112,7 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
                             no:            $this->toInteger($colA),
                             namaUnit:      $colB,
                             noCabang:      $colC,
-                            jumlahPesanan: $this->toDecimal($colD),
+                            jumlahPesanan: round($this->toDecimal($colD)), // dibulatkan per unit
                             alamatUnit:    $colE,
                             telepon:       $colF
                         );
@@ -214,9 +214,11 @@ class PesananMajalahKotamadyaImport implements ToCollection, WithStartRow
                         ]
                     );
 
-                    $this->barisDilewati++;
-                    return; // TIDAK masuk pesanan_majalah_unit_kotamadya
                 }
+
+                // No cabang sama -> unit TETAP disimpan, pakai nama master
+                // (mismatch hanya dicatat sebagai info, tidak membuang unit).
+                $namaUnit = $namaMaster;
             }
         }
 

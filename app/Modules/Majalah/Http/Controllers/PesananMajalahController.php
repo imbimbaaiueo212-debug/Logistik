@@ -154,7 +154,8 @@ class PesananMajalahController extends Controller
     $units = $units->values();
 
     $totalUnits   = $units->count();
-    $totalPesanan = $units->sum(fn ($u) => (float) ($u->jumlah_pesanan ?? 0));
+    // Jumlahkan angka per unit yang sudah dibulatkan, supaya total = jumlah angka yang terlihat di tabel
+    $totalPesanan = $units->sum(fn ($u) => round((float) ($u->jumlah_pesanan ?? 0)));
 
     // ===== PERBAIKAN: unique berdasarkan no_cab =====
     $mismatches = UnitNamaMismatch::where('pesanan_majalah_id', $pesananMajalah->id)

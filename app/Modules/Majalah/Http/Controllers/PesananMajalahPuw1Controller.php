@@ -42,11 +42,16 @@ class PesananMajalahPuw1Controller extends Controller
 
     $data = $query
         ->withCount('units')
-        ->withSum('units', 'jumlah_pesanan')
+        ->with('units:id,pesanan_majalah_puw1_id,jumlah_pesanan')
         ->orderByDesc('tahun')
         ->orderByDesc('id')
         ->paginate(20)
         ->withQueryString();
+
+    // Total = jumlah angka per unit yang dibulatkan (selaras dengan Excel)
+    $data->getCollection()->each(function ($item) {
+        $item->units_sum_jumlah_pesanan = $item->units->sum(fn ($u) => round((float) $u->jumlah_pesanan));
+    });
 
     // Data untuk Select2
     $listJudul = PesananMajalahPuw1::select('judul')

@@ -163,9 +163,11 @@ class PesananMajalahPuw1Import implements ToArray, WithChunkReading, WithCalcula
                                 ]
                             );
 
-                            $this->barisDilewati++;
-                            continue; // TIDAK masuk pesanan_majalah_unit_puw1
                         }
+
+                        // No cabang sama -> unit TETAP disimpan, pakai nama master
+                        // (mismatch hanya dicatat sebagai info, tidak membuang unit).
+                        $namaUnit = $namaMaster;
                     }
                 }
 

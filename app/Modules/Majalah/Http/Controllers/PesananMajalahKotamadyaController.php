@@ -51,7 +51,7 @@ class PesananMajalahKotamadyaController extends Controller
             });
 
             $item->total_pesanan = $item->kotamadya->sum(function ($kotamadya) {
-                return $kotamadya->units->sum('jumlah_pesanan');
+                return $kotamadya->units->sum(fn ($u) => round((float) $u->jumlah_pesanan));
             });
 
             return $item;
@@ -116,7 +116,7 @@ class PesananMajalahKotamadyaController extends Controller
         $units = $units->values();
 
         $totalUnits   = $units->count();
-        $totalPesanan = $units->sum('jumlah_pesanan');
+        $totalPesanan = $units->sum(fn ($u) => round((float) $u->jumlah_pesanan));
 
         // Mismatch dari database (sumber kotamadya)
         $mismatches = UnitNamaMismatch::where('pesanan_majalah_id', $data->id)

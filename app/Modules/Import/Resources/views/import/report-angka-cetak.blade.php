@@ -73,9 +73,15 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach($g['rows'] as $row)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-2 px-5 font-medium text-gray-700 whitespace-nowrap">{{ $row['kode'] }}</td>
-                                    <td class="py-2 px-5 text-gray-700">
+                                <tr class="hover:bg-gray-50 {{ !empty($row['info']) ? 'bg-gray-50/60' : '' }}">
+                                    <td class="py-2 px-5 font-medium text-gray-700 whitespace-nowrap {{ !empty($row['info']) ? 'pl-8 text-gray-500' : '' }}">
+                                        @if($row['kode'] === 'A3')
+                                            <a href="{{ route('import.rumah-angka-cetak', ['edisi' => $report['edisi'], 'kode' => 'A3']) }}" class="text-[#28447F] underline" title="Lihat rumah A3">{{ $row['kode'] }}</a>
+                                        @else
+                                            {{ $row['kode'] }}
+                                        @endif
+                                    </td>
+                                    <td class="py-2 px-5 {{ !empty($row['info']) ? 'text-gray-500' : 'text-gray-700' }}">
                                         {{ $row['label'] }}
                                         @if($row['qty'] == 0 && in_array($row['kode'], $g['hint']))
                                             <span class="text-xs text-gray-400">(belum ada data)</span>
