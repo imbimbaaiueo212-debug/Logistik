@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const jenis = document.querySelector('input[name="jenis"]').value.toLowerCase().trim();
 
         if (hb > 0 && isinya > 0) {
-            const multiplier = jenis.includes('modul') ? 1.49 : 1.20;
+            const multiplier = jenis.includes('modul') ? 1.45 : 1.20;
             const hargaDasar = hb * multiplier;
             const hargaJual  = hargaDasar * isinya;
             const hargaBulat = Math.ceil(hargaJual / 50) * 50;

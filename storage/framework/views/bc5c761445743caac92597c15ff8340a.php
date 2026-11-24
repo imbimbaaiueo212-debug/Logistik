@@ -251,6 +251,24 @@
 
         
         <?php if($__u->isAdmin()): ?>
+        <?php $hsHargaActive = request()->routeIs(['penyesuaian-harga.*', 'penyesuaian-harga-jual.*']); ?>
+        <button type="button" data-hs-toggle="#hs-harga" class="hs-toggle <?php echo e($hsHargaActive ? 'open has-active' : ''); ?>">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M16 7.5c0-1.4-1.8-2.5-4-2.5s-4 1.1-4 2.5S9.8 10 12 10s4 1.1 4 2.5-1.8 2.5-4 2.5-4-1.1-4-2.5"/></svg>
+                Penyesuaian Harga
+            </span>
+            <svg class="hs-chevron <?php echo e($hsHargaActive ? 'open' : ''); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div id="hs-harga" class="hs-sub <?php echo e($hsHargaActive ? 'open' : ''); ?>">
+            <div class="hs-sub-inner">
+                <a href="<?php echo e(route('penyesuaian-harga.index')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('penyesuaian-harga.*') ? 'active' : ''); ?>">Beli</a>
+                <a href="<?php echo e(route('penyesuaian-harga-jual.index')); ?>" class="hs-sub-link <?php echo e(request()->routeIs('penyesuaian-harga-jual.*') ? 'active' : ''); ?>">Jual</a>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        
+        <?php if($__u->isAdmin()): ?>
         <?php $hsPengeluaranActive = request()->routeIs('pengeluaran-logistik.*'); ?>
         <a href="<?php echo e(route('pengeluaran-logistik.index')); ?>" class="hs-link <?php echo e($hsPengeluaranActive ? 'active' : ''); ?>">
             <span class="inline-flex items-center gap-2">

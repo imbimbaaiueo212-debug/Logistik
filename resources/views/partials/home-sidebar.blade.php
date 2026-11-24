@@ -249,6 +249,24 @@
         </a>
         @endif
 
+        {{-- Penyesuaian Harga: samakan harga Master Product dengan PDF Mitra Bimba Abadi — khusus admin, di bawah Master Gudang --}}
+        @if($__u->isAdmin())
+        @php $hsHargaActive = request()->routeIs(['penyesuaian-harga.*', 'penyesuaian-harga-jual.*']); @endphp
+        <button type="button" data-hs-toggle="#hs-harga" class="hs-toggle {{ $hsHargaActive ? 'open has-active' : '' }}">
+            <span class="inline-flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M16 7.5c0-1.4-1.8-2.5-4-2.5s-4 1.1-4 2.5S9.8 10 12 10s4 1.1 4 2.5-1.8 2.5-4 2.5-4-1.1-4-2.5"/></svg>
+                Penyesuaian Harga
+            </span>
+            <svg class="hs-chevron {{ $hsHargaActive ? 'open' : '' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div id="hs-harga" class="hs-sub {{ $hsHargaActive ? 'open' : '' }}">
+            <div class="hs-sub-inner">
+                <a href="{{ route('penyesuaian-harga.index') }}" class="hs-sub-link {{ request()->routeIs('penyesuaian-harga.*') ? 'active' : '' }}">Beli</a>
+                <a href="{{ route('penyesuaian-harga-jual.index') }}" class="hs-sub-link {{ request()->routeIs('penyesuaian-harga-jual.*') ? 'active' : '' }}">Jual</a>
+            </div>
+        </div>
+        @endif
+
         {{-- Report Pengeluaran Logistik: khusus admin, diletakkan di bawah Master Gudang --}}
         @if($__u->isAdmin())
         @php $hsPengeluaranActive = request()->routeIs('pengeluaran-logistik.*'); @endphp

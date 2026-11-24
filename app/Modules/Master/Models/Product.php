@@ -9,6 +9,30 @@ use App\Modules\Order\Models\JakartaAktifItem;
 
 class Product extends Model
 {
+    /** Harga jual otomatis = harga beli x pengali (dibulatkan ke atas per 50). */
+    public const PENGALI_MODUL   = 1.45;  // jenis mengandung kata "modul"
+    public const PENGALI_LAINNYA = 1.20;  // selain modul
+
+    /** Pengali harga jual menurut jenis produk. */
+    public static function pengaliJual(?string $jenis, bool $anggapModul = false): float
+    {
+        $modul = Str::contains(strtolower(trim((string) $jenis)), 'modul')
+            || ($anggapModul && trim((string) $jenis) === '');
+
+        return $modul ? self::PENGALI_MODUL : self::PENGALI_LAINNYA;
+    }
+
+    /**
+     * Harga jual otomatis dari harga beli.
+     * $anggapModul: dipakai bila Jenis produk kosong dan barangnya masuk kelompok Modul.
+     */
+    public static function hitungHargaJual(float $hargaBeli, ?string $jenis, int $isi = 1, bool $anggapModul = false): float
+    {
+        $hargaJual = $hargaBeli * self::pengaliJual($jenis, $anggapModul) * max(1, $isi);
+
+        return ceil($hargaJual / 50) * 50;
+    }
+
     protected $fillable = [
         'name',
         'sku',
@@ -38,6 +62,11 @@ class Product extends Model
         'harga_beli_per_satuan',
         'harga_jual_per_satuan',
     ];
+
+    protected $casts = [
+    'harga_diubah_pada' => 'datetime',
+];
+
 
     public function suppliers()
     {
@@ -92,18 +121,11 @@ class Product extends Model
             && $product->isi > 0
         ) {
 
-            $jenis = strtolower(trim($product->jenis ?? ''));
-
-            $multiplier = Str::contains($jenis, 'modul')
-                ? 1.49
-                : 1.20;
-
-            $hargaDasar = $product->harga_beli * $multiplier;
-
-            $hargaJual = $hargaDasar * $product->isi;
-
-            $product->harga_jual =
-                ceil($hargaJual / 50) * 50;
+            $product->harga_jual = self::hitungHargaJual(
+                (float) $product->harga_beli,
+                $product->jenis,
+                (int) $product->isi
+            );
 
         }
 
@@ -117,4 +139,25 @@ public function jakartaAktifItems()
 {
     return $this->hasMany(JakartaAktifItem::class);
 }
+
+public function penyesuaianRows()
+{
+    return $this->hasMany(\App\Modules\Master\Models\PenyesuaianHarga::class, 'product_id')
+        ->whereNotNull('diterapkan_pada');
+}
+
+// baris penyesuaian dari batch terakhir yang mengubah harga produk ini (menyimpan harga sebelum & sesudah)
+public function barisHargaTerakhir()
+{
+    if (! $this->harga_batch_id) {
+        return null;
+    }
+    return $this->penyesuaianRows->firstWhere('batch_id', $this->harga_batch_id);
+}
+
+public function hargaBatch()
+{
+    return $this->belongsTo(\App\Modules\Master\Models\PenyesuaianHargaBatch::class, 'harga_batch_id');
+}
+
 }

@@ -157,8 +157,29 @@
                     <td class="text-center">{{ $p->satuan }}</td>
                     <td class="text-right">{{ $p->berat_satuan ? number_format($p->berat_satuan,3,',','.') . ' Kg' : '-' }}</td>
                     <td class="text-right">{{ $p->berat_paket ? number_format($p->berat_paket,3,',','.') . ' Kg' : '-' }}</td>
-                    <td class="text-right">Rp {{ $p->harga_beli ? number_format($p->harga_beli) : '-' }}</td>
-                    <td class="text-right">Rp {{ $p->harga_jual ? number_format($p->harga_jual) : '-' }}</td>
+                    <td class="text-right">
+                        Rp {{ $p->harga_beli ? number_format($p->harga_beli) : '-' }}
+                        @if($p->harga_diubah_pada)
+                            @php $tglBerlaku = $p->hargaBatch?->berlaku_mulai ?? $p->harga_diubah_pada; @endphp
+                            <span title="Harga sudah mengikuti {{ $tglBerlaku->format('Y') }}, berlaku {{ $tglBerlaku->format('d/m/Y') }} (diperbarui {{ $p->harga_diubah_pada->format('d/m/Y H:i') }})"
+                            class="block whitespace-nowrap text-[10px] leading-tight text-green-700">✓ {{ $tglBerlaku->format('d/m/Y') }}</span>
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        Rp {{ $p->harga_jual ? number_format($p->harga_jual) : '-' }}
+                        @php
+                            $hp = $p->barisHargaTerakhir();
+                            $jualLama = $hp ? (float) $hp->harga_jual_sebelum : 0;
+                            $jualBaru = (float) $p->harga_jual;
+                        @endphp
+                        @if($hp && $jualLama > 0 && $jualBaru > 0)
+                            @php $persen = ($jualBaru - $jualLama) / $jualLama * 100; @endphp
+                            <span title="Harga jual sebelumnya Rp {{ number_format($jualLama) }}"
+                                class="block whitespace-nowrap text-[10px] leading-tight {{ $persen >= 0 ? 'text-red-600' : 'text-green-700' }}">
+                                {{ $persen >= 0 ? '▲' : '▼' }} {{ number_format(abs($persen), 1, ',', '.') }}%
+                            </span>
+                        @endif
+                    </td>
                     <td class="text-center">{{ $p->status }}</td>
                     <td class="text-center">{{ $p->isi }}</td>
                     <td class="text-center">

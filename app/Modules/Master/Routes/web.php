@@ -114,3 +114,36 @@ Route::prefix('database-user')
              ->name('index');
     });
          Route::get('/ops2', [DatabaseUserController::class, 'ops2'])->name('ops2.index');
+
+
+// ====================== PENYESUAIAN HARGA (import PDF percetakan -> harga jual otomatis -> ACC -> publikasi ke Master Product) ======================
+Route::prefix('penyesuaian-harga')
+    ->name('penyesuaian-harga.')
+    ->middleware(['auth', 'admin'])
+    ->group(function () {
+        $c = \App\Modules\Master\Http\Controllers\PenyesuaianHargaController::class;
+
+        Route::get('/', [$c, 'index'])->name('index');
+        Route::get('/import-baru', [$c, 'create'])->name('create');
+        Route::get('/unduh-pdf', [$c, 'pdf'])->name('pdf');
+        Route::get('/{id}', [$c, 'show'])->whereNumber('id')->name('show');
+        Route::post('/import', [$c, 'import'])->name('import');
+        Route::post('/{id}/setujui', [$c, 'setujui'])->whereNumber('id')->name('setujui');
+        Route::post('/{id}/ubah-info', [$c, 'ubahInfo'])->whereNumber('id')->name('ubah-info');
+        Route::post('/{id}/hapus', [$c, 'hapus'])->whereNumber('id')->name('hapus');
+        Route::post('/{id}/tolak', [$c, 'tolak'])->whereNumber('id')->name('tolak');
+        Route::get('/{id}/berkas/{fileId}', [$c, 'berkas'])->whereNumber(['id', 'fileId'])->name('berkas');
+    });
+
+
+// Penyesuaian Harga JUAL: hanya melihat perubahan harga jual (ikut berubah otomatis saat harga beli di-ACC)
+Route::prefix('penyesuaian-harga-jual')
+    ->name('penyesuaian-harga-jual.')
+    ->middleware(['auth', 'admin'])
+    ->group(function () {
+        $c = \App\Modules\Master\Http\Controllers\PenyesuaianHargaController::class;
+
+        Route::get('/', [$c, 'indexJual'])->name('index');
+        Route::get('/unduh-pdf', [$c, 'pdfJual'])->name('pdf');
+        Route::get('/{id}', [$c, 'showJual'])->whereNumber('id')->name('show');
+    });

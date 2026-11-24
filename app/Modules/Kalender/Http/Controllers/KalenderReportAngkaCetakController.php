@@ -59,6 +59,18 @@ class KalenderReportAngkaCetakController extends Controller
     /** Status Shop yang dianggap sudah dibayar. */
     private const STATUS_DIBAYAR = ['processing', 'completed'];
 
+    /**
+     * Rentang tanggal order bawaan per edisi, dipakai saat halaman dibuka tanpa filter tanggal
+     * (supaya order tidak semuanya masuk Periode 1). Bila kolom tanggal dikosongkan lalu
+     * "Terapkan" ditekan, report kembali ke mode semua tanggal.
+     */
+    private const PERIODE_DEFAULT = [
+        'KLD27' => [
+            'p1_dari' => '2026-10-19', 'p1_sampai' => '2026-11-10',
+            'p2_dari' => '2026-11-11', 'p2_sampai' => '2026-12-05',
+        ],
+    ];
+
     public function reportAngkaCetak(Request $request)
     {
         $norm = fn ($v) => KodeKalender::normalize($v);
@@ -77,13 +89,20 @@ class KalenderReportAngkaCetakController extends Controller
 
         $selectedEdisi = $norm($request->get('edisi', $edisiList->last() ?? ''));
 
-        // Rentang tanggal order Periode 1 dan Periode 2 (boleh kosong)
-        $p1 = $this->rentang($request->get('p1_dari'), $request->get('p1_sampai'));
-        $p2 = $this->rentang($request->get('p2_dari'), $request->get('p2_sampai'));
+        // Rentang tanggal order Periode 1 dan Periode 2 (boleh kosong).
+        // Tanpa parameter tanggal sama sekali -> pakai rentang bawaan edisi (bila ada).
+        $tgl     = $request->only(['p1_dari', 'p1_sampai', 'p2_dari', 'p2_sampai']);
+        $bawaan  = self::PERIODE_DEFAULT[$selectedEdisi] ?? null;
+        if ($bawaan !== null && ! $request->hasAny(array_keys($bawaan))) {
+            $tgl = $bawaan;
+        }
+
+        $p1 = $this->rentang($tgl['p1_dari'] ?? null, $tgl['p1_sampai'] ?? null);
+        $p2 = $this->rentang($tgl['p2_dari'] ?? null, $tgl['p2_sampai'] ?? null);
 
         $filter = [
-            'p1_dari' => $request->get('p1_dari'), 'p1_sampai' => $request->get('p1_sampai'),
-            'p2_dari' => $request->get('p2_dari'), 'p2_sampai' => $request->get('p2_sampai'),
+            'p1_dari' => $tgl['p1_dari'] ?? null, 'p1_sampai' => $tgl['p1_sampai'] ?? null,
+            'p2_dari' => $tgl['p2_dari'] ?? null, 'p2_sampai' => $tgl['p2_sampai'] ?? null,
             'semua_tanggal' => $p1 === null && $p2 === null,
         ];
 
@@ -165,7 +184,10 @@ class KalenderReportAngkaCetakController extends Controller
         $qtyHumas  = (int) KalenderPasifPesanan::whereHas('periode', $periodeEdisi)->sum('humas');
         // Motivator = kolom RELAWAN di Daftar Pasif (bacaan_unit); tiap relawan dapat 2 kalender (RELAWAN @2 exp)
         $qtyMotivator = (int) KalenderPasifPesanan::whereHas('periode', $periodeEdisi)->sum('bacaan_unit') * 2;
-        $qtySpare  = (int) KalenderSpareManual::whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian)->sum('qty');
+        // Spare Pasif 3% dipisah per periode menurut "Cetak Tahap ke": Tahap 1 -> Periode 1, Tahap 2 dst -> Periode 2
+        $spare       = KalenderSpareManual::whereRaw("UPPER(TRIM(edisi)) IN ($in)", $varian)->get(['qty', 'tahap']);
+        $qtySpareP1  = (int) $spare->filter(fn ($r) => (int) $r->tahap <= 1)->sum('qty');
+        $qtySpareP2  = (int) $spare->filter(fn ($r) => (int) $r->tahap >= 2)->sum('qty');
 
         // Manajemen biMBA (P6) = pesanan Create Manual Kalender berstatus Pasif (mis. MK-20261111-0001 JAKARTA PASIF),
         // diambil langsung dari Create Manual Kalender ($cetakPasif), bukan angka tetap.
@@ -174,7 +196,7 @@ class KalenderReportAngkaCetakController extends Controller
                 $this->pasif('P', 'Murid', $qtyMurid),
                 $this->pasif('P', 'Motivator Unit', $qtyMotivator),
                 $this->pasif('P', 'Cabang biMBA (Humas + Pajangan)', $qtyHumas),
-                $this->pasif('P', 'Spare Untuk Murid Pasif', $qtySpare),
+                $this->pasif('P', 'Spare Untuk Murid Pasif', $qtySpareP1, $qtySpareP2),
             ]),
             $this->indukBernilai(
                 $this->induk('P1', 'Murid InterVio', $this->dlcAnak($dlcPerUnit, ['P1.1' => 'Anggrek 1', 'P1.2' => 'Anggrek 2', 'P1.3' => 'Anggrek 3', 'P1.4' => 'Anggrek 4', 'P1.5' => 'Anggrek 5', 'P1.6' => 'Dhuafa', 'P1.7' => 'Khusus'])),
@@ -400,9 +422,9 @@ class KalenderReportAngkaCetakController extends Controller
     }
 
     /** Unit Pasif: ada di biMBA Shop tetapi tanpa Casdana, jadi masuk kolom Periode (bukan SOUV). */
-    private function pasif(string $kode, string $label, int $qty): array
+    private function pasif(string $kode, string $label, int $qty, int $qty2 = 0): array
     {
-        return $this->baris($kode, $label, $qty, 0, 0);
+        return $this->baris($kode, $label, $qty, $qty2, 0);
     }
 
     private function souv(string $kode, string $label, int $souv): array

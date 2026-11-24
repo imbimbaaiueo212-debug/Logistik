@@ -33,7 +33,7 @@ class ProductController extends Controller
         | Semua filter mengikuti nilai master produk secara langsung.
         */
 
-        $query = Product::query();
+        $query = Product::query()->with(['hargaBatch', 'penyesuaianRows']);
 
         if (!empty($jenis)) {
             $query->where('jenis', $jenis);
@@ -239,8 +239,15 @@ class ProductController extends Controller
             'kategori_id'   => 'nullable|exists:categories,id',
         ]);
 
-        $data = $request->all();
-        unset($data['label']);
+        $beliBerubah = $request->filled('harga_beli') && round((float) $request->harga_beli) !== round((float) $product->harga_beli);
+        $jualBerubah = $request->filled('harga_jual') && round((float) $request->harga_jual) !== round((float) $product->harga_jual);
+
+        if ($beliBerubah || $jualBerubah) {
+            return back()->withInput()->with('error',
+                'Harga tidak bisa diubah langsung. Gunakan menu Pengajuan Harga (lengkap dengan surat permohonan).');
+        }
+
+        $data = $request->except(['label', 'harga_beli', 'harga_jual']);
 
         $product->update($data);
 
@@ -311,10 +318,18 @@ class ProductController extends Controller
             'selected_products.*' => 'exists:products,id',
         ]);
 
+        $adaHargaBerubah = Product::whereIn('id', $request->selected_products)->get()->contains(function ($p) use ($request) {
+            return ($request->filled('harga_beli') && round((float) $request->harga_beli) !== round((float) $p->harga_beli))
+                || ($request->filled('harga_jual') && round((float) $request->harga_jual) !== round((float) $p->harga_jual));
+        });
+        if ($adaHargaBerubah) {
+            return redirect()->back()->with('error',
+                'Harga tidak bisa diubah lewat Edit Multi. Gunakan menu Pengajuan Harga.');
+        }
+
         $updateData = [];
 
-        $fillable = ['kode', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan',
-                     'harga_beli', 'harga_jual', 'role', 'status', 'tanggal_rilis'];
+        $fillable = ['kode', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan', 'role', 'status', 'tanggal_rilis'];
 
         foreach ($fillable as $field) {
             if ($request->filled($field)) {
