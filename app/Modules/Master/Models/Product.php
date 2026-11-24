@@ -10,7 +10,7 @@ use App\Modules\Order\Models\JakartaAktifItem;
 class Product extends Model
 {
     /** Harga jual otomatis = harga beli x pengali (dibulatkan ke atas per 50). */
-    public const PENGALI_MODUL   = 1.45;  // jenis mengandung kata "modul"
+    public const PENGALI_MODUL   = 1.49;  // jenis mengandung kata "modul"
     public const PENGALI_LAINNYA = 1.20;  // selain modul
 
     /** Pengali harga jual menurut jenis produk. */

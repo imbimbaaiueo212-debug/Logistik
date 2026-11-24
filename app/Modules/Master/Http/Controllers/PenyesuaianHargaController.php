@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Storage;
  *  1. Import 3 file: surat permohonan + PDF data perubahan (Modul & Raport, Seragam/Tas/KPK).
  *     Data masuk sebagai satu batch berstatus "menunggu"; belum ada harga di Master Product yang berubah.
  *  2. Halaman menampilkan perbandingan harga 2024, harga beli aplikasi, harga 2026 (pengajuan percetakan),
- *     dan harga jual otomatis (Modul: beli x 1,45; selain Modul: beli x 1,20).
+ *     dan harga jual otomatis (Modul: beli x 1,49; selain Modul: beli x 1,20).
  *  3. Admin menyetujui (ACC) -> harga beli & harga jual di Master Product diperbarui (dipublikasikan),
  *     atau menolak -> tidak ada harga yang berubah.
  */
@@ -575,13 +575,20 @@ class PenyesuaianHargaController extends Controller
     private function infoHargaJual(PenyesuaianHarga $r, ?Product $p): array
     {
         if (! $p) {
-            return ['sekarang' => null, 'baru' => null, 'pengali' => null, 'isi' => 1];
+            return ['sekarang' => null, 'baru' => null, 'pengali' => null, 'isi' => 1, 'beli_lama' => null, 'lama_satuan' => null, 'baru_satuan' => null];
         }
 
         $isi = max(1, (int) $p->isi);
         $modul = $r->grup === PenyesuaianHargaData::GRUP_MODUL;
 
+        // Tampilan halaman Jual: per SATUAN (tanpa dikali isi). Harga paket dihitung saat ACC dan tersimpan di Master Product.
+        $jualLamaPaket = $r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual;
+        $beliLama      = $r->diterapkan_pada ? $r->harga_beli_sebelum : $p->harga_beli;
+
         return [
+            'beli_lama'   => $beliLama !== null ? (float) $beliLama : null,
+            'lama_satuan' => $jualLamaPaket !== null ? round((float) $jualLamaPaket / $isi) : null,
+            'baru_satuan' => Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, 1, $modul),
             // harga jual lama: sebelum diubah oleh publikasi (kalau sudah dipublikasi) atau yang berlaku sekarang
             'sekarang' => ($r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual) !== null
                 ? (float) ($r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual)

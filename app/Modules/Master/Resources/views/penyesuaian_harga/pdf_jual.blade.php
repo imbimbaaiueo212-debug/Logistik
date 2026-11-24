@@ -25,16 +25,19 @@
     Berlaku mulai {{ $tglBerlaku }} &middot; {{ $batch->labelStatus() }}
     @if($batch->nomor_surat) &middot; Surat {{ $batch->nomor_surat }} @endif
     @if($batch->tanggal_surat) ({{ $batch->tanggal_surat->format('d/m/Y') }}) @endif
-    &middot; dicetak {{ now()->format('d/m/Y H:i') }}
+    &middot; harga jual per satuan &middot; dicetak {{ now()->format('d/m/Y H:i') }}
 </div>
 <table>
     <thead>
         <tr>
-            <th class="l">No</th><th class="l">Nama Produk</th>
-            <th>Harga Beli Baru</th>
-            <th>Harga Jual Sebelum</th><th>Harga Jual Sesudah</th>
-            <th>Selisih</th><th>Kenaikan %</th>
-            <th class="l">Status</th>
+            <th rowspan="2" class="l">No</th><th rowspan="2" class="l">Nama Produk</th>
+            <th colspan="2" style="text-align:center">Harga Lama 2024</th>
+            <th colspan="2" style="text-align:center">Harga Baru 2026</th>
+            <th rowspan="2">Selisih Jual</th><th rowspan="2">Kenaikan %</th>
+            <th rowspan="2" class="l">Status</th>
+        </tr>
+        <tr>
+            <th>Harga Beli</th><th>Harga Jual</th><th>Harga Beli</th><th>Harga Jual</th>
         </tr>
     </thead>
     <tbody>
@@ -42,20 +45,21 @@
     @forelse($rows as $r)
         @if($grupSebelum !== $r->grup)
             @php $grupSebelum = $r->grup; @endphp
-            <tr class="grup"><td colspan="8">{{ $r->grup }}</td></tr>
+            <tr class="grup"><td colspan="9">{{ $r->grup }}</td></tr>
         @endif
         @php
             $p = $produk[$r->id] ?? null;
             $j = $jual[$r->id];
-            $lama = $j['sekarang']; $baru = $j['baru'];
+            $lama = $j['lama_satuan']; $baru = $j['baru_satuan'];
             $selisih = ($lama !== null && $baru !== null) ? $baru - $lama : null;
             $persen = ($lama !== null && $lama > 0 && $baru !== null) ? (($baru - $lama) / $lama) * 100 : null;
         @endphp
         <tr>
             <td class="l">{{ $r->no }}</td>
             <td class="l">{{ $r->nama }}</td>
-            <td>{{ $rp($r->harga_2026) }}</td>
+            <td>{{ $rp($j['beli_lama']) }}</td>
             <td>{{ $rp($lama) }}</td>
+            <td><b>{{ $rp($r->harga_2026) }}</b></td>
             <td><b>{{ $rp($baru) }}</b></td>
             <td>{{ $selisih === null ? '-' : ($selisih > 0 ? '+' : '') . number_format($selisih, 0, ',', '.') }}</td>
             <td>{{ $persen === null ? '-' : ($persen >= 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}</td>
@@ -70,7 +74,7 @@
             </td>
         </tr>
     @empty
-        <tr><td colspan="8" class="l">Tidak ada data.</td></tr>
+        <tr><td colspan="9" class="l">Tidak ada data.</td></tr>
     @endforelse
     </tbody>
 </table>

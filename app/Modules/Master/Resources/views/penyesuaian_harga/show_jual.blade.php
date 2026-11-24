@@ -65,13 +65,18 @@
     <table class="min-w-full text-sm">
         <thead class="bg-[#162749] text-white text-xs uppercase">
             <tr>
-                <th class="px-3 py-3 text-left">No</th>
-                <th class="px-3 py-3 text-left">Nama Produk</th>
-                <th class="px-3 py-3 text-right">Harga Beli Baru<br><span class="normal-case font-normal">2026</span></th>
-                <th class="px-3 py-3 text-right">Harga Jual<br><span class="normal-case font-normal">Lama</span></th>
-                <th class="px-3 py-3 text-right">Harga Jual<br><span class="normal-case font-normal">Baru</span></th>
-                <th class="px-3 py-3 text-right">Kenaikan<br><span class="normal-case font-normal">%</span></th>
-                <th class="px-3 py-3 text-left">Status</th>
+                <th rowspan="2" class="px-3 py-3 text-left">No</th>
+                <th rowspan="2" class="px-3 py-3 text-left">Nama Produk</th>
+                <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Lama 2024</th>
+                <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Baru 2026</th>
+                <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Kenaikan<br><span class="normal-case font-normal">harga jual %</span></th>
+                <th rowspan="2" class="px-3 py-3 text-left">Status</th>
+            </tr>
+            <tr>
+                <th class="px-3 pb-3 text-right border-l border-white/20">Harga Beli</th>
+                <th class="px-3 pb-3 text-right">Harga Jual</th>
+                <th class="px-3 pb-3 text-right border-l border-white/20">Harga Beli</th>
+                <th class="px-3 pb-3 text-right">Harga Jual</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -79,13 +84,13 @@
             @forelse($rows as $r)
                 @if($grupSebelum !== $r->grup)
                     @php $grupSebelum = $r->grup; @endphp
-                    <tr class="bg-gray-50"><td colspan="7" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
+                    <tr class="bg-gray-50"><td colspan="8" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
                     $j = $jual[$r->id];
-                    $lama = $j['sekarang'];
-                    $baru = $j['baru'];
+                    $lama = $j['lama_satuan'];
+                    $baru = $j['baru_satuan'];
                     $sama = $p && ($sudah26[$r->id] ?? false);
                     $persen = ($lama !== null && $lama > 0 && $baru !== null) ? (($baru - $lama) / $lama) * 100 : null;
                 @endphp
@@ -95,14 +100,10 @@
                         <div class="font-medium">{{ $r->nama }}</div>
                         @if($p) <div class="text-[11px] text-gray-400">{{ $p->name }} ({{ $p->label }})</div> @endif
                     </td>
-                    <td class="px-3 py-2 text-right">{{ $rp($r->harga_2026) }}</td>
-                    <td class="px-3 py-2 text-right text-gray-500">{{ $rp($lama) }}</td>
-                    <td class="px-3 py-2 text-right">
-                        <div class="font-semibold">{{ $rp($baru) }}</div>
-                        @if($j['pengali'] !== null)
-                            <div class="text-[10px] text-gray-400">&times;{{ $fmtPengali($j['pengali']) }}@if($j['isi'] > 1) &times; isi {{ $j['isi'] }}@endif</div>
-                        @endif
-                    </td>
+                    <td class="px-3 py-2 text-right border-l border-gray-100">{{ $rp($j['beli_lama']) }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">{{ $rp($lama) }}</td>
+                    <td class="px-3 py-2 text-right border-l border-gray-100 font-semibold">{{ $rp($r->harga_2026) }}</td>
+                    <td class="px-3 py-2 text-right font-semibold">{{ $rp($baru) }}</td>
                     <td class="px-3 py-2 text-right {{ $persen === null ? 'text-gray-400' : ($persen >= 0 ? 'text-red-600' : 'text-green-700') }}">
                         {{ $persen === null ? '-' : ($persen >= 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}
                     </td>
@@ -124,14 +125,14 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
+                <tr><td colspan="8" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
             @endforelse
         </tbody>
     </table>
 </div>
 
 <p class="text-xs text-gray-500 mt-3">
-    Harga Jual = Harga Beli &times; {{ $fmtPengali($pengaliModul) }} untuk Modul, &times; {{ $fmtPengali($pengaliLain) }} untuk selain Modul, dibulatkan ke atas per Rp 50 lalu dikali isi.
-    Kenaikan % = (harga jual baru &minus; lama) / lama. Untuk mengubah harga, import dan ACC di menu Penyesuaian Harga &rarr; Beli.
+    Harga jual di halaman ini per <b>satuan</b>. Harga paket (dikali isi) dihitung otomatis saat di-ACC dan tersimpan di Master Product.
+    Untuk mengubah harga, import dan ACC di menu Penyesuaian Harga &rarr; Beli.
 </p>
 @endsection
