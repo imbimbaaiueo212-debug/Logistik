@@ -118,7 +118,7 @@
 
                     <div class="text-sm text-gray-500 mt-1">
                         Total Order :
-                        <span class="font-bold text-blue-600">{{ $totalOrder }}</span>
+                        <span class="font-bold text-blue-600 total-order">{{ $totalOrder }}</span>
                     </div>
                 </div>
 
@@ -206,7 +206,7 @@
                                     }
                                 @endphp
 
-                                <div class="font-medium">
+                                <div class="font-medium kat-cell">
                                     {{ $kategoriDisplay }}
                                 </div>
                                 <x-hold-barang :row="$item" />
@@ -319,6 +319,27 @@
     </div>
 </div>
 @include('order::partials.pilih-ekspedisi')
+
+<script>
+    // Filter kategori: tampil per baris sesuai isi kolom Kategori, RA tetap tampil lengkap
+    (function () {
+        var kat = @json(strtolower((string) request('kategori')));
+        if (!kat) return;
+        document.querySelectorAll('[data-tanggal]').forEach(function (box) {
+            var sisa = 0;
+            box.querySelectorAll('tr[data-id]').forEach(function (tr) {
+                var cell = tr.querySelector('.kat-cell');
+                var cocok = cell && cell.textContent.toLowerCase().indexOf(kat) !== -1;
+                tr.classList.toggle('kat-hidden', !cocok);
+                tr.style.display = cocok ? '' : 'none';
+                if (cocok) sisa++;
+            });
+            var total = box.querySelector('.total-order');
+            if (total) total.textContent = sisa;
+            if (sisa === 0) box.style.display = 'none';
+        });
+    })();
+</script>
 @endsection
 
 @push('scripts')
@@ -349,7 +370,7 @@
             return;
         }
 
-        const ids = ekspedisiIds !== undefined ? ekspedisiIds : Array.from(container.querySelectorAll("tr[data-id]"))
+        const ids = ekspedisiIds !== undefined ? ekspedisiIds : Array.from(container.querySelectorAll("tr[data-id]:not(.kat-hidden)"))
             .map(r => r.dataset.id)
             .join(",");
 

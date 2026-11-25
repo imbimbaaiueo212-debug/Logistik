@@ -27,9 +27,7 @@ public function jakartaPrinted(Request $request)
     // ==========================
     // FILTER
     // ==========================
-    if ($request->filled('kategori')) {
-        $query->where('kategori_order', $request->kategori);
-    }
+    // Filter kategori dilakukan di tampilan (per isi kolom Kategori) supaya RA tetap lengkap
 
     if ($request->filled('id_pesan')) {
         $query->where('no_pl', 'like', '%' . $request->id_pesan . '%');
