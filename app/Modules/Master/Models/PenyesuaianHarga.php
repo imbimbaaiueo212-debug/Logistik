@@ -10,10 +10,11 @@ class PenyesuaianHarga extends Model
 
     protected $fillable = [
         'batch_id', 'grup', 'no', 'nama', 'harga_2024', 'harga_2026',
-        'product_id', 'harga_beli_sebelum', 'harga_jual_sebelum', 'harga_jual_baru', 'diterapkan_pada',
+        'product_id', 'harga_beli_sebelum', 'harga_jual_sebelum', 'harga_jual_baru', 'disetujui_beli_pada', 'diterapkan_pada',
     ];
 
     protected $casts = [
+        'disetujui_beli_pada' => 'datetime',
         'diterapkan_pada' => 'datetime',
     ];
 

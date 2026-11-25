@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class PenyesuaianHargaBatch extends Model
 {
     public const MENUNGGU     = 'menunggu';
+    public const MENUNGGU_JUAL = 'menunggu_jual';
     public const DIPUBLIKASI  = 'dipublikasi';
     public const DITOLAK      = 'ditolak';
 
@@ -16,12 +17,13 @@ class PenyesuaianHargaBatch extends Model
 
     protected $fillable = [
         'no_ra', 'supplier_id', 'judul', 'nomor_surat', 'tanggal_surat', 'berlaku_mulai', 'catatan', 'status', 'pengali_modul', 'pengali_lain',
-        'created_by', 'reviewed_by', 'reviewed_at', 'catatan_review', 'published_at',
+        'created_by', 'acc_beli_by', 'acc_beli_at', 'catatan_beli', 'reviewed_by', 'reviewed_at', 'catatan_review', 'published_at',
     ];
 
     protected $casts = [
         'tanggal_surat' => 'date',
         'berlaku_mulai' => 'date',
+        'acc_beli_at'   => 'datetime',
         'reviewed_at'   => 'datetime',
         'published_at'  => 'datetime',
     ];
@@ -88,12 +90,25 @@ class PenyesuaianHargaBatch extends Model
         return $this->status === self::MENUNGGU;
     }
 
+    /** Beli sudah di-ACC, menunggu ACC Jual sebelum harga pindah ke Master Product. */
+    public function isMenungguJual(): bool
+    {
+        return $this->status === self::MENUNGGU_JUAL;
+    }
+
+    /** Belum final: masih boleh diubah pengalinya, ditolak, dll. */
+    public function isBelumFinal(): bool
+    {
+        return in_array($this->status, [self::MENUNGGU, self::MENUNGGU_JUAL], true);
+    }
+
     public function labelStatus(): string
     {
         return match ($this->status) {
+            self::MENUNGGU_JUAL => 'Menunggu ACC Jual',
             self::DIPUBLIKASI => 'Disetujui & dipublikasikan',
             self::DITOLAK     => 'Ditolak (tidak dipublikasikan)',
-            default           => 'Menunggu ACC',
+            default           => 'Menunggu ACC Beli',
         };
     }
 }

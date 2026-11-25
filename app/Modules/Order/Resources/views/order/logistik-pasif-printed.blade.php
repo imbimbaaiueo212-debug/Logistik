@@ -116,7 +116,7 @@
                                     $catatan = trim($item->ket ?? '');
                                     $catatan = preg_replace('/Di proses bulk pada .*?: /i', '', $catatan);
                                 @endphp
-                                <tr data-id="{{ $item->id }}">
+                                <tr data-id="{{ $item->id }}" data-pengiriman="{{ $item->pengiriman }}">
                                     <td class="text-center">{{ $loop->iteration }}</td>
                                     <td class="text-center font-medium whitespace-nowrap">{{ $item->no_pl ?? '-' }}</td>
                                     <td class="wrap">{{ $item->nama_unit ?? '-' }}</td>
@@ -213,6 +213,7 @@
         </div>
     </div>
 </div>
+@include('order::partials.pilih-ekspedisi')
 @endsection
 
 @push('scripts')
@@ -243,11 +244,16 @@
         ekspedisi: `{{ route('order.realisasi-logistik-pasif.print-ekspedisi') }}`,
     };
 
-    function cetakRa(tanggal, jenis) {
+    function cetakRa(tanggal, jenis, ekspedisiIds) {
         const box = document.querySelector(`[data-tanggal="${tanggal}"]`);
         if (!box) return;
 
-        const ids = Array.from(box.querySelectorAll('tr[data-id]'))
+        if (jenis === 'ekspedisi' && ekspedisiIds === undefined) {
+            pilihEkspedisi(box, function (hasil) { cetakRa(tanggal, jenis, hasil); });
+            return;
+        }
+
+        const ids = ekspedisiIds !== undefined ? ekspedisiIds : Array.from(box.querySelectorAll('tr[data-id]'))
             .map(r => r.dataset.id)
             .join(',');
 

@@ -49,8 +49,11 @@ class PenyesuaianHargaController extends Controller
         $batch = PenyesuaianHargaBatch::with(['files', 'supplier'])->findOrFail($id);
         $data  = $this->dataTampilan($request, $batch);
 
+        $bolehReviewJual = $batch->isMenungguJual() && Auth::user()->isAdmin();
+
         return view('master::penyesuaian_harga.show_jual', $data + [
-            'batch'        => $batch,
+            'batch'           => $batch,
+            'bolehReviewJual' => $bolehReviewJual,
             'pengaliModul' => $batch->pengaliModul(),
             'pengaliLain'  => $batch->pengaliLain(),
         ]);
@@ -61,7 +64,7 @@ class PenyesuaianHargaController extends Controller
     {
         $batch = PenyesuaianHargaBatch::findOrFail($id);
 
-        if (! $batch->isMenunggu()) {
+        if (! $batch->isBelumFinal()) {
             return back()->with('error', 'Pengali tidak bisa diubah karena import ini sudah diproses.');
         }
 
@@ -145,7 +148,7 @@ class PenyesuaianHargaController extends Controller
     public function create()
     {
         return view('master::penyesuaian_harga.create', [
-            'punyaMenunggu' => PenyesuaianHargaBatch::where('status', PenyesuaianHargaBatch::MENUNGGU)->exists(),
+            'punyaMenunggu' => PenyesuaianHargaBatch::whereIn('status', [PenyesuaianHargaBatch::MENUNGGU, PenyesuaianHargaBatch::MENUNGGU_JUAL])->exists(),
             'parserSiap'    => class_exists(\Smalot\PdfParser\Parser::class),
             'suppliers'     => \App\Modules\Master\Models\Supplier::orderBy('nama_supplier')->get(['id', 'nama_supplier']),
         ]);
@@ -208,8 +211,8 @@ class PenyesuaianHargaController extends Controller
             '*.max'                           => 'Ukuran tiap file maksimal 10 MB.',
         ]);
 
-        if (PenyesuaianHargaBatch::where('status', PenyesuaianHargaBatch::MENUNGGU)->exists()) {
-            return back()->withInput()->with('error', 'Masih ada import yang menunggu ACC. Setujui atau tolak dulu sebelum import baru.');
+        if (PenyesuaianHargaBatch::whereIn('status', [PenyesuaianHargaBatch::MENUNGGU, PenyesuaianHargaBatch::MENUNGGU_JUAL])->exists()) {
+            return back()->withInput()->with('error', 'Masih ada import yang menunggu ACC (Beli atau Jual). Setujui atau tolak dulu sebelum import baru.');
         }
 
         // 1) Baca semua PDF dulu; kalau gagal tidak ada yang tersimpan
@@ -360,8 +363,52 @@ class PenyesuaianHargaController extends Controller
         return redirect()->route('penyesuaian-harga.show', $batch->id)->with('success', $pesan);
     }
 
-    /** ACC: harga beli (= harga 2026 percetakan) dan harga jual otomatis dipublikasikan ke Master Product. */
+    /** ACC BELI: baris terpilih disetujui. Harga di Master Product BELUM berubah; menunggu ACC Jual. */
     public function setujui(Request $request, int $id)
+    {
+        $request->validate([
+            'catatan' => ['nullable', 'string', 'max:500'],
+            'ids'     => ['required', 'array', 'min:1'],
+            'ids.*'   => ['integer'],
+        ], ['ids.required' => 'Centang minimal satu produk yang mau disetujui.', 'ids.min' => 'Centang minimal satu produk yang mau disetujui.']);
+
+        $dipilih = array_map('intval', $request->input('ids'));
+
+        try {
+            $jumlah = 0;
+
+            DB::transaction(function () use ($request, $id, $dipilih, &$jumlah) {
+                $batch = PenyesuaianHargaBatch::lockForUpdate()->findOrFail($id);
+
+                if (! $batch->isMenunggu()) {
+                    throw new \RuntimeException('ACC Beli untuk import ini sudah diproses.');
+                }
+                if (! self::BOLEH_SETUJUI_SENDIRI && $batch->created_by === Auth::id()) {
+                    throw new \RuntimeException('Import tidak boleh di-ACC oleh orang yang meng-importnya.');
+                }
+
+                $jumlah = $batch->rows()->whereIn('id', $dipilih)->whereNull('diterapkan_pada')->update(['disetujui_beli_pada' => now()]);
+
+                if ($jumlah === 0) {
+                    throw new \RuntimeException('Tidak ada produk terpilih yang bisa disetujui.');
+                }
+
+                $batch->update([
+                    'status'       => PenyesuaianHargaBatch::MENUNGGU_JUAL,
+                    'acc_beli_by'  => Auth::id(),
+                    'acc_beli_at'  => now(),
+                    'catatan_beli' => $request->input('catatan'),
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "ACC Beli selesai untuk <b>{$jumlah}</b> produk. Harga di Master Product belum berubah &mdash; menunggu ACC Jual di menu Penyesuaian Harga &rarr; Jual.");
+    }
+
+    /** ACC JUAL: harga beli (= harga 2026) dan harga jual baru dipublikasikan ke Master Product. Hanya baris yang sudah di-ACC Beli. */
+    public function setujuiJual(Request $request, int $id)
     {
         $request->validate([
             'catatan' => ['nullable', 'string', 'max:500'],
@@ -380,8 +427,8 @@ class PenyesuaianHargaController extends Controller
             DB::transaction(function () use ($request, $id, $dipilih, &$jumlah, &$dilewati, &$sudah, &$tidakDipilih) {
                 $batch = PenyesuaianHargaBatch::lockForUpdate()->findOrFail($id);
 
-                if (! $batch->isMenunggu()) {
-                    throw new \RuntimeException('Import ini sudah diproses.');
+                if (! $batch->isMenungguJual()) {
+                    throw new \RuntimeException('Import ini belum di-ACC Beli atau sudah diproses.');
                 }
                 if (! self::BOLEH_SETUJUI_SENDIRI && $batch->created_by === Auth::id()) {
                     throw new \RuntimeException('Import tidak boleh di-ACC oleh orang yang meng-importnya.');
@@ -410,8 +457,8 @@ class PenyesuaianHargaController extends Controller
                         continue;
                     }
 
-                    // Bulk: hanya baris yang dicentang yang diubah
-                    if (! in_array($r->id, $dipilih, true)) {
+                    // Bulk: hanya baris yang sudah di-ACC Beli dan dicentang yang diubah
+                    if (! $r->disetujui_beli_pada || ! in_array($r->id, $dipilih, true)) {
                         $tidakDipilih++;
                         continue;
                     }
@@ -480,7 +527,7 @@ class PenyesuaianHargaController extends Controller
         ]);
 
         $batch = PenyesuaianHargaBatch::findOrFail($id);
-        if (! $batch->isMenunggu()) {
+        if (! $batch->isBelumFinal()) {
             return back()->with('error', 'Import ini sudah diproses.');
         }
 
@@ -571,7 +618,7 @@ class PenyesuaianHargaController extends Controller
         $batch = PenyesuaianHargaBatch::findOrFail($id);
         $f     = PenyesuaianHargaFile::where('batch_id', $id)->where('jenis', 'lampiran')->findOrFail($fileId);
 
-        if (! $batch->isMenunggu()) {
+        if (! $batch->isBelumFinal()) {
             return back()->with('error', 'Lampiran tidak bisa dihapus karena import ini sudah diproses.');
         }
 

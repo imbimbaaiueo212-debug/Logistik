@@ -148,5 +148,7 @@ Route::prefix('penyesuaian-harga-jual')
         Route::get('/', [$c, 'indexJual'])->name('index');
         Route::get('/unduh-pdf', [$c, 'pdfJual'])->name('pdf');
         Route::post('/{id}/pengali', [$c, 'simpanPengali'])->whereNumber('id')->name('pengali');
+        Route::post('/{id}/setujui', [$c, 'setujuiJual'])->whereNumber('id')->name('setujui');
+        Route::post('/{id}/tolak', [$c, 'tolak'])->whereNumber('id')->name('tolak');
         Route::get('/{id}', [$c, 'showJual'])->whereNumber('id')->name('show');
     });

@@ -147,7 +147,7 @@
                     </thead>
                     <tbody>
                         @foreach($rows as $item)
-                        <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}">
+                        <tr class="hover:bg-blue-50" data-id="{{ $item->id }}" data-nopl="{{ $item->no_pl }}" data-pengiriman="{{ $item->pengiriman }}">
                             <td class="font-medium text-center">{{ $loop->iteration }}</td>
                             <td class="font-medium">{{ $item->no_pl ?? '-' }}</td>
                             <td class="text-left">{{ $item->nama_unit ?? '-' }}</td>
@@ -318,6 +318,7 @@
         </div>
     </div>
 </div>
+@include('order::partials.pilih-ekspedisi')
 @endsection
 
 @push('scripts')
@@ -339,11 +340,16 @@
     }
 
     // ==================== PRINT PER TANGGAL ====================
-    function printPerDate(tanggal, type) {
+    function printPerDate(tanggal, type, ekspedisiIds) {
         const container = document.querySelector(`[data-tanggal="${tanggal}"]`);
         if (!container) return;
 
-        const ids = Array.from(container.querySelectorAll("tr[data-id]"))
+        if (type === 'ekspedisi' && ekspedisiIds === undefined) {
+            pilihEkspedisi(container, function (hasil) { printPerDate(tanggal, type, hasil); });
+            return;
+        }
+
+        const ids = ekspedisiIds !== undefined ? ekspedisiIds : Array.from(container.querySelectorAll("tr[data-id]"))
             .map(r => r.dataset.id)
             .join(",");
 

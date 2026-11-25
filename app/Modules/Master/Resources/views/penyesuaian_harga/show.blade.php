@@ -23,6 +23,7 @@
     ];
     $statusBatch = [
         'menunggu'    => 'bg-amber-100 text-amber-800',
+        'menunggu_jual' => 'bg-blue-100 text-blue-800',
         'dipublikasi' => 'bg-green-100 text-green-800',
         'ditolak'     => 'bg-red-100 text-red-800',
     ];
@@ -97,7 +98,7 @@
                             <div class="flex items-center gap-1">
                                 <a href="{{ route('penyesuaian-harga.berkas', [$batch->id, $f->id]) }}" target="_blank"
                                    class="text-[#E85D2A] underline">{{ $f->labelJenis() }} ({{ $f->nama }})</a>
-                                @if($f->jenis === 'lampiran' && $batch->isMenunggu())
+                                @if($f->jenis === 'lampiran' && $batch->isBelumFinal())
                                     <form method="POST" action="{{ route('penyesuaian-harga.lampiran-hapus', [$batch->id, $f->id]) }}" class="inline"
                                           onsubmit="return confirm('Hapus lampiran ini?')">
                                         @csrf
@@ -136,8 +137,8 @@
         @if($batch->isMenunggu())
             <div class="mt-3 border-t border-gray-100 pt-3">
                 <div class="text-sm text-gray-700 mb-2">
-                    Harga di Master Product <b>belum berubah</b>. Jika disetujui: Harga Beli = harga 2026 percetakan, Harga Jual otomatis
-                    (Modul &times; {{ $fmtPengali($pengaliModul) }}, selain Modul &times; {{ $fmtPengali($pengaliLain) }}, dibulatkan ke ribuan terdekat per satuan).
+                    Harga di Master Product <b>belum berubah</b>. ACC Beli hanya menyetujui harga beli dari percetakan; setelah itu
+                    import menunggu <b>ACC Jual</b> (menu Penyesuaian Harga &rarr; Jual). Harga baru masuk ke Master Product setelah ACC Jual.
                 </div>
                 @if($belumCocokBatch > 0)
                     <div class="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-3 py-2 mb-2">
@@ -147,7 +148,7 @@
 
                 @if($bolehReview)
                     <div class="text-xs text-gray-600 mb-2">
-                        Centang produk yang harganya mau diubah (bulk). Yang tidak dicentang tidak berubah. Produk yang Harga Belinya sudah sama dengan 2026 tidak masuk bulk dan diberi keterangan "sudah mengikuti 2026".
+                        Centang produk yang mau disetujui (bulk). Yang tidak dicentang tidak ikut ke ACC Jual. Produk yang Harga Belinya sudah sama dengan 2026 tidak masuk bulk dan diberi keterangan "sudah mengikuti 2026".
                         @if(request()->hasAny(['grup', 'status', 'kesesuaian', 'cari']))
                             <b class="text-[#E85D2A]">Filter sedang aktif: hanya baris yang tampil yang ikut dipilih.</b>
                         @endif
@@ -158,7 +159,7 @@
                               class="flex flex-wrap items-center gap-2">
                             @csrf
                             <input type="text" name="catatan" placeholder="Catatan (opsional)" maxlength="500" class="{{ $inp }}">
-                            <button class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm">Setujui &amp; Publikasikan (<span id="jmlDipilih">0</span> dipilih)</button>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm">ACC Beli (<span id="jmlDipilih">0</span> dipilih)</button>
                         </form>
                         <form method="POST" action="{{ route('penyesuaian-harga.tolak', $batch->id) }}"
                               onsubmit="return confirm('Tolak import ini? Harga di Master Product tidak akan berubah.')"
@@ -171,6 +172,12 @@
                 @else
                     <div class="text-xs text-gray-500">Menunggu ACC dari admin lain.</div>
                 @endif
+            </div>
+        @elseif($batch->isMenungguJual())
+            <div class="mt-3 border-t border-gray-100 pt-3 text-sm text-blue-800 bg-blue-50 rounded-xl px-3 py-2">
+                ACC Beli sudah selesai{{ $batch->acc_beli_at ? ' pada ' . $batch->acc_beli_at->format('d/m/Y H:i') : '' }}. Harga di Master Product <b>belum berubah</b>,
+                menunggu ACC Jual di menu Penyesuaian Harga &rarr; Jual.
+                <a href="{{ route('penyesuaian-harga-jual.show', $batch->id) }}" class="underline font-medium">Buka halaman Jual</a>
             </div>
         @endif
     </div>
@@ -300,7 +307,7 @@
                             <div class="text-[10px] text-green-700 mt-0.5">&#10003; dipublikasi {{ $r->diterapkan_pada->format('d/m/Y') }}</div>
                         @elseif($sudah26[$r->id] ?? false)
                             <div class="text-[10px] text-blue-700 mt-0.5">&#10003; Harga sudah mengikuti 2026 (tidak diubah)</div>
-                        @elseif($p && $batch->status === 'dipublikasi')
+                        @elseif($p && ! $batch->isBelumFinal() && $batch->status === 'dipublikasi')
                             <div class="text-[10px] text-gray-500 mt-0.5">Tidak dipilih, harga tetap</div>
                         @endif
                     </td>
@@ -314,8 +321,8 @@
 
 <p class="text-xs text-gray-500 mt-3">
     Selisih = Harga Beli aplikasi &minus; Harga 2024 percetakan. Kenaikan % = (2026 &minus; 2024) / 2024.
-    Harga Beli baru = harga 2026 pengajuan percetakan. Harga Jual ikut berubah otomatis saat di-ACC, lihat rinciannya di menu Penyesuaian Harga &rarr; Jual.
-    Harga di Master Product hanya berubah setelah import di-ACC.
+    Harga Beli baru = harga 2026 pengajuan percetakan. Harga Jual dihitung otomatis, lihat rinciannya di menu Penyesuaian Harga &rarr; Jual.
+    Harga di Master Product hanya berubah setelah ACC Beli lalu ACC Jual.
 </p>
 {{-- ===================== MODAL LIHAT SURAT & LAMPIRAN ===================== --}}
 @if($dokumen->isNotEmpty())
@@ -405,7 +412,7 @@
         window.konfirmasiSetujui = function () {
             var n = hitung();
             if (n === 0) { alert('Centang minimal satu produk yang harganya mau diubah.'); return false; }
-            return confirm('Setujui dan publikasikan ' + n + ' produk terpilih? Harga beli dan harga jual produk itu di Master Product akan berubah.');
+            return confirm('ACC Beli untuk ' + n + ' produk terpilih? Harga di Master Product belum berubah, menunggu ACC Jual.');
         };
         hitung();
     })();

@@ -5,7 +5,7 @@
 @section('content')
 @include('partials.page-header', [
     'title'     => $batch->namaTampil(),
-    'subtitle'  => 'Harga jual berlaku mulai ' . ($batch->berlaku_mulai ?? $batch->created_at)->translatedFormat('j F Y') . '. Dihitung otomatis dari Harga Beli baru, dan ikut berubah saat perubahan harga beli di-ACC.',
+    'subtitle'  => 'Harga jual berlaku mulai ' . ($batch->berlaku_mulai ?? $batch->created_at)->translatedFormat('j F Y') . '. Dihitung otomatis dari Harga Beli baru. Masuk ke Master Product setelah ACC Beli dan ACC Jual.',
     'back'      => route('penyesuaian-harga-jual.index'),
     'backLabel' => 'Kembali',
 ])
@@ -19,6 +19,7 @@
     $fmtPengali = fn ($v) => number_format($v, 2, ',', '.');
     $statusBatch = [
         'menunggu'    => 'bg-amber-100 text-amber-800',
+        'menunggu_jual' => 'bg-blue-100 text-blue-800',
         'dipublikasi' => 'bg-green-100 text-green-800',
         'ditolak'     => 'bg-red-100 text-red-800',
     ];
@@ -33,7 +34,9 @@
                 <span>Surat: <b>{{ $batch->nomor_surat ?: '-' }}</b>@if($batch->tanggal_surat) &middot; {{ $batch->tanggal_surat->format('d/m/Y') }}@endif</span>
             </div>
             @if($batch->isMenunggu())
-                <div class="text-amber-700">Harga jual di Master Product belum berubah. Perubahan baru berlaku setelah harga beli di-ACC di menu Penyesuaian Harga &rarr; Beli.</div>
+                <div class="text-amber-700">Menunggu ACC Beli dulu di menu Penyesuaian Harga &rarr; Beli. Harga di Master Product belum berubah.</div>
+            @elseif($batch->isMenungguJual())
+                <div class="text-blue-700">ACC Beli sudah selesai. Harga di Master Product <b>belum berubah</b> sampai ACC Jual di bawah.</div>
             @endif
         </div>
         <a href="{{ route('penyesuaian-harga.show', $batch->id) }}" class="border border-[#162749] text-[#162749] px-4 py-2 rounded-xl text-sm hover:bg-gray-50">
@@ -46,7 +49,7 @@
 <div class="{{ $card }} px-4 py-3 mb-4 border-l-4 border-l-[#E85D2A]">
     <div class="font-semibold text-[#162749] text-sm mb-2">Rumus Harga Jual</div>
 
-    @if($batch->isMenunggu())
+    @if($batch->isBelumFinal())
         <form method="POST" action="{{ route('penyesuaian-harga-jual.pengali', $batch->id) }}" class="flex flex-wrap items-end gap-3 mb-2">
             @csrf
             @if($errors->any()) <div class="w-full text-xs text-red-700">{{ $errors->first() }}</div> @endif
@@ -73,6 +76,32 @@
     </div>
 </div>
 
+@if($batch->isMenungguJual())
+<div class="{{ $card }} px-4 py-3 mb-4 border-l-4 border-l-green-600">
+    <div class="font-semibold text-[#162749] text-sm mb-1">ACC Jual</div>
+    <div class="text-xs text-gray-600 mb-2">
+        Harga beli sudah di-ACC. Centang produk yang harga beli &amp; harga jualnya mau dipindah ke Master Product (bulk). Yang tidak dicentang tidak berubah.
+        @if(request()->hasAny(['grup', 'cari']))
+            <b class="text-[#E85D2A]">Filter sedang aktif: hanya baris yang tampil yang ikut dipilih.</b>
+        @endif
+    </div>
+    @if($bolehReviewJual)
+        <div class="flex flex-wrap gap-4 items-start">
+            <form method="POST" id="formSetujui" action="{{ route('penyesuaian-harga-jual.setujui', $batch->id) }}" onsubmit="return konfirmasiSetujui()" class="flex flex-wrap items-center gap-2">
+                @csrf
+                <input type="text" name="catatan" placeholder="Catatan (opsional)" maxlength="500" class="{{ $inp }}">
+                <button class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm">ACC Jual &amp; Publikasikan (<span id="jmlDipilih">0</span> dipilih)</button>
+            </form>
+            <form method="POST" action="{{ route('penyesuaian-harga-jual.tolak', $batch->id) }}" onsubmit="return confirm('Tolak import ini? Harga di Master Product tidak akan berubah.')" class="flex flex-wrap items-center gap-2">
+                @csrf
+                <input type="text" name="catatan" placeholder="Alasan penolakan" required minlength="5" maxlength="500" class="{{ $inp }}">
+                <button class="bg-red-600 text-white px-4 py-2 rounded-xl text-sm">Tolak</button>
+            </form>
+        </div>
+    @endif
+</div>
+@endif
+
 <form method="GET" action="{{ route('penyesuaian-harga-jual.show', $batch->id) }}" class="{{ $card }} p-4 mb-4 flex flex-wrap gap-3 items-end">
     <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Kelompok</label>
@@ -97,6 +126,7 @@
     <table class="min-w-full text-sm">
         <thead class="bg-[#162749] text-white text-xs uppercase">
             <tr>
+                <th rowspan="2" class="px-3 py-3 text-left">@if($bolehReviewJual)<input type="checkbox" id="pilihSemua" checked>@endif</th>
                 <th rowspan="2" class="px-3 py-3 text-left">No</th>
                 <th rowspan="2" class="px-3 py-3 text-left">Nama Produk</th>
                 <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Lama 2024</th>
@@ -117,7 +147,7 @@
             @forelse($rows as $r)
                 @if($grupSebelum !== $r->grup)
                     @php $grupSebelum = $r->grup; @endphp
-                    <tr class="bg-gray-50"><td colspan="9" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
+                    <tr class="bg-gray-50"><td colspan="10" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
@@ -128,6 +158,11 @@
                     $persen = ($lama !== null && $lama > 0 && $baru !== null) ? (($baru - $lama) / $lama) * 100 : null;
                 @endphp
                 <tr class="hover:bg-gray-50">
+                    <td class="px-3 py-2">
+                        @if($bolehReviewJual && $p && ! $r->diterapkan_pada && $r->disetujui_beli_pada && ! ($sudah26[$r->id] ?? false))
+                            <input type="checkbox" class="cekBaris" name="ids[]" value="{{ $r->id }}" form="formSetujui" checked>
+                        @endif
+                    </td>
                     <td class="px-3 py-2 text-gray-500">{{ $r->no }}</td>
                     <td class="px-3 py-2">
                         <div class="font-medium">{{ $r->nama }}</div>
@@ -158,7 +193,11 @@
                         @elseif($batch->status === 'ditolak')
                             <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Ditolak</span>
                         @elseif($batch->isMenunggu())
-                            <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Menunggu ACC</span>
+                            <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Menunggu ACC Beli</span>
+                        @elseif($batch->isMenungguJual() && $r->disetujui_beli_pada)
+                            <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">Menunggu ACC Jual</span>
+                        @elseif($batch->isMenungguJual() && ! $sama)
+                            <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">Tidak disetujui di Beli</span>
                         @elseif($sama)
                             <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">Tidak diubah</span>
                         @else
@@ -167,7 +206,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="9" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
+                <tr><td colspan="10" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -177,4 +216,27 @@
     Harga jual di halaman ini per <b>satuan</b>. Harga paket (dikali isi) dihitung otomatis saat di-ACC dan tersimpan di Master Product.
     Untuk mengubah harga, import dan ACC di menu Penyesuaian Harga &rarr; Beli.
 </p>
+
+@if($bolehReviewJual)
+<script>
+    (function () {
+        var semua = document.getElementById('pilihSemua');
+        function baris() { return document.querySelectorAll('.cekBaris'); }
+        function hitung() {
+            var n = 0; baris().forEach(function (c) { if (c.checked) n++; });
+            var el = document.getElementById('jmlDipilih'); if (el) el.textContent = n;
+            if (semua) semua.checked = n > 0 && n === baris().length;
+            return n;
+        }
+        baris().forEach(function (c) { c.addEventListener('change', hitung); });
+        if (semua) semua.addEventListener('change', function () { baris().forEach(function (c) { c.checked = semua.checked; }); hitung(); });
+        window.konfirmasiSetujui = function () {
+            var n = hitung();
+            if (n === 0) { alert('Centang minimal satu produk yang harganya mau diubah.'); return false; }
+            return confirm('ACC Jual untuk ' + n + ' produk terpilih? Harga beli dan harga jual produk itu di Master Product akan berubah.');
+        };
+        hitung();
+    })();
+</script>
+@endif
 @endsection

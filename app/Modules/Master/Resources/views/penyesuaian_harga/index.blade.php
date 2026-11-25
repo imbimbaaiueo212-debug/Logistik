@@ -17,7 +17,8 @@
     $inp = 'border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E85D2A]/40';
     $bulanNama = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
     $statusBadge = [
-        'menunggu'    => ['Menunggu ACC', 'bg-amber-100 text-amber-800'],
+        'menunggu'    => ['Menunggu ACC Beli', 'bg-amber-100 text-amber-800'],
+        'menunggu_jual' => ['Menunggu ACC Jual', 'bg-blue-100 text-blue-800'],
         'dipublikasi' => ['Dipublikasikan', 'bg-green-100 text-green-800'],
         'ditolak'     => ['Ditolak', 'bg-red-100 text-red-800'],
     ];

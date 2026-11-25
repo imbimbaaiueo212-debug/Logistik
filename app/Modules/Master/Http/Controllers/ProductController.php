@@ -298,7 +298,7 @@ class ProductController extends Controller
         $products = Product::whereIn('id', $ids)->get();
 
         $fields = ['kode', 'label', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan',
-                   'harga_beli', 'harga_jual', 'role', 'status', 'tanggal_rilis'];
+                   'harga_beli', 'harga_jual', 'isi', 'role', 'status', 'tanggal_rilis'];
 
         $result = [];
 
@@ -316,6 +316,7 @@ class ProductController extends Controller
         $request->validate([
             'selected_products'   => 'required|array',
             'selected_products.*' => 'exists:products,id',
+            'isi'                 => 'nullable|integer|min:1',
         ]);
 
         $adaHargaBerubah = Product::whereIn('id', $request->selected_products)->get()->contains(function ($p) use ($request) {
@@ -329,7 +330,7 @@ class ProductController extends Controller
 
         $updateData = [];
 
-        $fillable = ['kode', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan', 'role', 'status', 'tanggal_rilis'];
+        $fillable = ['kode', 'kategori', 'sub_kategori', 'name', 'jenis', 'satuan', 'isi', 'role', 'status', 'tanggal_rilis'];
 
         foreach ($fillable as $field) {
             if ($request->filled($field)) {

@@ -121,6 +121,7 @@
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-right">Berat Paket</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-right">Harga Beli</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-right">Harga Jual</th>
+                    <th class="sticky top-0 z-30 bg-gray-100 p-3 text-right">Satuan Publis</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-center">Status</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-center">Isi</th>
                     <th class="sticky top-0 z-30 bg-gray-100 p-3 text-center">Role</th>
@@ -144,6 +145,7 @@
                                data-satuan="{{ $p->satuan ?? '' }}"
                                data-harga-beli="{{ $p->harga_beli ?? '' }}"
                                data-harga-jual="{{ $p->harga_jual ?? '' }}"
+                               data-isi="{{ $p->isi ?? '' }}"
                                data-role="{{ $p->role ?? '' }}"
                                data-status="{{ $p->status ?? '' }}"
                                data-tanggal-rilis="{{ $p->tanggal_rilis ?? '' }}">
@@ -180,6 +182,10 @@
                             </span>
                         @endif
                     </td>
+                    <td class="text-right">
+                        @php $isiHitung = max(1, (int) ($p->isi ?: 1)); @endphp
+                        {{ $p->harga_jual ? 'Rp ' . number_format($p->harga_jual / $isiHitung, 0, ',', '.') : '-' }}
+                    </td>
                     <td class="text-center">{{ $p->status }}</td>
                     <td class="text-center">{{ $p->isi }}</td>
                     <td class="text-center">
@@ -213,58 +219,67 @@
 </div>
 
 <!-- Modal Bulk Edit -->
-<div id="bulkEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 my-8">
-        <div class="p-6 border-b">
-            <h2 class="text-2xl font-semibold">Edit Multi Produk</h2>
+<div id="bulkEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+        <div class="px-5 py-3 border-b shrink-0">
+            <h2 class="text-xl font-semibold">Edit Multi Produk</h2>
             <p class="text-gray-600">Jumlah dipilih: <strong id="modalCount">0</strong></p>
         </div>
 
-        <form action="{{ route('products.bulk-update') }}" method="POST" id="bulkForm">
+        <form action="{{ route('products.bulk-update') }}" method="POST" id="bulkForm" class="flex flex-col min-h-0 flex-1">
             @csrf
             <div id="selectedInputs"></div>
 
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="px-5 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto">
                 <div>
                     <label class="block text-sm font-medium mb-1">Kode</label>
-                    <input type="text" name="kode" id="input-kode" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="kode" id="input-kode" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Kategori</label>
-                    <input type="text" name="kategori" id="input-kategori" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="kategori" id="input-kategori" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Sub Kategori</label>
-                    <input type="text" name="sub_kategori" id="input-sub_kategori" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="sub_kategori" id="input-sub_kategori" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Label</label>
-                    <input type="text" name="label" id="input-label" class="w-full border border-gray-300 rounded-lg px-4 py-3 disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="label" id="input-label" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Kosongkan jika tidak diubah">
                     <small id="hint-label" class="text-gray-500">Hanya bisa diubah satu per satu</small>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium mb-1">Nama Produk</label>
-                    <input type="text" name="name" id="input-name" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="name" id="input-name" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Jenis</label>
-                    <input type="text" name="jenis" id="input-jenis" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="jenis" id="input-jenis" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Satuan</label>
-                    <input type="text" name="satuan" id="input-satuan" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="satuan" id="input-satuan" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Harga Beli (Rp)</label>
-                    <input type="number" name="harga_beli" id="input-harga_beli" step="0.01" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="number" name="harga_beli" id="input-harga_beli" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Harga Jual (Rp)</label>
-                    <input type="number" name="harga_jual" id="input-harga_jual" step="0.01" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="number" name="harga_jual" id="input-harga_jual" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Harga Jual Satuan Publis (Rp)</label>
+                    <input type="text" id="input-satuan_publis" readonly class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-700" placeholder="Harga Jual ÷ Isi">
+                    <small class="text-gray-500">Otomatis dari Harga Jual ÷ Isi</small>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Isi</label>
+                    <input type="number" name="isi" id="input-isi" min="1" step="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Role</label>
-                    <select name="role" id="input-role" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                    <select name="role" id="input-role" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                         <option value="">-- Tidak Diubah --</option>
                         <option value="jual">Jual</option>
                         <option value="tidak_dijual">Tidak Dijual</option>
@@ -273,18 +288,18 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Status</label>
-                    <input type="text" name="status" id="input-status" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Kosongkan jika tidak diubah">
+                    <input type="text" name="status" id="input-status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Kosongkan jika tidak diubah">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium mb-1">Tanggal Rilis</label>
-                    <input type="date" name="tanggal_rilis" id="input-tanggal_rilis" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                    <input type="date" name="tanggal_rilis" id="input-tanggal_rilis" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <small class="text-gray-500">Kosongkan jika tidak diubah</small>
                 </div>
             </div>
 
-            <div class="p-6 border-t flex gap-4">
-                <button type="button" onclick="closeBulkModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-xl">Batal</button>
-                <button type="submit" onclick="return confirm('Simpan perubahan untuk produk terpilih?')" class="flex-1 bg-yellow-600 text-white py-3 rounded-xl font-medium">Simpan Perubahan</button>
+            <div class="px-5 py-3 border-t flex gap-3 shrink-0">
+                <button type="button" onclick="closeBulkModal()" class="flex-1 bg-gray-500 text-white py-2 rounded-xl">Batal</button>
+                <button type="submit" onclick="return confirm('Simpan perubahan untuk produk terpilih?')" class="flex-1 bg-yellow-600 text-white py-2 rounded-xl font-medium">Simpan Perubahan</button>
             </div>
         </form>
     </div>
@@ -400,6 +415,7 @@ function showBulkEditModal() {
     document.getElementById('input-satuan').value = getSameValue(selected, 'satuan');
     document.getElementById('input-harga_beli').value = getSameValue(selected, 'hargaBeli');
     document.getElementById('input-harga_jual').value = getSameValue(selected, 'hargaJual');
+    document.getElementById('input-isi').value = getSameValue(selected, 'isi');
     document.getElementById('input-status').value = getSameValue(selected, 'status');
     document.getElementById('input-tanggal_rilis').value = getSameValue(selected, 'tanggalRilis');
 
@@ -407,8 +423,21 @@ function showBulkEditModal() {
     document.getElementById('input-role').value = roleValue || '';
 
     document.getElementById('modalCount').textContent = selected.length;
+    hitungSatuanPublis();
     document.getElementById('bulkEditModal').classList.remove('hidden');
 }
+
+function hitungSatuanPublis() {
+    const jual = parseFloat(document.getElementById('input-harga_jual').value);
+    const isi  = Math.max(1, parseInt(document.getElementById('input-isi').value, 10) || 1);
+    const el   = document.getElementById('input-satuan_publis');
+    el.value = isNaN(jual) ? '' : Math.round(jual / isi).toLocaleString('id-ID');
+}
+document.addEventListener('DOMContentLoaded', function () {
+    ['input-harga_jual', 'input-isi'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', hitungSatuanPublis);
+    });
+});
 
 function closeBulkModal() {
     document.getElementById('bulkEditModal').classList.add('hidden');
