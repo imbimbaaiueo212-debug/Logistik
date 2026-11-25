@@ -30,6 +30,7 @@
     No RA {{ $batch->no_ra ?: '#' . $batch->id }} &middot; Supplier {{ $batch->supplier->nama_supplier ?? '-' }} &middot; Berlaku mulai {{ $tglBerlaku }} &middot; {{ $batch->labelStatus() }}
     @if($batch->nomor_surat) &middot; Surat {{ $batch->nomor_surat }} @endif
     @if($batch->tanggal_surat) ({{ $batch->tanggal_surat->format('d/m/Y') }}) @endif
+    @if(request('kelompok') === 'modul') &middot; <b>Filter: Modul</b> @elseif(request('kelompok') === 'lainnya') &middot; <b>Filter: Selain Modul</b> @endif
     &middot; harga jual per satuan &middot; dicetak {{ now()->format('d/m/Y H:i') }}
 </div>
 <table>
@@ -46,11 +47,15 @@
         </tr>
     </thead>
     <tbody>
-    @php $grupSebelum = null; @endphp
+    @php
+        $grupSebelum = null;
+        $rows = $rows->sortBy(fn ($x) => ($jual[$x->id]['modul'] ?? false) ? 0 : 1)->values();
+    @endphp
     @forelse($rows as $r)
-        @if($grupSebelum !== $r->grup)
-            @php $grupSebelum = $r->grup; @endphp
-            <tr class="grup"><td colspan="10">{{ $r->grup }}</td></tr>
+        @php $labelGrup = ($jual[$r->id]['modul'] ?? false) ? 'Modul' : 'Selain Modul'; @endphp
+        @if($grupSebelum !== $labelGrup)
+            @php $grupSebelum = $labelGrup; @endphp
+            <tr class="grup"><td colspan="10">{{ $labelGrup }}</td></tr>
         @endif
         @php
             $p = $produk[$r->id] ?? null;

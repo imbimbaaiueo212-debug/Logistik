@@ -705,6 +705,12 @@ class PenyesuaianHargaController extends Controller
             $sudah26[$r->id] = $this->sudahMengikuti2026($r, $p);
         }
 
+        // Filter kelompok (halaman Jual): "modul" = hanya produk Modul, "lainnya" = selain Modul (Raport, Seragam, dll)
+        if (in_array($request->get('kelompok'), ['modul', 'lainnya'], true)) {
+            $mau = $request->get('kelompok') === 'modul';
+            $rows = $rows->filter(fn ($r) => (bool) ($jual[$r->id]['modul'] ?? false) === $mau)->values();
+        }
+
         if ($request->filled('status')) {
             $s = $request->get('status');
             $rows = $rows->filter(fn ($r) => $status[$r->id] === $s)->values();

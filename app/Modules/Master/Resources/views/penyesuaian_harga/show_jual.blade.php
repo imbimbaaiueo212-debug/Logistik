@@ -81,7 +81,7 @@
     <div class="font-semibold text-[#162749] text-sm mb-1">ACC Jual</div>
     <div class="text-xs text-gray-600 mb-2">
         Harga beli sudah di-ACC. Centang produk yang harga beli &amp; harga jualnya mau dipindah ke Master Product (bulk). Yang tidak dicentang tidak berubah.
-        @if(request()->hasAny(['grup', 'cari']))
+        @if(request()->hasAny(['grup', 'kelompok', 'cari']))
             <b class="text-[#E85D2A]">Filter sedang aktif: hanya baris yang tampil yang ikut dipilih.</b>
         @endif
     </div>
@@ -105,9 +105,10 @@
 <form method="GET" action="{{ route('penyesuaian-harga-jual.show', $batch->id) }}" class="{{ $card }} p-4 mb-4 flex flex-wrap gap-3 items-end">
     <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Kelompok</label>
-        <select name="grup" class="{{ $inp }}">
+        <select name="kelompok" class="{{ $inp }}">
             <option value="">Semua</option>
-            @foreach($grupList as $g) <option value="{{ $g }}" @selected(request('grup') === $g)>{{ $g }}</option> @endforeach
+            <option value="modul" @selected(request('kelompok') === 'modul')>Modul</option>
+            <option value="lainnya" @selected(request('kelompok') === 'lainnya')>Selain Modul (Raport, Seragam, dll)</option>
         </select>
     </div>
     <div>
@@ -143,11 +144,15 @@
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-            @php $grupSebelum = null; @endphp
+            @php
+                $grupSebelum = null;
+                $rows = $rows->sortBy(fn ($x) => ($jual[$x->id]['modul'] ?? false) ? 0 : 1)->values();
+            @endphp
             @forelse($rows as $r)
-                @if($grupSebelum !== $r->grup)
-                    @php $grupSebelum = $r->grup; @endphp
-                    <tr class="bg-gray-50"><td colspan="10" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
+                @php $labelGrup = ($jual[$r->id]['modul'] ?? false) ? 'Modul' : 'Selain Modul'; @endphp
+                @if($grupSebelum !== $labelGrup)
+                    @php $grupSebelum = $labelGrup; @endphp
+                    <tr class="bg-gray-50"><td colspan="10" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}</td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
