@@ -1,6 +1,6 @@
 @extends('layouts.panel')
 
-@section('title', 'Data Casdana')
+@section('title', 'Data Kasdana')
 
 @push('styles')
 <style>
@@ -35,7 +35,7 @@
     {{-- ============ HEADER ============ --}}
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div class="min-w-0">
-            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Data Casdana</h1>
+            <h1 class="text-2xl sm:text-[28px] leading-tight font-bold text-navy-950">Data Kasdana</h1>
             <p class="mt-1 text-sm text-navy-950/55">Import & Kelola Data Transaksi Kas Dana</p>
         </div>
 

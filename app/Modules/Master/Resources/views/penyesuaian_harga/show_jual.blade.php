@@ -81,7 +81,7 @@
     <div class="font-semibold text-[#162749] text-sm mb-1">ACC Jual</div>
     <div class="text-xs text-gray-600 mb-2">
         Harga beli sudah di-ACC. Centang produk yang harga beli &amp; harga jualnya mau dipindah ke Master Product (bulk). Yang tidak dicentang tidak berubah.
-        @if(request()->hasAny(['grup', 'kelompok', 'cari']))
+        @if(request()->hasAny(['grup', 'kelompok', 'selisih', 'cari']))
             <b class="text-[#E85D2A]">Filter sedang aktif: hanya baris yang tampil yang ikut dipilih.</b>
         @endif
     </div>
@@ -102,6 +102,32 @@
 </div>
 @endif
 
+@php
+    $rs = $ringkasSelisih;
+    $fmtRp = fn ($x) => 'Rp ' . number_format(abs($x), 0, ',', '.');
+@endphp
+<div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+    <div class="{{ $card }} px-4 py-3 border-l-4 border-l-green-600">
+        <div class="text-xs text-gray-500">Lebih tinggi dari harga jual 2024</div>
+        <div class="text-lg font-bold text-green-700">&#9650; +{{ $fmtRp($rs['total_naik']) }}</div>
+        <div class="text-[11px] text-gray-500">{{ $rs['naik'] }} produk</div>
+    </div>
+    <div class="{{ $card }} px-4 py-3 border-l-4 border-l-red-600">
+        <div class="text-xs text-gray-500">Lebih rendah dari harga jual 2024</div>
+        <div class="text-lg font-bold text-red-600">&#9660; &minus;{{ $fmtRp($rs['total_turun']) }}</div>
+        <div class="text-[11px] text-gray-500">{{ $rs['turun'] }} produk</div>
+    </div>
+    <div class="{{ $card }} px-4 py-3 border-l-4 border-l-gray-400">
+        <div class="text-xs text-gray-500">Sama dengan harga jual 2024</div>
+        <div class="text-lg font-bold text-gray-600">{{ $rs['sama'] }} produk</div>
+    </div>
+    <div class="{{ $card }} px-4 py-3 border-l-4 border-l-[#162749]">
+        <div class="text-xs text-gray-500">Total selisih bersih</div>
+        <div class="text-lg font-bold {{ $rs['bersih'] > 0 ? 'text-green-700' : ($rs['bersih'] < 0 ? 'text-red-600' : 'text-gray-600') }}">{{ $rs['bersih'] > 0 ? '+' : ($rs['bersih'] < 0 ? '−' : '') }}{{ $fmtRp($rs['bersih']) }}</div>
+        <div class="text-[11px] text-gray-500">naik dikurangi turun (per satuan)</div>
+    </div>
+</div>
+
 <form method="GET" action="{{ route('penyesuaian-harga-jual.show', $batch->id) }}" class="{{ $card }} p-4 mb-4 flex flex-wrap gap-3 items-end">
     <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Kelompok</label>
@@ -109,6 +135,14 @@
             <option value="">Semua</option>
             <option value="modul" @selected(request('kelompok') === 'modul')>Modul</option>
             <option value="lainnya" @selected(request('kelompok') === 'lainnya')>Selain Modul (Raport, Seragam, dll)</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Selisih</label>
+        <select name="selisih" class="{{ $inp }}">
+            <option value="">Semua</option>
+            <option value="naik" @selected(request('selisih') === 'naik')>Lebih tinggi dari 2024</option>
+            <option value="turun" @selected(request('selisih') === 'turun')>Lebih rendah dari 2024</option>
         </select>
     </div>
     <div>
@@ -134,6 +168,7 @@
                 <th colspan="3" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Baru 2026</th>
                 <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Selisih<br><span class="normal-case font-normal">jual bulat &minus; lama</span></th>
                 <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Kenaikan<br><span class="normal-case font-normal">harga jual %</span></th>
+                <th rowspan="2" class="px-3 py-3 text-left border-l border-white/20">Keterangan</th>
                 <th rowspan="2" class="px-3 py-3 text-left">Status</th>
             </tr>
             <tr>
@@ -153,7 +188,7 @@
                 @php $labelGrup = ($jual[$r->id]['modul'] ?? false) ? 'Modul' : 'Selain Modul'; @endphp
                 @if($grupSebelum !== $labelGrup)
                     @php $grupSebelum = $labelGrup; @endphp
-                    <tr class="bg-gray-50"><td colspan="11" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}</td></tr>
+                    <tr class="bg-gray-50"><td colspan="12" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}</td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
@@ -198,6 +233,13 @@
                     <td class="px-3 py-2 text-right whitespace-nowrap {{ $warnaPct }}">
                         {{ $persen === null ? '-' : $panahPct . ($persen > 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}
                     </td>
+                    <td class="px-3 py-2 text-xs border-l border-gray-100 {{ $warnaSel }}">
+                        @if($selisih === null) -
+                        @elseif($selisih > 0) Lebih tinggi Rp {{ number_format($selisih, 0, ',', '.') }} dari harga jual 2024
+                        @elseif($selisih < 0) Lebih rendah Rp {{ number_format(abs($selisih), 0, ',', '.') }} dari harga jual 2024
+                        @else Sama dengan harga jual 2024
+                        @endif
+                    </td>
                     <td class="px-3 py-2">
                         @if(! $p)
                             <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">Produk belum ketemu</span>
@@ -220,7 +262,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="11" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
+                <tr><td colspan="12" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
             @endforelse
         </tbody>
     </table>

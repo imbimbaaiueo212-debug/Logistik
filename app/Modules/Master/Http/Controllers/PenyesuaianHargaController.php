@@ -711,6 +711,40 @@ class PenyesuaianHargaController extends Controller
             $rows = $rows->filter(fn ($r) => (bool) ($jual[$r->id]['modul'] ?? false) === $mau)->values();
         }
 
+        // Ringkasan selisih harga jual (Jual Bulat - Jual Lama 2024, per satuan), dihitung dari baris yang tampil sebelum filter selisih
+        $selisihBaris = function ($r) use ($jual) {
+            $lama = $jual[$r->id]['lama_satuan'] ?? null;
+            $baru = $jual[$r->id]['baru_satuan'] ?? null;
+
+            return ($lama !== null && $baru !== null) ? (float) $baru - (float) $lama : null;
+        };
+        $ringkasSelisih = ['naik' => 0, 'total_naik' => 0.0, 'turun' => 0, 'total_turun' => 0.0, 'sama' => 0];
+        foreach ($rows as $r) {
+            $d = $selisihBaris($r);
+            if ($d === null) {
+                continue;
+            }
+            if ($d > 0) {
+                $ringkasSelisih['naik']++;
+                $ringkasSelisih['total_naik'] += $d;
+            } elseif ($d < 0) {
+                $ringkasSelisih['turun']++;
+                $ringkasSelisih['total_turun'] += $d;
+            } else {
+                $ringkasSelisih['sama']++;
+            }
+        }
+        $ringkasSelisih['bersih'] = $ringkasSelisih['total_naik'] + $ringkasSelisih['total_turun'];
+
+        if (in_array($request->get('selisih'), ['naik', 'turun'], true)) {
+            $naik = $request->get('selisih') === 'naik';
+            $rows = $rows->filter(function ($r) use ($selisihBaris, $naik) {
+                $d = $selisihBaris($r);
+
+                return $d !== null && ($naik ? $d > 0 : $d < 0);
+            })->values();
+        }
+
         if ($request->filled('status')) {
             $s = $request->get('status');
             $rows = $rows->filter(fn ($r) => $status[$r->id] === $s)->values();
@@ -729,7 +763,7 @@ class PenyesuaianHargaController extends Controller
 
         $grupList = [PenyesuaianHargaData::GRUP_MODUL, PenyesuaianHargaData::GRUP_SERAGAM];
 
-        return compact('rows', 'produk', 'otomatis', 'ganda', 'status', 'jual', 'sudah26', 'ringkas', 'grupList');
+        return compact('rows', 'produk', 'otomatis', 'ganda', 'status', 'jual', 'sudah26', 'ringkas', 'ringkasSelisih', 'grupList');
     }
 
     /**
