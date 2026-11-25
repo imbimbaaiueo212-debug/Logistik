@@ -43,16 +43,28 @@
                 </div>
                 <div class="text-xs text-gray-600 mt-1 space-y-0.5">
                     <div>
+                        No RA: <b>{{ $batch->no_ra ?: '-' }}</b> &middot; Supplier: <b>{{ $batch->supplier->nama_supplier ?? '-' }}</b>
+                    </div>
+                    <div>
                         Surat: <b>{{ $batch->nomor_surat ?: '-' }}</b>
                         @if($batch->tanggal_surat) &middot; {{ $batch->tanggal_surat->format('d/m/Y') }} @endif
                         @if($batch->berlaku_mulai) &middot; berlaku mulai <b>{{ $batch->berlaku_mulai->format('d/m/Y') }}</b> @endif
                     </div>
                     <div>Diimport oleh {{ $batch->creator->name ?? '-' }} pada {{ $batch->created_at->format('d/m/Y H:i') }}</div>
                     <details class="pt-1" @if($errors->any()) open @endif>
-                        <summary class="cursor-pointer text-[#E85D2A] underline">Ubah info (judul, nomor surat, tanggal)</summary>
+                        <summary class="cursor-pointer text-[#E85D2A] underline">Ubah info (supplier, judul, nomor surat, tanggal)</summary>
                         <form method="POST" action="{{ route('penyesuaian-harga.ubah-info', $batch->id) }}" class="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2 max-w-4xl">
                             @csrf
                             @if($errors->any()) <div class="md:col-span-4 text-red-700">{{ $errors->first() }}</div> @endif
+                            <div class="md:col-span-4">
+                                <label class="block text-[11px] text-gray-500 mb-0.5">Supplier</label>
+                                <select name="supplier_id" class="{{ $inp }} w-full">
+                                    <option value="">-- Belum dipilih --</option>
+                                    @foreach($suppliers as $sp)
+                                        <option value="{{ $sp->id }}" @selected((string) old('supplier_id', $batch->supplier_id) === (string) $sp->id)>{{ $sp->nama_supplier }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="md:col-span-4">
                                 <label class="block text-[11px] text-gray-500 mb-0.5">Judul (kosong = otomatis)</label>
                                 <input type="text" name="judul" value="{{ old('judul', $batch->judul) }}" maxlength="150" placeholder="{{ 'Perubahan Harga ' . ($batch->berlaku_mulai ?? $batch->created_at)->translatedFormat('F Y') }}" class="{{ $inp }} w-full">
@@ -80,11 +92,33 @@
                             @if($batch->catatan_review) &middot; {{ $batch->catatan_review }} @endif
                         </div>
                     @endif
-                    <div class="pt-1">
+                    <div class="pt-1 space-y-1">
                         @foreach($batch->files as $f)
-                            <a href="{{ route('penyesuaian-harga.berkas', [$batch->id, $f->id]) }}" target="_blank"
-                               class="inline-block mr-2 text-[#E85D2A] underline">{{ $f->labelJenis() }}@if($f->jenis === 'data') ({{ $f->nama }})@endif</a>
+                            <div class="flex items-center gap-1">
+                                <a href="{{ route('penyesuaian-harga.berkas', [$batch->id, $f->id]) }}" target="_blank"
+                                   class="text-[#E85D2A] underline">{{ $f->labelJenis() }} ({{ $f->nama }})</a>
+                                @if($f->jenis === 'lampiran' && $batch->isMenunggu())
+                                    <form method="POST" action="{{ route('penyesuaian-harga.lampiran-hapus', [$batch->id, $f->id]) }}" class="inline"
+                                          onsubmit="return confirm('Hapus lampiran ini?')">
+                                        @csrf
+                                        <button type="submit" class="text-red-500 hover:text-red-700 px-1" title="Hapus lampiran">&times;</button>
+                                    </form>
+                                @endif
+                            </div>
                         @endforeach
+
+                        <details class="pt-1">
+                            <summary class="cursor-pointer text-[#162749] underline">+ Tambah surat / lampiran / bukti</summary>
+                            <form method="POST" action="{{ route('penyesuaian-harga.lampiran', $batch->id) }}" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2">
+                                @csrf
+                                <input type="file" name="lampiran[]" multiple required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" class="{{ $inp }}">
+                                <button class="bg-[#162749] text-white px-4 py-2 rounded-xl text-sm">Upload</button>
+                                <span class="text-[11px] text-gray-400">PDF, gambar, Word, Excel. Maks 10 MB per file. Tidak mengubah harga.</span>
+                            </form>
+                            @if($errors->has('lampiran') || $errors->has('lampiran.*'))
+                                <div class="text-xs text-red-600 mt-1">{{ $errors->first('lampiran') ?: $errors->first('lampiran.*') }}</div>
+                            @endif
+                        </details>
                     </div>
                 </div>
             </div>
@@ -103,7 +137,7 @@
             <div class="mt-3 border-t border-gray-100 pt-3">
                 <div class="text-sm text-gray-700 mb-2">
                     Harga di Master Product <b>belum berubah</b>. Jika disetujui: Harga Beli = harga 2026 percetakan, Harga Jual otomatis
-                    (Modul &times; {{ $fmtPengali($pengaliModul) }}, selain Modul &times; {{ $fmtPengali($pengaliLain) }}, dibulatkan ke atas per Rp 50).
+                    (Modul &times; {{ $fmtPengali($pengaliModul) }}, selain Modul &times; {{ $fmtPengali($pengaliLain) }}, dibulatkan ke ribuan terdekat per satuan).
                 </div>
                 @if($belumCocokBatch > 0)
                     <div class="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-3 py-2 mb-2">
@@ -144,9 +178,13 @@
 
 
 @php
-    $suratFile = $batch->files->firstWhere('jenis', 'surat');
-    $suratExt  = $suratFile ? strtolower(pathinfo($suratFile->path, PATHINFO_EXTENSION)) : null;
-    $suratUrl  = $suratFile ? route('penyesuaian-harga.berkas', [$batch->id, $suratFile->id]) : null;
+    // surat + lampiran yang bisa dilihat di jendela "Lihat Surat"
+    $dokumen = $batch->files->whereIn('jenis', ['surat', 'lampiran'])->values()->map(fn ($f) => [
+        'url'   => route('penyesuaian-harga.berkas', [$batch->id, $f->id]),
+        'nama'  => $f->nama,
+        'label' => $f->labelJenis(),
+        'ext'   => strtolower(pathinfo($f->path, PATHINFO_EXTENSION)),
+    ]);
 @endphp
 
 {{-- ===================== RINGKASAN ===================== --}}
@@ -190,8 +228,8 @@
     <button class="bg-[#162749] text-white px-4 py-2 rounded-xl text-sm">Filter</button>
     <a href="{{ route('penyesuaian-harga.show', $batch->id) }}" class="border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm">Reset</a>
     <div class="ml-auto flex items-center gap-2">
-        @if($suratFile)
-            <button type="button" onclick="bukaSurat()" class="border border-[#162749] text-[#162749] px-4 py-2 rounded-xl text-sm hover:bg-gray-50">Lihat Surat</button>
+        @if($dokumen->isNotEmpty())
+            <button type="button" onclick="bukaSurat()" class="border border-[#162749] text-[#162749] px-4 py-2 rounded-xl text-sm hover:bg-gray-50">{{ $dokumen->count() > 1 ? 'Lihat Surat & Lampiran' : 'Lihat Surat' }}</button>
         @endif
             <a href="{{ route('penyesuaian-harga.pdf', ['batch' => $batch->id] + request()->query()) }}" target="_blank"
        class="bg-[#E85D2A] text-white px-4 py-2 rounded-xl text-sm">Unduh PDF</a>
@@ -208,10 +246,10 @@
                 </th>
                 <th class="px-3 py-3 text-left">No</th>
                 <th class="px-3 py-3 text-left">Nama Produk</th>
-                <th class="px-3 py-3 text-right">Harga 2024<br><span class="normal-case font-normal">Supplier</span></th>
+                <th class="px-3 py-3 text-right">Harga 2024<br><span class="normal-case font-normal">Percetakan</span></th>
                 <th class="px-3 py-3 text-right">Harga 2024<br><span class="normal-case font-normal">Aplikasi (Harga Beli)</span></th>
                 <th class="px-3 py-3 text-right">Selisih</th>
-                <th class="px-3 py-3 text-right">Harga 2026<br><span class="normal-case font-normal">Pengajuan Supplier (Harga Beli Baru)</span></th>
+                <th class="px-3 py-3 text-right">Harga 2026<br><span class="normal-case font-normal">Pengajuan Percetakan (Harga Beli Baru)</span></th>
                 <th class="px-3 py-3 text-right">Kenaikan<br><span class="normal-case font-normal">%</span></th>
                 <th class="px-3 py-3 text-left">Status</th>
             </tr>
@@ -279,45 +317,75 @@
     Harga Beli baru = harga 2026 pengajuan percetakan. Harga Jual ikut berubah otomatis saat di-ACC, lihat rinciannya di menu Penyesuaian Harga &rarr; Jual.
     Harga di Master Product hanya berubah setelah import di-ACC.
 </p>
-{{-- ===================== MODAL LIHAT SURAT ===================== --}}
-@if($suratFile)
+{{-- ===================== MODAL LIHAT SURAT & LAMPIRAN ===================== --}}
+@if($dokumen->isNotEmpty())
 <div id="modalSurat" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4" onclick="if(event.target===this)tutupSurat()">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl flex flex-col" style="height: 92vh;">
         <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
             <div class="min-w-0">
-                <div class="font-semibold text-[#162749]">Surat Permohonan / Bukti</div>
-                <div class="text-[11px] text-gray-400 truncate">{{ $suratFile->nama }}</div>
+                <div class="font-semibold text-[#162749]" id="judulSurat">Surat Permohonan / Bukti</div>
+                <div class="text-[11px] text-gray-400 truncate" id="namaSurat"></div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-                <a href="{{ $suratUrl }}" target="_blank" class="text-xs text-[#E85D2A] underline">Buka di tab baru</a>
+                <a id="tabBaruSurat" href="#" target="_blank" class="text-xs text-[#E85D2A] underline">Buka di tab baru</a>
                 <button type="button" onclick="tutupSurat()" class="text-gray-500 hover:text-gray-800 text-xl leading-none">&times;</button>
             </div>
         </div>
-        <div class="flex-1 min-h-0 bg-gray-100 overflow-auto rounded-b-2xl">
-            @if($suratExt === 'pdf')
-                <iframe id="frameSurat" data-src="{{ $suratUrl }}#toolbar=0&navpanes=0&view=FitH" title="Surat permohonan" class="w-full h-full"></iframe>
-            @elseif(in_array($suratExt, ['jpg', 'jpeg', 'png'], true))
-                <img src="{{ $suratUrl }}" alt="Surat permohonan" class="w-full h-auto">
-            @else
-                <div class="p-8 text-sm text-gray-500 text-center">
-                    File {{ strtoupper($suratExt) }} tidak bisa ditampilkan langsung.<br>
-                    <a href="{{ $suratUrl }}" class="text-[#E85D2A] underline">Unduh surat</a>
-                </div>
-            @endif
-        </div>
+        <div id="tabSurat" class="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-2 empty:hidden"></div>
+        <div id="isiSurat" class="flex-1 min-h-0 bg-gray-100 overflow-auto rounded-b-2xl"></div>
     </div>
 </div>
 <script>
-    function bukaSurat() {
-        var m = document.getElementById('modalSurat'), f = document.getElementById('frameSurat');
-        if (f && !f.src) f.src = f.dataset.src;
-        m.classList.remove('hidden'); m.classList.add('flex');
-    }
-    function tutupSurat() {
-        var m = document.getElementById('modalSurat');
-        m.classList.add('hidden'); m.classList.remove('flex');
-    }
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tutupSurat(); });
+    (function () {
+        var DOK = @json($dokumen);
+        var aktif = 0;
+
+        function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function tampil(i) {
+            aktif = i;
+            var d = DOK[i];
+            document.getElementById('judulSurat').textContent = d.label;
+            document.getElementById('namaSurat').textContent = d.nama;
+            document.getElementById('tabBaruSurat').href = d.url;
+
+            var isi = document.getElementById('isiSurat');
+            if (d.ext === 'pdf') {
+                isi.innerHTML = '<iframe title="' + esc(d.label) + '" class="w-full h-full" src="' + d.url + '#toolbar=0&navpanes=0&view=FitH"></iframe>';
+            } else if (['jpg', 'jpeg', 'png'].indexOf(d.ext) !== -1) {
+                isi.innerHTML = '<img src="' + d.url + '" alt="' + esc(d.label) + '" class="w-full h-auto">';
+            } else {
+                isi.innerHTML = '<div class="p-8 text-sm text-gray-500 text-center">File ' + esc(d.ext.toUpperCase()) +
+                    ' tidak bisa ditampilkan langsung.<br><a href="' + d.url + '" class="text-[#E85D2A] underline">Unduh file</a></div>';
+            }
+
+            var tab = document.getElementById('tabSurat');
+            tab.innerHTML = '';
+            if (DOK.length > 1) {
+                DOK.forEach(function (x, n) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.textContent = (n + 1) + '. ' + x.nama;
+                    b.className = 'px-3 py-1 rounded-full text-xs border max-w-[16rem] truncate ' +
+                        (n === i ? 'bg-[#162749] text-white border-[#162749]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50');
+                    b.onclick = function () { tampil(n); };
+                    tab.appendChild(b);
+                });
+            }
+        }
+
+        window.bukaSurat = function () {
+            var m = document.getElementById('modalSurat');
+            tampil(aktif);
+            m.classList.remove('hidden'); m.classList.add('flex');
+        };
+        window.tutupSurat = function () {
+            var m = document.getElementById('modalSurat');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            document.getElementById('isiSurat').innerHTML = '';
+        };
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') window.tutupSurat(); });
+    })();
 </script>
 @endif
 

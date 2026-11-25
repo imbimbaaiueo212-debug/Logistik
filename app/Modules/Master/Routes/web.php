@@ -132,6 +132,8 @@ Route::prefix('penyesuaian-harga')
         Route::post('/{id}/ubah-info', [$c, 'ubahInfo'])->whereNumber('id')->name('ubah-info');
         Route::post('/{id}/hapus', [$c, 'hapus'])->whereNumber('id')->name('hapus');
         Route::post('/{id}/tolak', [$c, 'tolak'])->whereNumber('id')->name('tolak');
+        Route::post('/{id}/lampiran', [$c, 'tambahLampiran'])->whereNumber('id')->name('lampiran');
+        Route::post('/{id}/berkas/{fileId}/hapus', [$c, 'hapusLampiran'])->whereNumber(['id', 'fileId'])->name('lampiran-hapus');
         Route::get('/{id}/berkas/{fileId}', [$c, 'berkas'])->whereNumber(['id', 'fileId'])->name('berkas');
     });
 
@@ -145,5 +147,6 @@ Route::prefix('penyesuaian-harga-jual')
 
         Route::get('/', [$c, 'indexJual'])->name('index');
         Route::get('/unduh-pdf', [$c, 'pdfJual'])->name('pdf');
+        Route::post('/{id}/pengali', [$c, 'simpanPengali'])->whereNumber('id')->name('pengali');
         Route::get('/{id}', [$c, 'showJual'])->whereNumber('id')->name('show');
     });

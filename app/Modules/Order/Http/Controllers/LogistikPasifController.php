@@ -1362,6 +1362,13 @@ public function getModalData(Request $request)
             $jasaKurir = $item->ekspedisi;
             $service   = $item->service_pengiriman;
 
+            // Jasa Kurir & Service diambil dari "Shipping Method" biMBA Shop (mis. "JNE REG" -> JNE + REG)
+            [$kurirShop, $serviceShop] = \App\Modules\Order\Support\ShippingMethod::dariInvoice($item->id_pesan);
+            if (filled($kurirShop)) {
+                $jasaKurir = $kurirShop;
+                $service   = $serviceShop ?: $service;
+            }
+
             if ($isManualMajalah) {
                 $jasaKurir = $jasaKurir ?: 'Lion Parcel';
                 $service   = $service   ?: 'REGPACK';

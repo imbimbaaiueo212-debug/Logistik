@@ -920,15 +920,22 @@
                                     <option value="BIGPACK">BIGPACK</option>
                                 </select>`;
                         } else {
+                            // Isi otomatis dari Shipping Method biMBA Shop (mis. "JNE REG" -> JNE + REG)
+                            const kurirAwal   = (item.jasa_kurir || '').toString().trim();
+                            const serviceAwal = (item.service_kurir || '').toString().trim();
+                            const opsiKurir   = ['JNE', 'TIKI', 'Lion Parcel'];
+                            if (kurirAwal && !opsiKurir.some(o => o.toLowerCase() === kurirAwal.toLowerCase())) {
+                                opsiKurir.push(kurirAwal);
+                            }
+                            const escAttr = t => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
                             jasaKurirHtml = `
                                 <select class="jasa-kurir-select w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm">
                                     <option value="">Pilih atau ketik jasa kurir...</option>
-                                    <option value="JNE">JNE</option>
-                                    <option value="TIKI">TIKI</option>
-                                    <option value="Lion Parcel">Lion Parcel</option>
+                                    ${opsiKurir.map(o => `<option value="${escAttr(o)}" ${o.toLowerCase() === kurirAwal.toLowerCase() ? 'selected' : ''}>${escAttr(o)}</option>`).join('')}
                                 </select>`;
 
-                            serviceKurirHtml = `<input type="text" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG / YES / CTC / dll">`;
+                            serviceKurirHtml = `<input type="text" value="${escAttr(serviceAwal)}" class="service-kurir w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="REG / YES / CTC / dll">`;
                         }
 
                         catatanHtml = `<input type="text" class="catatan w-full border border-gray-300 rounded-2xl px-3 py-2.5 text-sm" placeholder="Catatan tambahan...">`;

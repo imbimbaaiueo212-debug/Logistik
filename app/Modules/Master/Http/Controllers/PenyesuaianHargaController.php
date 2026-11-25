@@ -46,14 +46,51 @@ class PenyesuaianHargaController extends Controller
     /** Detail perubahan harga jual: harga jual lama, baru, dan persentase kenaikannya. */
     public function showJual(Request $request, int $id)
     {
-        $batch = PenyesuaianHargaBatch::with('files')->findOrFail($id);
+        $batch = PenyesuaianHargaBatch::with(['files', 'supplier'])->findOrFail($id);
         $data  = $this->dataTampilan($request, $batch);
 
         return view('master::penyesuaian_harga.show_jual', $data + [
             'batch'        => $batch,
-            'pengaliModul' => Product::PENGALI_MODUL,
-            'pengaliLain'  => Product::PENGALI_LAINNYA,
+            'pengaliModul' => $batch->pengaliModul(),
+            'pengaliLain'  => $batch->pengaliLain(),
         ]);
+    }
+
+    /** Simpan pengali harga jual (diisi manual): Modul mis. 1,49 dan selain Modul mis. 1,2. Hanya sebelum di-ACC. */
+    public function simpanPengali(Request $request, int $id)
+    {
+        $batch = PenyesuaianHargaBatch::findOrFail($id);
+
+        if (! $batch->isMenunggu()) {
+            return back()->with('error', 'Pengali tidak bisa diubah karena import ini sudah diproses.');
+        }
+
+        // Boleh ketik koma (1,49) maupun titik (1.49).
+        // Kosong atau 0 = tanpa pengali (x1): harga jual mengikuti harga beli.
+        $bersih = function ($v) {
+            $v = str_replace(',', '.', trim((string) $v));
+            return ($v === '' || (is_numeric($v) && (float) $v == 0.0)) ? '1' : $v;
+        };
+        $request->merge([
+            'pengali_modul' => $bersih($request->input('pengali_modul')),
+            'pengali_lain'  => $bersih($request->input('pengali_lain')),
+        ]);
+
+        $data = $request->validate([
+            'pengali_modul' => ['required', 'numeric', 'min:1', 'max:5'],
+            'pengali_lain'  => ['required', 'numeric', 'min:1', 'max:5'],
+        ], [
+            '*.numeric' => 'Pengali harus berupa angka, mis. 1,49',
+            '*.min'     => 'Pengali minimal 1 (kosongkan atau isi 0 supaya harga jual sama dengan harga beli).',
+            '*.max'     => 'Pengali maksimal 5.',
+        ]);
+
+        $batch->update([
+            'pengali_modul' => $data['pengali_modul'],
+            'pengali_lain'  => $data['pengali_lain'],
+        ]);
+
+        return redirect()->route('penyesuaian-harga-jual.show', $batch->id)->with('success', 'Pengali harga jual disimpan. Harga jual dihitung ulang.');
     }
 
     /** Unduh PDF harga jual sebelum & sesudah (filter ikut terbawa). */
@@ -69,7 +106,7 @@ class PenyesuaianHargaController extends Controller
 
     private function daftar(Request $request, bool $jual)
     {
-        $q = PenyesuaianHargaBatch::withCount('rows')->orderByDesc('berlaku_mulai')->orderByDesc('id');
+        $q = PenyesuaianHargaBatch::with('supplier')->withCount('rows')->orderByDesc('berlaku_mulai')->orderByDesc('id');
         $tgl = 'COALESCE(berlaku_mulai, DATE(created_at))';
 
         if ($request->filled('tahun')) {
@@ -110,13 +147,14 @@ class PenyesuaianHargaController extends Controller
         return view('master::penyesuaian_harga.create', [
             'punyaMenunggu' => PenyesuaianHargaBatch::where('status', PenyesuaianHargaBatch::MENUNGGU)->exists(),
             'parserSiap'    => class_exists(\Smalot\PdfParser\Parser::class),
+            'suppliers'     => \App\Modules\Master\Models\Supplier::orderBy('nama_supplier')->get(['id', 'nama_supplier']),
         ]);
     }
 
     /** Detail satu perubahan harga: info surat, ACC, tabel perbandingan. */
     public function show(Request $request, int $id)
     {
-        $batch = PenyesuaianHargaBatch::with(['files', 'creator', 'reviewer'])->findOrFail($id);
+        $batch = PenyesuaianHargaBatch::with(['files', 'creator', 'reviewer', 'supplier'])->findOrFail($id);
         $data  = $this->dataTampilan($request, $batch);
 
         $bolehReview = $batch->isMenunggu() && Auth::user()->isAdmin()
@@ -125,8 +163,9 @@ class PenyesuaianHargaController extends Controller
         return view('master::penyesuaian_harga.show', $data + [
             'batch'        => $batch,
             'bolehReview'  => $bolehReview,
-            'pengaliModul' => Product::PENGALI_MODUL,
-            'pengaliLain'  => Product::PENGALI_LAINNYA,
+            'suppliers'    => \App\Modules\Master\Models\Supplier::orderBy('nama_supplier')->get(['id', 'nama_supplier']),
+            'pengaliModul' => $batch->pengaliModul(),
+            'pengaliLain'  => $batch->pengaliLain(),
         ]);
     }
 
@@ -145,17 +184,24 @@ class PenyesuaianHargaController extends Controller
     public function import(Request $request, PenyesuaianHargaPdfParser $parser)
     {
         $request->validate([
+            'supplier_id'   => ['required', 'integer', 'exists:suppliers,id'],
             'surat'         => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx', 'max:10240'],
             'data'          => ['required', 'array', 'min:1', 'max:10'],
             'data.*'        => ['file', 'mimes:pdf,xls,xlsx,csv,txt', 'max:10240'],
+            'lampiran'      => ['nullable', 'array', 'max:10'],
+            'lampiran.*'    => ['file', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx', 'max:10240'],
             'judul'         => ['nullable', 'string', 'max:150'],
             'nomor_surat'   => ['nullable', 'string', 'max:100'],
             'tanggal_surat' => ['nullable', 'date'],
             'berlaku_mulai' => ['required', 'date'],
             'catatan'       => ['nullable', 'string', 'max:1000'],
         ], [
+            'supplier_id.required'            => 'Pilih supplier untuk RA ini.',
+            'supplier_id.exists'              => 'Supplier tidak ditemukan di Master Suplier.',
             'surat.required'                  => 'Surat permohonan wajib diupload.',
             'berlaku_mulai.required'          => 'Tanggal berlaku harga wajib diisi (mis. 1 Desember).',
+            'lampiran.*.mimes'                => 'Lampiran harus berformat PDF, JPG, PNG, Word, atau Excel.',
+            'lampiran.*.max'                  => 'Setiap lampiran maksimal 10 MB.',
             'surat.mimes'                     => 'Surat harus berformat PDF, JPG, PNG, Word, atau Excel.',
             'data.required'                   => 'File data perubahan harga wajib diupload.',
             'data.*.mimes'                    => 'Data perubahan harus berformat Excel (xls/xlsx), CSV, atau PDF.',
@@ -245,6 +291,8 @@ class PenyesuaianHargaController extends Controller
         // 2) Simpan batch, berkas, dan baris data
         $batch = DB::transaction(function () use ($request, $sumber, $baris, $nomor, $tanggal) {
             $batch = PenyesuaianHargaBatch::create([
+                'no_ra'         => PenyesuaianHargaBatch::buatNoRa(),
+                'supplier_id'   => (int) $request->input('supplier_id'),
                 'judul'         => $request->filled('judul') ? trim($request->input('judul')) : null,
                 'nomor_surat'   => $nomor,
                 'tanggal_surat' => $tanggal,
@@ -262,6 +310,18 @@ class PenyesuaianHargaController extends Controller
                 }
                 $batch->files()->create([
                     'jenis'  => str_starts_with($jenis, 'data') ? 'data' : $jenis,
+                    'path'   => $f->store('penyesuaian-harga', 'local'),
+                    'nama'   => $f->getClientOriginalName(),
+                    'ukuran' => $f->getSize(),
+                ]);
+            }
+
+            foreach ((array) $request->file('lampiran') as $f) {
+                if (! $f) {
+                    continue;
+                }
+                $batch->files()->create([
+                    'jenis'  => 'lampiran',
                     'path'   => $f->store('penyesuaian-harga', 'local'),
                     'nama'   => $f->getClientOriginalName(),
                     'ukuran' => $f->getSize(),
@@ -360,7 +420,9 @@ class PenyesuaianHargaController extends Controller
                         (float) $r->harga_2026,
                         $p->jenis,
                         (int) $p->isi,
-                        $r->grup === PenyesuaianHargaData::GRUP_MODUL
+                        $r->grup === PenyesuaianHargaData::GRUP_MODUL,
+                        $batch->pengaliModul(),
+                        $batch->pengaliLain()
                     );
 
                     $r->harga_beli_sebelum = $p->harga_beli;
@@ -381,6 +443,9 @@ class PenyesuaianHargaController extends Controller
                 }
 
                 $batch->update([
+                    // simpan pengali yang dipakai supaya angka "harga asli" di halaman Jual tetap bisa dilihat
+                    'pengali_modul'  => $batch->pengaliModul(),
+                    'pengali_lain'   => $batch->pengaliLain(),
                     'status'         => PenyesuaianHargaBatch::DIPUBLIKASI,
                     'reviewed_by'    => Auth::id(),
                     'reviewed_at'    => now(),
@@ -433,6 +498,7 @@ class PenyesuaianHargaController extends Controller
     public function ubahInfo(Request $request, int $id)
     {
         $data = $request->validate([
+            'supplier_id'   => ['nullable', 'integer', 'exists:suppliers,id'],
             'judul'         => ['nullable', 'string', 'max:150'],
             'nomor_surat'   => ['nullable', 'string', 'max:100'],
             'tanggal_surat' => ['nullable', 'date'],
@@ -441,6 +507,7 @@ class PenyesuaianHargaController extends Controller
 
         $batch = PenyesuaianHargaBatch::findOrFail($id);
         $batch->update([
+            'supplier_id'   => $data['supplier_id'] ?? $batch->supplier_id,
             'judul'         => filled($data['judul'] ?? null) ? trim($data['judul']) : null,
             'nomor_surat'   => filled($data['nomor_surat'] ?? null) ? trim($data['nomor_surat']) : null,
             'tanggal_surat' => $data['tanggal_surat'] ?? null,
@@ -468,6 +535,50 @@ class PenyesuaianHargaController extends Controller
         });
 
         return redirect()->route('penyesuaian-harga.index')->with('success', 'Import dihapus. Harga di Master Product tidak berubah.');
+    }
+
+    /** Tambah surat / lampiran / bukti ke import yang sudah ada (tidak mengubah harga, boleh kapan saja). */
+    public function tambahLampiran(Request $request, int $id)
+    {
+        $batch = PenyesuaianHargaBatch::findOrFail($id);
+
+        $request->validate([
+            'lampiran'   => ['required', 'array', 'min:1', 'max:10'],
+            'lampiran.*' => ['file', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx', 'max:10240'],
+        ], [
+            'lampiran.required' => 'Pilih minimal satu file lampiran.',
+            'lampiran.*.mimes'  => 'Lampiran harus berformat PDF, JPG, PNG, Word, atau Excel.',
+            'lampiran.*.max'    => 'Setiap lampiran maksimal 10 MB.',
+        ]);
+
+        $jumlah = 0;
+        foreach ((array) $request->file('lampiran') as $f) {
+            $batch->files()->create([
+                'jenis'  => 'lampiran',
+                'path'   => $f->store('penyesuaian-harga', 'local'),
+                'nama'   => $f->getClientOriginalName(),
+                'ukuran' => $f->getSize(),
+            ]);
+            $jumlah++;
+        }
+
+        return redirect()->route('penyesuaian-harga.show', $batch->id)->with('success', $jumlah . ' lampiran ditambahkan.');
+    }
+
+    /** Hapus satu lampiran (hanya jenis lampiran dan hanya selama menunggu ACC). */
+    public function hapusLampiran(int $id, int $fileId)
+    {
+        $batch = PenyesuaianHargaBatch::findOrFail($id);
+        $f     = PenyesuaianHargaFile::where('batch_id', $id)->where('jenis', 'lampiran')->findOrFail($fileId);
+
+        if (! $batch->isMenunggu()) {
+            return back()->with('error', 'Lampiran tidak bisa dihapus karena import ini sudah diproses.');
+        }
+
+        Storage::disk('local')->delete($f->path);
+        $f->delete();
+
+        return back()->with('success', 'Lampiran dihapus.');
     }
 
     /** Lihat berkas asli (surat / PDF data), file privat. */
@@ -543,7 +654,7 @@ class PenyesuaianHargaController extends Controller
         foreach ($rows as $r) {
             $p = $produk[$r->id] ?? null;
             $status[$r->id] = $this->statusVs2024($r, $p);
-            $jual[$r->id]   = $this->infoHargaJual($r, $p);
+            $jual[$r->id]   = $this->infoHargaJual($r, $p, $batch);
             $sudah26[$r->id] = $this->sudahMengikuti2026($r, $p);
         }
 
@@ -572,14 +683,16 @@ class PenyesuaianHargaController extends Controller
      * Harga jual otomatis untuk satu baris: sebelum dipublikasi dihitung dari harga 2026,
      * sesudah dipublikasi memakai angka yang tersimpan saat ACC.
      */
-    private function infoHargaJual(PenyesuaianHarga $r, ?Product $p): array
+    private function infoHargaJual(PenyesuaianHarga $r, ?Product $p, ?PenyesuaianHargaBatch $batch = null): array
     {
         if (! $p) {
-            return ['sekarang' => null, 'baru' => null, 'pengali' => null, 'isi' => 1, 'beli_lama' => null, 'lama_satuan' => null, 'baru_satuan' => null];
+            return ['sekarang' => null, 'baru' => null, 'pengali' => null, 'isi' => 1, 'beli_lama' => null, 'lama_satuan' => null, 'baru_satuan' => null, 'asli_satuan' => null];
         }
 
         $isi = max(1, (int) $p->isi);
         $modul = $r->grup === PenyesuaianHargaData::GRUP_MODUL;
+        $pm = $batch?->pengaliModul();
+        $pl = $batch?->pengaliLain();
 
         // Tampilan halaman Jual: per SATUAN (tanpa dikali isi). Harga paket dihitung saat ACC dan tersimpan di Master Product.
         $jualLamaPaket = $r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual;
@@ -588,15 +701,17 @@ class PenyesuaianHargaController extends Controller
         return [
             'beli_lama'   => $beliLama !== null ? (float) $beliLama : null,
             'lama_satuan' => $jualLamaPaket !== null ? round((float) $jualLamaPaket / $isi) : null,
-            'baru_satuan' => Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, 1, $modul),
+            'baru_satuan' => Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, 1, $modul, $pm, $pl),
+            'asli_satuan' => Product::hargaJualAsli((float) $r->harga_2026, $p->jenis, $modul, $pm, $pl),
             // harga jual lama: sebelum diubah oleh publikasi (kalau sudah dipublikasi) atau yang berlaku sekarang
             'sekarang' => ($r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual) !== null
                 ? (float) ($r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual)
                 : null,
             'baru'     => $r->diterapkan_pada && $r->harga_jual_baru !== null
                 ? (float) $r->harga_jual_baru
-                : Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, $isi, $modul),
-            'pengali'  => Product::pengaliJual($p->jenis, $modul),
+                : Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, $isi, $modul, $pm, $pl),
+            'pengali'  => Product::pengaliJual($p->jenis, $modul, $pm, $pl),
+            'modul'    => Product::adalahModul($p->jenis, $modul),
             'isi'      => $isi,
         ];
     }

@@ -169,9 +169,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (hb > 0 && isinya > 0) {
             const multiplier = jenis.includes('modul') ? 1.49 : 1.20;
-            const hargaDasar = hb * multiplier;
-            const hargaJual  = hargaDasar * isinya;
-            const hargaBulat = Math.ceil(hargaJual / 50) * 50;
+            // dibulatkan per satuan ke ribuan terdekat (3.499 -> 3.000, 3.500 -> 4.000), lalu x isi
+            let satuan = Math.round((hb * multiplier) / 1000) * 1000;
+            if (satuan < 1000) satuan = 1000;
+            const hargaBulat = satuan * isinya;
 
             displayHarga.value = 'Rp ' + hargaBulat.toLocaleString('id-ID');
         } else {

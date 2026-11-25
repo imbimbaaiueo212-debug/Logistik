@@ -2,18 +2,21 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Penyesuaian Harga</title>
+<title>Penyesuaian Harga Beli</title>
 <style>
-    body { font-family: DejaVu Sans, sans-serif; font-size: 8.5px; color: #111; }
-    h1 { font-size: 14px; margin: 0 0 2px; }
-    .sub { color: #555; margin-bottom: 8px; }
+    @page { margin: 24px 28px; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 9pt; color: #111; }
+    h1 { font-size: 13pt; margin: 0 0 3px; }
+    .sub { color: #555; margin-bottom: 8px; font-size: 8pt; }
     table { width: 100%; border-collapse: collapse; }
-    th { background: #162749; color: #fff; padding: 4px; text-align: right; font-size: 8px; }
+    th { background: #162749; color: #fff; padding: 5px 4px; text-align: right; font-size: 8.5pt; }
     th.l, td.l { text-align: left; }
-    td { padding: 3px 4px; border-bottom: 1px solid #ddd; text-align: right; }
+    td { padding: 4px 4px; border-bottom: 1px solid #ddd; text-align: right; font-size: 9pt; }
     tr.grup td { background: #f1f1f1; font-weight: bold; text-align: left; }
+    th.g { border-left: 1px solid #ffffff; }
+    td.g { border-left: 1px solid #888888; }
     .merah { color: #c00000; font-weight: bold; }
-    .kecil { color: #888; font-size: 7px; }
+    .kecil { color: #888; font-size: 7pt; }
 </style>
 </head>
 <body>
@@ -22,10 +25,10 @@
     $pct = fn ($v) => $v === null ? '-' : ($v > 0 ? '+' : '') . number_format($v, 2, ',', '.') . '%';
     $label = ['sama_beli' => 'Sama dengan 2024', 'sama_jual' => 'Sama (Harga Jual)', 'beda' => 'Beda dari 2024', 'belum_cocok' => 'Produk belum ketemu'];
 @endphp
-<h1>Penyesuaian Harga</h1>
+<h1>Penyesuaian Harga Beli{{ $batch ? ' — ' . $batch->namaTampil() : '' }}</h1>
 <div class="sub">
     @if($batch)
-        Import #{{ $batch->id }} &middot; {{ $batch->labelStatus() }}
+        No RA {{ $batch->no_ra ?: '#' . $batch->id }} &middot; Supplier {{ $batch->supplier->nama_supplier ?? '-' }} &middot; {{ $batch->labelStatus() }}
         @if($batch->nomor_surat) &middot; Surat {{ $batch->nomor_surat }} @endif
         @if($batch->tanggal_surat) ({{ $batch->tanggal_surat->format('d/m/Y') }}) @endif
     @else
@@ -36,10 +39,14 @@
 <table>
     <thead>
         <tr>
-            <th class="l">No</th><th class="l">Nama Produk</th>
-            <th>Harga 2024 Percetakan</th><th>Harga 2024 Aplikasi</th><th>Selisih</th>
-            <th>Harga 2026 (Beli Baru)</th><th>Kenaikan %</th>
-            <th class="l">Status</th>
+            <th rowspan="2" class="l">No</th><th rowspan="2" class="l">Nama Produk</th>
+            <th colspan="5" class="g" style="text-align:center">Harga Beli</th>
+            <th rowspan="2" class="g" style="text-align:center">Status</th>
+        </tr>
+        <tr>
+            <th class="g">Harga 2024<br>Percetakan</th><th>Harga 2024<br>Aplikasi</th>
+            <th class="g">Selisih</th>
+            <th class="g">Harga 2026<br>(Beli Baru)</th><th>Kenaikan %</th>
         </tr>
     </thead>
     <tbody>
@@ -61,12 +68,17 @@
         <tr>
             <td class="l">{{ $r->no }}</td>
             <td class="l">{{ $r->nama }}</td>
-            <td>{{ $rp($h24) }}</td>
+            <td class="g">{{ $rp($h24) }}</td>
             <td class="{{ $beda ? 'merah' : '' }}">{{ $rp($app) }}</td>
-            <td class="{{ $beda ? 'merah' : '' }}">{{ $app === null ? '-' : ($app - $h24 > 0 ? '+' : '') . number_format($app - $h24, 0, ',', '.') }}</td>
-            <td><b>{{ $rp($h26) }}</b></td>
+            <td class="g {{ $beda ? 'merah' : '' }}">{{ $app === null ? '-' : ($app - $h24 > 0 ? '+' : '') . number_format($app - $h24, 0, ',', '.') }}</td>
+            <td class="g"><b>{{ $rp($h26) }}</b></td>
             <td>{{ $pct($naikPdf) }}</td>
-            <td class="l {{ $beda ? 'merah' : '' }}">{{ $label[$status[$r->id]] ?? '' }}@if($r->diterapkan_pada) <span class="kecil">(dipublikasi)</span>@elseif($sudah26[$r->id] ?? false) <span class="kecil">(sudah mengikuti 2026)</span>@endif</td>
+            <td style="text-align:center; font-size: 11pt;" class="g {{ $beda ? 'merah' : '' }}">
+                @if(($status[$r->id] ?? '') === 'belum_cocok') -
+                @elseif($beda || ($status[$r->id] ?? '') === 'beda') &#10007;
+                @else <span style="color:#1a7f37">&#10003;</span>
+                @endif
+            </td>
         </tr>
     @endforeach
     </tbody>

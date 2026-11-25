@@ -54,6 +54,23 @@
             </div>
         @endif
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Supplier <span class="text-red-600">*</span></label>
+                <select name="supplier_id" id="supplierSelect" required class="{{ $inp }} w-full">
+                    <option value="">-- Pilih supplier --</option>
+                    @foreach($suppliers as $sp)
+                        <option value="{{ $sp->id }}" data-nama="{{ $sp->nama_supplier }}" @selected((string) old('supplier_id') === (string) $sp->id)>{{ $sp->nama_supplier }}</option>
+                    @endforeach
+                </select>
+                <p class="text-[11px] text-gray-400 mt-1">RA ini milik supplier mana. Terpilih otomatis dari kop surat bila namanya cocok; bisa diganti.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">No RA</label>
+                <input type="text" value="Dibuat otomatis saat import (mis. RA261125-01)" class="{{ $inp }} w-full bg-gray-100 text-gray-500" disabled>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">1. Surat permohonan / bukti <span class="text-red-600">*</span></label>
@@ -61,10 +78,16 @@
                 <p class="text-[11px] text-gray-400 mt-1">Disimpan sebagai bukti. PDF, gambar, Word, atau Excel. Maks 10 MB.</p>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">2. Data perubahan harga (boleh beberapa file) <span class="text-red-600">*</span></label>
-                <input type="file" name="data[]" multiple accept=".pdf,.xls,.xlsx,.csv,.txt" class="{{ $inp }} w-full" required>
-                <p class="text-[11px] text-gray-400 mt-1">Pilih semua file sekaligus (tahan Ctrl): Modul &amp; Raport, Seragam/Tas/KPK, dst. Excel, CSV, atau PDF.</p>
+                <label class="block text-xs font-medium text-gray-600 mb-1">2. Lampiran / bukti tambahan (opsional, boleh beberapa file)</label>
+                <input type="file" name="lampiran[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" class="{{ $inp }} w-full">
+                <p class="text-[11px] text-gray-400 mt-1">Surat lanjutan, lampiran, atau bukti lain. Bisa ditambah lagi nanti dari halaman detail.</p>
             </div>
+        </div>
+
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">3. Data perubahan harga (boleh beberapa file) <span class="text-red-600">*</span></label>
+            <input type="file" name="data[]" multiple accept=".pdf,.xls,.xlsx,.csv,.txt" class="{{ $inp }} w-full" required>
+            <p class="text-[11px] text-gray-400 mt-1">Pilih semua file sekaligus (tahan Ctrl): Modul &amp; Raport, Seragam/Tas/KPK, dst. Excel, CSV, atau PDF.</p>
         </div>
 
         <div class="mt-3">
@@ -76,7 +99,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Nomor surat</label>
                 <input type="text" name="nomor_surat" value="{{ old('nomor_surat') }}" class="{{ $inp }} w-full" placeholder="terbaca otomatis dari surat (periksa hasilnya)">
-                <p id="ocrStatus" class="text-[11px] mt-1 text-gray-400">Pilih file surat: judul (Perihal), nomor, tanggal, dan tanggal berlaku dibaca otomatis.</p>
+                <p id="ocrStatus" class="text-[11px] mt-1 text-gray-400">Pilih file surat: supplier, judul (Perihal), nomor, tanggal, dan tanggal berlaku dibaca otomatis.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal surat</label>
@@ -119,7 +142,7 @@
         var p = mentah.match(/Perihal\s*[:.]?[ \t]*([^\n\r]+)/i);
         if (!p) p = teks.match(/Perihal\s*[:.]?\s*(.+?)(?=\s+(?:Kepada|Yth|Dengan hormat)\b|$)/i);
         if (p) {
-            var per = p[1].replace(/\s+/g, ' ').replace(/^[:.\s]+|[\s.,;:]+$/g, '');
+            var per = p[1].replace(/\s+/g, ' ').replace(/\s+(?:Kepada|Yth|Dengan hormat)\b.*$/i, '').replace(/^[:.\s]+|[\s.,;:]+$/g, '');
             if (per.length >= 5) hasil.perihal = per.slice(0, 150);
         }
 
@@ -169,6 +192,22 @@
         return kanvas;
     }
 
+    // Cocokkan nama supplier (Master Suplier) dengan kop surat hasil OCR; pilih nama terpanjang yang ditemukan
+    function normal(t) {
+        return ' ' + String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\b(pt|cv|ud|tbk)\b/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    }
+    window.cocokSupplier = function (teks) {
+        var sel = document.getElementById('supplierSelect');
+        if (!sel) return null;
+        var isiTeks = normal(teks), terbaik = null, panjang = 0;
+        Array.prototype.forEach.call(sel.options, function (o) {
+            if (!o.value) return;
+            var nm = normal(o.dataset.nama);
+            if (nm.trim().length >= 3 && isiTeks.indexOf(nm) !== -1 && nm.length > panjang) { terbaik = o; panjang = nm.length; }
+        });
+        return terbaik;
+    };
+
     function isi(nama, nilai) {
         var el = document.querySelector('[name="' + nama + '"]');
         if (el && nilai && !el.value) { el.value = nilai; return true; }
@@ -192,6 +231,9 @@
             var info = window.ekstrakInfoSurat(hasil.data.text);
 
             var terisi = [];
+            var sel = document.getElementById('supplierSelect');
+            var sup = window.cocokSupplier(hasil.data.text);
+            if (sel && sup && !sel.value) { sel.value = sup.value; terisi.push('supplier ' + sup.dataset.nama); }
             if (isi('judul', info.perihal)) terisi.push('judul (dari Perihal)');
             if (isi('nomor_surat', info.nomor)) terisi.push('nomor ' + info.nomor);
             if (isi('tanggal_surat', info.tanggal)) terisi.push('tanggal surat');

@@ -29,6 +29,7 @@
         <div class="text-xs text-gray-600 space-y-0.5">
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="inline-block px-2 py-0.5 rounded-full text-xs {{ $statusBatch[$batch->status] ?? '' }}">{{ $batch->labelStatus() }}</span>
+                <span>No RA: <b>{{ $batch->no_ra ?: '-' }}</b> &middot; Supplier: <b>{{ $batch->supplier->nama_supplier ?? '-' }}</b> &middot;</span>
                 <span>Surat: <b>{{ $batch->nomor_surat ?: '-' }}</b>@if($batch->tanggal_surat) &middot; {{ $batch->tanggal_surat->format('d/m/Y') }}@endif</span>
             </div>
             @if($batch->isMenunggu())
@@ -38,6 +39,37 @@
         <a href="{{ route('penyesuaian-harga.show', $batch->id) }}" class="border border-[#162749] text-[#162749] px-4 py-2 rounded-xl text-sm hover:bg-gray-50">
             {{ $batch->isMenunggu() ? 'Buka di Beli untuk ACC' : 'Lihat di Beli' }}
         </a>
+    </div>
+</div>
+
+{{-- ===================== RUMUS HARGA JUAL (hanya tampil di layar, tidak ikut PDF) ===================== --}}
+<div class="{{ $card }} px-4 py-3 mb-4 border-l-4 border-l-[#E85D2A]">
+    <div class="font-semibold text-[#162749] text-sm mb-2">Rumus Harga Jual</div>
+
+    @if($batch->isMenunggu())
+        <form method="POST" action="{{ route('penyesuaian-harga-jual.pengali', $batch->id) }}" class="flex flex-wrap items-end gap-3 mb-2">
+            @csrf
+            @if($errors->any()) <div class="w-full text-xs text-red-700">{{ $errors->first() }}</div> @endif
+            <div>
+                <label class="block text-[11px] text-gray-500 mb-0.5">Pengali <b>Modul</b> (mis. 1,49)</label>
+                <input type="text" inputmode="decimal" name="pengali_modul" value="{{ old('pengali_modul', rtrim(rtrim(number_format($pengaliModul, 3, '.', ''), '0'), '.')) }}" class="{{ $inp }} w-28">
+            </div>
+            <div>
+                <label class="block text-[11px] text-gray-500 mb-0.5">Pengali <b>selain Modul</b> (mis. 1,2)</label>
+                <input type="text" inputmode="decimal" name="pengali_lain" value="{{ old('pengali_lain', rtrim(rtrim(number_format($pengaliLain, 3, '.', ''), '0'), '.')) }}" class="{{ $inp }} w-28">
+            </div>
+            <button class="bg-[#162749] text-white px-4 py-2 rounded-xl text-sm">Simpan &amp; Hitung Ulang</button>
+        </form>
+        <div class="text-[11px] text-gray-500 mb-2">Kosongkan atau isi 0 = tanpa pengali, harga jual mengikuti harga beli (&times;1).</div>
+    @endif
+
+    <div class="text-xs text-gray-700 space-y-0.5">
+        <div>&bull; <b>Modul</b> (semua produk Modul): Harga Beli &times; <b>{{ $fmtPengali($pengaliModul) }}</b>@if($pengaliModul == 1) <span class="text-gray-500">(tanpa pengali, sama dengan harga beli)</span>@endif</div>
+        <div>&bull; <b>Selain Modul</b>: Harga Beli &times; <b>{{ $fmtPengali($pengaliLain) }}</b>@if($pengaliLain == 1) <span class="text-gray-500">(tanpa pengali, sama dengan harga beli)</span>@endif</div>
+        <div>&bull; <b>Pembulatan</b> ke ribuan terdekat per satuan: sisa 500 ke atas naik, di bawah 500 turun.
+            Contoh: 3.350 &rarr; 3.000 &middot; 3.499 &rarr; 3.000 &middot; 3.500 &rarr; 4.000.
+            Di tabel, kolom Harga Jual Normal = sebelum dibulatkan, Harga Jual Bulat = sesudah dibulatkan.</div>
+        <div class="text-gray-500">Harga paket = harga jual satuan &times; isi, dihitung saat di-ACC dan tersimpan di Master Product.</div>
     </div>
 </div>
 
@@ -68,7 +100,7 @@
                 <th rowspan="2" class="px-3 py-3 text-left">No</th>
                 <th rowspan="2" class="px-3 py-3 text-left">Nama Produk</th>
                 <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Lama 2024</th>
-                <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Baru 2026</th>
+                <th colspan="3" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Baru 2026</th>
                 <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Kenaikan<br><span class="normal-case font-normal">harga jual %</span></th>
                 <th rowspan="2" class="px-3 py-3 text-left">Status</th>
             </tr>
@@ -76,7 +108,8 @@
                 <th class="px-3 pb-3 text-right border-l border-white/20">Harga Beli</th>
                 <th class="px-3 pb-3 text-right">Harga Jual</th>
                 <th class="px-3 pb-3 text-right border-l border-white/20">Harga Beli</th>
-                <th class="px-3 pb-3 text-right">Harga Jual</th>
+                <th class="px-3 pb-3 text-right">Harga Jual<br><span class="normal-case font-normal">Normal</span></th>
+                <th class="px-3 pb-3 text-right">Harga Jual<br><span class="normal-case font-normal">Bulat</span></th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -84,7 +117,7 @@
             @forelse($rows as $r)
                 @if($grupSebelum !== $r->grup)
                     @php $grupSebelum = $r->grup; @endphp
-                    <tr class="bg-gray-50"><td colspan="8" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
+                    <tr class="bg-gray-50"><td colspan="9" class="px-3 py-2 font-semibold text-[#162749]">{{ $r->grup }}</td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
@@ -98,11 +131,20 @@
                     <td class="px-3 py-2 text-gray-500">{{ $r->no }}</td>
                     <td class="px-3 py-2">
                         <div class="font-medium">{{ $r->nama }}</div>
-                        @if($p) <div class="text-[11px] text-gray-400">{{ $p->name }} ({{ $p->label }})</div> @endif
+                        @if($p)
+                            <div class="text-[11px] text-gray-400">{{ $p->name }} ({{ $p->label }})
+                                &middot; <span class="{{ ($j['modul'] ?? false) ? 'text-[#162749]' : 'text-[#E85D2A]' }} font-medium">{{ ($j['modul'] ?? false) ? 'Modul' : 'Bukan Modul' }} &times;{{ $fmtPengali($j['pengali']) }}</span>
+                            </div>
+                        @endif
                     </td>
                     <td class="px-3 py-2 text-right border-l border-gray-100">{{ $rp($j['beli_lama']) }}</td>
                     <td class="px-3 py-2 text-right text-gray-600">{{ $rp($lama) }}</td>
                     <td class="px-3 py-2 text-right border-l border-gray-100 font-semibold">{{ $rp($r->harga_2026) }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">
+                        @if($j['asli_satuan'] !== null)
+                            Rp {{ rtrim(rtrim(number_format($j['asli_satuan'], 2, ',', '.'), '0'), ',') }}
+                        @else - @endif
+                    </td>
                     <td class="px-3 py-2 text-right font-semibold">{{ $rp($baru) }}</td>
                     <td class="px-3 py-2 text-right {{ $persen === null ? 'text-gray-400' : ($persen >= 0 ? 'text-red-600' : 'text-green-700') }}">
                         {{ $persen === null ? '-' : ($persen >= 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}
@@ -125,7 +167,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
+                <tr><td colspan="9" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
             @endforelse
         </tbody>
     </table>

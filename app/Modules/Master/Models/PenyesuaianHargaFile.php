@@ -15,6 +15,7 @@ class PenyesuaianHargaFile extends Model
         return match ($this->jenis) {
             'surat'   => 'Surat permohonan / bukti',
             'data'    => 'Data perubahan harga',
+            'lampiran' => 'Lampiran / bukti',
             'modul'   => 'Data perubahan: Modul & Raport',
             'seragam' => 'Data perubahan: Seragam, Tas & KPK',
             default   => $this->jenis,

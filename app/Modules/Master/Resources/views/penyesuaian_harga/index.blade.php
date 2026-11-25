@@ -59,6 +59,8 @@
             <tr>
                 <th class="px-4 py-3 text-left">No</th>
                 <th class="px-4 py-3 text-left">Perubahan Harga</th>
+                <th class="px-4 py-3 text-left">No RA</th>
+                <th class="px-4 py-3 text-left">Supplier</th>
                 <th class="px-4 py-3 text-left">Tanggal Berlaku</th>
                 <th class="px-4 py-3 text-left">Nomor Surat</th>
                 <th class="px-4 py-3 text-left">Tanggal Surat</th>
@@ -78,6 +80,8 @@
                         </a>
                         <div class="text-[11px] text-gray-400">Perubahan ke-{{ $urutBatch[$b->id] ?? '-' }} tahun {{ $tgl->format('Y') }}</div>
                     </td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ $b->no_ra ?: '-' }}</td>
+                    <td class="px-4 py-3">{{ $b->supplier->nama_supplier ?? '-' }}</td>
                     <td class="px-4 py-3 font-semibold">{{ $tgl->translatedFormat('j F Y') }}</td>
                     <td class="px-4 py-3">{{ $b->nomor_surat ?: '-' }}</td>
                     <td class="px-4 py-3">{{ $b->tanggal_surat?->format('d/m/Y') ?? '-' }}</td>
@@ -86,7 +90,7 @@
                     <td class="px-4 py-3 text-gray-600">{{ $b->published_at?->format('d/m/Y') ?? '-' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">Belum ada perubahan harga. Klik "Import Perubahan Harga" di kanan atas.</td></tr>
+                <tr><td colspan="10" class="px-4 py-8 text-center text-gray-400">Belum ada perubahan harga. Klik "Import Perubahan Harga" di kanan atas.</td></tr>
             @endforelse
         </tbody>
     </table>

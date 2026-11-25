@@ -15,7 +15,7 @@ class PenyesuaianHargaBatch extends Model
     protected $table = 'penyesuaian_harga_batches';
 
     protected $fillable = [
-        'judul', 'nomor_surat', 'tanggal_surat', 'berlaku_mulai', 'catatan', 'status',
+        'no_ra', 'supplier_id', 'judul', 'nomor_surat', 'tanggal_surat', 'berlaku_mulai', 'catatan', 'status', 'pengali_modul', 'pengali_lain',
         'created_by', 'reviewed_by', 'reviewed_at', 'catatan_review', 'published_at',
     ];
 
@@ -25,6 +25,33 @@ class PenyesuaianHargaBatch extends Model
         'reviewed_at'   => 'datetime',
         'published_at'  => 'datetime',
     ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    /** Nomor RA otomatis: RA<yymmdd>-<urut harian>, mis. RA261125-01. Panggil di dalam transaksi. */
+    public static function buatNoRa(): string
+    {
+        $awalan = 'RA' . now()->format('ymd') . '-';
+        $terakhir = static::where('no_ra', 'like', $awalan . '%')->lockForUpdate()->orderByDesc('no_ra')->value('no_ra');
+        $urut = $terakhir ? ((int) substr($terakhir, strlen($awalan))) + 1 : 1;
+
+        return $awalan . str_pad((string) $urut, 2, '0', STR_PAD_LEFT);
+    }
+
+    /** Pengali harga jual untuk Modul (diisi manual di halaman Jual; kosong = bawaan). */
+    public function pengaliModul(): float
+    {
+        return $this->pengali_modul !== null ? (float) $this->pengali_modul : Product::PENGALI_MODUL;
+    }
+
+    /** Pengali harga jual untuk selain Modul. */
+    public function pengaliLain(): float
+    {
+        return $this->pengali_lain !== null ? (float) $this->pengali_lain : Product::PENGALI_LAINNYA;
+    }
 
     public function rows()
     {
