@@ -132,6 +132,7 @@
                 <th rowspan="2" class="px-3 py-3 text-left">Nama Produk</th>
                 <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Lama 2024</th>
                 <th colspan="3" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Baru 2026</th>
+                <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Selisih<br><span class="normal-case font-normal">jual bulat &minus; lama</span></th>
                 <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Kenaikan<br><span class="normal-case font-normal">harga jual %</span></th>
                 <th rowspan="2" class="px-3 py-3 text-left">Status</th>
             </tr>
@@ -152,7 +153,7 @@
                 @php $labelGrup = ($jual[$r->id]['modul'] ?? false) ? 'Modul' : 'Selain Modul'; @endphp
                 @if($grupSebelum !== $labelGrup)
                     @php $grupSebelum = $labelGrup; @endphp
-                    <tr class="bg-gray-50"><td colspan="10" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}</td></tr>
+                    <tr class="bg-gray-50"><td colspan="11" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}</td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
@@ -161,6 +162,11 @@
                     $baru = $j['baru_satuan'];
                     $sama = $p && ($sudah26[$r->id] ?? false);
                     $persen = ($lama !== null && $lama > 0 && $baru !== null) ? (($baru - $lama) / $lama) * 100 : null;
+                    $selisih = ($lama !== null && $baru !== null) ? $baru - $lama : null;
+                    $warnaSel = $selisih === null || $selisih == 0 ? 'text-gray-400' : ($selisih > 0 ? 'text-green-700' : 'text-red-600');
+                    $panahSel = $selisih === null || $selisih == 0 ? '' : ($selisih > 0 ? '▲ ' : '▼ ');
+                    $warnaPct = $persen === null || round($persen, 2) == 0 ? 'text-gray-400' : ($persen > 0 ? 'text-green-700' : 'text-red-600');
+                    $panahPct = $persen === null || round($persen, 2) == 0 ? '' : ($persen > 0 ? '▲ ' : '▼ ');
                 @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-3 py-2">
@@ -186,8 +192,11 @@
                         @else - @endif
                     </td>
                     <td class="px-3 py-2 text-right font-semibold">{{ $rp($baru) }}</td>
-                    <td class="px-3 py-2 text-right {{ $persen === null ? 'text-gray-400' : ($persen >= 0 ? 'text-red-600' : 'text-green-700') }}">
-                        {{ $persen === null ? '-' : ($persen >= 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}
+                    <td class="px-3 py-2 text-right whitespace-nowrap font-medium border-l border-gray-100 {{ $warnaSel }}">
+                        {{ $selisih === null ? '-' : $panahSel . ($selisih > 0 ? '+' : '') . number_format($selisih, 0, ',', '.') }}
+                    </td>
+                    <td class="px-3 py-2 text-right whitespace-nowrap {{ $warnaPct }}">
+                        {{ $persen === null ? '-' : $panahPct . ($persen > 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}
                     </td>
                     <td class="px-3 py-2">
                         @if(! $p)
@@ -211,7 +220,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="10" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
+                <tr><td colspan="11" class="px-3 py-8 text-center text-gray-400">Tidak ada data.</td></tr>
             @endforelse
         </tbody>
     </table>

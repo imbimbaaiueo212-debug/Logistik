@@ -63,6 +63,10 @@
             $lama = $j['lama_satuan']; $baru = $j['baru_satuan'];
             $selisih = ($lama !== null && $baru !== null) ? $baru - $lama : null;
             $persen = ($lama !== null && $lama > 0 && $baru !== null) ? (($baru - $lama) / $lama) * 100 : null;
+            $warnaSel = $selisih === null || $selisih == 0 ? '#6b7280' : ($selisih > 0 ? '#1a7f37' : '#d32f2f');
+            $panahSel = $selisih === null || $selisih == 0 ? '' : ($selisih > 0 ? '▲ ' : '▼ ');
+            $warnaPct = $persen === null || round($persen, 2) == 0 ? '#6b7280' : ($persen > 0 ? '#1a7f37' : '#d32f2f');
+            $panahPct = $persen === null || round($persen, 2) == 0 ? '' : ($persen > 0 ? '▲ ' : '▼ ');
         @endphp
         <tr>
             <td class="l">{{ $r->no }}</td>
@@ -72,8 +76,8 @@
             <td class="g"><b>{{ $rp($r->harga_2026) }}</b></td>
             <td>{{ $j['asli_satuan'] === null ? '-' : 'Rp ' . rtrim(rtrim(number_format($j['asli_satuan'], 2, ',', '.'), '0'), ',') }}</td>
             <td><b>{{ $rp($baru) }}</b></td>
-            <td class="g">{{ $selisih === null ? '-' : ($selisih > 0 ? '+' : '') . number_format($selisih, 0, ',', '.') }}</td>
-            <td>{{ $persen === null ? '-' : ($persen >= 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}</td>
+            <td class="g" style="color:{{ $warnaSel }}; font-weight:bold">{{ $selisih === null ? '-' : $panahSel . ($selisih > 0 ? '+' : '') . number_format($selisih, 0, ',', '.') }}</td>
+            <td style="color:{{ $warnaPct }}">{{ $persen === null ? '-' : $panahPct . ($persen > 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}</td>
             <td style="text-align:center; font-size: 11pt;">
                 @if(! $p) -
                 @elseif($r->diterapkan_pada || ($sudah26[$r->id] ?? false)) <span style="color:#1a7f37">&#10003;</span>
@@ -88,7 +92,7 @@
 </table>
 <div class="sub" style="margin-top:8px">
     Keterangan: <b>Selisih</b> = Harga Jual Bulat (2026) &minus; Harga Jual Lama (2024). <b>Kenaikan %</b> = Selisih &divide; Harga Jual Lama &times; 100.
-    Contoh: Rp 4.000 &minus; Rp 3.220 = <b>+780</b>; 780 &divide; 3.220 = <b>+24,22%</b>.
+    Contoh: Rp 4.000 &minus; Rp 3.220 = <b>+780</b>; 780 &divide; 3.220 = <b>+24,22%</b>. <span style="color:#1a7f37">&#9650; hijau = naik</span>, <span style="color:#d32f2f">&#9660; merah = turun</span>.
 </div>
 </body>
 </html>
