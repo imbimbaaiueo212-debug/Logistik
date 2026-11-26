@@ -173,10 +173,10 @@
                 <th rowspan="2" class="px-3 py-3 text-left">@if($bolehReviewJual)<input type="checkbox" id="pilihSemua" checked>@endif</th>
                 <th rowspan="2" class="px-3 py-3 text-left">No</th>
                 <th rowspan="2" class="px-3 py-3 text-left">Nama Produk</th>
-                <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Lama 2024</th>
-                <th colspan="3" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga Baru 2026</th>
-                <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Selisih<br><span class="normal-case font-normal">jual bulat &minus; lama</span></th>
-                <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Kenaikan<br><span class="normal-case font-normal">harga jual %</span></th>
+                <th colspan="2" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga 2024</th>
+                <th colspan="3" class="px-3 pt-3 pb-1 text-center border-l border-white/20">Harga 2026</th>
+                <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Selisih<br><span class="normal-case font-normal">(Bulat 2026 &minus; 2024)</span></th>
+                <th rowspan="2" class="px-3 py-3 text-right border-l border-white/20">Kenaikan %<br><span class="normal-case font-normal">(Selisih &divide; Jual 2024)</span></th>
                 <th rowspan="2" class="px-3 py-3 text-left border-l border-white/20">Keterangan</th>
                 <th rowspan="2" class="px-3 py-3 text-left">Status</th>
             </tr>
@@ -246,9 +246,9 @@
                     </td>
                     <td class="px-3 py-2 text-xs border-l border-gray-100 {{ $warnaSel }}">
                         @if($selisih === null) -
-                        @elseif($selisih > 0) Lebih tinggi Rp {{ number_format($selisih, 0, ',', '.') }} dari harga jual 2024
-                        @elseif($selisih < 0) Lebih rendah Rp {{ number_format(abs($selisih), 0, ',', '.') }} dari harga jual 2024
-                        @else Sama dengan harga jual 2024
+                        @elseif($selisih > 0) Harga jual 2026 lebih tinggi dari 2024
+                        @elseif($selisih < 0) Harga jual 2026 lebih rendah dari 2024
+                        @else Harga jual 2026 sama dengan 2024
                         @endif
                     </td>
                     <td class="px-3 py-2">

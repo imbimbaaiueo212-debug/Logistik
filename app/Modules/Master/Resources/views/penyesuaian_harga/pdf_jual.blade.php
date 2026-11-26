@@ -11,6 +11,7 @@
     .sub { color: #555; margin-bottom: 8px; font-size: 8pt; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     table.ringkas { margin-bottom: 8px; }
+    .catatan { font-size: 8pt; color: #333; line-height: 1.45; margin: 4px 0 8px; }
     table.ringkas td { border: 1px solid #cfcfcf; text-align: center; padding: 5px 4px; font-size: 9pt; }
     table.ringkas .judul { color: #555; font-size: 7.5pt; }
     table.ringkas .nilai { font-size: 11pt; font-weight: bold; }
@@ -45,6 +46,26 @@
     @if(request('selisih') === 'naik') &middot; <b>Filter: Lebih tinggi dari 2024</b> @elseif(request('selisih') === 'turun') &middot; <b>Filter: Lebih rendah dari 2024</b> @endif
     &middot; harga jual per satuan
 </div>
+@php
+    $pb = $batch->pembulatan();
+    $fmtR = fn ($n) => number_format($n, 0, ',', '.');
+    $fmtPct = fn ($v) => $v === null ? '-' : ($v > 0 ? '+' : ($v < 0 ? '&minus;' : '')) . number_format(abs($v), 2, ',', '.') . '%';
+@endphp
+<div class="catatan">
+    <b>Keterangan:</b><br>
+    Lebih tinggi/rendah dibanding Harga Jual 2024 (per satuan).<br>
+    Selisih = Harga Jual Bulat (2026) &minus; Harga Jual 2024.<br>
+    Kenaikan % = Selisih &divide; Harga Jual 2024 &times; 100.<br>
+    Contoh: Rp 4.000 &minus; Rp 3.220 = +780; 780 &divide; 3.220 = +24,22%.<br>
+    @if($pb === 0)
+        Pembulatan: tanpa pembulatan, Harga Jual Bulat = Harga Jual Normal.<br>
+    @else
+        Pembulatan: ke kelipatan Rp {{ $fmtR($pb) }} per satuan, sisa Rp {{ $fmtR($pb / 2) }} ke atas naik, di bawahnya turun.<br>
+        Contoh pembulatan: {{ $fmtR(floor(3.35 * $pb)) }} &rarr; {{ $fmtR(3 * $pb) }}; {{ $fmtR(floor(3.499 * $pb)) }} &rarr; {{ $fmtR(3 * $pb) }}; {{ $fmtR(3.5 * $pb) }} &rarr; {{ $fmtR(4 * $pb) }}.<br>
+    @endif
+    Harga Jual Normal = sebelum dibulatkan; Harga Jual Bulat = sesudah dibulatkan.<br>
+    <span style="color:#1a7f37">&#9650; hijau = naik</span>, <span style="color:#d32f2f">&#9660; merah = turun</span>.
+</div>
 @php $rs = $ringkasSelisih; $fmtRp = fn ($x) => 'Rp ' . number_format(abs($x), 0, ',', '.'); @endphp
 <table class="ringkas">
     <tr>
@@ -52,6 +73,12 @@
         <td><div class="judul">Lebih rendah dari harga jual 2024</div><div class="nilai" style="color:#d32f2f">&#9660; {{ $rs['turun'] }} produk</div></td>
         <td><div class="judul">Sama dengan harga jual 2024</div><div class="nilai" style="color:#555">{{ $rs['sama'] }} produk</div></td>
         <td><div class="judul">Total produk</div><div class="nilai" style="color:#162749">{{ $rs['naik'] + $rs['turun'] + $rs['sama'] }} produk</div></td>
+    </tr>
+    <tr>
+        <td><div class="judul">Rata-rata kenaikan (produk naik)</div><div class="nilai" style="color:#1a7f37">&#9650; {!! $fmtPct($rs['rata_naik_pct']) !!}</div></td>
+        <td><div class="judul">Rata-rata penurunan (produk turun)</div><div class="nilai" style="color:#d32f2f">&#9660; {!! $fmtPct($rs['rata_turun_pct']) !!}</div></td>
+        <td><div class="judul">Rata-rata seluruh produk</div><div class="nilai" style="color:#162749">{!! $fmtPct($rs['rata_semua_pct']) !!}</div></td>
+        <td><div class="judul">Pembulatan harga jual</div><div class="nilai" style="color:#162749">{{ $pb === 0 ? 'Tanpa pembulatan' : 'Rp ' . $fmtR($pb) }}</div></td>
     </tr>
 </table>
 @php
@@ -91,9 +118,9 @@
             <td style="color:{{ $warnaPct }}">{{ $persen === null ? '-' : $panahPct . ($persen > 0 ? '+' : '') . number_format($persen, 2, ',', '.') . '%' }}</td>
             <td class="l" style="color:{{ $warnaSel }}; font-size:8pt; padding-left:6px">
                 @if($selisih === null) -
-                @elseif($selisih > 0) Lebih tinggi Rp {{ number_format($selisih, 0, ',', '.') }}
-                @elseif($selisih < 0) Lebih rendah Rp {{ number_format(abs($selisih), 0, ',', '.') }}
-                @else Sama dengan 2024
+                @elseif($selisih > 0) Harga jual 2026 lebih tinggi dari 2024
+                @elseif($selisih < 0) Harga jual 2026 lebih rendah dari 2024
+                @else Harga jual 2026 sama dengan 2024
                 @endif
             </td>
             <td class="c" style="font-size: 11pt;">
@@ -112,10 +139,7 @@
     <tbody><tr><td colspan="11" class="l">Tidak ada data.</td></tr></tbody>
     </table>
 @endforelse
-<div class="sub" style="margin-top:8px">
-    Keterangan: <b>Lebih tinggi/rendah</b> dibanding Harga Jual Lama 2024 (per satuan). <b>Selisih</b> = Harga Jual Bulat (2026) &minus; Harga Jual Lama (2024). <b>Kenaikan %</b> = Selisih &divide; Harga Jual Lama &times; 100.
-    Contoh: Rp 4.000 &minus; Rp 3.220 = <b>+780</b>; 780 &divide; 3.220 = <b>+24,22%</b>. <span style="color:#1a7f37">&#9650; hijau = naik</span>, <span style="color:#d32f2f">&#9660; merah = turun</span>.
-</div>
+
 <script type="text/php">
     if (isset($pdf)) {
         $font  = $fontMetrics->get_font('DejaVu Sans', 'normal');

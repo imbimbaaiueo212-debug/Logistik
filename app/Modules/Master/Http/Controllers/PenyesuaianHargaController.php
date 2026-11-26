@@ -730,10 +730,22 @@ class PenyesuaianHargaController extends Controller
             return ($lama !== null && $baru !== null) ? (float) $baru - (float) $lama : null;
         };
         $ringkasSelisih = ['naik' => 0, 'total_naik' => 0.0, 'turun' => 0, 'total_turun' => 0.0, 'sama' => 0];
+        $jumlahPct = ['naik' => 0.0, 'turun' => 0.0, 'semua' => 0.0, 'n_semua' => 0];
         foreach ($rows as $r) {
             $d = $selisihBaris($r);
             if ($d === null) {
                 continue;
+            }
+            $lamaR = $jual[$r->id]['lama_satuan'] ?? null;
+            if ($lamaR !== null && (float) $lamaR > 0) {
+                $pct = $d / (float) $lamaR * 100;
+                $jumlahPct['semua'] += $pct;
+                $jumlahPct['n_semua']++;
+                if ($d > 0) {
+                    $jumlahPct['naik'] += $pct;
+                } elseif ($d < 0) {
+                    $jumlahPct['turun'] += $pct;
+                }
             }
             if ($d > 0) {
                 $ringkasSelisih['naik']++;
@@ -746,6 +758,10 @@ class PenyesuaianHargaController extends Controller
             }
         }
         $ringkasSelisih['bersih'] = $ringkasSelisih['total_naik'] + $ringkasSelisih['total_turun'];
+        // Rata-rata persentase (kenaikan, penurunan, seluruh produk) berdasarkan harga jual lama 2024
+        $ringkasSelisih['rata_naik_pct']  = $ringkasSelisih['naik'] > 0 ? $jumlahPct['naik'] / $ringkasSelisih['naik'] : null;
+        $ringkasSelisih['rata_turun_pct'] = $ringkasSelisih['turun'] > 0 ? $jumlahPct['turun'] / $ringkasSelisih['turun'] : null;
+        $ringkasSelisih['rata_semua_pct'] = $jumlahPct['n_semua'] > 0 ? $jumlahPct['semua'] / $jumlahPct['n_semua'] : null;
 
         if (in_array($request->get('selisih'), ['naik', 'turun'], true)) {
             $naik = $request->get('selisih') === 'naik';
