@@ -55,6 +55,7 @@ class PenyesuaianHargaController extends Controller
             'batch'           => $batch,
             'bolehReviewJual' => $bolehReviewJual,
             'pengaliModul' => $batch->pengaliModul(),
+            'pembulatan'   => $batch->pembulatan(),
             'pengaliLain'  => $batch->pengaliLain(),
         ]);
     }
@@ -77,12 +78,17 @@ class PenyesuaianHargaController extends Controller
         $request->merge([
             'pengali_modul' => $bersih($request->input('pengali_modul')),
             'pengali_lain'  => $bersih($request->input('pengali_lain')),
+            // Pembulatan: boleh ketik 1000 / 1.000; kosong atau 0 = tanpa pembulatan
+            'pembulatan'    => preg_replace('/[^0-9]/', '', (string) $request->input('pembulatan')) ?: '0',
         ]);
 
         $data = $request->validate([
             'pengali_modul' => ['required', 'numeric', 'min:1', 'max:5'],
             'pengali_lain'  => ['required', 'numeric', 'min:1', 'max:5'],
+            'pembulatan'    => ['required', 'integer', 'min:0', 'max:100000'],
         ], [
+            'pembulatan.integer' => 'Pembulatan harus angka bulat, mis. 100 atau 1000.',
+            'pembulatan.max'     => 'Pembulatan maksimal Rp 100.000.',
             '*.numeric' => 'Pengali harus berupa angka, mis. 1,49',
             '*.min'     => 'Pengali minimal 1 (kosongkan atau isi 0 supaya harga jual sama dengan harga beli).',
             '*.max'     => 'Pengali maksimal 5.',
@@ -91,9 +97,10 @@ class PenyesuaianHargaController extends Controller
         $batch->update([
             'pengali_modul' => $data['pengali_modul'],
             'pengali_lain'  => $data['pengali_lain'],
+            'pembulatan'    => $data['pembulatan'],
         ]);
 
-        return redirect()->route('penyesuaian-harga-jual.show', $batch->id)->with('success', 'Pengali harga jual disimpan. Harga jual dihitung ulang.');
+        return redirect()->route('penyesuaian-harga-jual.show', $batch->id)->with('success', 'Pengali dan pembulatan harga jual disimpan. Harga jual dihitung ulang.');
     }
 
     /** Unduh PDF harga jual sebelum & sesudah (filter ikut terbawa). */
@@ -102,8 +109,10 @@ class PenyesuaianHargaController extends Controller
         $batch = PenyesuaianHargaBatch::findOrFail((int) $request->get('batch'));
         $data  = $this->dataTampilan($request, $batch);
 
+        // enable_php / isPhpEnabled: dibutuhkan untuk footer nomor halaman (skrip di pdf_jual.blade.php)
         return Pdf::loadView('master::penyesuaian_harga.pdf_jual', $data + ['batch' => $batch])
             ->setPaper('a4', 'landscape')
+            ->setOptions(['enable_php' => true, 'isPhpEnabled' => true])
             ->stream('Penyesuaian-Harga-Jual-' . $batch->id . '.pdf');
     }
 
@@ -168,6 +177,7 @@ class PenyesuaianHargaController extends Controller
             'bolehReview'  => $bolehReview,
             'suppliers'    => \App\Modules\Master\Models\Supplier::orderBy('nama_supplier')->get(['id', 'nama_supplier']),
             'pengaliModul' => $batch->pengaliModul(),
+            'pembulatan'   => $batch->pembulatan(),
             'pengaliLain'  => $batch->pengaliLain(),
         ]);
     }
@@ -469,7 +479,8 @@ class PenyesuaianHargaController extends Controller
                         (int) $p->isi,
                         $r->grup === PenyesuaianHargaData::GRUP_MODUL,
                         $batch->pengaliModul(),
-                        $batch->pengaliLain()
+                        $batch->pengaliLain(),
+                        $batch->pembulatan()
                     );
 
                     $r->harga_beli_sebelum = $p->harga_beli;
@@ -780,6 +791,7 @@ class PenyesuaianHargaController extends Controller
         $modul = $r->grup === PenyesuaianHargaData::GRUP_MODUL;
         $pm = $batch?->pengaliModul();
         $pl = $batch?->pengaliLain();
+        $pb = $batch?->pembulatan();
 
         // Tampilan halaman Jual: per SATUAN (tanpa dikali isi). Harga paket dihitung saat ACC dan tersimpan di Master Product.
         $jualLamaPaket = $r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual;
@@ -788,7 +800,7 @@ class PenyesuaianHargaController extends Controller
         return [
             'beli_lama'   => $beliLama !== null ? (float) $beliLama : null,
             'lama_satuan' => $jualLamaPaket !== null ? round((float) $jualLamaPaket / $isi) : null,
-            'baru_satuan' => Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, 1, $modul, $pm, $pl),
+            'baru_satuan' => Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, 1, $modul, $pm, $pl, $pb),
             'asli_satuan' => Product::hargaJualAsli((float) $r->harga_2026, $p->jenis, $modul, $pm, $pl),
             // harga jual lama: sebelum diubah oleh publikasi (kalau sudah dipublikasi) atau yang berlaku sekarang
             'sekarang' => ($r->diterapkan_pada ? $r->harga_jual_sebelum : $p->harga_jual) !== null
@@ -796,7 +808,7 @@ class PenyesuaianHargaController extends Controller
                 : null,
             'baru'     => $r->diterapkan_pada && $r->harga_jual_baru !== null
                 ? (float) $r->harga_jual_baru
-                : Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, $isi, $modul, $pm, $pl),
+                : Product::hitungHargaJual((float) $r->harga_2026, $p->jenis, $isi, $modul, $pm, $pl, $pb),
             'pengali'  => Product::pengaliJual($p->jenis, $modul, $pm, $pl),
             'modul'    => Product::adalahModul($p->jenis, $modul),
             'isi'      => $isi,

@@ -16,7 +16,7 @@ class PenyesuaianHargaBatch extends Model
     protected $table = 'penyesuaian_harga_batches';
 
     protected $fillable = [
-        'no_ra', 'supplier_id', 'judul', 'nomor_surat', 'tanggal_surat', 'berlaku_mulai', 'catatan', 'status', 'pengali_modul', 'pengali_lain',
+        'no_ra', 'supplier_id', 'judul', 'nomor_surat', 'tanggal_surat', 'berlaku_mulai', 'catatan', 'status', 'pengali_modul', 'pengali_lain', 'pembulatan',
         'created_by', 'acc_beli_by', 'acc_beli_at', 'catatan_beli', 'reviewed_by', 'reviewed_at', 'catatan_review', 'published_at',
     ];
 
@@ -53,6 +53,12 @@ class PenyesuaianHargaBatch extends Model
     public function pengaliLain(): float
     {
         return $this->pengali_lain !== null ? (float) $this->pengali_lain : Product::PENGALI_LAINNYA;
+    }
+
+    /** Kelipatan pembulatan harga jual (Rp). Bawaan 1.000; 0 = tanpa pembulatan. */
+    public function pembulatan(): int
+    {
+        return $this->pembulatan === null ? 1000 : max(0, (int) $this->pembulatan);
     }
 
     public function rows()

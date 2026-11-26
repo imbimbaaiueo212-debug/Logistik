@@ -38,14 +38,22 @@ class Product extends Model
      * Harga jual otomatis dari harga beli.
      * $anggapModul: dipakai bila Jenis produk kosong dan barangnya masuk kelompok Modul.
      */
-    public static function hitungHargaJual(float $hargaBeli, ?string $jenis, int $isi = 1, bool $anggapModul = false, ?float $pengaliModul = null, ?float $pengaliLain = null): float
+    public static function hitungHargaJual(float $hargaBeli, ?string $jenis, int $isi = 1, bool $anggapModul = false, ?float $pengaliModul = null, ?float $pengaliLain = null, ?int $pembulatan = null): float
     {
-        // Pembulatan per SATUAN ke ribuan terdekat: 3.350 -> 3.000, 3.499 -> 3.000, 3.500 -> 4.000
-        $satuan = round(self::hargaJualAsli($hargaBeli, $jenis, $anggapModul, $pengaliModul, $pengaliLain) / 1000, 0, PHP_ROUND_HALF_UP) * 1000;
+        // Pembulatan per SATUAN ke kelipatan $pembulatan (bawaan 1.000): 3.350 -> 3.000, 3.499 -> 3.000, 3.500 -> 4.000
+        // $pembulatan = 0 -> TANPA pembulatan (harga jual = nilai normal hasil pengali)
+        $step  = $pembulatan === null ? 1000 : max(0, $pembulatan);
+        $asli  = self::hargaJualAsli($hargaBeli, $jenis, $anggapModul, $pengaliModul, $pengaliLain);
 
-        // Jaga-jaga: harga beli ada tetapi hasil bulat jadi 0 -> minimal Rp 1.000
-        if ($hargaBeli > 0 && $satuan < 1000) {
-            $satuan = 1000;
+        if ($step === 0) {
+            $satuan = round($asli, 2);
+        } else {
+            $satuan = round($asli / $step, 0, PHP_ROUND_HALF_UP) * $step;
+
+            // Jaga-jaga: harga beli ada tetapi hasil bulat jadi 0 -> minimal satu kelipatan
+            if ($hargaBeli > 0 && $satuan < $step) {
+                $satuan = $step;
+            }
         }
 
         // Harga paket = harga satuan x isi

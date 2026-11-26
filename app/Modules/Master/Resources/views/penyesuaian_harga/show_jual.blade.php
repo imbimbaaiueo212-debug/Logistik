@@ -61,17 +61,29 @@
                 <label class="block text-[11px] text-gray-500 mb-0.5">Pengali <b>selain Modul</b> (mis. 1,2)</label>
                 <input type="text" inputmode="decimal" name="pengali_lain" value="{{ old('pengali_lain', rtrim(rtrim(number_format($pengaliLain, 3, '.', ''), '0'), '.')) }}" class="{{ $inp }} w-28">
             </div>
+            <div>
+                <label class="block text-[11px] text-gray-500 mb-0.5"><b>Pembulatan</b> ke Rp (100 / 1000 / 0)</label>
+                <input type="text" inputmode="numeric" name="pembulatan" value="{{ old('pembulatan', $pembulatan) }}" class="{{ $inp }} w-28">
+            </div>
             <button class="bg-[#162749] text-white px-4 py-2 rounded-xl text-sm">Simpan &amp; Hitung Ulang</button>
         </form>
-        <div class="text-[11px] text-gray-500 mb-2">Kosongkan atau isi 0 = tanpa pengali, harga jual mengikuti harga beli (&times;1).</div>
+        <div class="text-[11px] text-gray-500 mb-2">Pengali kosong atau 0 = tanpa pengali, harga jual mengikuti harga beli (&times;1). Pembulatan kosong atau 0 = tanpa pembulatan, harga jual = nilai normal.</div>
     @endif
 
     <div class="text-xs text-gray-700 space-y-0.5">
         <div>&bull; <b>Modul</b> (semua produk Modul): Harga Beli &times; <b>{{ $fmtPengali($pengaliModul) }}</b>@if($pengaliModul == 1) <span class="text-gray-500">(tanpa pengali, sama dengan harga beli)</span>@endif</div>
         <div>&bull; <b>Selain Modul</b>: Harga Beli &times; <b>{{ $fmtPengali($pengaliLain) }}</b>@if($pengaliLain == 1) <span class="text-gray-500">(tanpa pengali, sama dengan harga beli)</span>@endif</div>
-        <div>&bull; <b>Pembulatan</b> ke ribuan terdekat per satuan: sisa 500 ke atas naik, di bawah 500 turun.
-            Contoh: 3.350 &rarr; 3.000 &middot; 3.499 &rarr; 3.000 &middot; 3.500 &rarr; 4.000.
+        @php
+            $fmtRb = fn ($n) => number_format($n, 0, ',', '.');
+            $setengah = $pembulatan / 2;
+        @endphp
+        @if($pembulatan === 0)
+            <div>&bull; <b>Pembulatan</b>: <b>tanpa pembulatan</b>. Harga Jual Bulat = Harga Jual Normal (hasil Harga Beli &times; pengali apa adanya).</div>
+        @else
+        <div>&bull; <b>Pembulatan</b> ke kelipatan <b>Rp {{ $fmtRb($pembulatan) }}</b> per satuan: sisa Rp {{ $fmtRb($setengah) }} ke atas naik, di bawahnya turun.
+            Contoh: {{ $fmtRb(floor(3.35 * $pembulatan)) }} &rarr; {{ $fmtRb(3 * $pembulatan) }} &middot; {{ $fmtRb(floor(3.499 * $pembulatan)) }} &rarr; {{ $fmtRb(3 * $pembulatan) }} &middot; {{ $fmtRb(3.5 * $pembulatan) }} &rarr; {{ $fmtRb(4 * $pembulatan) }}.
             Di tabel, kolom Harga Jual Normal = sebelum dibulatkan, Harga Jual Bulat = sesudah dibulatkan.</div>
+        @endif
         <div class="text-gray-500">Harga paket = harga jual satuan &times; isi, dihitung saat di-ACC dan tersimpan di Master Product.</div>
     </div>
 </div>
@@ -109,22 +121,19 @@
 <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
     <div class="{{ $card }} px-4 py-3 border-l-4 border-l-green-600">
         <div class="text-xs text-gray-500">Lebih tinggi dari harga jual 2024</div>
-        <div class="text-lg font-bold text-green-700">&#9650; +{{ $fmtRp($rs['total_naik']) }}</div>
-        <div class="text-[11px] text-gray-500">{{ $rs['naik'] }} produk</div>
+        <div class="text-lg font-bold text-green-700">&#9650; {{ $rs['naik'] }} produk</div>
     </div>
     <div class="{{ $card }} px-4 py-3 border-l-4 border-l-red-600">
         <div class="text-xs text-gray-500">Lebih rendah dari harga jual 2024</div>
-        <div class="text-lg font-bold text-red-600">&#9660; &minus;{{ $fmtRp($rs['total_turun']) }}</div>
-        <div class="text-[11px] text-gray-500">{{ $rs['turun'] }} produk</div>
+        <div class="text-lg font-bold text-red-600">&#9660; {{ $rs['turun'] }} produk</div>
     </div>
     <div class="{{ $card }} px-4 py-3 border-l-4 border-l-gray-400">
         <div class="text-xs text-gray-500">Sama dengan harga jual 2024</div>
         <div class="text-lg font-bold text-gray-600">{{ $rs['sama'] }} produk</div>
     </div>
     <div class="{{ $card }} px-4 py-3 border-l-4 border-l-[#162749]">
-        <div class="text-xs text-gray-500">Total selisih bersih</div>
-        <div class="text-lg font-bold {{ $rs['bersih'] > 0 ? 'text-green-700' : ($rs['bersih'] < 0 ? 'text-red-600' : 'text-gray-600') }}">{{ $rs['bersih'] > 0 ? '+' : ($rs['bersih'] < 0 ? '−' : '') }}{{ $fmtRp($rs['bersih']) }}</div>
-        <div class="text-[11px] text-gray-500">naik dikurangi turun (per satuan)</div>
+        <div class="text-xs text-gray-500">Total produk</div>
+        <div class="text-lg font-bold text-[#162749]">{{ $rs['naik'] + $rs['turun'] + $rs['sama'] }} produk</div>
     </div>
 </div>
 
@@ -182,13 +191,15 @@
         <tbody class="divide-y divide-gray-100">
             @php
                 $grupSebelum = null;
+                $nomorGrup = 0;
                 $rows = $rows->sortBy(fn ($x) => ($jual[$x->id]['modul'] ?? false) ? 0 : 1)->values();
             @endphp
             @forelse($rows as $r)
                 @php $labelGrup = ($jual[$r->id]['modul'] ?? false) ? 'Modul' : 'Selain Modul'; @endphp
                 @if($grupSebelum !== $labelGrup)
-                    @php $grupSebelum = $labelGrup; @endphp
-                    <tr class="bg-gray-50"><td colspan="12" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}</td></tr>
+                    @php $grupSebelum = $labelGrup; $nomorGrup = 0; @endphp
+                    <tr class="bg-gray-50"><td colspan="12" class="px-3 py-2 font-semibold text-[#162749]">{{ $labelGrup }}
+                        <span class="font-normal text-gray-500">| (harga jual = harga beli &times; {{ $fmtPengali($labelGrup === 'Modul' ? $pengaliModul : $pengaliLain) }})</span></td></tr>
                 @endif
                 @php
                     $p = $produk[$r->id] ?? null;
@@ -209,7 +220,7 @@
                             <input type="checkbox" class="cekBaris" name="ids[]" value="{{ $r->id }}" form="formSetujui" checked>
                         @endif
                     </td>
-                    <td class="px-3 py-2 text-gray-500">{{ $r->no }}</td>
+                    <td class="px-3 py-2 text-gray-500">{{ ++$nomorGrup }}</td>
                     <td class="px-3 py-2">
                         <div class="font-medium">{{ $r->nama }}</div>
                         @if($p)
